@@ -134,27 +134,37 @@ function runSlitherProcess(
 // Prepare project directory
 // ---------------------------------------------------------------------------
 
+function sanitizeVersion(raw: string): string {
+  const clean = raw
+    .replace(/^v/, "")
+    .replace(/\+.*$/, "")
+    .replace(/-.*$/, "");
+  if (!/^\d+\.\d+\.\d+$/.test(clean)) {
+    throw new Error(`Invalid compiler version: ${raw}`);
+  }
+  return clean;
+}
+
 function prepareProject(
   sourceFiles: Array<{ name: string; content: string }>,
   compilerVersion: string,
   optimizationUsed: boolean,
   optimizationRuns: number | null,
-): string {
+): { tmpDir: string; cleanVersion: string } {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "slither-"));
 
-  // Write source files
+  // Write source files with path traversal protection
   for (const file of sourceFiles) {
-    const filePath = path.join(tmpDir, file.name);
+    const filePath = path.resolve(tmpDir, file.name);
+    if (!filePath.startsWith(tmpDir + path.sep) && filePath !== tmpDir) {
+      throw new Error(`Path traversal detected in source file name: ${file.name}`);
+    }
     const dir = path.dirname(filePath);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(filePath, file.content, "utf-8");
   }
 
-  // Extract clean solc version (e.g., "v0.8.20+commit.abc123" → "0.8.20")
-  const cleanVersion = compilerVersion
-    .replace(/^v/, "")
-    .replace(/\+.*$/, "")
-    .replace(/\-.*$/, "");
+  const cleanVersion = sanitizeVersion(compilerVersion);
 
   // Write foundry.toml for Slither to discover config
   const foundryToml = `[profile.default]
@@ -178,7 +188,7 @@ optimizer_runs = ${optimizationRuns ?? 200}
     "utf-8",
   );
 
-  return tmpDir;
+  return { tmpDir, cleanVersion };
 }
 
 // ---------------------------------------------------------------------------
@@ -289,7 +299,7 @@ export async function analyzeContract(
   }
 
   // Prepare temp project
-  const projectDir = prepareProject(
+  const { tmpDir: projectDir, cleanVersion } = prepareProject(
     source.sourceFiles,
     source.compilerVersion,
     source.optimizationUsed,
@@ -297,9 +307,9 @@ export async function analyzeContract(
   );
 
   try {
-    // Run Slither in Docker
-    console.log(`[slither] analyzing ${address} (compiler: ${source.compilerVersion})`);
-    const { stdout, stderr, exitCode } = await runSlitherProcess(projectDir, source.compilerVersion);
+    // Run Slither in Docker with sanitized version
+    console.log(`[slither] analyzing ${address} (compiler: ${cleanVersion})`);
+    const { stdout, stderr, exitCode } = await runSlitherProcess(projectDir, cleanVersion);
     const durationMs = Date.now() - startTime;
 
     if (exitCode !== 0 && !stdout.includes('"detectors"')) {

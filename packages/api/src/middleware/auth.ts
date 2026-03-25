@@ -27,6 +27,16 @@ const UNAUTHENTICATED_LIMIT = 30;
 
 const rateLimitMap = new Map<string, RateLimitBucket>();
 
+// Evict stale rate limit buckets every 5 minutes to prevent unbounded growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of rateLimitMap) {
+    if (now - bucket.windowStart >= WINDOW_MS * 2) {
+      rateLimitMap.delete(key);
+    }
+  }
+}, 300_000).unref();
+
 function isRateLimited(bucketKey: string, limit: number): boolean {
   const now = Date.now();
   const existing = rateLimitMap.get(bucketKey);
