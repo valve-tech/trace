@@ -7,6 +7,10 @@ export default defineConfig({
   server: {
     port: 11800,
     proxy: {
+      "/health": {
+        target: "http://localhost:10100",
+        changeOrigin: true,
+      },
       "/api": {
         target: "http://localhost:10100",
         changeOrigin: true,
