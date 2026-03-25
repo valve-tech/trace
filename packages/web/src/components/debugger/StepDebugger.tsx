@@ -564,11 +564,20 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
       )}
 
       {/* Main layout: Call tree sidebar + content */}
-      <div className="flex gap-3" style={{ minHeight: "500px" }}>
+      <div className="flex flex-col lg:flex-row gap-3" style={{ minHeight: "500px" }}>
 
-        {/* Left sidebar: Call Tree */}
-        <div className="flex-shrink-0" style={{ width: "280px" }}>
-          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} />
+        {/* Left sidebar: Call Tree — hidden on small screens, toggle to show */}
+        <div className="lg:flex-shrink-0 lg:block" style={{ width: undefined }}>
+          <div className="hidden lg:block" style={{ width: "280px" }}>
+            <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} />
+          </div>
+          <div className="lg:hidden">
+            <CollapsiblePanel title="Call Tree" count={steps.length} suffix="ops" defaultOpen={false}>
+              <div style={{ maxHeight: "250px" }} className="overflow-y-auto">
+                <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} inline />
+              </div>
+            </CollapsiblePanel>
+          </div>
         </div>
 
         {/* Right: Trace + Storage */}
@@ -1021,14 +1030,20 @@ function CallTreeFromOpcodes({
   onJumpTo,
   signatureMap,
   sourceMappings,
+  inline,
 }: {
   steps: OpcodeStep[];
   currentStep: number;
   onJumpTo: (step: number) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   sourceMappings: Record<number, SourceLocation | null>;
+  inline?: boolean;
 }) {
   const tree = useMemo(() => buildCallTree(steps, sourceMappings), [steps, sourceMappings]);
+
+  if (inline) {
+    return <CallSegmentRow segment={tree} currentStep={currentStep} onJumpTo={onJumpTo} depth={0} signatureMap={signatureMap} />;
+  }
 
   return (
     <div
