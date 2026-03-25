@@ -128,15 +128,16 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
   }, [opcodeFilter, steps]);
 
   // Reset step when trace changes (new transaction loaded)
+  // Auto-enable source view when contract address is available
   useEffect(() => {
     setCurrentStep(0);
     setOpcodeFilter("");
     setSourceData(null);
     setSourceMappings({});
-    setShowSource(false);
+    setShowSource(!!contractAddress);
     setSlitherFindings([]);
     setShowFindings(false);
-  }, [steps]);
+  }, [steps, contractAddress]);
 
   // Slither analysis handler
   const handleAnalyze = useCallback(async () => {

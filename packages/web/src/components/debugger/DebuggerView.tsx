@@ -28,6 +28,7 @@ export default function DebuggerView() {
   const [gasProfile, setGasProfile] = useState<GasProfile | null>(null);
   const [opcodeProfile, setOpcodeProfile] = useState<OpcodeProfile | null>(null);
   const [opcodeSteps, setOpcodeSteps] = useState<OpcodeStep[]>([]);
+  const [targetAddress, setTargetAddress] = useState<string | null>(null);
 
   // State
   const [loading, setLoading] = useState(false);
@@ -48,20 +49,30 @@ export default function DebuggerView() {
     setOpcodeSteps([]);
     setDebugAvailable(null);
     setHasResult(false);
+    setTargetAddress(null);
 
     try {
-      // Fetch all three in parallel
-      const [traceRes, gasRes, opcodeRes] = await Promise.all([
+      // Fetch tx details to get the target address, plus all traces in parallel
+      const [traceRes, gasRes, opcodeRes, txRes] = await Promise.all([
         fetchTrace(txHash),
         fetchGasProfile(txHash),
         fetchOpcodes(txHash, 50000),
+        fetch(`/api/tx/${txHash}`).then((r) => r.json()).catch(() => null) as Promise<{
+          ok: boolean;
+          result?: { to?: string };
+        } | null>,
       ]);
+
+      // Extract target address from tx details or call trace
+      const txTo = txRes?.result?.to ?? null;
 
       // Process trace result
       if (traceRes.ok && traceRes.trace) {
         setCallTrace(traceRes.trace);
         setDebugAvailable(true);
+        setTargetAddress(traceRes.trace.to || txTo);
       } else {
+        setTargetAddress(txTo);
         setDebugAvailable(traceRes.debugAvailable ?? false);
         if (traceRes.error) {
           setError(traceRes.error);
@@ -337,7 +348,7 @@ export default function DebuggerView() {
               opcodeSteps.length > 0 ? (
                 <StepDebugger
                   steps={opcodeSteps}
-                  contractAddress={callTrace?.to}
+                  contractAddress={targetAddress ?? undefined}
                 />
               ) : (
                 <NoDataPanel message="Step debugger requires opcode trace data. A debug-enabled node is needed." />
