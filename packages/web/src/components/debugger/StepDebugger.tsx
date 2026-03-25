@@ -989,23 +989,24 @@ function CallTreeFromOpcodes({
 }
 
 // Background colors for call types — subtle tints
+// Red/amber reserved for errors — use cool palette for call types
 const CALL_TYPE_BG: Record<string, string> = {
-  CALL: "rgba(96, 165, 250, 0.08)",         // blue
-  STATICCALL: "rgba(52, 211, 153, 0.08)",   // green
-  DELEGATECALL: "rgba(251, 191, 36, 0.08)", // amber
-  CALLCODE: "rgba(251, 191, 36, 0.08)",     // amber
-  CREATE: "rgba(239, 68, 68, 0.08)",        // red
-  CREATE2: "rgba(239, 68, 68, 0.08)",       // red
+  CALL: "rgba(96, 165, 250, 0.08)",         // blue — standard external call
+  STATICCALL: "rgba(52, 211, 153, 0.08)",   // green — read-only
+  DELEGATECALL: "rgba(167, 139, 250, 0.08)",// purple — proxy/delegate
+  CALLCODE: "rgba(167, 139, 250, 0.08)",    // purple
+  CREATE: "rgba(56, 182, 194, 0.08)",       // teal — deployment
+  CREATE2: "rgba(56, 182, 194, 0.08)",      // teal
   root: "transparent",
 };
 
 const CALL_TYPE_BORDER: Record<string, string> = {
   CALL: "rgba(96, 165, 250, 0.4)",
   STATICCALL: "rgba(52, 211, 153, 0.4)",
-  DELEGATECALL: "rgba(251, 191, 36, 0.4)",
-  CALLCODE: "rgba(251, 191, 36, 0.4)",
-  CREATE: "rgba(239, 68, 68, 0.4)",
-  CREATE2: "rgba(239, 68, 68, 0.4)",
+  DELEGATECALL: "rgba(167, 139, 250, 0.4)",
+  CALLCODE: "rgba(167, 139, 250, 0.4)",
+  CREATE: "rgba(56, 182, 194, 0.4)",
+  CREATE2: "rgba(56, 182, 194, 0.4)",
   root: "transparent",
 };
 
