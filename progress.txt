@@ -10,6 +10,10 @@ d9a2fc2 fix: wire monitor→scheduler, URL debugger, fix frontend bugs, add trac
 1557766 feat: add source code viewer, API key auth, WebSocket alerts
 69fd908 feat: add Slither static analysis integration
 94824fc fix(security): path traversal, command injection, rate limit memory leak
+a904cec docs: add session progress checkpoint
+55c31cc feat: add fork-based simulation with state diffs
+69fd908 feat: add Slither static analysis integration
+94824fc fix(security): path traversal, command injection, rate limit memory leak
 ```
 
 ### What was accomplished
@@ -75,9 +79,18 @@ d9a2fc2 fix: wire monitor→scheduler, URL debugger, fix frontend bugs, add trac
 - Slither runs in Docker for isolation with strict version sanitization
 - Rate limiter is in-memory (not Redis) with periodic eviction — adequate for single-instance
 
+**Fork-based simulation (done)**
+- forkSimulator.ts: temp Anvil fork, sender impersonation, prestateTracer state diffs
+- POST /api/simulate/fork for raw calldata
+- POST /api/simulate/from-hash to re-simulate mined transactions
+- ForkSimulator.tsx with dual-mode input (tx hash or manual)
+- StateDiffPanel.tsx: balance/storage/nonce diff visualization
+- "Debug This Tx" button bridges fork sim → step debugger
+- Auto-destroy forks after 60s, cap at 5 concurrent
+
 ### Next steps
-- Add source code mapping tests
-- Wire explorer "View Source" to the debugger with pre-populated address
-- Add WebSocket client in AlertDashboard for live notifications
-- Consider adding Foundry test runner integration for the virtual testnets
-- Source code diffing for Slither fix suggestions
+- Transaction builder (pick contract + function from ABI, fill in args)
+- Storage layout viewer (map slots to Solidity variable names)
+- WebSocket client in AlertDashboard for live notifications
+- Contract upgrade diffing (compare two contract versions)
+- CI/CD simulation API (GitHub Actions integration)
