@@ -102,12 +102,15 @@ describe("StepDebugger", () => {
     expect(screen.getByText(/1 \/ 8/)).toBeInTheDocument();
   });
 
-  it("shows empty stack message when stack is empty", () => {
+  it("shows stack panel collapsed by default", () => {
     render(<StepDebugger steps={SAMPLE_STEPS} />);
-    expect(screen.getByText("Stack is empty")).toBeInTheDocument();
+    // Stack is collapsed, so "Stack is empty" should not be visible
+    expect(screen.queryByText("Stack is empty")).not.toBeInTheDocument();
+    // But the panel header should show "Stack"
+    expect(screen.getByText("Stack")).toBeInTheDocument();
   });
 
-  it("shows stack entries after stepping to a step with stack data", () => {
+  it("shows stack entries when panel is expanded and stepped", () => {
     render(<StepDebugger steps={SAMPLE_STEPS} />);
     const forwardBtn = screen.getByTitle("Step forward (Right arrow / Space)");
     fireEvent.click(forwardBtn);
@@ -125,8 +128,10 @@ describe("StepDebugger", () => {
     expect(screen.getByText("1 changes")).toBeInTheDocument();
   });
 
-  it("shows memory is empty when no memory data", () => {
+  it("shows memory panel collapsed by default", () => {
     render(<StepDebugger steps={SAMPLE_STEPS} />);
-    expect(screen.getByText("Memory is empty")).toBeInTheDocument();
+    // Memory collapsed — content hidden, but header visible
+    expect(screen.queryByText("Memory is empty")).not.toBeInTheDocument();
+    expect(screen.getByText("Memory")).toBeInTheDocument();
   });
 });

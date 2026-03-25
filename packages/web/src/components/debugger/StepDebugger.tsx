@@ -531,270 +531,163 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
         <FindingsPanel findings={slitherFindings} />
       )}
 
-      {/* Main panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3" style={{ minHeight: "600px" }}>
-        {/* Left: Execution trace */}
+      {/* Call Tree — built from opcode steps by grouping CALL boundaries */}
+      <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} />
+
+      {/* Execution Trace (opcodes) */}
+      <CollapsiblePanel title="Execution Trace" count={totalSteps} defaultOpen>
         <div
-          className="rounded-lg border overflow-hidden flex flex-col"
-          style={{
-            backgroundColor: "var(--color-bg-card)",
-            borderColor: "var(--color-border-default)",
-          }}
+          ref={traceListRef}
+          className="overflow-y-auto"
+          onScroll={handleScroll}
+          style={{ maxHeight: "400px" }}
         >
-          <PanelHeader title="Execution Trace" count={totalSteps} />
-          <div
-            ref={traceListRef}
-            className="flex-1 overflow-y-auto"
-            onScroll={handleScroll}
-            style={{ maxHeight: "600px" }}
-          >
-            {/* Spacer for virtual scrolling */}
-            <div style={{ height: totalSteps * rowHeight, position: "relative" }}>
-              {Array.from({ length: visibleEnd - visibleStart }, (_, i) => {
-                const idx = visibleStart + i;
-                const s = steps[idx]!;
-                const isActive = idx === currentStep;
-                const matchesFilter = !filteredIndices || filteredIndices.includes(idx);
-                const depthFraction = maxDepth > 1 ? (s.depth - 1) / (maxDepth - 1) : 0;
-                const depthHue = 260 - depthFraction * 200; // purple → blue → teal → green
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => goTo(idx)}
-                    className="flex items-center cursor-pointer text-xs"
-                    style={{
-                      position: "absolute",
-                      top: idx * rowHeight,
-                      height: rowHeight,
-                      width: "100%",
-                      fontFamily: "var(--font-mono)",
-                      backgroundColor: isActive
-                        ? "var(--color-accent-muted)"
-                        : "transparent",
-                      borderLeft: isActive
-                        ? "3px solid var(--color-accent)"
-                        : `3px solid hsla(${depthHue}, 60%, 50%, ${s.depth > 1 ? 0.5 : 0})`,
-                      opacity: matchesFilter ? 1 : 0.3,
-                      paddingLeft: `${8 + (s.depth - 1) * 6}px`,
-                      paddingRight: "12px",
-                    }}
+          <div style={{ height: totalSteps * rowHeight, position: "relative" }}>
+            {Array.from({ length: visibleEnd - visibleStart }, (_, i) => {
+              const idx = visibleStart + i;
+              const s = steps[idx]!;
+              const isActive = idx === currentStep;
+              const matchesFilter = !filteredIndices || filteredIndices.includes(idx);
+              const depthFraction = maxDepth > 1 ? (s.depth - 1) / (maxDepth - 1) : 0;
+              const depthHue = 260 - depthFraction * 200;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => goTo(idx)}
+                  className="flex items-center cursor-pointer text-xs"
+                  style={{
+                    position: "absolute",
+                    top: idx * rowHeight,
+                    height: rowHeight,
+                    width: "100%",
+                    fontFamily: "var(--font-mono)",
+                    backgroundColor: isActive ? "var(--color-accent-muted)" : "transparent",
+                    borderLeft: isActive
+                      ? "3px solid var(--color-accent)"
+                      : `3px solid hsla(${depthHue}, 60%, 50%, ${s.depth > 1 ? 0.5 : 0})`,
+                    opacity: matchesFilter ? 1 : 0.3,
+                    paddingLeft: `${8 + (s.depth - 1) * 6}px`,
+                    paddingRight: "12px",
+                  }}
+                >
+                  <span className="w-14 text-right mr-3 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                    {idx}
+                  </span>
+                  <span className="w-10 text-right mr-3 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                    {s.pc}
+                  </span>
+                  <span className="w-28 font-semibold mr-3 flex-shrink-0" style={{ color: getOpcodeColor(s.op) }}>
+                    {s.op}
+                  </span>
+                  <span
+                    className="flex-shrink-0"
+                    style={{ color: s.gasCost > 100 ? "var(--color-warning)" : "var(--color-text-muted)" }}
                   >
-                    <span
-                      className="w-14 text-right mr-3 flex-shrink-0"
-                      style={{ color: "var(--color-text-muted)" }}
-                    >
-                      {idx}
+                    {s.gasCost}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </CollapsiblePanel>
+
+      {/* Storage — always visible below the trace */}
+      <div
+        className="rounded-lg border overflow-hidden"
+        style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
+      >
+        <PanelHeader title="Storage" count={storageDiff.length} suffix="changes" />
+        <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
+          {storageDiff.length === 0 ? (
+            <div className="px-3 py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+              {isStorageOp(step.op) ? "Storage read (no change)" : "No storage changes at this step"}
+            </div>
+          ) : (
+            <div className="px-3 py-1 space-y-2">
+              {storageDiff.map((d, i) => (
+                <div key={i} className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>
+                  <div className="flex items-center gap-1">
+                    <span style={{ color: "var(--color-text-muted)" }}>slot:</span>
+                    <span className="truncate" title={formatWord(d.slot)} style={{ color: "var(--color-warning)" }}>
+                      {truncateWord(d.slot)}
                     </span>
-                    <span
-                      className="w-10 text-right mr-3 flex-shrink-0"
-                      style={{ color: "var(--color-text-muted)" }}
-                    >
-                      {s.pc}
+                  </div>
+                  {d.oldValue !== null && (
+                    <div className="flex items-center gap-1 pl-4">
+                      <span style={{ color: "var(--color-danger)" }}>-</span>
+                      <span className="truncate" title={formatWord(d.oldValue)} style={{ color: "var(--color-text-secondary)" }}>
+                        {truncateWord(d.oldValue)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 pl-4">
+                    <span style={{ color: "var(--color-success)" }}>+</span>
+                    <span className="truncate" title={formatWord(d.newValue)} style={{ color: "var(--color-accent)" }}>
+                      {truncateWord(d.newValue)}
                     </span>
-                    <span
-                      className="w-28 font-semibold mr-3 flex-shrink-0"
-                      style={{ color: getOpcodeColor(s.op) }}
-                    >
-                      {s.op}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stack + Memory — collapsed by default */}
+      <CollapsiblePanel title="Stack" count={step.stack.length} defaultOpen={false}>
+        <div className="overflow-y-auto px-3 py-1" style={{ maxHeight: "200px" }}>
+          {step.stack.length === 0 ? (
+            <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Stack is empty</div>
+          ) : (
+            [...step.stack].reverse().map((word, i) => {
+              const actualIndex = step.stack.length - 1 - i;
+              const changed = stackChanges.has(actualIndex);
+              return (
+                <div key={i} className="flex items-center text-xs py-0.5" style={{ fontFamily: "var(--font-mono)" }}>
+                  <span className="w-8 text-right mr-2 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{i}</span>
+                  <span
+                    className="truncate"
+                    title={formatWord(word)}
+                    style={{ color: changed ? "var(--color-accent)" : "var(--color-text-primary)", fontWeight: changed ? 600 : 400 }}
+                  >
+                    {truncateWord(word)}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </CollapsiblePanel>
+
+      <CollapsiblePanel title="Memory" count={memorySize} suffix="bytes" defaultOpen={false}>
+        <div className="overflow-y-auto px-3 py-1" style={{ maxHeight: "200px" }}>
+          {memorySize === 0 ? (
+            <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Memory is empty</div>
+          ) : (
+            <>
+              {Array.from({ length: memoryRows }, (_, i) => {
+                const offset = i * 16;
+                const { hex, ascii } = formatMemoryRow(memoryHex, offset);
+                return (
+                  <div key={i} className="flex items-center text-xs py-0.5" style={{ fontFamily: "var(--font-mono)" }}>
+                    <span className="w-12 text-right mr-2 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                      {offset.toString(16).padStart(4, "0")}
                     </span>
-                    <span
-                      className="flex-shrink-0"
-                      style={{
-                        color: s.gasCost > 100
-                          ? "var(--color-warning)"
-                          : "var(--color-text-muted)",
-                      }}
-                    >
-                      {s.gasCost}
-                    </span>
+                    <span className="flex-1 mr-3" style={{ color: "var(--color-text-primary)" }}>{hex}</span>
+                    <span className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{ascii}</span>
                   </div>
                 );
               })}
-            </div>
-          </div>
+              {memorySize > 1024 && (
+                <div className="text-xs py-1 text-center" style={{ color: "var(--color-text-muted)" }}>
+                  Showing first 1KB of {memorySize.toLocaleString()} bytes
+                </div>
+              )}
+            </>
+          )}
         </div>
-
-        {/* Right: State panels */}
-        <div className="flex flex-col gap-3">
-          {/* Stack */}
-          <div
-            className="rounded-lg border overflow-hidden"
-            style={{
-              backgroundColor: "var(--color-bg-card)",
-              borderColor: "var(--color-border-default)",
-            }}
-          >
-            <PanelHeader title="Stack" count={step.stack.length} />
-            <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
-              {step.stack.length === 0 ? (
-                <div
-                  className="px-3 py-4 text-xs text-center"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  Stack is empty
-                </div>
-              ) : (
-                <div className="px-3 py-1">
-                  {[...step.stack].reverse().map((word, i) => {
-                    const actualIndex = step.stack.length - 1 - i;
-                    const changed = stackChanges.has(actualIndex);
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-center text-xs py-0.5"
-                        style={{ fontFamily: "var(--font-mono)" }}
-                      >
-                        <span
-                          className="w-8 text-right mr-2 flex-shrink-0"
-                          style={{ color: "var(--color-text-muted)" }}
-                        >
-                          {i}
-                        </span>
-                        <span
-                          className="truncate"
-                          title={formatWord(word)}
-                          style={{
-                            color: changed
-                              ? "var(--color-accent)"
-                              : "var(--color-text-primary)",
-                            fontWeight: changed ? 600 : 400,
-                          }}
-                        >
-                          {truncateWord(word)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Memory */}
-          <div
-            className="rounded-lg border overflow-hidden"
-            style={{
-              backgroundColor: "var(--color-bg-card)",
-              borderColor: "var(--color-border-default)",
-            }}
-          >
-            <PanelHeader title="Memory" count={memorySize} suffix="bytes" />
-            <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
-              {memorySize === 0 ? (
-                <div
-                  className="px-3 py-4 text-xs text-center"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  Memory is empty
-                </div>
-              ) : (
-                <div className="px-3 py-1">
-                  {Array.from({ length: memoryRows }, (_, i) => {
-                    const offset = i * 16;
-                    const { hex, ascii } = formatMemoryRow(memoryHex, offset);
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-center text-xs py-0.5"
-                        style={{ fontFamily: "var(--font-mono)" }}
-                      >
-                        <span
-                          className="w-12 text-right mr-2 flex-shrink-0"
-                          style={{ color: "var(--color-text-muted)" }}
-                        >
-                          {offset.toString(16).padStart(4, "0")}
-                        </span>
-                        <span
-                          className="flex-1 mr-3"
-                          style={{ color: "var(--color-text-primary)" }}
-                        >
-                          {hex}
-                        </span>
-                        <span
-                          className="flex-shrink-0"
-                          style={{ color: "var(--color-text-muted)" }}
-                        >
-                          {ascii}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {memorySize > 1024 && (
-                    <div
-                      className="text-xs py-1 text-center"
-                      style={{ color: "var(--color-text-muted)" }}
-                    >
-                      Showing first 1KB of {memorySize.toLocaleString()} bytes
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Storage */}
-          <div
-            className="rounded-lg border overflow-hidden"
-            style={{
-              backgroundColor: "var(--color-bg-card)",
-              borderColor: "var(--color-border-default)",
-            }}
-          >
-            <PanelHeader title="Storage" count={storageDiff.length} suffix="changes" />
-            <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
-              {storageDiff.length === 0 ? (
-                <div
-                  className="px-3 py-4 text-xs text-center"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  {isStorageOp(step.op)
-                    ? "Storage read (no change)"
-                    : "No storage changes at this step"}
-                </div>
-              ) : (
-                <div className="px-3 py-1 space-y-2">
-                  {storageDiff.map((d, i) => (
-                    <div key={i} className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>
-                      <div className="flex items-center gap-1">
-                        <span style={{ color: "var(--color-text-muted)" }}>slot:</span>
-                        <span
-                          className="truncate"
-                          title={formatWord(d.slot)}
-                          style={{ color: "var(--color-warning)" }}
-                        >
-                          {truncateWord(d.slot)}
-                        </span>
-                      </div>
-                      {d.oldValue !== null && (
-                        <div className="flex items-center gap-1 pl-4">
-                          <span style={{ color: "var(--color-danger)" }}>-</span>
-                          <span
-                            className="truncate"
-                            title={formatWord(d.oldValue)}
-                            style={{ color: "var(--color-text-secondary)" }}
-                          >
-                            {truncateWord(d.oldValue)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1 pl-4">
-                        <span style={{ color: "var(--color-success)" }}>+</span>
-                        <span
-                          className="truncate"
-                          title={formatWord(d.newValue)}
-                          style={{ color: "var(--color-accent)" }}
-                        >
-                          {truncateWord(d.newValue)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      </CollapsiblePanel>
 
       {/* Keyboard shortcuts help */}
       <div
@@ -906,5 +799,206 @@ function Shortcut({ keys, label }: { keys: string; label: string }) {
       </kbd>
       {label}
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CollapsiblePanel — click header to show/hide body
+// ---------------------------------------------------------------------------
+
+function CollapsiblePanel({
+  title,
+  count,
+  suffix,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  count?: number;
+  suffix?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div
+      className="rounded-lg border overflow-hidden"
+      style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3 py-2 border-b cursor-pointer"
+        style={{ borderColor: "var(--color-border-default)", backgroundColor: "var(--color-bg-secondary)" }}
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            {open ? "▼" : "▶"}
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+            {title}
+          </span>
+        </span>
+        {count !== undefined && (
+          <span className="text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+            {count.toLocaleString()} {suffix ?? "items"}
+          </span>
+        )}
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CallTreeFromOpcodes — group opcode steps by CALL depth transitions
+// ---------------------------------------------------------------------------
+
+interface CallSegment {
+  type: string; // CALL, DELEGATECALL, STATICCALL, CREATE, or "root"
+  depth: number;
+  startStep: number;
+  endStep: number;
+  stepCount: number;
+  children: CallSegment[];
+}
+
+function buildCallTree(steps: OpcodeStep[]): CallSegment {
+  const root: CallSegment = {
+    type: "root",
+    depth: 1,
+    startStep: 0,
+    endStep: steps.length - 1,
+    stepCount: steps.length,
+    children: [],
+  };
+
+  const stack: CallSegment[] = [root];
+
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i]!;
+    const parent = stack[stack.length - 1]!;
+
+    if (isCallOp(s.op)) {
+      const child: CallSegment = {
+        type: s.op,
+        depth: s.depth + 1,
+        startStep: i,
+        endStep: i,
+        stepCount: 0,
+        children: [],
+      };
+      parent.children.push(child);
+      stack.push(child);
+    } else if (s.depth < parent.depth && stack.length > 1) {
+      // Returned from a call
+      parent.endStep = i - 1;
+      parent.stepCount = parent.endStep - parent.startStep + 1;
+      stack.pop();
+    }
+  }
+
+  // Close any remaining open segments
+  while (stack.length > 1) {
+    const seg = stack.pop()!;
+    seg.endStep = steps.length - 1;
+    seg.stepCount = seg.endStep - seg.startStep + 1;
+  }
+  root.stepCount = steps.length;
+
+  return root;
+}
+
+function CallTreeFromOpcodes({
+  steps,
+  currentStep,
+  onJumpTo,
+}: {
+  steps: OpcodeStep[];
+  currentStep: number;
+  onJumpTo: (step: number) => void;
+}) {
+  const tree = useMemo(() => buildCallTree(steps), [steps]);
+
+  return (
+    <div
+      className="rounded-lg border overflow-hidden"
+      style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
+    >
+      <PanelHeader title="Call Tree" count={tree.children.length} suffix="internal calls" />
+      <div className="overflow-y-auto" style={{ maxHeight: "300px" }}>
+        <CallSegmentRow segment={tree} currentStep={currentStep} onJumpTo={onJumpTo} depth={0} />
+      </div>
+    </div>
+  );
+}
+
+function CallSegmentRow({
+  segment,
+  currentStep,
+  onJumpTo,
+  depth,
+}: {
+  segment: CallSegment;
+  currentStep: number;
+  onJumpTo: (step: number) => void;
+  depth: number;
+}) {
+  const [expanded, setExpanded] = useState(depth < 3);
+  const isActive = currentStep >= segment.startStep && currentStep <= segment.endStep;
+  const hasChildren = segment.children.length > 0;
+
+  const depthHue = 260 - (depth * 40);
+  const typeColor = OPCODE_COLORS[segment.type] ?? "#94A3B8";
+
+  return (
+    <div>
+      <div
+        className="flex items-center gap-1 px-2 py-1.5 cursor-pointer text-xs hover:opacity-80"
+        onClick={() => onJumpTo(segment.startStep)}
+        style={{
+          paddingLeft: `${8 + depth * 16}px`,
+          backgroundColor: isActive ? "rgba(139, 92, 246, 0.08)" : "transparent",
+          borderLeft: isActive ? `3px solid var(--color-accent)` : `3px solid hsla(${depthHue}, 50%, 50%, 0.3)`,
+          fontFamily: "var(--font-mono)",
+        }}
+      >
+        {hasChildren && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="w-4 text-center flex-shrink-0"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {expanded ? "▼" : "▶"}
+          </button>
+        )}
+        {!hasChildren && <span className="w-4 flex-shrink-0" />}
+
+        <span className="font-semibold" style={{ color: typeColor }}>
+          {segment.type}
+        </span>
+        <span style={{ color: "var(--color-text-muted)" }}>
+          steps {segment.startStep}–{segment.endStep}
+        </span>
+        <span style={{ color: "var(--color-text-muted)" }}>
+          ({segment.stepCount.toLocaleString()})
+        </span>
+        {hasChildren && (
+          <span style={{ color: "var(--color-text-muted)" }}>
+            [{segment.children.length} calls]
+          </span>
+        )}
+      </div>
+
+      {expanded && segment.children.map((child, i) => (
+        <CallSegmentRow
+          key={i}
+          segment={child}
+          currentStep={currentStep}
+          onJumpTo={onJumpTo}
+          depth={depth + 1}
+        />
+      ))}
+    </div>
   );
 }
