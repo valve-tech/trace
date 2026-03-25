@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { OpcodeStep } from "../../api/debugger";
 import { fetchSource, fetchSourceMappings, analyzeContract, type ContractSource, type SourceLocation, type SlitherFinding } from "../../api/source";
+import { batchLookupSignatures, type SignatureMatch } from "../../api/signatures";
 import SourceViewer from "./SourceViewer";
 import FindingsPanel from "./FindingsPanel";
 
@@ -102,6 +103,7 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
   const [slitherFindings, setSlitherFindings] = useState<SlitherFinding[]>([]);
   const [slitherLoading, setSlitherLoading] = useState(false);
   const [showFindings, setShowFindings] = useState(false);
+  const [signatureMap, setSignatureMap] = useState<Record<string, SignatureMatch[]>>({});
   const traceListRef = useRef<HTMLDivElement>(null);
   const rowHeight = 28;
 
@@ -138,6 +140,36 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
     setSlitherFindings([]);
     setShowFindings(false);
   }, [steps, contractAddress]);
+
+  // Batch-resolve 4byte selectors from CALL opcodes in the trace
+  useEffect(() => {
+    if (steps.length === 0) return;
+
+    // Extract selectors from stack at CALL opcodes
+    // At a CALL, stack[1] (second from top) is the target address,
+    // and the calldata starts with the 4-byte selector
+    // We also look at the input data at depth transitions
+    const selectors = new Set<string>();
+    for (const s of steps) {
+      if (isCallOp(s.op) && s.stack.length >= 2) {
+        // The calldata offset/length are on the stack, but we can't easily
+        // extract the selector from memory here. Instead, look for PUSH4
+        // opcodes that push 4-byte selectors.
+      }
+      if (s.op === "PUSH4" && s.stack.length > 0) {
+        const val = s.stack[s.stack.length - 1];
+        if (val) selectors.add(val.slice(0, 10).toLowerCase());
+      }
+    }
+
+    // Also check the first 4 bytes of any data that appears in CALLDATACOPY
+    // Simpler: just look at steps right after CALL for depth changes
+    // and extract the selector from the top of stack at those points
+
+    if (selectors.size === 0) return;
+
+    batchLookupSignatures([...selectors]).then(setSignatureMap).catch(() => {});
+  }, [steps]);
 
   // Slither analysis handler
   const handleAnalyze = useCallback(async () => {
@@ -532,7 +564,7 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
       )}
 
       {/* Call Tree — built from opcode steps by grouping CALL boundaries */}
-      <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} />
+      <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} />
 
       {/* Execution Trace (opcodes) */}
       <CollapsiblePanel title="Execution Trace" count={totalSteps} defaultOpen>
@@ -860,6 +892,7 @@ interface CallSegment {
   startStep: number;
   endStep: number;
   stepCount: number;
+  selector?: string; // 4-byte function selector if available
   children: CallSegment[];
 }
 
@@ -880,12 +913,32 @@ function buildCallTree(steps: OpcodeStep[]): CallSegment {
     const parent = stack[stack.length - 1]!;
 
     if (isCallOp(s.op)) {
+      // Try to extract the 4-byte selector from memory at the call data offset
+      // For CALL: stack = [gas, addr, value, argsOffset, argsLength, retOffset, retLength]
+      // For STATICCALL/DELEGATECALL: stack = [gas, addr, argsOffset, argsLength, retOffset, retLength]
+      let selector: string | undefined;
+      try {
+        const stackLen = s.stack.length;
+        const argsOffsetIdx = s.op === "CALL" || s.op === "CALLCODE" ? stackLen - 4 : stackLen - 3;
+        if (argsOffsetIdx >= 0 && s.memory.length > 0) {
+          const argsOffset = Number(BigInt(s.stack[argsOffsetIdx] ?? "0"));
+          const memHex = s.memory.join("");
+          const selectorHex = memHex.slice(argsOffset * 2, argsOffset * 2 + 8);
+          if (selectorHex.length === 8) {
+            selector = "0x" + selectorHex;
+          }
+        }
+      } catch {
+        // selector extraction is best-effort
+      }
+
       const child: CallSegment = {
         type: s.op,
         depth: s.depth + 1,
         startStep: i,
         endStep: i,
         stepCount: 0,
+        selector,
         children: [],
       };
       parent.children.push(child);
@@ -913,10 +966,12 @@ function CallTreeFromOpcodes({
   steps,
   currentStep,
   onJumpTo,
+  signatureMap,
 }: {
   steps: OpcodeStep[];
   currentStep: number;
   onJumpTo: (step: number) => void;
+  signatureMap: Record<string, SignatureMatch[]>;
 }) {
   const tree = useMemo(() => buildCallTree(steps), [steps]);
 
@@ -927,7 +982,7 @@ function CallTreeFromOpcodes({
     >
       <PanelHeader title="Call Tree" count={tree.children.length} suffix="internal calls" />
       <div className="overflow-y-auto" style={{ maxHeight: "300px" }}>
-        <CallSegmentRow segment={tree} currentStep={currentStep} onJumpTo={onJumpTo} depth={0} />
+        <CallSegmentRow segment={tree} currentStep={currentStep} onJumpTo={onJumpTo} depth={0} signatureMap={signatureMap} />
       </div>
     </div>
   );
@@ -938,11 +993,13 @@ function CallSegmentRow({
   currentStep,
   onJumpTo,
   depth,
+  signatureMap,
 }: {
   segment: CallSegment;
   currentStep: number;
   onJumpTo: (step: number) => void;
   depth: number;
+  signatureMap: Record<string, SignatureMatch[]>;
 }) {
   const [expanded, setExpanded] = useState(depth < 3);
   const isActive = currentStep >= segment.startStep && currentStep <= segment.endStep;
@@ -950,6 +1007,16 @@ function CallSegmentRow({
 
   const depthHue = 260 - (depth * 40);
   const typeColor = OPCODE_COLORS[segment.type] ?? "#94A3B8";
+
+  // Resolve the function name from the 4byte signature map
+  const resolvedName = segment.selector
+    ? signatureMap[segment.selector.toLowerCase()]?.[0]?.textSignature
+    : undefined;
+  const displayName = resolvedName
+    ? resolvedName.split("(")[0] + "()"
+    : segment.selector
+      ? segment.selector
+      : undefined;
 
   return (
     <div>
@@ -977,6 +1044,11 @@ function CallSegmentRow({
         <span className="font-semibold" style={{ color: typeColor }}>
           {segment.type}
         </span>
+        {displayName && (
+          <span style={{ color: "var(--color-text-primary)" }}>
+            {displayName}
+          </span>
+        )}
         <span style={{ color: "var(--color-text-muted)" }}>
           steps {segment.startStep}–{segment.endStep}
         </span>
@@ -997,6 +1069,7 @@ function CallSegmentRow({
           currentStep={currentStep}
           onJumpTo={onJumpTo}
           depth={depth + 1}
+          signatureMap={signatureMap}
         />
       ))}
     </div>

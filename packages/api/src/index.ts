@@ -14,6 +14,7 @@ import debuggerRouter from "./routes/debugger.js";
 import actionsRouter from "./routes/actions.js";
 import sourceRouter from "./routes/source.js";
 import forkSimulateRouter from "./routes/forkSimulate.js";
+import signaturesRouter from "./routes/signatures.js";
 import apiKeysRouter from "./routes/apiKeys.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { startMonitor } from "./services/monitor.js";
@@ -62,6 +63,7 @@ app.use("/api/alerts", alertsRouter);
 app.use("/api/debug", debuggerRouter);
 app.use("/api/actions", actionsRouter);
 app.use("/api/source", sourceRouter);
+app.use("/api/signatures", signaturesRouter);
 app.use("/api/keys", apiKeysRouter);
 
 // ---------------------------------------------------------------------------
