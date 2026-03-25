@@ -113,3 +113,76 @@ export async function simulateBundle(
 
   return (await response.json()) as BundleSimulationResult;
 }
+
+// Fork simulation types
+export interface BalanceChange {
+  address: string;
+  before: string;
+  after: string;
+  delta: string;
+}
+
+export interface StorageChange {
+  address: string;
+  contractName?: string;
+  slot: string;
+  before: string;
+  after: string;
+  decodedName?: string;
+}
+
+export interface NonceChange {
+  address: string;
+  before: number;
+  after: number;
+}
+
+export interface StateDiff {
+  balanceChanges: BalanceChange[];
+  storageChanges: StorageChange[];
+  nonceChanges: NonceChange[];
+}
+
+export interface ForkSimulationResult {
+  success: boolean;
+  returnData: string;
+  gasUsed: string;
+  revertReason?: string;
+  stateDiff: StateDiff;
+  logs: Array<{ address: string; topics: string[]; data: string; decoded?: unknown }>;
+  decodedInput?: unknown;
+  blockNumber: number;
+  txHash?: string;
+  contractAddress?: string;
+}
+
+export interface ForkSimulationResponse {
+  ok: boolean;
+  result?: ForkSimulationResult;
+  error?: string;
+}
+
+export async function forkSimulate(params: {
+  from: string;
+  to: string;
+  value?: string;
+  data?: string;
+  blockNumber?: number;
+  gasLimit?: number;
+}): Promise<ForkSimulationResponse> {
+  const res = await fetch("/api/simulate/fork", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return (await res.json()) as ForkSimulationResponse;
+}
+
+export async function simulateFromHash(txHash: string): Promise<ForkSimulationResponse> {
+  const res = await fetch("/api/simulate/from-hash", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ txHash }),
+  });
+  return (await res.json()) as ForkSimulationResponse;
+}

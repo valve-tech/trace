@@ -13,6 +13,7 @@ import alertsRouter from "./routes/alerts.js";
 import debuggerRouter from "./routes/debugger.js";
 import actionsRouter from "./routes/actions.js";
 import sourceRouter from "./routes/source.js";
+import forkSimulateRouter from "./routes/forkSimulate.js";
 import apiKeysRouter from "./routes/apiKeys.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { startMonitor } from "./services/monitor.js";
@@ -53,6 +54,7 @@ app.use("/api", authMiddleware);
 // ---------------------------------------------------------------------------
 
 app.use("/api/simulate", simulateRouter);
+app.use("/api/simulate", forkSimulateRouter);
 app.use("/api/simulate-bundle", simulateBundleRouter);
 app.use("/api", explorerRouter);
 app.use("/api/testnets", testnetsRouter);

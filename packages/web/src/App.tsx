@@ -7,9 +7,11 @@ import RpcPage from "./pages/RpcPage";
 import ExplorerPanel from "./components/explorer/ExplorerPanel";
 import DebuggerView from "./components/debugger/DebuggerView";
 import ActionsDashboard from "./components/actions/ActionsDashboard";
+import ForkSimulator from "./components/ForkSimulator";
 
 const NAV_ITEMS = [
   { to: "/simulate", label: "Simulate" },
+  { to: "/fork", label: "Fork Sim" },
   { to: "/bundle", label: "Bundle" },
   { to: "/monitoring", label: "Monitoring" },
   { to: "/testnets", label: "TestNets" },
@@ -105,6 +107,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/simulate" replace />} />
           <Route path="/simulate" element={<SimulationPage />} />
+          <Route path="/fork" element={<ForkSimulator />} />
           <Route path="/bundle" element={<BundleSimulator />} />
           <Route path="/monitoring" element={<AlertDashboard />} />
           <Route path="/testnets" element={<TestNetDashboard />} />
