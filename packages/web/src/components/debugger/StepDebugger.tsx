@@ -563,8 +563,16 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
         <FindingsPanel findings={slitherFindings} />
       )}
 
-      {/* Call Tree — built from opcode steps by grouping CALL boundaries */}
-      <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} />
+      {/* Main layout: Call tree sidebar + content */}
+      <div className="flex gap-3" style={{ minHeight: "500px" }}>
+
+        {/* Left sidebar: Call Tree */}
+        <div className="flex-shrink-0" style={{ width: "280px" }}>
+          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} />
+        </div>
+
+        {/* Right: Trace + Storage */}
+        <div className="flex-1 min-w-0 flex flex-col gap-3">
 
       {/* Execution Trace (opcodes) */}
       <CollapsiblePanel title="Execution Trace" count={totalSteps} defaultOpen>
@@ -720,6 +728,9 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
           )}
         </div>
       </CollapsiblePanel>
+
+        </div>{/* end right content */}
+      </div>{/* end main layout flex */}
 
       {/* Keyboard shortcuts help */}
       <div
@@ -1021,11 +1032,11 @@ function CallTreeFromOpcodes({
 
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="rounded-lg border overflow-hidden flex flex-col h-full"
       style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
     >
-      <PanelHeader title="Call Tree" count={tree.children.length} suffix="internal calls" />
-      <div className="overflow-y-auto" style={{ maxHeight: "300px" }}>
+      <PanelHeader title="Call Tree" count={tree.children.length} suffix="calls" />
+      <div className="overflow-y-auto flex-1">
         <CallSegmentRow segment={tree} currentStep={currentStep} onJumpTo={onJumpTo} depth={0} signatureMap={signatureMap} />
       </div>
     </div>
