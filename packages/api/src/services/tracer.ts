@@ -2,8 +2,40 @@
  * Execution trace service.
  *
  * Uses debug_traceTransaction (requires a debug-enabled node).
- * Falls back gracefully when the debug API is unavailable on the public RPC.
+ * Falls back to Anvil fork when debug API is unavailable.
+ * Caches results in PostgreSQL (mined tx traces are immutable).
  */
+
+import { pool } from "./pool.js";
+
+// ---------------------------------------------------------------------------
+// Trace cache — mined transactions produce identical traces every time
+// ---------------------------------------------------------------------------
+
+async function getCachedTrace<T>(txHash: string, traceType: string): Promise<T | null> {
+  try {
+    const { rows } = await pool.query<{ result: T }>(
+      "SELECT result FROM trace_cache WHERE tx_hash = $1 AND trace_type = $2",
+      [txHash.toLowerCase(), traceType],
+    );
+    return rows[0]?.result ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedTrace(txHash: string, traceType: string, result: unknown): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO trace_cache (tx_hash, trace_type, result)
+       VALUES ($1, $2, $3::jsonb)
+       ON CONFLICT (tx_hash, trace_type) DO UPDATE SET result = $3::jsonb, created_at = NOW()`,
+      [txHash.toLowerCase(), traceType, JSON.stringify(result)],
+    );
+  } catch (err) {
+    console.error("[tracer] cache write failed:", err);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -357,6 +389,12 @@ async function traceViaBlockScout(hash: string): Promise<CallTraceResult> {
 export async function traceTransaction(
   hash: string,
 ): Promise<CallTraceResult> {
+  // Check cache first — mined tx traces are immutable
+  const cached = await getCachedTrace<CallFrame>(hash, "calltree");
+  if (cached) {
+    return { trace: cached, error: null, debugAvailable: true };
+  }
+
   try {
     const rpcResult = await makeDebugRpc("debug_traceTransaction", [
       hash,
@@ -372,7 +410,9 @@ export async function traceTransaction(
           tracerConfig: { withLog: false },
         });
         if (anvilResult) {
-          return { trace: anvilResult.result as CallFrame, error: null, debugAvailable: true };
+          const trace = anvilResult.result as CallFrame;
+          void setCachedTrace(hash, "calltree", trace);
+          return { trace, error: null, debugAvailable: true };
         }
         return traceViaBlockScout(hash);
       }
@@ -384,15 +424,17 @@ export async function traceTransaction(
     }
 
     const trace = rpcResult.result as CallFrame;
+    void setCachedTrace(hash, "calltree", trace);
     return { trace, error: null, debugAvailable: true };
   } catch {
-    // Try Anvil fork fallback
     const anvilResult = await traceViaAnvilFork(hash, {
       tracer: "callTracer",
       tracerConfig: { withLog: false },
     });
     if (anvilResult) {
-      return { trace: anvilResult.result as CallFrame, error: null, debugAvailable: true };
+      const trace = anvilResult.result as CallFrame;
+      void setCachedTrace(hash, "calltree", trace);
+      return { trace, error: null, debugAvailable: true };
     }
     return traceViaBlockScout(hash);
   }
@@ -405,6 +447,13 @@ export async function traceTransactionOpcodes(
   hash: string,
   limit: number = 10000,
 ): Promise<OpcodeTraceResult> {
+  // Check cache — use a limit-specific key since different limits produce different results
+  const cacheKey = `opcodes_${limit}`;
+  const cached = await getCachedTrace<OpcodeTraceResult>(hash, cacheKey);
+  if (cached) {
+    return { ...cached, debugAvailable: true };
+  }
+
   const structLogConfig = {
     disableStorage: false,
     disableMemory: false,
@@ -460,7 +509,9 @@ export async function traceTransactionOpcodes(
         console.log(`[tracer] debug RPC unavailable for opcodes, trying Anvil fork for ${hash}`);
         const anvilResult = await traceViaAnvilFork(hash, structLogConfig);
         if (anvilResult) {
-          return parseStructLogs(anvilResult.result as Parameters<typeof parseStructLogs>[0]);
+          const result = parseStructLogs(anvilResult.result as Parameters<typeof parseStructLogs>[0]);
+          void setCachedTrace(hash, cacheKey, result);
+          return result;
         }
         return {
           steps: [],
@@ -479,12 +530,15 @@ export async function traceTransactionOpcodes(
       };
     }
 
-    return parseStructLogs(rpcResult.result as Parameters<typeof parseStructLogs>[0]);
+    const result = parseStructLogs(rpcResult.result as Parameters<typeof parseStructLogs>[0]);
+    void setCachedTrace(hash, cacheKey, result);
+    return result;
   } catch {
-    // Try Anvil fork fallback
     const anvilResult = await traceViaAnvilFork(hash, structLogConfig);
     if (anvilResult) {
-      return parseStructLogs(anvilResult.result as Parameters<typeof parseStructLogs>[0]);
+      const result = parseStructLogs(anvilResult.result as Parameters<typeof parseStructLogs>[0]);
+      void setCachedTrace(hash, cacheKey, result);
+      return result;
     }
     return {
       steps: [],
