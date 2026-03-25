@@ -52,27 +52,19 @@ export default function DebuggerView() {
     setTargetAddress(null);
 
     try {
-      // Fetch tx details to get the target address, plus all traces in parallel
-      const [traceRes, gasRes, opcodeRes, txRes] = await Promise.all([
+      // Fetch all traces in parallel — no explorer dependency
+      const [traceRes, gasRes, opcodeRes] = await Promise.all([
         fetchTrace(txHash),
         fetchGasProfile(txHash),
         fetchOpcodes(txHash, 50000),
-        fetch(`/api/tx/${txHash}`).then((r) => r.json()).catch(() => null) as Promise<{
-          ok: boolean;
-          result?: { to?: string };
-        } | null>,
       ]);
 
-      // Extract target address from tx details or call trace
-      const txTo = txRes?.result?.to ?? null;
-
-      // Process trace result
+      // Extract target address from the call trace
       if (traceRes.ok && traceRes.trace) {
         setCallTrace(traceRes.trace);
         setDebugAvailable(true);
-        setTargetAddress(traceRes.trace.to || txTo);
+        setTargetAddress(traceRes.trace.to || null);
       } else {
-        setTargetAddress(txTo);
         setDebugAvailable(traceRes.debugAvailable ?? false);
         if (traceRes.error) {
           setError(traceRes.error);
