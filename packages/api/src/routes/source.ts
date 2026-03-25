@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { getVerifiedSource } from "../services/sourceCode.js";
 import { precomputeSourceMap, lookupPc, type SourceLocation } from "../services/sourceMap.js";
+import { analyzeContract } from "../services/slither.js";
 
 const router = Router();
 
@@ -101,6 +102,33 @@ router.post("/:address/map", async (req: Request, res: Response): Promise<void> 
   } catch (err) {
     console.error("[source] map error:", err);
     res.status(500).json({ ok: false, error: "Failed to map source" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/source/:address/analyze — Run Slither static analysis
+// ---------------------------------------------------------------------------
+router.post("/:address/analyze", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const address = String(req.params.address ?? "");
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      res.status(400).json({ ok: false, error: "Invalid address" });
+      return;
+    }
+
+    const { skipCache } = req.body as { skipCache?: boolean };
+
+    const result = await analyzeContract(address, { skipCache: skipCache === true });
+
+    if (result.error) {
+      res.json({ ok: true, analysis: result, warning: result.error });
+      return;
+    }
+
+    res.json({ ok: true, analysis: result });
+  } catch (err) {
+    console.error("[source] analyze error:", err);
+    res.status(500).json({ ok: false, error: "Failed to analyze contract" });
   }
 });
 

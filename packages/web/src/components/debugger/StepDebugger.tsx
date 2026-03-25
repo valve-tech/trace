@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { OpcodeStep } from "../../api/debugger";
-import { fetchSource, fetchSourceMappings, type ContractSource, type SourceLocation } from "../../api/source";
+import { fetchSource, fetchSourceMappings, analyzeContract, type ContractSource, type SourceLocation, type SlitherFinding } from "../../api/source";
 import SourceViewer from "./SourceViewer";
+import FindingsPanel from "./FindingsPanel";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -98,6 +99,9 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
   const [sourceData, setSourceData] = useState<ContractSource | null>(null);
   const [sourceMappings, setSourceMappings] = useState<Record<number, SourceLocation | null>>({});
   const [sourceLoading, setSourceLoading] = useState(false);
+  const [slitherFindings, setSlitherFindings] = useState<SlitherFinding[]>([]);
+  const [slitherLoading, setSlitherLoading] = useState(false);
+  const [showFindings, setShowFindings] = useState(false);
   const traceListRef = useRef<HTMLDivElement>(null);
   const rowHeight = 28;
 
@@ -130,7 +134,28 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
     setSourceData(null);
     setSourceMappings({});
     setShowSource(false);
+    setSlitherFindings([]);
+    setShowFindings(false);
   }, [steps]);
+
+  // Slither analysis handler
+  const handleAnalyze = useCallback(async () => {
+    if (!contractAddress || slitherLoading) return;
+    setSlitherLoading(true);
+    try {
+      const res = await analyzeContract(contractAddress);
+      if (res.ok && res.analysis) {
+        setSlitherFindings(res.analysis.findings);
+        setShowFindings(true);
+        // Also enable source view if not already on
+        if (!showSource) setShowSource(true);
+      }
+    } catch (err) {
+      console.error("[StepDebugger] Slither analysis error:", err);
+    } finally {
+      setSlitherLoading(false);
+    }
+  }, [contractAddress, slitherLoading, showSource]);
 
   // Fetch source code when toggled on
   useEffect(() => {
@@ -384,6 +409,21 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
             >
               {sourceLoading ? "Loading..." : "Source"}
             </button>
+            <button
+              onClick={handleAnalyze}
+              disabled={slitherLoading}
+              className="rounded font-mono font-semibold transition-colors text-xs px-2 py-1"
+              style={{
+                backgroundColor: showFindings
+                  ? "var(--color-danger)"
+                  : "var(--color-bg-secondary)",
+                color: showFindings ? "#fff" : "var(--color-text-primary)",
+                border: "1px solid var(--color-border-default)",
+                opacity: slitherLoading ? 0.5 : 1,
+              }}
+            >
+              {slitherLoading ? "Analyzing..." : `Slither${slitherFindings.length > 0 ? ` (${slitherFindings.length})` : ""}`}
+            </button>
           </>
         )}
 
@@ -455,6 +495,19 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
           <SourceViewer
             file={currentSourceFile}
             currentLine={currentSourceLocation?.line ?? null}
+            findings={slitherFindings
+              .flatMap((f) =>
+                f.elements
+                  .filter((e) => e.sourceMapping?.lines?.length)
+                  .flatMap((e) =>
+                    (e.sourceMapping?.lines ?? []).map((line) => ({
+                      line,
+                      severity: f.impact,
+                      message: `[${f.check}] ${f.description.split("\n")[0]}`,
+                    })),
+                  ),
+              )
+            }
           />
         </div>
       )}
@@ -470,6 +523,11 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
         >
           Verified source not found for this contract
         </div>
+      )}
+
+      {/* Slither findings panel */}
+      {showFindings && slitherFindings.length > 0 && (
+        <FindingsPanel findings={slitherFindings} />
       )}
 
       {/* Main panels */}
