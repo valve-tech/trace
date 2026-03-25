@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Routes, Route, NavLink, Navigate } from "react-router-dom";
 import SimulationPage from "./pages/SimulationPage";
 import BundleSimulator from "./components/BundleSimulator";
@@ -40,6 +41,27 @@ function PulseLogo() {
 }
 
 export default function App() {
+  const [apiStatus, setApiStatus] = useState<"connected" | "disconnected" | "checking">("checking");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const check = async () => {
+      try {
+        const res = await fetch("/health", { signal: AbortSignal.timeout(3000) });
+        if (cancelled) return;
+        const data = (await res.json()) as { status: string; db: boolean };
+        setApiStatus(data.status === "ok" && data.db ? "connected" : "disconnected");
+      } catch {
+        if (!cancelled) setApiStatus("disconnected");
+      }
+    };
+
+    void check();
+    const interval = setInterval(() => void check(), 15_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--color-bg-primary)" }}>
       {/* Header */}
@@ -68,9 +90,14 @@ export default function App() {
         <div className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
           <div
             className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: "var(--color-success)" }}
+            style={{
+              backgroundColor:
+                apiStatus === "connected" ? "var(--color-success)"
+                : apiStatus === "disconnected" ? "var(--color-danger)"
+                : "var(--color-warning)",
+            }}
           />
-          Connected
+          {apiStatus === "connected" ? "Connected" : apiStatus === "disconnected" ? "Disconnected" : "Checking..."}
         </div>
       </header>
 
