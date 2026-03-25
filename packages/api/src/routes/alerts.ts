@@ -8,6 +8,7 @@ import {
   getAllAlerts,
   getAlertHistory,
   getTriggeredToday,
+  type AlertRow,
 } from "../services/db.js";
 import { dispatch, type MatchData } from "../services/notifier.js";
 
@@ -66,7 +67,6 @@ const createAlertSchema = z
     cooldown_seconds: z.number().int().min(0).default(60),
   })
   .superRefine((data, ctx) => {
-    // Validate conditions based on type
     let result;
     switch (data.type) {
       case "address_activity":
@@ -98,17 +98,17 @@ const createAlertSchema = z
 const updateAlertSchema = createAlertSchema;
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers — JSONB fields are auto-parsed by pg, no JSON.parse needed
 // ---------------------------------------------------------------------------
-function formatAlertRow(row: ReturnType<typeof getAlertById>) {
+function formatAlertRow(row: AlertRow | undefined) {
   if (!row) return null;
   return {
     id: row.id,
     name: row.name,
     type: row.type,
-    conditions: JSON.parse(row.conditions),
-    notifications: JSON.parse(row.notifications),
-    enabled: row.enabled === 1,
+    conditions: row.conditions,
+    notifications: row.notifications,
+    enabled: row.enabled,
     cooldown_seconds: row.cooldown_seconds,
     last_triggered_at: row.last_triggered_at,
     created_at: row.created_at,
@@ -119,15 +119,15 @@ function formatAlertRow(row: ReturnType<typeof getAlertById>) {
 // ---------------------------------------------------------------------------
 // POST /api/alerts — Create alert
 // ---------------------------------------------------------------------------
-router.post("/", (req: Request, res: Response): void => {
+router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const parsed = createAlertSchema.parse(req.body);
-    const row = createAlert({
+    const row = await createAlert({
       name: parsed.name,
       type: parsed.type,
       conditions: JSON.stringify(parsed.conditions),
       notifications: JSON.stringify(parsed.notifications),
-      enabled: parsed.enabled ? 1 : 0,
+      enabled: parsed.enabled,
       cooldown_seconds: parsed.cooldown_seconds,
     });
     res.status(201).json({ ok: true, alert: formatAlertRow(row) });
@@ -144,12 +144,12 @@ router.post("/", (req: Request, res: Response): void => {
 // ---------------------------------------------------------------------------
 // GET /api/alerts — List all alerts
 // ---------------------------------------------------------------------------
-router.get("/", (_req: Request, res: Response): void => {
+router.get("/", async (_req: Request, res: Response): Promise<void> => {
   try {
-    const rows = getAllAlerts();
-    const triggeredToday = getTriggeredToday();
+    const rows = await getAllAlerts();
+    const triggeredToday = await getTriggeredToday();
     const alerts = rows.map(formatAlertRow);
-    const activeCount = rows.filter((r) => r.enabled === 1).length;
+    const activeCount = rows.filter((r) => r.enabled).length;
 
     res.json({
       ok: true,
@@ -169,27 +169,27 @@ router.get("/", (_req: Request, res: Response): void => {
 // ---------------------------------------------------------------------------
 // GET /api/alerts/:id — Get alert with recent history
 // ---------------------------------------------------------------------------
-router.get("/:id", (req: Request, res: Response): void => {
+router.get("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
       res.status(400).json({ ok: false, error: "Invalid alert ID" });
       return;
     }
-    const row = getAlertById(id);
+    const row = await getAlertById(id);
     if (!row) {
       res.status(404).json({ ok: false, error: "Alert not found" });
       return;
     }
 
-    const { rows: history } = getAlertHistory(id, 10, 0);
+    const { rows: history } = await getAlertHistory(id, 10, 0);
 
     res.json({
       ok: true,
       alert: formatAlertRow(row),
       recent_history: history.map((h) => ({
         ...h,
-        matched_data: JSON.parse(h.matched_data),
+        matched_data: h.matched_data,
       })),
     });
   } catch (err) {
@@ -201,7 +201,7 @@ router.get("/:id", (req: Request, res: Response): void => {
 // ---------------------------------------------------------------------------
 // PUT /api/alerts/:id — Update alert
 // ---------------------------------------------------------------------------
-router.put("/:id", (req: Request, res: Response): void => {
+router.put("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -210,12 +210,12 @@ router.put("/:id", (req: Request, res: Response): void => {
     }
 
     const parsed = updateAlertSchema.parse(req.body);
-    const updated = updateAlertById(id, {
+    const updated = await updateAlertById(id, {
       name: parsed.name,
       type: parsed.type,
       conditions: JSON.stringify(parsed.conditions),
       notifications: JSON.stringify(parsed.notifications),
-      enabled: parsed.enabled ? 1 : 0,
+      enabled: parsed.enabled,
       cooldown_seconds: parsed.cooldown_seconds,
     });
 
@@ -238,7 +238,7 @@ router.put("/:id", (req: Request, res: Response): void => {
 // ---------------------------------------------------------------------------
 // DELETE /api/alerts/:id — Delete alert
 // ---------------------------------------------------------------------------
-router.delete("/:id", (req: Request, res: Response): void => {
+router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -246,7 +246,7 @@ router.delete("/:id", (req: Request, res: Response): void => {
       return;
     }
 
-    const deleted = deleteAlertById(id);
+    const deleted = await deleteAlertById(id);
     if (!deleted) {
       res.status(404).json({ ok: false, error: "Alert not found" });
       return;
@@ -262,7 +262,7 @@ router.delete("/:id", (req: Request, res: Response): void => {
 // ---------------------------------------------------------------------------
 // GET /api/alerts/:id/history — Paginated alert history
 // ---------------------------------------------------------------------------
-router.get("/:id/history", (req: Request, res: Response): void => {
+router.get("/:id/history", async (req: Request, res: Response): Promise<void> => {
   try {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -270,7 +270,7 @@ router.get("/:id/history", (req: Request, res: Response): void => {
       return;
     }
 
-    const alert = getAlertById(id);
+    const alert = await getAlertById(id);
     if (!alert) {
       res.status(404).json({ ok: false, error: "Alert not found" });
       return;
@@ -280,13 +280,13 @@ router.get("/:id/history", (req: Request, res: Response): void => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
     const offset = (page - 1) * limit;
 
-    const { rows, total } = getAlertHistory(id, limit, offset);
+    const { rows, total } = await getAlertHistory(id, limit, offset);
 
     res.json({
       ok: true,
       history: rows.map((h) => ({
         ...h,
-        matched_data: JSON.parse(h.matched_data),
+        matched_data: h.matched_data,
       })),
       pagination: {
         page,
@@ -312,7 +312,7 @@ router.post("/:id/test", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const alert = getAlertById(id);
+    const alert = await getAlertById(id);
     if (!alert) {
       res.status(404).json({ ok: false, error: "Alert not found" });
       return;

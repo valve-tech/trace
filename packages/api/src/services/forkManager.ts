@@ -145,7 +145,7 @@ export class ForkManager {
         stdio: "pipe",
         detached: false,
       });
-    } catch (err) {
+    } catch {
       throw new Error(
         "Failed to spawn anvil. Is Foundry installed? " +
           "Install with: curl -L https://foundry.paradigm.xyz | bash && foundryup",

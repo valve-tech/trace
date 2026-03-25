@@ -7,7 +7,7 @@
 
 import type { CallFrame, OpcodeStep } from "./tracer.js";
 import { fetchAbi } from "./decoder.js";
-import { decodeFunctionData, type Abi, type Hex } from "viem";
+import { decodeFunctionData, type Hex } from "viem";
 
 // ---------------------------------------------------------------------------
 // Types

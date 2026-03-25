@@ -1,19 +1,23 @@
-import { useState } from "react";
-import SimulationForm from "./components/SimulationForm";
-import SimulationResultPanel from "./components/SimulationResult";
+import { Routes, Route, NavLink, Navigate } from "react-router-dom";
+import SimulationPage from "./pages/SimulationPage";
 import BundleSimulator from "./components/BundleSimulator";
 import AlertDashboard from "./components/monitoring/AlertDashboard";
 import TestNetDashboard from "./components/testnets/TestNetDashboard";
-import RpcDashboard from "./components/rpc/RpcDashboard";
-import MethodExplorer from "./components/rpc/MethodExplorer";
-import RpcTester from "./components/rpc/RpcTester";
+import RpcPage from "./pages/RpcPage";
 import ExplorerPanel from "./components/explorer/ExplorerPanel";
 import DebuggerView from "./components/debugger/DebuggerView";
 import ActionsDashboard from "./components/actions/ActionsDashboard";
-import type { SimulationResult } from "./types";
-import type { MethodDescription, JsonRpcRequest } from "./api/rpc";
 
-type Tab = "single" | "bundle" | "monitoring" | "testnets" | "rpc" | "explorer" | "debugger" | "actions";
+const NAV_ITEMS = [
+  { to: "/simulate", label: "Simulate" },
+  { to: "/bundle", label: "Bundle" },
+  { to: "/monitoring", label: "Monitoring" },
+  { to: "/testnets", label: "TestNets" },
+  { to: "/rpc", label: "RPC" },
+  { to: "/explorer", label: "Explorer" },
+  { to: "/debugger", label: "Debugger" },
+  { to: "/actions", label: "Actions" },
+] as const;
 
 function PulseLogo() {
   return (
@@ -34,16 +38,6 @@ function PulseLogo() {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>("single");
-  const [result, setResult] = useState<SimulationResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [rpcTesterRequest, setRpcTesterRequest] = useState<JsonRpcRequest | null>(null);
-
-  const handleTryMethod = (method: MethodDescription) => {
-    setRpcTesterRequest(method.example.request);
-  };
-
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--color-bg-primary)" }}>
       {/* Header */}
@@ -57,7 +51,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <PulseLogo />
           <h1 className="text-xl font-semibold" style={{ color: "var(--color-text-primary)" }}>
-            PulseChain Simulator
+            PulseChain Dev Platform
           </h1>
           <span
             className="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -87,168 +81,39 @@ export default function App() {
         }}
       >
         <nav className="flex gap-0">
-          <button
-            onClick={() => setActiveTab("single")}
-            className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-            style={{
-              borderColor: activeTab === "single" ? "var(--color-accent)" : "transparent",
-              color:
-                activeTab === "single"
+          {NAV_ITEMS.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+              style={({ isActive }) => ({
+                borderColor: isActive ? "var(--color-accent)" : "transparent",
+                color: isActive
                   ? "var(--color-text-primary)"
                   : "var(--color-text-secondary)",
-              backgroundColor: "transparent",
-            }}
-          >
-            Single Transaction
-          </button>
-          <button
-            onClick={() => setActiveTab("bundle")}
-            className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-            style={{
-              borderColor: activeTab === "bundle" ? "var(--color-accent)" : "transparent",
-              color:
-                activeTab === "bundle"
-                  ? "var(--color-text-primary)"
-                  : "var(--color-text-secondary)",
-              backgroundColor: "transparent",
-            }}
-          >
-            Bundle Simulation
-          </button>
-          <button
-            onClick={() => setActiveTab("monitoring")}
-            className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-            style={{
-              borderColor: activeTab === "monitoring" ? "var(--color-accent)" : "transparent",
-              color:
-                activeTab === "monitoring"
-                  ? "var(--color-text-primary)"
-                  : "var(--color-text-secondary)",
-              backgroundColor: "transparent",
-            }}
-          >
-            Monitoring
-          </button>
-          <button
-            onClick={() => setActiveTab("testnets")}
-            className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-            style={{
-              borderColor: activeTab === "testnets" ? "var(--color-accent)" : "transparent",
-              color:
-                activeTab === "testnets"
-                  ? "var(--color-text-primary)"
-                  : "var(--color-text-secondary)",
-              backgroundColor: "transparent",
-            }}
-          >
-            TestNets
-          </button>
-          <button
-            onClick={() => setActiveTab("rpc")}
-            className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-            style={{
-              borderColor: activeTab === "rpc" ? "var(--color-accent)" : "transparent",
-              color:
-                activeTab === "rpc"
-                  ? "var(--color-text-primary)"
-                  : "var(--color-text-secondary)",
-              backgroundColor: "transparent",
-            }}
-          >
-            RPC
-          </button>
-          <button
-            onClick={() => setActiveTab("explorer")}
-            className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-            style={{
-              borderColor: activeTab === "explorer" ? "var(--color-accent)" : "transparent",
-              color:
-                activeTab === "explorer"
-                  ? "var(--color-text-primary)"
-                  : "var(--color-text-secondary)",
-              backgroundColor: "transparent",
-            }}
-          >
-            Explorer
-          </button>
-          <button
-            onClick={() => setActiveTab("debugger")}
-            className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-            style={{
-              borderColor: activeTab === "debugger" ? "var(--color-accent)" : "transparent",
-              color:
-                activeTab === "debugger"
-                  ? "var(--color-text-primary)"
-                  : "var(--color-text-secondary)",
-              backgroundColor: "transparent",
-            }}
-          >
-            Debugger
-          </button>
-          <button
-            onClick={() => setActiveTab("actions")}
-            className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-            style={{
-              borderColor: activeTab === "actions" ? "var(--color-accent)" : "transparent",
-              color:
-                activeTab === "actions"
-                  ? "var(--color-text-primary)"
-                  : "var(--color-text-secondary)",
-              backgroundColor: "transparent",
-            }}
-          >
-            Actions
-          </button>
+                backgroundColor: "transparent",
+              })}
+            >
+              {label}
+            </NavLink>
+          ))}
         </nav>
       </div>
 
       {/* Content */}
       <main className="p-6 max-w-screen-2xl mx-auto">
-        {activeTab === "single" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SimulationForm
-              onResult={setResult}
-              onLoading={setLoading}
-              onError={setError}
-            />
-            <SimulationResultPanel
-              result={result}
-              loading={loading}
-              error={error}
-            />
-          </div>
-        )}
-        {activeTab === "bundle" && <BundleSimulator />}
-        {activeTab === "monitoring" && <AlertDashboard />}
-        {activeTab === "testnets" && <TestNetDashboard />}
-        {activeTab === "rpc" && (
-          <div className="space-y-8">
-            <RpcDashboard />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h2
-                  className="text-sm font-semibold mb-3"
-                  style={{ color: "var(--color-text-primary)" }}
-                >
-                  Method Explorer
-                </h2>
-                <MethodExplorer onTryMethod={handleTryMethod} />
-              </div>
-              <div>
-                <h2
-                  className="text-sm font-semibold mb-3"
-                  style={{ color: "var(--color-text-primary)" }}
-                >
-                  RPC Tester
-                </h2>
-                <RpcTester initialRequest={rpcTesterRequest} />
-              </div>
-            </div>
-          </div>
-        )}
-        {activeTab === "explorer" && <ExplorerPanel />}
-        {activeTab === "debugger" && <DebuggerView />}
-        {activeTab === "actions" && <ActionsDashboard />}
+        <Routes>
+          <Route path="/" element={<Navigate to="/simulate" replace />} />
+          <Route path="/simulate" element={<SimulationPage />} />
+          <Route path="/bundle" element={<BundleSimulator />} />
+          <Route path="/monitoring" element={<AlertDashboard />} />
+          <Route path="/testnets" element={<TestNetDashboard />} />
+          <Route path="/rpc" element={<RpcPage />} />
+          <Route path="/explorer/*" element={<ExplorerPanel />} />
+          <Route path="/debugger" element={<DebuggerView />} />
+          <Route path="/debugger/:txHash" element={<DebuggerView />} />
+          <Route path="/actions" element={<ActionsDashboard />} />
+        </Routes>
       </main>
     </div>
   );

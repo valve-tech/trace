@@ -34,7 +34,6 @@ let pollingInterval: ReturnType<typeof setInterval> | null = null;
 let lastProcessedBlock: bigint = 0n;
 let isProcessing = false;
 
-// Cooldown tracking: alertId -> last trigger timestamp (ms)
 const cooldownMap = new Map<number, number>();
 
 // ---------------------------------------------------------------------------
@@ -49,7 +48,6 @@ export function startMonitor(): void {
   pollingInterval = setInterval(() => {
     void pollBlocks();
   }, 3000);
-  // Run immediately on start
   void pollBlocks();
 }
 
@@ -71,7 +69,6 @@ async function pollBlocks(): Promise<void> {
   try {
     const latestBlockNumber = await publicClient.getBlockNumber();
 
-    // On first run, start from current block (don't replay history)
     if (lastProcessedBlock === 0n) {
       lastProcessedBlock = latestBlockNumber;
       console.log(`[monitor] initialized at block ${latestBlockNumber}`);
@@ -79,13 +76,11 @@ async function pollBlocks(): Promise<void> {
       return;
     }
 
-    // No new blocks
     if (latestBlockNumber <= lastProcessedBlock) {
       isProcessing = false;
       return;
     }
 
-    // Process each new block (cap at 5 blocks to avoid large gaps)
     const startBlock = lastProcessedBlock + 1n;
     const endBlock =
       latestBlockNumber - startBlock > 5n
@@ -108,11 +103,10 @@ async function pollBlocks(): Promise<void> {
 // Process a single block
 // ---------------------------------------------------------------------------
 async function processBlock(blockNumber: bigint): Promise<void> {
-  const alerts = getEnabledAlerts();
+  const alerts = await getEnabledAlerts();
   if (alerts.length === 0) return;
 
   try {
-    // Fetch block with transactions
     const block = await publicClient.getBlock({
       blockNumber,
       includeTransactions: true,
@@ -134,7 +128,6 @@ async function processBlock(blockNumber: bigint): Promise<void> {
       input: tx.input,
     }));
 
-    // Fetch logs for this block
     let logs: Log[] = [];
     try {
       logs = await publicClient.getLogs({
@@ -145,7 +138,6 @@ async function processBlock(blockNumber: bigint): Promise<void> {
       console.warn(`[monitor] failed to fetch logs for block ${blockNumber}:`, err);
     }
 
-    // Match each alert against the block data
     await matchAlerts(alerts, block, txs, logs, blockNumber);
   } catch (err) {
     console.error(`[monitor] error processing block ${blockNumber}:`, err);
@@ -153,7 +145,7 @@ async function processBlock(blockNumber: bigint): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Match alerts against block data
+// Match alerts — conditions is now a JSONB object from pg
 // ---------------------------------------------------------------------------
 async function matchAlerts(
   alerts: AlertRow[],
@@ -163,18 +155,12 @@ async function matchAlerts(
   blockNumber: bigint,
 ): Promise<void> {
   for (const alert of alerts) {
-    // Check cooldown
     const lastTrigger = cooldownMap.get(alert.id);
     if (lastTrigger && Date.now() - lastTrigger < alert.cooldown_seconds * 1000) {
       continue;
     }
 
-    let conditions: AlertConditions;
-    try {
-      conditions = JSON.parse(alert.conditions) as AlertConditions;
-    } catch {
-      continue;
-    }
+    const conditions = alert.conditions as unknown as AlertConditions;
 
     let matchData: MatchData | null = null;
 
@@ -201,15 +187,13 @@ async function matchAlerts(
     }
 
     if (matchData) {
-      // Record and dispatch
       cooldownMap.set(alert.id, Date.now());
-      recordAlertTrigger({
+      await recordAlertTrigger({
         alert_id: alert.id,
         tx_hash: matchData.txHash ?? null,
         block_number: Number(blockNumber),
         matched_data: JSON.stringify(matchData),
       });
-      // Fire-and-forget notification dispatch
       dispatch(alert, matchData).catch((err) => {
         console.error(`[monitor] notification dispatch error for alert ${alert.id}:`, err);
       });
@@ -252,7 +236,6 @@ function matchContractEvent(
   const eventSig = conditions.eventSignature;
   if (!contractAddr || !eventSig) return null;
 
-  // Compute topic0 from event signature
   const topic0 = keccak256(toHex(eventSig));
 
   const log = logs.find(
@@ -280,7 +263,6 @@ function matchFunctionCall(
   const selector = conditions.functionSelector?.toLowerCase();
   if (!contractAddr || !selector) return null;
 
-  // Normalize selector: ensure it starts with 0x and is 10 chars (0x + 8 hex)
   const normalizedSelector = selector.startsWith("0x") ? selector : `0x${selector}`;
 
   const tx = txs.find(
@@ -346,11 +328,9 @@ async function matchFailedTx(
   const addr = conditions.address?.toLowerCase();
   if (!addr) return null;
 
-  // Find transactions involving the address
   const relatedTxs = txs.filter((t) => t.from === addr || t.to === addr);
   if (relatedTxs.length === 0) return null;
 
-  // Check receipts for failed status
   for (const tx of relatedTxs) {
     try {
       const receipt = await publicClient.getTransactionReceipt({
@@ -375,7 +355,4 @@ async function matchFailedTx(
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Exports for testing
-// ---------------------------------------------------------------------------
 export { pollBlocks, processBlock };

@@ -7,6 +7,7 @@ import {
   deleteAction,
   getActionLogs,
   getTodayExecutions,
+  type ActionRow,
 } from "../services/actionsDb.js";
 import { executeAction, type TriggerEvent } from "../services/actionExecutor.js";
 import {
@@ -19,7 +20,7 @@ const router = Router();
 // ---------------------------------------------------------------------------
 // POST /api/actions — Create action
 // ---------------------------------------------------------------------------
-router.post("/", (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
     const { name, code, triggerType, triggerConfig, secrets } = req.body as {
       name?: string;
@@ -43,7 +44,7 @@ router.post("/", (req: Request, res: Response) => {
       return;
     }
 
-    const action = createAction({
+    const action = await createAction({
       name,
       code: code ?? "",
       trigger_type: triggerType,
@@ -51,7 +52,6 @@ router.post("/", (req: Request, res: Response) => {
       secrets: JSON.stringify(secrets ?? {}),
     });
 
-    // Register with scheduler if periodic
     registerAction(action);
 
     res.status(201).json({ ok: true, action: formatAction(action) });
@@ -64,10 +64,10 @@ router.post("/", (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // GET /api/actions — List all actions
 // ---------------------------------------------------------------------------
-router.get("/", (_req: Request, res: Response) => {
+router.get("/", async (_req: Request, res: Response) => {
   try {
-    const actions = listActions();
-    const todayExecutions = getTodayExecutions();
+    const actions = await listActions();
+    const todayExecutions = await getTodayExecutions();
     const enabledCount = actions.filter((a) => a.enabled).length;
 
     res.json({
@@ -88,7 +88,7 @@ router.get("/", (_req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // GET /api/actions/:id — Get action details
 // ---------------------------------------------------------------------------
-router.get("/:id", (req: Request, res: Response) => {
+router.get("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(String(req.params.id ?? ""), 10);
     if (isNaN(id)) {
@@ -96,7 +96,7 @@ router.get("/:id", (req: Request, res: Response) => {
       return;
     }
 
-    const action = getAction(id);
+    const action = await getAction(id);
     if (!action) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
@@ -112,7 +112,7 @@ router.get("/:id", (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // PUT /api/actions/:id — Update action
 // ---------------------------------------------------------------------------
-router.put("/:id", (req: Request, res: Response) => {
+router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(String(req.params.id ?? ""), 10);
     if (isNaN(id)) {
@@ -120,7 +120,7 @@ router.put("/:id", (req: Request, res: Response) => {
       return;
     }
 
-    const existing = getAction(id);
+    const existing = await getAction(id);
     if (!existing) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
@@ -135,15 +135,15 @@ router.put("/:id", (req: Request, res: Response) => {
       enabled?: boolean;
     };
 
-    const updated = updateAction(id, {
+    const updated = await updateAction(id, {
       name: name ?? existing.name,
       code: code ?? existing.code,
       trigger_type: triggerType ?? existing.trigger_type,
       trigger_config: triggerConfig
         ? JSON.stringify(triggerConfig)
-        : existing.trigger_config,
-      secrets: secrets ? JSON.stringify(secrets) : existing.secrets,
-      enabled: enabled !== undefined ? (enabled ? 1 : 0) : existing.enabled,
+        : JSON.stringify(existing.trigger_config),
+      secrets: secrets ? JSON.stringify(secrets) : JSON.stringify(existing.secrets),
+      enabled: enabled ?? existing.enabled,
     });
 
     if (!updated) {
@@ -151,7 +151,6 @@ router.put("/:id", (req: Request, res: Response) => {
       return;
     }
 
-    // Re-register scheduler (handles periodic type changes)
     unregisterAction(id);
     if (updated.enabled) {
       registerAction(updated);
@@ -167,7 +166,7 @@ router.put("/:id", (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // DELETE /api/actions/:id — Delete action
 // ---------------------------------------------------------------------------
-router.delete("/:id", (req: Request, res: Response) => {
+router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(String(req.params.id ?? ""), 10);
     if (isNaN(id)) {
@@ -175,10 +174,9 @@ router.delete("/:id", (req: Request, res: Response) => {
       return;
     }
 
-    // Unregister from scheduler first
     unregisterAction(id);
 
-    const deleted = deleteAction(id);
+    const deleted = await deleteAction(id);
     if (!deleted) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
@@ -202,7 +200,7 @@ router.post("/:id/test", async (req: Request, res: Response) => {
       return;
     }
 
-    const action = getAction(id);
+    const action = await getAction(id);
     if (!action) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
@@ -225,7 +223,7 @@ router.post("/:id/test", async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // GET /api/actions/:id/logs — Execution logs (paginated)
 // ---------------------------------------------------------------------------
-router.get("/:id/logs", (req: Request, res: Response) => {
+router.get("/:id/logs", async (req: Request, res: Response) => {
   try {
     const id = parseInt(String(req.params.id ?? ""), 10);
     if (isNaN(id)) {
@@ -233,7 +231,7 @@ router.get("/:id/logs", (req: Request, res: Response) => {
       return;
     }
 
-    const action = getAction(id);
+    const action = await getAction(id);
     if (!action) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
@@ -242,7 +240,7 @@ router.get("/:id/logs", (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string, 10) || 1;
     const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
 
-    const logs = getActionLogs(id, page, limit);
+    const logs = await getActionLogs(id, page, limit);
     res.json({ ok: true, ...logs });
   } catch (err: unknown) {
     console.error("[actions] logs error:", err);
@@ -261,7 +259,7 @@ router.post("/webhooks/:actionId", async (req: Request, res: Response) => {
       return;
     }
 
-    const action = getAction(actionId);
+    const action = await getAction(actionId);
     if (!action) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
@@ -296,44 +294,20 @@ router.post("/webhooks/:actionId", async (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
-// Helper: format an ActionRow for API response (parse JSON fields, mask secrets)
+// Helper: format an ActionRow for API response
+// JSONB fields are auto-parsed by pg — no JSON.parse needed
 // ---------------------------------------------------------------------------
-function formatAction(action: {
-  id: number;
-  name: string;
-  code: string;
-  trigger_type: string;
-  trigger_config: string;
-  secrets: string;
-  storage: string;
-  enabled: number;
-  created_at: string;
-  updated_at: string;
-}) {
-  let triggerConfig: Record<string, unknown> = {};
-  let secretKeys: string[] = [];
-
-  try {
-    triggerConfig = JSON.parse(action.trigger_config) as Record<string, unknown>;
-  } catch {
-    // ignore
-  }
-
-  try {
-    const secrets = JSON.parse(action.secrets) as Record<string, string>;
-    secretKeys = Object.keys(secrets);
-  } catch {
-    // ignore
-  }
+function formatAction(action: ActionRow) {
+  const secretKeys = Object.keys(action.secrets);
 
   return {
     id: action.id,
     name: action.name,
     code: action.code,
     triggerType: action.trigger_type,
-    triggerConfig,
-    secretKeys, // Only expose key names, not values
-    enabled: Boolean(action.enabled),
+    triggerConfig: action.trigger_config,
+    secretKeys,
+    enabled: action.enabled,
     createdAt: action.created_at,
     updatedAt: action.updated_at,
     webhookUrl:

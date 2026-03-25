@@ -11,12 +11,13 @@ import {
 import CallTree from "./CallTree";
 import GasProfiler from "./GasProfiler";
 import OpcodeViewer from "./OpcodeViewer";
+import StepDebugger from "./StepDebugger";
 
-type DebugTab = "calltree" | "gas" | "opcodes";
+type DebugTab = "debugger" | "calltree" | "gas" | "opcodes";
 
 export default function DebuggerView() {
   const [txHash, setTxHash] = useState("");
-  const [activeTab, setActiveTab] = useState<DebugTab>("calltree");
+  const [activeTab, setActiveTab] = useState<DebugTab>("debugger");
 
   // Data
   const [callTrace, setCallTrace] = useState<CallFrame | null>(null);
@@ -49,7 +50,7 @@ export default function DebuggerView() {
       const [traceRes, gasRes, opcodeRes] = await Promise.all([
         fetchTrace(txHash),
         fetchGasProfile(txHash),
-        fetchOpcodes(txHash, 10000),
+        fetchOpcodes(txHash, 50000),
       ]);
 
       // Process trace result
@@ -265,6 +266,11 @@ export default function DebuggerView() {
           >
             {(
               [
+                {
+                  key: "debugger",
+                  label: "Step Debugger",
+                  count: opcodeSteps.length,
+                },
                 { key: "calltree", label: "Call Tree", count: callTrace ? 1 : 0 },
                 { key: "gas", label: "Gas Profile", count: gasProfile ? 1 : 0 },
                 {
@@ -291,7 +297,7 @@ export default function DebuggerView() {
                 }}
               >
                 {label}
-                {count > 0 && key === "opcodes" && (
+                {count > 0 && (key === "opcodes" || key === "debugger") && (
                   <span
                     className="ml-2 text-xs px-1.5 py-0.5 rounded"
                     style={{
@@ -308,6 +314,14 @@ export default function DebuggerView() {
 
           {/* Tab content */}
           <div className="mt-4">
+            {activeTab === "debugger" && (
+              opcodeSteps.length > 0 ? (
+                <StepDebugger steps={opcodeSteps} />
+              ) : (
+                <NoDataPanel message="Step debugger requires opcode trace data. A debug-enabled node is needed." />
+              )
+            )}
+
             {activeTab === "calltree" && (
               callTrace ? (
                 <CallTree trace={callTrace} />

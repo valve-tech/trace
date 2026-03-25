@@ -165,19 +165,13 @@ export async function sendTelegram(
 }
 
 // ---------------------------------------------------------------------------
-// Dispatch – route to appropriate channels
+// Dispatch — notifications is now a JSONB array from pg, no JSON.parse
 // ---------------------------------------------------------------------------
 export async function dispatch(
   alert: AlertRow,
   matchData: MatchData,
 ): Promise<void> {
-  let channels: NotificationChannel[];
-  try {
-    channels = JSON.parse(alert.notifications) as NotificationChannel[];
-  } catch {
-    console.error(`[notifier] invalid notifications JSON for alert ${alert.id}`);
-    return;
-  }
+  const channels = alert.notifications as unknown as NotificationChannel[];
 
   if (!Array.isArray(channels) || channels.length === 0) return;
 

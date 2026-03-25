@@ -475,7 +475,7 @@ async function handleGetAssetChanges(
     return makeError(id, -32602, "Invalid params: expected transaction object as first parameter");
   }
 
-  const { from, to, value, data, gas } = txParams as {
+  const { from, to, value, data: _data, gas: _gas } = txParams as {
     from?: string;
     to?: string;
     value?: string;

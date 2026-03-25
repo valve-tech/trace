@@ -6,7 +6,7 @@ import {
 import { executeAction, type TriggerEvent } from "./actionExecutor.js";
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — trigger_config is now a JSONB object from pg
 // ---------------------------------------------------------------------------
 interface TriggerConfig {
   intervalSeconds?: number;
@@ -28,29 +28,15 @@ const scheduledActions = new Map<number, ScheduledAction>();
 // ---------------------------------------------------------------------------
 // Register/unregister periodic actions
 // ---------------------------------------------------------------------------
-
-/**
- * Register a periodic action. If the action's trigger_type is "periodic",
- * it will be scheduled to run at the configured interval.
- */
 export function registerAction(action: ActionRow): void {
-  // Only schedule periodic triggers here
   if (action.trigger_type !== "periodic") return;
   if (!action.enabled) return;
 
-  // Don't double-register
   if (scheduledActions.has(action.id)) {
     unregisterAction(action.id);
   }
 
-  let config: TriggerConfig;
-  try {
-    config = JSON.parse(action.trigger_config) as TriggerConfig;
-  } catch {
-    console.error(`[scheduler] failed to parse trigger_config for action ${action.id}`);
-    return;
-  }
-
+  const config = action.trigger_config as unknown as TriggerConfig;
   const intervalSeconds = config.intervalSeconds ?? 60;
   const intervalMs = intervalSeconds * 1000;
 
@@ -59,22 +45,25 @@ export function registerAction(action: ActionRow): void {
   );
 
   const handle = setInterval(() => {
-    // Re-fetch action to check if still enabled
-    const current = getAction(action.id);
-    if (!current || !current.enabled) {
-      unregisterAction(action.id);
-      return;
-    }
+    void (async () => {
+      const current = await getAction(action.id);
+      if (!current || !current.enabled) {
+        unregisterAction(action.id);
+        return;
+      }
 
-    const event: TriggerEvent = {
-      type: "periodic",
-      timestamp: new Date().toISOString(),
-      intervalSeconds,
-    };
+      const event: TriggerEvent = {
+        type: "periodic",
+        timestamp: new Date().toISOString(),
+        intervalSeconds,
+      };
 
-    executeAction(current, event).catch((err) => {
-      console.error(`[scheduler] error executing periodic action ${action.id}:`, err);
-    });
+      try {
+        await executeAction(current, event);
+      } catch (err) {
+        console.error(`[scheduler] error executing periodic action ${action.id}:`, err);
+      }
+    })();
   }, intervalMs);
 
   scheduledActions.set(action.id, {
@@ -83,9 +72,6 @@ export function registerAction(action: ActionRow): void {
   });
 }
 
-/**
- * Unregister a scheduled action (clear its interval).
- */
 export function unregisterAction(actionId: number): void {
   const scheduled = scheduledActions.get(actionId);
   if (scheduled) {
@@ -95,9 +81,6 @@ export function unregisterAction(actionId: number): void {
   }
 }
 
-/**
- * Unregister all scheduled actions.
- */
 export function unregisterAll(): void {
   for (const [id] of scheduledActions) {
     unregisterAction(id);
@@ -107,15 +90,6 @@ export function unregisterAll(): void {
 // ---------------------------------------------------------------------------
 // Block/event trigger processing
 // ---------------------------------------------------------------------------
-
-/**
- * Process a new block. Checks if any enabled actions have block or event triggers
- * that match, and executes them if so.
- *
- * @param blockNumber - The new block number
- * @param txs - Transactions in the block
- * @param logs - Logs emitted in the block
- */
 export async function processBlock(
   blockNumber: number,
   txs: Array<{
@@ -132,15 +106,10 @@ export async function processBlock(
     transactionHash: string | null;
   }>,
 ): Promise<void> {
-  const actions = getEnabledActions();
+  const actions = await getEnabledActions();
 
   for (const action of actions) {
-    let config: TriggerConfig;
-    try {
-      config = JSON.parse(action.trigger_config) as TriggerConfig;
-    } catch {
-      continue;
-    }
+    const config = action.trigger_config as unknown as TriggerConfig;
 
     if (action.trigger_type === "block") {
       const everyN = config.everyNthBlock ?? 1;
@@ -164,12 +133,8 @@ export async function processBlock(
       const eventSignature = config.eventSignature;
       if (!contractAddress || !eventSignature) continue;
 
-      // Compute topic0 from event signature using a simple keccak256
-      // We match any log where address matches and first topic matches the signature hash
       const matchingLogs = logs.filter((log) => {
         if (log.address.toLowerCase() !== contractAddress) return false;
-        // For event matching, we compare the event signature directly
-        // The trigger config stores the topic0 hash or the signature itself
         if (log.topics[0]?.toLowerCase() === eventSignature.toLowerCase()) {
           return true;
         }
@@ -199,14 +164,9 @@ export async function processBlock(
 // ---------------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------------
-
-/**
- * Load all enabled actions from DB and register their schedules.
- * Called on server startup.
- */
-export function initScheduler(): void {
+export async function initScheduler(): Promise<void> {
   console.log("[scheduler] initializing action scheduler...");
-  const actions = getEnabledActions();
+  const actions = await getEnabledActions();
   let registered = 0;
 
   for (const action of actions) {
@@ -221,9 +181,6 @@ export function initScheduler(): void {
   );
 }
 
-/**
- * Get info about currently scheduled actions.
- */
 export function getSchedulerStatus(): {
   scheduledCount: number;
   actionIds: number[];

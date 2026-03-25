@@ -2,11 +2,9 @@ import {
   decodeFunctionData,
   decodeFunctionResult,
   decodeEventLog,
-  parseAbi,
   type Abi,
   type Hex,
   type Log,
-  type Address,
   type AbiFunction,
   type AbiEvent,
 } from "viem";

@@ -230,7 +230,7 @@ async function traceViaBlockScout(hash: string): Promise<CallTraceResult> {
       // The parent is the deepest node where (parent.to == itx.from) or
       // (parent.from == itx.from for delegatecall) and parent.gas >= itx.gas
       while (stack.length > 1) {
-        const top = stack[stack.length - 1];
+        const top = stack[stack.length - 1]!;
         const topTo = top.to.toLowerCase();
         const topFrom = top.from.toLowerCase();
         const topGas = parseInt(top.gas) || 0;
@@ -246,7 +246,7 @@ async function traceViaBlockScout(hash: string): Promise<CallTraceResult> {
         stack.pop();
       }
 
-      const parent = stack[stack.length - 1];
+      const parent = stack[stack.length - 1]!;
       if (!parent.calls) parent.calls = [];
       parent.calls.push(frame);
       stack.push(frame);

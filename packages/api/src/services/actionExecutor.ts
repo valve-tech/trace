@@ -6,7 +6,7 @@ import {
   setActionStorage,
   addLog,
 } from "./actionsDb.js";
-import { type Address, type Hex, formatEther, formatUnits } from "viem";
+import { type Address, type Hex, formatEther } from "viem";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,6 +116,7 @@ function createRpcHelpers() {
 
 // ---------------------------------------------------------------------------
 // Execute an action
+// secrets and storage are now JSONB objects from pg — no JSON.parse needed
 // ---------------------------------------------------------------------------
 export async function executeAction(
   action: ActionRow,
@@ -125,16 +126,9 @@ export async function executeAction(
   const stdoutLines: string[] = [];
   const stderrLines: string[] = [];
 
-  // Parse secrets
-  let secrets: Record<string, string> = {};
-  try {
-    secrets = JSON.parse(action.secrets) as Record<string, string>;
-  } catch {
-    // ignore parse errors
-  }
+  const secrets = (action.secrets ?? {}) as Record<string, string>;
 
-  // Build storage helpers
-  const storageData = getActionStorage(action.id);
+  const storageData = await getActionStorage(action.id);
   const storageProxy = {
     get(key: string): unknown {
       return storageData[key];
@@ -150,7 +144,6 @@ export async function executeAction(
     },
   };
 
-  // Build console capture
   const capturedConsole = {
     log: (...args: unknown[]) => {
       stdoutLines.push(args.map(String).join(" "));
@@ -166,7 +159,6 @@ export async function executeAction(
     },
   };
 
-  // Build sandbox context
   const sandbox = {
     console: capturedConsole,
     event: triggerEvent,
@@ -205,13 +197,10 @@ export async function executeAction(
 
   const context = vm.createContext(sandbox);
 
-  // Wrap user code: support both `export async function handler` and direct code
-  // We wrap the code so that if they write handler(), we call it.
   const wrappedCode = `
 (async () => {
   ${action.code}
 
-  // If a handler function was defined, call it
   if (typeof handler === 'function') {
     await handler({ event, rpc, secrets, storage });
   }
@@ -223,13 +212,11 @@ export async function executeAction(
       filename: `action-${action.id}.js`,
     });
 
-    // Run with 30s timeout
     const resultPromise = script.runInContext(context, {
       timeout: 30_000,
       breakOnSigint: true,
     });
 
-    // If the result is a promise (async code), await it with a timeout
     if (resultPromise && typeof resultPromise.then === "function") {
       await Promise.race([
         resultPromise,
@@ -239,8 +226,7 @@ export async function executeAction(
       ]);
     }
 
-    // Persist storage changes
-    setActionStorage(action.id, storageData);
+    await setActionStorage(action.id, storageData);
 
     const duration = Date.now() - startTime;
     const result: ExecutionResult = {
@@ -250,11 +236,10 @@ export async function executeAction(
       duration_ms: duration,
     };
 
-    // Log execution
-    addLog({
+    await addLog({
       action_id: action.id,
       duration_ms: duration,
-      success: 1,
+      success: true,
       stdout: result.stdout,
       stderr: result.stderr,
       trigger_data: JSON.stringify(triggerEvent),
@@ -265,7 +250,6 @@ export async function executeAction(
     const duration = Date.now() - startTime;
     const errorMessage = err instanceof Error ? err.message : String(err);
 
-    // Append error to stderr
     stderrLines.push(`[fatal] ${errorMessage}`);
 
     const result: ExecutionResult = {
@@ -276,11 +260,10 @@ export async function executeAction(
       error: errorMessage,
     };
 
-    // Log execution
-    addLog({
+    await addLog({
       action_id: action.id,
       duration_ms: duration,
-      success: 0,
+      success: false,
       stdout: result.stdout,
       stderr: result.stderr,
       trigger_data: JSON.stringify(triggerEvent),

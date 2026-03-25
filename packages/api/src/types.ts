@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Abi, Hex, Address } from "viem";
+import type { Hex, Address } from "viem";
 
 // ---------------------------------------------------------------------------
 // Zod schemas – used for runtime request validation
