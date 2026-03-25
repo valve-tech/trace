@@ -332,7 +332,7 @@ export default function AddressView({
                   <tbody>
                     {txs.map((tx, i) => {
                       const isIn =
-                        tx.to.toLowerCase() === address.toLowerCase();
+                        tx.to?.toLowerCase() === address.toLowerCase();
                       return (
                         <tr
                           key={i}

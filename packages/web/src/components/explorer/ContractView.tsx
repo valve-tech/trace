@@ -79,8 +79,9 @@ function ReadFunction({
       const json = await response.json();
 
       if (json.ok && json.result) {
-        if (json.result.decodedOutput) {
-          const values = json.result.decodedOutput.values || [];
+        const decoded = json.result.decodedReturn ?? json.result.decodedOutput;
+        if (decoded) {
+          const values = decoded.values || [];
           setResult(
             values
               .map(

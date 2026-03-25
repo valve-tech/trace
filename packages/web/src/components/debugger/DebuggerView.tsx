@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   fetchTrace,
   fetchGasProfile,
@@ -16,8 +17,11 @@ import StepDebugger from "./StepDebugger";
 type DebugTab = "debugger" | "calltree" | "gas" | "opcodes";
 
 export default function DebuggerView() {
-  const [txHash, setTxHash] = useState("");
+  const { txHash: urlHash } = useParams<{ txHash?: string }>();
+  const navigate = useNavigate();
+  const [txHash, setTxHash] = useState(urlHash ?? "");
   const [activeTab, setActiveTab] = useState<DebugTab>("debugger");
+  const initialLoadDone = useRef(false);
 
   // Data
   const [callTrace, setCallTrace] = useState<CallFrame | null>(null);
@@ -94,9 +98,24 @@ export default function DebuggerView() {
     }
   }, [txHash, isValidHash]);
 
+  // Auto-trace when URL contains a tx hash
+  useEffect(() => {
+    if (urlHash && /^0x[0-9a-fA-F]{64}$/.test(urlHash) && !initialLoadDone.current) {
+      initialLoadDone.current = true;
+      void handleTrace();
+    }
+  }, [urlHash, handleTrace]);
+
+  const handleSubmitTrace = useCallback(() => {
+    if (!isValidHash || loading) return;
+    // Update URL to shareable link
+    navigate(`/debugger/${txHash}`, { replace: true });
+    void handleTrace();
+  }, [isValidHash, loading, txHash, navigate, handleTrace]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && isValidHash && !loading) {
-      handleTrace();
+    if (e.key === "Enter") {
+      handleSubmitTrace();
     }
   };
 
@@ -139,7 +158,7 @@ export default function DebuggerView() {
             }}
           />
           <button
-            onClick={handleTrace}
+            onClick={handleSubmitTrace}
             disabled={!isValidHash || loading}
             className="px-6 py-2.5 rounded-lg text-sm font-medium transition-colors"
             style={{

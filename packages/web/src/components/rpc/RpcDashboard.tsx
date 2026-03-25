@@ -40,7 +40,7 @@ export default function RpcDashboard() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const rpcUrl = `${window.location.protocol}//${window.location.hostname}:3001/rpc`;
+  const rpcUrl = `${window.location.origin}/rpc`;
 
   const refresh = useCallback(async () => {
     try {

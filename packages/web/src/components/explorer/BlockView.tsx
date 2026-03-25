@@ -156,12 +156,11 @@ export default function BlockView({
           {/* Block nav */}
           <div className="flex items-center gap-1 ml-auto">
             <button
-              onClick={() =>
-                onNavigate({
-                  type: "block",
-                  value: String(Number(block.number) - 1),
-                })
-              }
+              onClick={() => {
+                const prevNum = Number(block.number) - 1;
+                if (prevNum >= 0) onNavigate({ type: "block", value: String(prevNum) });
+              }}
+              disabled={Number(block.number) <= 0}
               className="text-xs px-2 py-1 rounded hover:opacity-80 cursor-pointer"
               style={{
                 backgroundColor: "var(--color-bg-secondary)",

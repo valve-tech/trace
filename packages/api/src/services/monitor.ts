@@ -5,6 +5,7 @@ import {
   type AlertRow,
 } from "./db.js";
 import { dispatch, type MatchData } from "./notifier.js";
+import { processBlock as processActionsBlock } from "./actionScheduler.js";
 import { type Address, formatEther, keccak256, toHex, type Log } from "viem";
 
 // ---------------------------------------------------------------------------
@@ -139,6 +140,22 @@ async function processBlock(blockNumber: bigint): Promise<void> {
     }
 
     await matchAlerts(alerts, block, txs, logs, blockNumber);
+
+    // Feed block data to the action scheduler for block/event-triggered actions
+    const actionTxs = txs.map((tx) => ({
+      hash: tx.hash,
+      from: tx.from,
+      to: tx.to,
+      value: formatEther(tx.value),
+      input: tx.input,
+    }));
+    const actionLogs = logs.map((l) => ({
+      address: l.address,
+      topics: [...l.topics] as string[],
+      data: l.data,
+      transactionHash: l.transactionHash ?? null,
+    }));
+    await processActionsBlock(Number(blockNumber), actionTxs, actionLogs);
   } catch (err) {
     console.error(`[monitor] error processing block ${blockNumber}:`, err);
   }

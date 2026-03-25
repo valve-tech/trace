@@ -90,14 +90,36 @@ interface StepDebuggerProps {
 
 export default function StepDebugger({ steps }: StepDebuggerProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [opcodeFilter, setOpcodeFilter] = useState("");
   const traceListRef = useRef<HTMLDivElement>(null);
   const rowHeight = 28;
 
   const totalSteps = steps.length;
 
+  // Compute max depth for depth band colors
+  const maxDepth = useMemo(() => {
+    let max = 1;
+    for (const s of steps) {
+      if (s.depth > max) max = s.depth;
+    }
+    return max;
+  }, [steps]);
+
+  // Filtered step indices (when filter is active)
+  const filteredIndices = useMemo(() => {
+    if (!opcodeFilter) return null;
+    const upper = opcodeFilter.toUpperCase();
+    const indices: number[] = [];
+    for (let i = 0; i < steps.length; i++) {
+      if (steps[i]!.op.includes(upper)) indices.push(i);
+    }
+    return indices;
+  }, [opcodeFilter, steps]);
+
   // Reset step when trace changes (new transaction loaded)
   useEffect(() => {
     setCurrentStep(0);
+    setOpcodeFilter("");
   }, [steps]);
 
   // ---- Navigation ----
@@ -271,6 +293,31 @@ export default function StepDebugger({ steps }: StepDebuggerProps) {
           style={{ backgroundColor: "var(--color-border-default)" }}
         />
 
+        {/* Opcode filter */}
+        <input
+          type="text"
+          placeholder="Filter..."
+          value={opcodeFilter}
+          onChange={(e) => setOpcodeFilter(e.target.value)}
+          className="w-24 px-2 py-1 rounded text-xs border"
+          style={{
+            backgroundColor: "var(--color-bg-input)",
+            borderColor: "var(--color-border-default)",
+            color: "var(--color-text-primary)",
+            fontFamily: "var(--font-mono)",
+          }}
+        />
+        {filteredIndices && (
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            {filteredIndices.length} matches
+          </span>
+        )}
+
+        <div
+          className="h-4 w-px"
+          style={{ backgroundColor: "var(--color-border-default)" }}
+        />
+
         {/* Slider */}
         <input
           type="range"
@@ -336,11 +383,14 @@ export default function StepDebugger({ steps }: StepDebuggerProps) {
                 const idx = visibleStart + i;
                 const s = steps[idx]!;
                 const isActive = idx === currentStep;
+                const matchesFilter = !filteredIndices || filteredIndices.includes(idx);
+                const depthFraction = maxDepth > 1 ? (s.depth - 1) / (maxDepth - 1) : 0;
+                const depthHue = 260 - depthFraction * 200; // purple → blue → teal → green
                 return (
                   <div
                     key={idx}
                     onClick={() => goTo(idx)}
-                    className="flex items-center px-3 cursor-pointer text-xs"
+                    className="flex items-center cursor-pointer text-xs"
                     style={{
                       position: "absolute",
                       top: idx * rowHeight,
@@ -352,7 +402,10 @@ export default function StepDebugger({ steps }: StepDebuggerProps) {
                         : "transparent",
                       borderLeft: isActive
                         ? "3px solid var(--color-accent)"
-                        : "3px solid transparent",
+                        : `3px solid hsla(${depthHue}, 60%, 50%, ${s.depth > 1 ? 0.5 : 0})`,
+                      opacity: matchesFilter ? 1 : 0.3,
+                      paddingLeft: `${8 + (s.depth - 1) * 6}px`,
+                      paddingRight: "12px",
                     }}
                   >
                     <span
