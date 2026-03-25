@@ -21,7 +21,7 @@ import { initScheduler } from "./services/actionScheduler.js";
 import { initWebSocket } from "./services/wsServer.js";
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.PORT) || 10100;
 
 // ---------------------------------------------------------------------------
 // Middleware

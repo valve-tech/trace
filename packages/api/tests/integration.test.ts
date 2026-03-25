@@ -1,7 +1,7 @@
 /**
  * Comprehensive integration test suite for the PulseChain Developer Platform API.
  *
- * Assumes the API server is already running on http://localhost:3001
+ * Assumes the API server is already running on http://localhost:10100
  * and is connected to live PulseChain RPC.
  *
  * Run with:
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 // Constants
 // ---------------------------------------------------------------------------
 
-const BASE = "http://localhost:3001";
+const BASE = "http://localhost:10100";
 const TEST_TX_HASH =
   "0x6f73cdf350877cad3d720c8023f3731e7e0b8bba43fcde872c25ecb2aa00fa4c";
 const WPLS_ADDRESS = "0xA1077a294dDE1B09bB078844df40758a5D0f9a27";

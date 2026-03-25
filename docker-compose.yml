@@ -20,13 +20,13 @@ services:
       context: .
       dockerfile: packages/api/Dockerfile
     ports:
-      - "3001:3001"
+      - "10100:10100"
     environment:
       DATABASE_URL: postgres://pulsedev:pulsedev@postgres:5432/pulsedev
       PULSECHAIN_RPC_URL: ${PULSECHAIN_RPC_URL:-https://rpc.pulsechain.com}
       DEBUG_RPC_URL: ${DEBUG_RPC_URL:-}
       BLOCKSCOUT_API_URL: ${BLOCKSCOUT_API_URL:-https://api.scan.pulsechain.com/api}
-      PORT: "3001"
+      PORT: "10100"
     depends_on:
       postgres:
         condition: service_healthy
