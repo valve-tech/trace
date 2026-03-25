@@ -988,6 +988,27 @@ function CallTreeFromOpcodes({
   );
 }
 
+// Background colors for call types — subtle tints
+const CALL_TYPE_BG: Record<string, string> = {
+  CALL: "rgba(96, 165, 250, 0.08)",         // blue
+  STATICCALL: "rgba(52, 211, 153, 0.08)",   // green
+  DELEGATECALL: "rgba(251, 191, 36, 0.08)", // amber
+  CALLCODE: "rgba(251, 191, 36, 0.08)",     // amber
+  CREATE: "rgba(239, 68, 68, 0.08)",        // red
+  CREATE2: "rgba(239, 68, 68, 0.08)",       // red
+  root: "transparent",
+};
+
+const CALL_TYPE_BORDER: Record<string, string> = {
+  CALL: "rgba(96, 165, 250, 0.4)",
+  STATICCALL: "rgba(52, 211, 153, 0.4)",
+  DELEGATECALL: "rgba(251, 191, 36, 0.4)",
+  CALLCODE: "rgba(251, 191, 36, 0.4)",
+  CREATE: "rgba(239, 68, 68, 0.4)",
+  CREATE2: "rgba(239, 68, 68, 0.4)",
+  root: "transparent",
+};
+
 function CallSegmentRow({
   segment,
   currentStep,
@@ -1002,31 +1023,43 @@ function CallSegmentRow({
   signatureMap: Record<string, SignatureMatch[]>;
 }) {
   const [expanded, setExpanded] = useState(depth < 3);
+  const [hovered, setHovered] = useState(false);
   const isActive = currentStep >= segment.startStep && currentStep <= segment.endStep;
   const hasChildren = segment.children.length > 0;
 
-  const depthHue = 260 - (depth * 40);
-  const typeColor = OPCODE_COLORS[segment.type] ?? "#94A3B8";
-
-  // Resolve the function name from the 4byte signature map
   const resolvedName = segment.selector
     ? signatureMap[segment.selector.toLowerCase()]?.[0]?.textSignature
     : undefined;
-  const displayName = resolvedName
-    ? resolvedName.split("(")[0] + "()"
+
+  // Primary display: function name or type for root
+  const primaryText = resolvedName
+    ? resolvedName.split("(")[0]!
     : segment.selector
       ? segment.selector
-      : undefined;
+      : segment.type === "root"
+        ? "Transaction"
+        : segment.type;
+
+  const fullSignature = resolvedName ?? segment.selector ?? segment.type;
+
+  const bgColor = isActive
+    ? "rgba(139, 92, 246, 0.12)"
+    : CALL_TYPE_BG[segment.type] ?? "transparent";
+  const borderColor = isActive
+    ? "var(--color-accent)"
+    : CALL_TYPE_BORDER[segment.type] ?? "transparent";
 
   return (
     <div>
       <div
-        className="flex items-center gap-1 px-2 py-1.5 cursor-pointer text-xs hover:opacity-80"
+        className="flex items-center gap-2 px-2 py-1.5 cursor-pointer text-xs transition-colors relative"
         onClick={() => onJumpTo(segment.startStep)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
           paddingLeft: `${8 + depth * 16}px`,
-          backgroundColor: isActive ? "rgba(139, 92, 246, 0.08)" : "transparent",
-          borderLeft: isActive ? `3px solid var(--color-accent)` : `3px solid hsla(${depthHue}, 50%, 50%, 0.3)`,
+          backgroundColor: bgColor,
+          borderLeft: `3px solid ${borderColor}`,
           fontFamily: "var(--font-mono)",
         }}
       >
@@ -1041,24 +1074,45 @@ function CallSegmentRow({
         )}
         {!hasChildren && <span className="w-4 flex-shrink-0" />}
 
-        <span className="font-semibold" style={{ color: typeColor }}>
-          {segment.type}
+        {/* Primary: function name */}
+        <span
+          className="font-semibold truncate"
+          style={{ color: isActive ? "var(--color-accent)" : "var(--color-text-primary)" }}
+        >
+          {primaryText}
         </span>
-        {displayName && (
-          <span style={{ color: "var(--color-text-primary)" }}>
-            {displayName}
+
+        {/* Step count — always visible */}
+        <span className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+          {segment.stepCount.toLocaleString()} ops
+        </span>
+
+        {hasChildren && (
+          <span className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+            ({segment.children.length})
           </span>
         )}
-        <span style={{ color: "var(--color-text-muted)" }}>
-          steps {segment.startStep}–{segment.endStep}
-        </span>
-        <span style={{ color: "var(--color-text-muted)" }}>
-          ({segment.stepCount.toLocaleString()})
-        </span>
-        {hasChildren && (
-          <span style={{ color: "var(--color-text-muted)" }}>
-            [{segment.children.length} calls]
-          </span>
+
+        {/* Hover detail tooltip */}
+        {hovered && segment.type !== "root" && (
+          <div
+            className="absolute left-full ml-2 z-20 px-3 py-2 rounded-lg shadow-lg text-xs whitespace-nowrap"
+            style={{
+              backgroundColor: "var(--color-bg-secondary)",
+              border: "1px solid var(--color-border-default)",
+              color: "var(--color-text-primary)",
+              fontFamily: "var(--font-mono)",
+              top: "50%",
+              transform: "translateY(-50%)",
+            }}
+          >
+            <div style={{ color: OPCODE_COLORS[segment.type] ?? "#94A3B8" }}>{segment.type}</div>
+            {resolvedName && <div style={{ color: "var(--color-text-secondary)" }}>{fullSignature}</div>}
+            {segment.selector && !resolvedName && (
+              <div style={{ color: "var(--color-text-muted)" }}>selector: {segment.selector}</div>
+            )}
+            <div style={{ color: "var(--color-text-muted)" }}>steps {segment.startStep}–{segment.endStep}</div>
+          </div>
         )}
       </div>
 
