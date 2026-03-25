@@ -29,6 +29,7 @@ export interface SourceLocation {
   endLine: number;
   endColumn: number;
   sourceSnippet: string;
+  jumpType: string; // "i" = into function, "o" = out of function, "-" = regular
 }
 
 export interface SourceResponse {

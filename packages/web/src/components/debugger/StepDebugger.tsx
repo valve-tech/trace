@@ -564,7 +564,7 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
       )}
 
       {/* Call Tree — built from opcode steps by grouping CALL boundaries */}
-      <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} />
+      <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} />
 
       {/* Execution Trace (opcodes) */}
       <CollapsiblePanel title="Execution Trace" count={totalSteps} defaultOpen>
@@ -913,12 +913,10 @@ function extractSelector(s: OpcodeStep): string | undefined {
   return undefined;
 }
 
-// Detect internal function calls: JUMP where PC makes a non-sequential leap
-// (>= 20 bytes forward or any backward jump) at the same depth.
-// Solidity compilers use JUMP for internal function dispatch.
-const INTERNAL_JUMP_THRESHOLD = 20;
-
-function buildCallTree(steps: OpcodeStep[]): CallSegment {
+function buildCallTree(
+  steps: OpcodeStep[],
+  sourceMappings?: Record<number, SourceLocation | null>,
+): CallSegment {
   const root: CallSegment = {
     type: "root",
     isInternal: false,
@@ -969,24 +967,24 @@ function buildCallTree(steps: OpcodeStep[]): CallSegment {
       parent.children.push(child);
       stack.push(child);
     } else if (s.op === "JUMP" && i + 1 < steps.length) {
-      // Detect internal function call: JUMP to a non-sequential JUMPDEST
-      const next = steps[i + 1]!;
-      if (next.op === "JUMPDEST" && next.depth === s.depth) {
-        const pcDelta = next.pc - s.pc;
-        if (pcDelta < 0 || pcDelta >= INTERNAL_JUMP_THRESHOLD) {
-          const child: CallSegment = {
-            type: "internal",
-            isInternal: true,
-            depth: s.depth,
-            startStep: i + 1,
-            endStep: i + 1,
-            stepCount: 0,
-            children: [],
-          };
-          parent.children.push(child);
-          stack.push(child);
-          internalReturnStack.push({ returnStep: i, segment: child });
-        }
+      // Use the compiler's source map jump type to identify internal function calls.
+      // jumpType "i" = jump into internal function, "o" = return from it.
+      // Without a source map, we skip internal call detection entirely —
+      // JUMP is also used for if/else, loops, require, etc.
+      const mapping = sourceMappings?.[s.pc];
+      if (mapping?.jumpType === "i") {
+        const child: CallSegment = {
+          type: "internal",
+          isInternal: true,
+          depth: s.depth,
+          startStep: i + 1,
+          endStep: i + 1,
+          stepCount: 0,
+          children: [],
+        };
+        parent.children.push(child);
+        stack.push(child);
+        internalReturnStack.push({ returnStep: i, segment: child });
       }
     } else if (s.depth < parent.depth && stack.length > 1) {
       parent.endStep = i - 1;
@@ -1011,13 +1009,15 @@ function CallTreeFromOpcodes({
   currentStep,
   onJumpTo,
   signatureMap,
+  sourceMappings,
 }: {
   steps: OpcodeStep[];
   currentStep: number;
   onJumpTo: (step: number) => void;
   signatureMap: Record<string, SignatureMatch[]>;
+  sourceMappings: Record<number, SourceLocation | null>;
 }) {
-  const tree = useMemo(() => buildCallTree(steps), [steps]);
+  const tree = useMemo(() => buildCallTree(steps, sourceMappings), [steps, sourceMappings]);
 
   return (
     <div
