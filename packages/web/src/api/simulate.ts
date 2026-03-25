@@ -1,0 +1,115 @@
+import type {
+  SimulationRequest,
+  SimulationResult,
+  BundleSimulationRequest,
+  BundleSimulationResult,
+  StateOverride,
+} from "../types";
+
+const API_BASE = "/api";
+
+function buildStateOverridesPayload(
+  overrides: StateOverride[],
+): Record<string, Record<string, unknown>> | undefined {
+  if (overrides.length === 0) return undefined;
+
+  const result: Record<string, Record<string, unknown>> = {};
+  for (const o of overrides) {
+    if (!o.address) continue;
+    const entry: Record<string, unknown> = {};
+    if (o.balance) entry.balance = o.balance;
+    if (o.nonce) entry.nonce = o.nonce;
+    if (o.code) entry.code = o.code;
+    if (o.storage && Object.keys(o.storage).length > 0) {
+      entry.stateDiff = o.storage;
+    }
+    if (Object.keys(entry).length > 0) {
+      result[o.address] = entry;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+export async function simulateTransaction(
+  req: SimulationRequest,
+): Promise<SimulationResult> {
+  const payload: Record<string, unknown> = {
+    from: req.from,
+    to: req.to,
+  };
+
+  if (req.value) payload.value = req.value;
+  if (req.data) payload.data = req.data;
+  if (req.gasLimit) payload.gasLimit = req.gasLimit;
+  if (req.blockNumber && req.blockNumber !== "latest") {
+    payload.blockNumber = req.blockNumber;
+  }
+  if (req.stateOverrides) {
+    payload.stateOverrides = buildStateOverridesPayload(req.stateOverrides);
+  }
+  if (req.abi) payload.abi = req.abi;
+
+  const response = await fetch(`${API_BASE}/simulate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let message: string;
+    try {
+      const parsed = JSON.parse(errorText) as { error?: string };
+      message = parsed.error ?? errorText;
+    } catch {
+      message = errorText;
+    }
+    throw new Error(`Simulation failed: ${message}`);
+  }
+
+  return (await response.json()) as SimulationResult;
+}
+
+export async function simulateBundle(
+  req: BundleSimulationRequest,
+): Promise<BundleSimulationResult> {
+  const payload = {
+    transactions: req.transactions.map((tx) => {
+      const entry: Record<string, unknown> = {
+        from: tx.from,
+        to: tx.to,
+      };
+      if (tx.value) entry.value = tx.value;
+      if (tx.data) entry.data = tx.data;
+      if (tx.gasLimit) entry.gasLimit = tx.gasLimit;
+      if (tx.blockNumber && tx.blockNumber !== "latest") {
+        entry.blockNumber = tx.blockNumber;
+      }
+      if (tx.stateOverrides) {
+        entry.stateOverrides = buildStateOverridesPayload(tx.stateOverrides);
+      }
+      if (tx.abi) entry.abi = tx.abi;
+      return entry;
+    }),
+  };
+
+  const response = await fetch(`${API_BASE}/simulate-bundle`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let message: string;
+    try {
+      const parsed = JSON.parse(errorText) as { error?: string };
+      message = parsed.error ?? errorText;
+    } catch {
+      message = errorText;
+    }
+    throw new Error(`Bundle simulation failed: ${message}`);
+  }
+
+  return (await response.json()) as BundleSimulationResult;
+}

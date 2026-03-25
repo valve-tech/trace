@@ -1,0 +1,353 @@
+import { useState } from "react";
+import type { StateOverride } from "../types";
+
+interface StateOverridesProps {
+  overrides: StateOverride[];
+  onChange: (overrides: StateOverride[]) => void;
+}
+
+function StorageSlotEditor({
+  storage,
+  onChange,
+}: {
+  storage: Record<string, string>;
+  onChange: (storage: Record<string, string>) => void;
+}) {
+  const entries = Object.entries(storage);
+
+  const addSlot = () => {
+    onChange({ ...storage, "": "" });
+  };
+
+  const updateSlot = (oldKey: string, newKey: string, newValue: string) => {
+    const updated = { ...storage };
+    if (oldKey !== newKey) {
+      delete updated[oldKey];
+    }
+    updated[newKey] = newValue;
+    onChange(updated);
+  };
+
+  const removeSlot = (key: string) => {
+    const updated = { ...storage };
+    delete updated[key];
+    onChange(updated);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label
+          className="text-xs font-medium"
+          style={{ color: "var(--color-text-secondary)" }}
+        >
+          Storage Slots
+        </label>
+        <button
+          type="button"
+          onClick={addSlot}
+          className="text-xs px-2 py-0.5 rounded"
+          style={{
+            color: "var(--color-accent)",
+            backgroundColor: "var(--color-accent-muted)",
+          }}
+        >
+          + Add Slot
+        </button>
+      </div>
+      {entries.map(([key, val], idx) => (
+        <div key={idx} className="flex gap-2 items-center">
+          <input
+            type="text"
+            value={key}
+            onChange={(e) => updateSlot(key, e.target.value, val)}
+            placeholder="0x0 (slot)"
+            className="flex-1 px-2 py-1.5 rounded border text-xs"
+            style={{
+              fontFamily: "var(--font-mono)",
+              backgroundColor: "var(--color-bg-input)",
+              borderColor: "var(--color-border-default)",
+              color: "var(--color-text-primary)",
+            }}
+          />
+          <span style={{ color: "var(--color-text-muted)" }}>=</span>
+          <input
+            type="text"
+            value={val}
+            onChange={(e) => updateSlot(key, key, e.target.value)}
+            placeholder="0x... (value)"
+            className="flex-1 px-2 py-1.5 rounded border text-xs"
+            style={{
+              fontFamily: "var(--font-mono)",
+              backgroundColor: "var(--color-bg-input)",
+              borderColor: "var(--color-border-default)",
+              color: "var(--color-text-primary)",
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => removeSlot(key)}
+            className="p-1 rounded hover:opacity-80"
+            style={{ color: "var(--color-danger)" }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SingleOverride({
+  override,
+  index,
+  onChange,
+  onRemove,
+}: {
+  override: StateOverride;
+  index: number;
+  onChange: (index: number, updated: StateOverride) => void;
+  onRemove: (index: number) => void;
+}) {
+  const [showStorage, setShowStorage] = useState(
+    override.storage ? Object.keys(override.storage).length > 0 : false,
+  );
+
+  const update = (field: keyof StateOverride, value: unknown) => {
+    onChange(index, { ...override, [field]: value });
+  };
+
+  return (
+    <div
+      className="rounded-md border p-3 space-y-3"
+      style={{
+        backgroundColor: "var(--color-bg-tertiary)",
+        borderColor: "var(--color-border-muted)",
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+          Override #{index + 1}
+        </span>
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          className="text-xs px-2 py-0.5 rounded hover:opacity-80"
+          style={{
+            color: "var(--color-danger)",
+            backgroundColor: "var(--color-danger-muted)",
+          }}
+        >
+          Remove
+        </button>
+      </div>
+
+      <div>
+        <label className="text-xs mb-1 block" style={{ color: "var(--color-text-secondary)" }}>
+          Address
+        </label>
+        <input
+          type="text"
+          value={override.address}
+          onChange={(e) => update("address", e.target.value)}
+          placeholder="0x..."
+          className="w-full px-2 py-1.5 rounded border text-sm"
+          style={{
+            fontFamily: "var(--font-mono)",
+            backgroundColor: "var(--color-bg-input)",
+            borderColor: "var(--color-border-default)",
+            color: "var(--color-text-primary)",
+          }}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: "var(--color-text-secondary)" }}>
+            Balance (wei)
+          </label>
+          <input
+            type="text"
+            value={override.balance ?? ""}
+            onChange={(e) => update("balance", e.target.value)}
+            placeholder="0x..."
+            className="w-full px-2 py-1.5 rounded border text-sm"
+            style={{
+              fontFamily: "var(--font-mono)",
+              backgroundColor: "var(--color-bg-input)",
+              borderColor: "var(--color-border-default)",
+              color: "var(--color-text-primary)",
+            }}
+          />
+        </div>
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: "var(--color-text-secondary)" }}>
+            Nonce
+          </label>
+          <input
+            type="text"
+            value={override.nonce ?? ""}
+            onChange={(e) => update("nonce", e.target.value)}
+            placeholder="0x0"
+            className="w-full px-2 py-1.5 rounded border text-sm"
+            style={{
+              fontFamily: "var(--font-mono)",
+              backgroundColor: "var(--color-bg-input)",
+              borderColor: "var(--color-border-default)",
+              color: "var(--color-text-primary)",
+            }}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs mb-1 block" style={{ color: "var(--color-text-secondary)" }}>
+          Code (bytecode)
+        </label>
+        <input
+          type="text"
+          value={override.code ?? ""}
+          onChange={(e) => update("code", e.target.value)}
+          placeholder="0x608060..."
+          className="w-full px-2 py-1.5 rounded border text-sm"
+          style={{
+            fontFamily: "var(--font-mono)",
+            backgroundColor: "var(--color-bg-input)",
+            borderColor: "var(--color-border-default)",
+            color: "var(--color-text-primary)",
+          }}
+        />
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => {
+            setShowStorage(!showStorage);
+            if (!showStorage && !override.storage) {
+              update("storage", {});
+            }
+          }}
+          className="text-xs flex items-center gap-1"
+          style={{ color: "var(--color-accent)" }}
+        >
+          <svg
+            className={`w-3 h-3 transition-transform ${showStorage ? "rotate-90" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          Storage Overrides
+        </button>
+        {showStorage && (
+          <div className="mt-2">
+            <StorageSlotEditor
+              storage={override.storage ?? {}}
+              onChange={(s) => update("storage", s)}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function StateOverrides({ overrides, onChange }: StateOverridesProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const addOverride = () => {
+    onChange([...overrides, { address: "", balance: "", nonce: "", code: "", storage: {} }]);
+    setExpanded(true);
+  };
+
+  const updateOverride = (index: number, updated: StateOverride) => {
+    const next = [...overrides];
+    next[index] = updated;
+    onChange(next);
+  };
+
+  const removeOverride = (index: number) => {
+    onChange(overrides.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div
+      className="rounded-lg border overflow-hidden"
+      style={{
+        backgroundColor: "var(--color-bg-card)",
+        borderColor: "var(--color-border-default)",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium"
+        style={{
+          color: "var(--color-text-primary)",
+          backgroundColor: "transparent",
+        }}
+      >
+        <span className="flex items-center gap-2">
+          <svg
+            className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          State Overrides
+        </span>
+        {overrides.length > 0 && (
+          <span
+            className="text-xs px-2 py-0.5 rounded-full"
+            style={{
+              backgroundColor: "var(--color-accent-muted)",
+              color: "var(--color-accent)",
+            }}
+          >
+            {overrides.length} override{overrides.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </button>
+
+      {expanded && (
+        <div
+          className="px-4 pb-4 border-t space-y-3"
+          style={{ borderColor: "var(--color-border-muted)" }}
+        >
+          <div className="pt-3">
+            {overrides.map((o, i) => (
+              <div key={i} className="mb-3">
+                <SingleOverride
+                  override={o}
+                  index={i}
+                  onChange={updateOverride}
+                  onRemove={removeOverride}
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={addOverride}
+            className="w-full py-2 rounded-md border border-dashed text-sm transition-colors hover:opacity-80"
+            style={{
+              borderColor: "var(--color-border-default)",
+              color: "var(--color-text-secondary)",
+              backgroundColor: "transparent",
+            }}
+          >
+            + Add State Override
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
