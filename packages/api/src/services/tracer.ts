@@ -127,6 +127,90 @@ const BLOCKSCOUT_API =
   process.env.BLOCKSCOUT_API_URL || "https://api.scan.pulsechain.com/api";
 
 // ---------------------------------------------------------------------------
+// Anvil fork fallback — replay tx on a fork with debug APIs
+// ---------------------------------------------------------------------------
+
+import { publicClient } from "./rpc.js";
+import { forkManager } from "./forkManager.js";
+import type { Hex } from "viem";
+
+async function makeAnvilRpc(
+  rpcUrl: string,
+  method: string,
+  params: unknown[],
+): Promise<{ result?: unknown; error?: { code: number; message: string } }> {
+  const res = await fetch(rpcUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    signal: AbortSignal.timeout(120_000),
+  });
+  return (await res.json()) as {
+    result?: unknown;
+    error?: { code: number; message: string };
+  };
+}
+
+/**
+ * Fork the chain at the tx's block and use debug_traceCall to simulate the
+ * exact call. This avoids nonce/gas issues from replaying via eth_sendTransaction.
+ * Anvil natively supports both debug_traceCall and debug_traceTransaction.
+ */
+async function traceViaAnvilFork(
+  hash: string,
+  tracerConfig: unknown,
+): Promise<{ result: unknown; rpcUrl: string; forkId: string } | null> {
+  try {
+    const tx = await publicClient.getTransaction({ hash: hash as Hex });
+    if (!tx || !tx.blockNumber) return null;
+
+    // Fork at the tx's block (not block-1) so we can use debug_traceCall
+    // with the exact state the tx executed against
+    const forkBlock = Number(tx.blockNumber);
+    const fork = await forkManager.createFork({
+      blockNumber: forkBlock,
+      label: `trace-${hash.slice(0, 10)}`,
+    });
+
+    try {
+      // Use debug_traceCall — simulates the call without needing to send a tx
+      const callParams: Record<string, string> = {
+        from: tx.from,
+        to: tx.to ?? "",
+        data: tx.input,
+        gas: "0x" + tx.gas.toString(16),
+      };
+      if (tx.value > 0n) {
+        callParams.value = "0x" + tx.value.toString(16);
+      }
+
+      const traceResult = await makeAnvilRpc(
+        fork.rpcUrl,
+        "debug_traceCall",
+        [callParams, "latest", tracerConfig],
+      );
+
+      if (traceResult.error) {
+        forkManager.destroyFork(fork.id);
+        return null;
+      }
+
+      // Schedule fork cleanup
+      setTimeout(() => {
+        forkManager.destroyFork(fork.id);
+      }, 120_000);
+
+      return { result: traceResult.result, rpcUrl: fork.rpcUrl, forkId: fork.id };
+    } catch {
+      forkManager.destroyFork(fork.id);
+      return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // BlockScout fallback — build call tree from internal transactions
 // ---------------------------------------------------------------------------
 
@@ -281,7 +365,15 @@ export async function traceTransaction(
 
     if (rpcResult.error) {
       if (isDebugUnavailable(rpcResult.error)) {
-        // Fallback to BlockScout
+        // Try Anvil fork before falling back to BlockScout
+        console.log(`[tracer] debug RPC unavailable, trying Anvil fork for ${hash}`);
+        const anvilResult = await traceViaAnvilFork(hash, {
+          tracer: "callTracer",
+          tracerConfig: { withLog: false },
+        });
+        if (anvilResult) {
+          return { trace: anvilResult.result as CallFrame, error: null, debugAvailable: true };
+        }
         return traceViaBlockScout(hash);
       }
       return {
@@ -293,18 +385,15 @@ export async function traceTransaction(
 
     const trace = rpcResult.result as CallFrame;
     return { trace, error: null, debugAvailable: true };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-
-    // Network-level errors are ambiguous — try BlockScout fallback
-    if (
-      message.includes("method not found") ||
-      message.includes("not supported")
-    ) {
-      return traceViaBlockScout(hash);
+  } catch {
+    // Try Anvil fork fallback
+    const anvilResult = await traceViaAnvilFork(hash, {
+      tracer: "callTracer",
+      tracerConfig: { withLog: false },
+    });
+    if (anvilResult) {
+      return { trace: anvilResult.result as CallFrame, error: null, debugAvailable: true };
     }
-
-    // For other errors, also try BlockScout as last resort
     return traceViaBlockScout(hash);
   }
 }
@@ -316,51 +405,27 @@ export async function traceTransactionOpcodes(
   hash: string,
   limit: number = 10000,
 ): Promise<OpcodeTraceResult> {
-  try {
-    const rpcResult = await makeDebugRpc("debug_traceTransaction", [
-      hash,
-      {
-        disableStorage: false,
-        disableMemory: false,
-        disableStack: false,
-        limit,
-      },
-    ]);
+  const structLogConfig = {
+    disableStorage: false,
+    disableMemory: false,
+    disableStack: false,
+    limit,
+  };
 
-    if (rpcResult.error) {
-      if (isDebugUnavailable(rpcResult.error)) {
-        return {
-          steps: [],
-          gas: 0,
-          returnValue: "",
-          error: UNAVAILABLE_MSG,
-          debugAvailable: false,
-        };
-      }
-      return {
-        steps: [],
-        gas: 0,
-        returnValue: "",
-        error: `RPC error: ${rpcResult.error.message}`,
-        debugAvailable: true,
-      };
-    }
-
-    const raw = rpcResult.result as {
-      structLogs?: Array<{
-        pc: number;
-        op: string;
-        gas: number;
-        gasCost: number;
-        depth: number;
-        stack?: string[];
-        memory?: string[];
-        storage?: Record<string, string>;
-      }>;
-      gas?: number;
-      returnValue?: string;
-    };
-
+  const parseStructLogs = (raw: {
+    structLogs?: Array<{
+      pc: number;
+      op: string;
+      gas: number;
+      gasCost: number;
+      depth: number;
+      stack?: string[];
+      memory?: string[];
+      storage?: Record<string, string>;
+    }>;
+    gas?: number;
+    returnValue?: string;
+  }): OpcodeTraceResult => {
     const steps: OpcodeStep[] = (raw.structLogs ?? [])
       .slice(0, limit)
       .map((s) => ({
@@ -381,13 +446,51 @@ export async function traceTransactionOpcodes(
       error: null,
       debugAvailable: true,
     };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+  };
+
+  try {
+    const rpcResult = await makeDebugRpc("debug_traceTransaction", [
+      hash,
+      structLogConfig,
+    ]);
+
+    if (rpcResult.error) {
+      if (isDebugUnavailable(rpcResult.error)) {
+        // Try Anvil fork fallback
+        console.log(`[tracer] debug RPC unavailable for opcodes, trying Anvil fork for ${hash}`);
+        const anvilResult = await traceViaAnvilFork(hash, structLogConfig);
+        if (anvilResult) {
+          return parseStructLogs(anvilResult.result as Parameters<typeof parseStructLogs>[0]);
+        }
+        return {
+          steps: [],
+          gas: 0,
+          returnValue: "",
+          error: UNAVAILABLE_MSG,
+          debugAvailable: false,
+        };
+      }
+      return {
+        steps: [],
+        gas: 0,
+        returnValue: "",
+        error: `RPC error: ${rpcResult.error.message}`,
+        debugAvailable: true,
+      };
+    }
+
+    return parseStructLogs(rpcResult.result as Parameters<typeof parseStructLogs>[0]);
+  } catch {
+    // Try Anvil fork fallback
+    const anvilResult = await traceViaAnvilFork(hash, structLogConfig);
+    if (anvilResult) {
+      return parseStructLogs(anvilResult.result as Parameters<typeof parseStructLogs>[0]);
+    }
     return {
       steps: [],
       gas: 0,
       returnValue: "",
-      error: `Failed to trace opcodes: ${message}`,
+      error: "Failed to trace opcodes. Anvil (Foundry) may not be installed.",
       debugAvailable: false,
     };
   }
