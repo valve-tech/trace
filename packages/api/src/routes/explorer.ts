@@ -26,16 +26,28 @@ router.get("/tx/:hash", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const timeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+      Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
+
+    // All data fetched in parallel with generous timeouts
+    // RPC can be slow for complex txs — 15s timeout per call
     const [details, internalTxs, tokenTransfers] = await Promise.all([
-      getTransactionDetails(hash),
-      getInternalTransactions(hash),
-      getTokenTransfers(hash),
+      timeout(getTransactionDetails(hash), 15_000, null as Awaited<ReturnType<typeof getTransactionDetails>> | null),
+      timeout(getInternalTransactions(hash), 10_000, []),
+      timeout(getTokenTransfers(hash), 10_000, []),
     ]);
+
+    if (!details) {
+      res.status(504).json({ ok: false, error: "Transaction fetch timed out — PulseChain RPC may be slow" });
+      return;
+    }
+
+    const merged = details;
 
     res.json({
       ok: true,
       result: {
-        ...details,
+        ...merged,
         internalTransactions: internalTxs,
         tokenTransfers,
       },

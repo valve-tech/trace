@@ -88,6 +88,7 @@ export interface TransactionDetails {
 
 export async function getTransactionDetails(
   hash: string,
+  options: { skipDecode?: boolean } = {},
 ): Promise<TransactionDetails> {
   const [tx, receipt] = await Promise.all([
     publicClient.getTransaction({ hash: hash as Hex }),
@@ -107,11 +108,11 @@ export async function getTransactionDetails(
     // ignore
   }
 
-  // Attempt to decode input
+  // Attempt to decode input (skip if caller just needs basic tx data)
   let decodedInput: TransactionDetails["decodedInput"] = null;
   let decodedLogEntries: TransactionDetails["decodedLogs"] = [];
 
-  if (tx.to) {
+  if (tx.to && !options.skipDecode) {
     const abi = await fetchAbi(tx.to);
     if (abi && tx.input && tx.input !== "0x") {
       const decoded = decodeInput(tx.input as Hex, abi);
@@ -135,8 +136,8 @@ export async function getTransactionDetails(
     }
   }
 
-  // Also try to decode logs from different contracts
-  if (decodedLogEntries.length < receipt.logs.length) {
+  // Also try to decode logs from different contracts (skip for fast mode)
+  if (!options.skipDecode && decodedLogEntries.length < receipt.logs.length) {
     const uniqueAddresses = [
       ...new Set(
         receipt.logs
@@ -280,8 +281,50 @@ export interface TokenTransfer {
 export async function getTokenTransfers(
   hash: string,
 ): Promise<TokenTransfer[]> {
-  // BlockScout's tokentx endpoint returns all token transfers for an address
-  // We need to get the transaction first to know the from address, then filter
+  // Use BlockScout v2 API to get token transfers for a specific tx hash directly
+  // This avoids the expensive full-address scan from the v1 API
+  const BLOCKSCOUT_V2 = BLOCKSCOUT_API.replace("/api", "");
+  try {
+    const res = await fetch(`${BLOCKSCOUT_V2}/api/v2/transactions/${hash}/token-transfers`, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as {
+        items?: Array<{
+          from: { hash: string };
+          to: { hash: string };
+          total: { value: string; decimals: string };
+          token: { name: string; symbol: string; address: string; decimals: string };
+        }>;
+      };
+      if (data.items && data.items.length > 0) {
+        return data.items.map((t) => {
+          const decimals = parseInt(t.token.decimals || "18", 10);
+          let formattedValue = t.total.value;
+          try {
+            formattedValue = formatUnits(BigInt(t.total.value || "0"), decimals);
+          } catch {
+            // keep raw
+          }
+          return {
+            from: t.from.hash,
+            to: t.to.hash,
+            value: t.total.value,
+            formattedValue,
+            tokenName: t.token.name,
+            tokenSymbol: t.token.symbol,
+            tokenDecimal: t.token.decimals,
+            contractAddress: t.token.address,
+            hash,
+          };
+        });
+      }
+    }
+  } catch {
+    // v2 API not available, fall back to v1
+  }
+
+  // Fallback: v1 API with address-based lookup (slower but more compatible)
   let tx: { from: string } | null = null;
   try {
     tx = await publicClient.getTransaction({ hash: hash as Hex });
@@ -312,7 +355,6 @@ export async function getTokenTransfers(
     return [];
   }
 
-  // Filter to only transfers from this specific transaction
   const filtered = data.result.filter(
     (t) => t.hash.toLowerCase() === hash.toLowerCase(),
   );
