@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { getVerifiedSource } from "../services/sourceCode.js";
 import { precomputeSourceMap, lookupPc, type SourceLocation } from "../services/sourceMap.js";
+import { compileForSourceMap } from "../services/solcCompiler.js";
 import { analyzeContract } from "../services/slither.js";
 
 const router = Router();
@@ -26,6 +27,18 @@ router.get("/:address", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // If source map is missing, try recompilation to generate it
+    let hasSourceMap = !!source.sourceMap;
+    let hasDeployedBytecode = !!source.deployedBytecode;
+
+    if (!hasSourceMap && source.compilerVersion) {
+      const compiled = await compileForSourceMap(address);
+      if (compiled) {
+        hasSourceMap = true;
+        hasDeployedBytecode = true;
+      }
+    }
+
     res.json({
       ok: true,
       source: {
@@ -37,8 +50,8 @@ router.get("/:address", async (req: Request, res: Response): Promise<void> => {
         optimizationRuns: source.optimizationRuns,
         files: source.sourceFiles,
         abi: source.abi,
-        hasSourceMap: !!source.sourceMap,
-        hasDeployedBytecode: !!source.deployedBytecode,
+        hasSourceMap,
+        hasDeployedBytecode,
       },
     });
   } catch (err) {
@@ -78,18 +91,30 @@ router.post("/:address/map", async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    if (!source.sourceMap || !source.deployedBytecode) {
+    let sourceMap = source.sourceMap;
+    let deployedBytecode = source.deployedBytecode;
+
+    // Try recompilation if source map is missing
+    if (!sourceMap || !deployedBytecode) {
+      const compiled = await compileForSourceMap(address);
+      if (compiled) {
+        sourceMap = compiled.sourceMap;
+        deployedBytecode = compiled.deployedBytecode;
+      }
+    }
+
+    if (!sourceMap || !deployedBytecode) {
       res.status(404).json({
         ok: false,
-        error: "Source map not available for this contract",
-        hint: "The contract source is verified but the source map was not stored",
+        error: "Source map not available — recompilation failed",
+        hint: "The contract source is verified but could not be recompiled to generate the source map",
       });
       return;
     }
 
     const precomputed = precomputeSourceMap(
-      source.deployedBytecode,
-      source.sourceMap,
+      deployedBytecode,
+      sourceMap,
       source.sourceFiles,
     );
 
