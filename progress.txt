@@ -12,85 +12,74 @@ d9a2fc2 fix: wire monitor→scheduler, URL debugger, fix frontend bugs, add trac
 94824fc fix(security): path traversal, command injection, rate limit memory leak
 a904cec docs: add session progress checkpoint
 55c31cc feat: add fork-based simulation with state diffs
-69fd908 feat: add Slither static analysis integration
-94824fc fix(security): path traversal, command injection, rate limit memory leak
+8f03575 chore: change ports to 10100 (API) and 11800 (Web)
+ea45229 feat: auto-fork via Anvil when debug RPC is unavailable
+7000e5e fix: make connection status indicator check API health endpoint
+e97a0ee feat: cache trace results in PostgreSQL for instant replays
+95a1683 feat: recompile verified source to generate source maps
+548d7b0 fix: add /health to Vite dev proxy
+915f74f fix: auto-load source code when debugger loads a transaction
+a060916 fix: explorer tx endpoint timeouts and token transfer performance
 ```
 
 ### What was accomplished
 
-**Infrastructure (done)**
-- Docker Compose with PostgreSQL 17, API, and nginx-served web
-- Migrated from SQLite to PostgreSQL with JSONB columns and proper booleans
-- Migration system with advisory locking and per-file transactions
-- Health-checked connection pool with pg type parsers for TIMESTAMPTZ
+**Infrastructure**
+- Docker Compose with PostgreSQL 17, API, nginx-served web
+- Migration system with advisory locking
+- Health-checked connection pool
+- Ports: 10100 (API, d*e), 11800 (Web, d*v)
 
-**Frontend routing (done)**
-- react-router-dom with NavLink active styling
-- URL routes: /simulate, /bundle, /monitoring, /testnets, /rpc, /explorer/*, /debugger/:txHash, /actions
-
-**Step-through debugger (done)**
+**Step-through debugger**
 - Virtual-scrolled opcode trace (50k+ steps)
-- Stack viewer with top-down diff highlighting (correct after PUSH/POP/DUP/SWAP)
-- Memory hex dump with ASCII
-- Storage git-style diffs for SLOAD/SSTORE
+- Stack/memory/storage panels with diff highlighting
 - Keyboard shortcuts (arrows, Space, Home/End, C/S/L)
-- Opcode filter with match count
-- Depth-based indentation and color bands
-- 12 component tests
+- Opcode filter, depth bands, call-level indentation
 
-**Source code debugging (done)**
-- sourceCode.ts fetches verified Solidity from BlockScout + Sourcify
-- sourceMap.ts decodes compiler source maps, maps PC → source line
-- SourceViewer.tsx with Solidity syntax highlighting, current-line tracking
-- Source toggle in step debugger with lazy loading
-- Context bar shows file:line when source mapping available
-- Source switches on contract boundary (CALL/DELEGATECALL)
+**Source code debugging**
+- Fetch verified Solidity from BlockScout + Sourcify
+- Recompile with correct solc version to regenerate source maps
+- Map every opcode PC to Solidity file:line:column
+- SourceViewer with syntax highlighting, auto-loaded on debug
+- Source toggles automatically when contract address is available
 
-**Slither static analysis (done)**
-- slither.ts runs Trail of Bits eth-security-toolbox in Docker
-- Path traversal and command injection protections
-- Findings cached in PostgreSQL
-- FindingsPanel.tsx with severity filtering, expandable details
-- Inline gutter markers on source viewer (colored by severity)
-- "Slither" button in step debugger triggers analysis
+**Slither static analysis**
+- Docker-based Slither runner with security hardening
+- Findings as inline gutter markers on source viewer
+- FindingsPanel with severity filtering
 
-**API key auth + rate limiting (done)**
-- SHA-256 hashed key storage
-- Auth middleware on /api/* (health and /rpc bypass)
-- Sliding window rate limiter with periodic stale-bucket eviction
-- CRUD routes at /api/keys
+**Fork-based simulation**
+- Anvil fork at tx's block, debug_traceCall for full traces
+- No debug node needed — Anvil provides debug APIs natively
+- State diffs: balance/storage/nonce before/after
+- ForkSimulator UI with tx hash and manual mode
+- "Debug This Tx" bridge to step debugger
 
-**WebSocket real-time alerts (done)**
-- /ws/alerts endpoint with per-client subscription filtering
-- 30s heartbeat with stale client cleanup
-- monitor.ts broadcasts alert_triggered events
+**Trace caching**
+- PostgreSQL cache for immutable tx traces
+- Cold: 2-10s (fork + trace), Cached: 60ms
 
-**Bug fixes applied**
-- Monitor → action scheduler wiring (block/event actions now fire)
-- AddressView null tx.to guard
-- BlockView off-by-one (block -1)
-- ContractView decodedReturn vs decodedOutput
-- RpcDashboard hardcoded port removed
-- Pre-existing lint errors fixed (unused imports)
+**API key auth + rate limiting**
+- SHA-256 hashed key storage, sliding window limiter
+- Periodic stale-bucket eviction
 
-### Key decisions
-- Skipped Redis — PostgreSQL handles all caching needs at this scale
-- Source map decoder built from scratch (no external library dependency)
-- Slither runs in Docker for isolation with strict version sanitization
-- Rate limiter is in-memory (not Redis) with periodic eviction — adequate for single-instance
+**WebSocket real-time alerts**
+- /ws/alerts with per-client subscription filtering
 
-**Fork-based simulation (done)**
-- forkSimulator.ts: temp Anvil fork, sender impersonation, prestateTracer state diffs
-- POST /api/simulate/fork for raw calldata
-- POST /api/simulate/from-hash to re-simulate mined transactions
-- ForkSimulator.tsx with dual-mode input (tx hash or manual)
-- StateDiffPanel.tsx: balance/storage/nonce diff visualization
-- "Debug This Tx" button bridges fork sim → step debugger
-- Auto-destroy forks after 60s, cap at 5 concurrent
+**Bug fixes**
+- Explorer tx endpoint timeouts (v2 API for token transfers, per-fetch timeouts)
+- Connection status indicator actually checks /health
+- Source auto-loads when debugger opens
+- Multiple frontend bugs fixed (null safety, off-by-one, wrong API field)
+
+### Known issues
+- Public PulseChain RPC can be slow (10-15s for complex tx lookups)
+  - Fix: use a faster RPC endpoint via PULSECHAIN_RPC_URL env var
+- Source map recompilation requires internet access (downloads solc binary)
+  - First compile ~3s, subsequent instant (cached)
 
 ### Next steps
 - Transaction builder (pick contract + function from ABI, fill in args)
 - Storage layout viewer (map slots to Solidity variable names)
-- WebSocket client in AlertDashboard for live notifications
-- Contract upgrade diffing (compare two contract versions)
-- CI/CD simulation API (GitHub Actions integration)
+- Contract upgrade diffing
+- CI/CD simulation API
