@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { OpcodeStep } from "../../api/debugger";
+import { fetchSource, fetchSourceMappings, type ContractSource, type SourceLocation } from "../../api/source";
+import SourceViewer from "./SourceViewer";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -82,15 +84,20 @@ function formatMemoryRow(hex: string, offset: number): { hex: string; ascii: str
 
 interface StepDebuggerProps {
   steps: OpcodeStep[];
+  contractAddress?: string;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export default function StepDebugger({ steps }: StepDebuggerProps) {
+export default function StepDebugger({ steps, contractAddress }: StepDebuggerProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [opcodeFilter, setOpcodeFilter] = useState("");
+  const [showSource, setShowSource] = useState(false);
+  const [sourceData, setSourceData] = useState<ContractSource | null>(null);
+  const [sourceMappings, setSourceMappings] = useState<Record<number, SourceLocation | null>>({});
+  const [sourceLoading, setSourceLoading] = useState(false);
   const traceListRef = useRef<HTMLDivElement>(null);
   const rowHeight = 28;
 
@@ -120,7 +127,45 @@ export default function StepDebugger({ steps }: StepDebuggerProps) {
   useEffect(() => {
     setCurrentStep(0);
     setOpcodeFilter("");
+    setSourceData(null);
+    setSourceMappings({});
+    setShowSource(false);
   }, [steps]);
+
+  // Fetch source code when toggled on
+  useEffect(() => {
+    if (!showSource || !contractAddress || sourceData) return;
+
+    let cancelled = false;
+    setSourceLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetchSource(contractAddress);
+        if (cancelled) return;
+        if (!res.ok || !res.source) {
+          setSourceLoading(false);
+          return;
+        }
+        setSourceData(res.source);
+
+        // If source map is available, map all unique PCs to source locations
+        if (res.source.hasSourceMap) {
+          const uniquePcs = [...new Set(steps.map((s) => s.pc))];
+          const mapRes = await fetchSourceMappings(contractAddress, uniquePcs);
+          if (!cancelled && mapRes.ok && mapRes.mappings) {
+            setSourceMappings(mapRes.mappings);
+          }
+        }
+      } catch (err) {
+        console.error("[StepDebugger] source fetch error:", err);
+      } finally {
+        if (!cancelled) setSourceLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [showSource, contractAddress, sourceData, steps]);
 
   // ---- Navigation ----
 
@@ -260,6 +305,13 @@ export default function StepDebugger({ steps }: StepDebuggerProps) {
   const memorySize = memoryHex.length / 2;
   const memoryRows = Math.min(Math.ceil(memorySize / 16), 64); // Cap at 1KB display
 
+  // ---- Current source location ----
+
+  const currentSourceLocation = sourceMappings[step.pc] ?? null;
+  const currentSourceFile = currentSourceLocation && sourceData
+    ? sourceData.files.find((f) => f.name === currentSourceLocation.file) ?? sourceData.files[0]
+    : null;
+
   return (
     <div className="flex flex-col gap-3">
       {/* Controls bar */}
@@ -313,6 +365,28 @@ export default function StepDebugger({ steps }: StepDebuggerProps) {
           </span>
         )}
 
+        {contractAddress && (
+          <>
+            <div
+              className="h-4 w-px"
+              style={{ backgroundColor: "var(--color-border-default)" }}
+            />
+            <button
+              onClick={() => setShowSource(!showSource)}
+              className="rounded font-mono font-semibold transition-colors text-xs px-2 py-1"
+              style={{
+                backgroundColor: showSource
+                  ? "var(--color-accent)"
+                  : "var(--color-bg-secondary)",
+                color: showSource ? "#fff" : "var(--color-text-primary)",
+                border: "1px solid var(--color-border-default)",
+              }}
+            >
+              {sourceLoading ? "Loading..." : "Source"}
+            </button>
+          </>
+        )}
+
         <div
           className="h-4 w-px"
           style={{ backgroundColor: "var(--color-border-default)" }}
@@ -358,7 +432,45 @@ export default function StepDebugger({ steps }: StepDebuggerProps) {
         <span style={{ color: "var(--color-text-muted)" }}>Gas:</span>
         <span>{step.gas.toLocaleString()}</span>
         <span style={{ color: "var(--color-warning)" }}>(-{step.gasCost})</span>
+        {currentSourceLocation && (
+          <>
+            <span style={{ color: "var(--color-text-muted)" }}>|</span>
+            <span style={{ color: "var(--color-success)" }}>
+              {currentSourceLocation.file}:{currentSourceLocation.line}
+            </span>
+          </>
+        )}
       </div>
+
+      {/* Source code panel (when toggled on) */}
+      {showSource && currentSourceFile && (
+        <div
+          className="rounded-lg border overflow-hidden"
+          style={{
+            backgroundColor: "var(--color-bg-card)",
+            borderColor: "var(--color-border-default)",
+            maxHeight: "300px",
+          }}
+        >
+          <SourceViewer
+            file={currentSourceFile}
+            currentLine={currentSourceLocation?.line ?? null}
+          />
+        </div>
+      )}
+
+      {showSource && !sourceData && !sourceLoading && (
+        <div
+          className="rounded-lg border p-4 text-center text-sm"
+          style={{
+            backgroundColor: "var(--color-bg-card)",
+            borderColor: "var(--color-border-default)",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          Verified source not found for this contract
+        </div>
+      )}
 
       {/* Main panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3" style={{ minHeight: "600px" }}>

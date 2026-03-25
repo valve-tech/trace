@@ -335,7 +335,10 @@ export default function DebuggerView() {
           <div className="mt-4">
             {activeTab === "debugger" && (
               opcodeSteps.length > 0 ? (
-                <StepDebugger steps={opcodeSteps} />
+                <StepDebugger
+                  steps={opcodeSteps}
+                  contractAddress={callTrace?.to}
+                />
               ) : (
                 <NoDataPanel message="Step debugger requires opcode trace data. A debug-enabled node is needed." />
               )

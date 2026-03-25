@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { createServer } from "node:http";
 import { runMigrations } from "./services/migrate.js";
 import { checkHealth } from "./services/pool.js";
 import simulateRouter from "./routes/simulate.js";
@@ -11,8 +12,12 @@ import rpcRouter from "./routes/rpc.js";
 import alertsRouter from "./routes/alerts.js";
 import debuggerRouter from "./routes/debugger.js";
 import actionsRouter from "./routes/actions.js";
+import sourceRouter from "./routes/source.js";
+import apiKeysRouter from "./routes/apiKeys.js";
+import { authMiddleware } from "./middleware/auth.js";
 import { startMonitor } from "./services/monitor.js";
 import { initScheduler } from "./services/actionScheduler.js";
+import { initWebSocket } from "./services/wsServer.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -25,7 +30,7 @@ app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 
 // ---------------------------------------------------------------------------
-// Routes
+// Routes — health and RPC bypass auth
 // ---------------------------------------------------------------------------
 
 app.get("/health", async (_req, res) => {
@@ -34,17 +39,28 @@ app.get("/health", async (_req, res) => {
   res.status(dbOk ? 200 : 503).json({ status, chain: "PulseChain", chainId: 369, db: dbOk });
 });
 
+app.use("/rpc", rpcRouter);
+app.use("/api/rpc", rpcRouter);
+
+// ---------------------------------------------------------------------------
+// Auth middleware — applied to all /api/* routes below
+// ---------------------------------------------------------------------------
+
+app.use("/api", authMiddleware);
+
+// ---------------------------------------------------------------------------
+// API routes
+// ---------------------------------------------------------------------------
+
 app.use("/api/simulate", simulateRouter);
 app.use("/api/simulate-bundle", simulateBundleRouter);
 app.use("/api", explorerRouter);
 app.use("/api/testnets", testnetsRouter);
-
-app.use("/rpc", rpcRouter);
-app.use("/api/rpc", rpcRouter);
-
 app.use("/api/alerts", alertsRouter);
 app.use("/api/debug", debuggerRouter);
 app.use("/api/actions", actionsRouter);
+app.use("/api/source", sourceRouter);
+app.use("/api/keys", apiKeysRouter);
 
 // ---------------------------------------------------------------------------
 // Global error handler
@@ -69,7 +85,9 @@ app.use(
 async function start(): Promise<void> {
   await runMigrations();
 
-  app.listen(PORT, () => {
+  const server = createServer(app);
+
+  server.listen(PORT, () => {
     console.log(`PulseChain Dev Platform API listening on http://localhost:${PORT}`);
     console.log(`  POST /api/simulate            – single transaction simulation`);
     console.log(`  POST /api/simulate-bundle      – bundled transaction simulation`);
@@ -80,8 +98,11 @@ async function start(): Promise<void> {
     console.log(`  CRUD /api/alerts               – monitoring & alert rules`);
     console.log(`  GET  /api/debug/tx/:hash/trace – call tree trace`);
     console.log(`  CRUD /api/actions              – web3 actions`);
+    console.log(`  CRUD /api/keys                 – API key management`);
+    console.log(`  WS   /ws/alerts                – real-time alert notifications`);
     console.log(`  GET  /health                   – health check`);
 
+    initWebSocket(server);
     startMonitor();
     void initScheduler();
   });

@@ -6,6 +6,7 @@ import {
 } from "./db.js";
 import { dispatch, type MatchData } from "./notifier.js";
 import { processBlock as processActionsBlock } from "./actionScheduler.js";
+import { broadcast } from "./wsServer.js";
 import { type Address, formatEther, keccak256, toHex, type Log } from "viem";
 
 // ---------------------------------------------------------------------------
@@ -213,6 +214,10 @@ async function matchAlerts(
       });
       dispatch(alert, matchData).catch((err) => {
         console.error(`[monitor] notification dispatch error for alert ${alert.id}:`, err);
+      });
+      broadcast("alert_triggered", {
+        alert: { id: alert.id, name: alert.name, type: alert.type },
+        match: matchData,
       });
     }
   }
