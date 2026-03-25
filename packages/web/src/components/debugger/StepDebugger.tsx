@@ -887,7 +887,8 @@ function CollapsiblePanel({
 // ---------------------------------------------------------------------------
 
 interface CallSegment {
-  type: string; // CALL, DELEGATECALL, STATICCALL, CREATE, or "root"
+  type: string; // CALL, DELEGATECALL, STATICCALL, CREATE, "internal", or "root"
+  isInternal: boolean; // true = JUMP within same contract, false = cross-contract
   depth: number;
   startStep: number;
   endStep: number;
@@ -896,9 +897,31 @@ interface CallSegment {
   children: CallSegment[];
 }
 
+function extractSelector(s: OpcodeStep): string | undefined {
+  try {
+    const stackLen = s.stack.length;
+    const argsOffsetIdx = s.op === "CALL" || s.op === "CALLCODE" ? stackLen - 4 : stackLen - 3;
+    if (argsOffsetIdx >= 0 && s.memory.length > 0) {
+      const argsOffset = Number(BigInt(s.stack[argsOffsetIdx] ?? "0"));
+      const memHex = s.memory.join("");
+      const selectorHex = memHex.slice(argsOffset * 2, argsOffset * 2 + 8);
+      if (selectorHex.length === 8) return "0x" + selectorHex;
+    }
+  } catch {
+    // best-effort
+  }
+  return undefined;
+}
+
+// Detect internal function calls: JUMP where PC makes a non-sequential leap
+// (>= 20 bytes forward or any backward jump) at the same depth.
+// Solidity compilers use JUMP for internal function dispatch.
+const INTERNAL_JUMP_THRESHOLD = 20;
+
 function buildCallTree(steps: OpcodeStep[]): CallSegment {
   const root: CallSegment = {
     type: "root",
+    isInternal: false,
     depth: 1,
     startStep: 0,
     endStep: steps.length - 1,
@@ -907,44 +930,65 @@ function buildCallTree(steps: OpcodeStep[]): CallSegment {
   };
 
   const stack: CallSegment[] = [root];
+  // Track internal call return addresses
+  const internalReturnStack: Array<{ returnStep: number; segment: CallSegment }> = [];
 
   for (let i = 0; i < steps.length; i++) {
     const s = steps[i]!;
     const parent = stack[stack.length - 1]!;
 
-    if (isCallOp(s.op)) {
-      // Try to extract the 4-byte selector from memory at the call data offset
-      // For CALL: stack = [gas, addr, value, argsOffset, argsLength, retOffset, retLength]
-      // For STATICCALL/DELEGATECALL: stack = [gas, addr, argsOffset, argsLength, retOffset, retLength]
-      let selector: string | undefined;
-      try {
-        const stackLen = s.stack.length;
-        const argsOffsetIdx = s.op === "CALL" || s.op === "CALLCODE" ? stackLen - 4 : stackLen - 3;
-        if (argsOffsetIdx >= 0 && s.memory.length > 0) {
-          const argsOffset = Number(BigInt(s.stack[argsOffsetIdx] ?? "0"));
-          const memHex = s.memory.join("");
-          const selectorHex = memHex.slice(argsOffset * 2, argsOffset * 2 + 8);
-          if (selectorHex.length === 8) {
-            selector = "0x" + selectorHex;
-          }
+    // Check for internal call returns
+    while (internalReturnStack.length > 0) {
+      const top = internalReturnStack[internalReturnStack.length - 1]!;
+      // If we've returned (PC jumped back to near where we came from)
+      if (i > top.segment.startStep + 2 && s.depth === top.segment.depth) {
+        const nextStep = steps[i];
+        const prevStep = steps[i - 1];
+        if (nextStep && prevStep && prevStep.op === "JUMP" && s.op === "JUMPDEST") {
+          top.segment.endStep = i - 1;
+          top.segment.stepCount = top.segment.endStep - top.segment.startStep + 1;
+          internalReturnStack.pop();
+          if (stack[stack.length - 1] === top.segment) stack.pop();
+          continue;
         }
-      } catch {
-        // selector extraction is best-effort
       }
+      break;
+    }
 
+    if (isCallOp(s.op)) {
       const child: CallSegment = {
         type: s.op,
+        isInternal: false,
         depth: s.depth + 1,
         startStep: i,
         endStep: i,
         stepCount: 0,
-        selector,
+        selector: extractSelector(s),
         children: [],
       };
       parent.children.push(child);
       stack.push(child);
+    } else if (s.op === "JUMP" && i + 1 < steps.length) {
+      // Detect internal function call: JUMP to a non-sequential JUMPDEST
+      const next = steps[i + 1]!;
+      if (next.op === "JUMPDEST" && next.depth === s.depth) {
+        const pcDelta = next.pc - s.pc;
+        if (pcDelta < 0 || pcDelta >= INTERNAL_JUMP_THRESHOLD) {
+          const child: CallSegment = {
+            type: "internal",
+            isInternal: true,
+            depth: s.depth,
+            startStep: i + 1,
+            endStep: i + 1,
+            stepCount: 0,
+            children: [],
+          };
+          parent.children.push(child);
+          stack.push(child);
+          internalReturnStack.push({ returnStep: i, segment: child });
+        }
+      }
     } else if (s.depth < parent.depth && stack.length > 1) {
-      // Returned from a call
       parent.endStep = i - 1;
       parent.stepCount = parent.endStep - parent.startStep + 1;
       stack.pop();
@@ -1032,23 +1076,30 @@ function CallSegmentRow({
     ? signatureMap[segment.selector.toLowerCase()]?.[0]?.textSignature
     : undefined;
 
-  // Primary display: function name or type for root
+  // Primary display: function name, or "internal" for same-contract jumps
   const primaryText = resolvedName
     ? resolvedName.split("(")[0]!
     : segment.selector
       ? segment.selector
       : segment.type === "root"
         ? "Transaction"
-        : segment.type;
+        : segment.isInternal
+          ? "internal fn"
+          : segment.type;
 
   const fullSignature = resolvedName ?? segment.selector ?? segment.type;
 
   const bgColor = isActive
     ? "rgba(139, 92, 246, 0.12)"
-    : CALL_TYPE_BG[segment.type] ?? "transparent";
+    : segment.isInternal
+      ? "rgba(148, 163, 184, 0.04)"
+      : CALL_TYPE_BG[segment.type] ?? "transparent";
   const borderColor = isActive
     ? "var(--color-accent)"
-    : CALL_TYPE_BORDER[segment.type] ?? "transparent";
+    : segment.isInternal
+      ? "rgba(148, 163, 184, 0.2)"
+      : CALL_TYPE_BORDER[segment.type] ?? "transparent";
+  const rowOpacity = segment.isInternal ? 0.6 : 1;
 
   return (
     <div>
@@ -1062,6 +1113,7 @@ function CallSegmentRow({
           backgroundColor: bgColor,
           borderLeft: `3px solid ${borderColor}`,
           fontFamily: "var(--font-mono)",
+          opacity: rowOpacity,
         }}
       >
         {hasChildren && (
