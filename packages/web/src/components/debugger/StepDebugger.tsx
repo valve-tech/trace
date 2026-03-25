@@ -96,6 +96,7 @@ interface StepDebuggerProps {
 export default function StepDebugger({ steps, contractAddress }: StepDebuggerProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [opcodeFilter, setOpcodeFilter] = useState("");
+  const [contentView, setContentView] = useState<"trace" | "opcodes" | "source">("trace");
   const [showSource, setShowSource] = useState(false);
   const [sourceData, setSourceData] = useState<ContractSource | null>(null);
   const [sourceMappings, setSourceMappings] = useState<Record<number, SourceLocation | null>>({});
@@ -515,49 +516,6 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
         )}
       </div>
 
-      {/* Source code panel (when toggled on) */}
-      {showSource && currentSourceFile && (
-        <div
-          className="rounded-lg border overflow-hidden"
-          style={{
-            backgroundColor: "var(--color-bg-card)",
-            borderColor: "var(--color-border-default)",
-            maxHeight: "300px",
-          }}
-        >
-          <SourceViewer
-            file={currentSourceFile}
-            currentLine={currentSourceLocation?.line ?? null}
-            findings={slitherFindings
-              .flatMap((f) =>
-                f.elements
-                  .filter((e) => e.sourceMapping?.lines?.length)
-                  .flatMap((e) =>
-                    (e.sourceMapping?.lines ?? []).map((line) => ({
-                      line,
-                      severity: f.impact,
-                      message: `[${f.check}] ${f.description.split("\n")[0]}`,
-                    })),
-                  ),
-              )
-            }
-          />
-        </div>
-      )}
-
-      {showSource && !sourceData && !sourceLoading && (
-        <div
-          className="rounded-lg border p-4 text-center text-sm"
-          style={{
-            backgroundColor: "var(--color-bg-card)",
-            borderColor: "var(--color-border-default)",
-            color: "var(--color-text-muted)",
-          }}
-        >
-          Verified source not found for this contract
-        </div>
-      )}
-
       {/* Slither findings panel */}
       {showFindings && slitherFindings.length > 0 && (
         <FindingsPanel findings={slitherFindings} />
@@ -580,10 +538,43 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
           </div>
         </div>
 
-        {/* Right: Trace + Storage */}
+        {/* Right: Tabbed content + Storage */}
         <div className="flex-1 min-w-0 flex flex-col gap-3">
 
-      {/* Execution Trace (opcodes) */}
+      {/* Content view tabs */}
+      <div
+        className="flex border-b"
+        style={{ borderColor: "var(--color-border-default)" }}
+      >
+        {(["trace", "opcodes", "source"] as const).map((view) => (
+          <button
+            key={view}
+            onClick={() => setContentView(view)}
+            className="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+            style={{
+              borderColor: contentView === view ? "var(--color-accent)" : "transparent",
+              color: contentView === view ? "var(--color-text-primary)" : "var(--color-text-muted)",
+              backgroundColor: "transparent",
+            }}
+          >
+            {view === "trace" ? "Decoded Trace" : view === "opcodes" ? "Opcodes" : "Source"}
+          </button>
+        ))}
+      </div>
+
+      {/* Decoded Trace — human-readable function calls */}
+      {contentView === "trace" && (
+        <DecodedTrace
+          steps={steps}
+          currentStep={currentStep}
+          signatureMap={signatureMap}
+          sourceMappings={sourceMappings}
+          onJumpTo={goTo}
+        />
+      )}
+
+      {/* Opcodes — raw execution trace */}
+      {contentView === "opcodes" && (
       <CollapsiblePanel title="Execution Trace" count={totalSteps} defaultOpen>
         <div
           ref={traceListRef}
@@ -640,8 +631,50 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
           </div>
         </div>
       </CollapsiblePanel>
+      )}
 
-      {/* Storage — always visible below the trace */}
+      {/* Source — full verified file with current line highlighted */}
+      {contentView === "source" && currentSourceFile && (
+        <div
+          className="rounded-lg border overflow-hidden"
+          style={{
+            backgroundColor: "var(--color-bg-card)",
+            borderColor: "var(--color-border-default)",
+            maxHeight: "500px",
+          }}
+        >
+          <SourceViewer
+            file={currentSourceFile}
+            currentLine={currentSourceLocation?.line ?? null}
+            findings={slitherFindings
+              .flatMap((f) =>
+                f.elements
+                  .filter((e) => e.sourceMapping?.lines?.length)
+                  .flatMap((e) =>
+                    (e.sourceMapping?.lines ?? []).map((line) => ({
+                      line,
+                      severity: f.impact,
+                      message: `[${f.check}] ${f.description.split("\n")[0]}`,
+                    })),
+                  ),
+              )
+            }
+          />
+        </div>
+      )}
+
+      {contentView === "source" && !currentSourceFile && (
+        <div
+          className="rounded-lg border p-8 text-center"
+          style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
+        >
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+            {sourceLoading ? "Loading verified source..." : "No verified source available for this contract"}
+          </p>
+        </div>
+      )}
+
+      {/* Storage — always visible below the active tab */}
       <div
         className="rounded-lg border overflow-hidden"
         style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
@@ -1022,6 +1055,135 @@ function buildCallTree(
   root.stepCount = steps.length;
 
   return root;
+}
+
+// ---------------------------------------------------------------------------
+// DecodedTrace — human-readable function call list
+// Shows: WPLS(0xA107...).deposit{value: 1.0}()
+// ---------------------------------------------------------------------------
+
+function DecodedTrace({
+  steps,
+  currentStep,
+  signatureMap,
+  sourceMappings,
+  onJumpTo,
+}: {
+  steps: OpcodeStep[];
+  currentStep: number;
+  signatureMap: Record<string, SignatureMatch[]>;
+  sourceMappings: Record<number, SourceLocation | null>;
+  onJumpTo: (step: number) => void;
+}) {
+  // Build a list of decoded call entries from the opcode trace
+  const entries = useMemo(() => {
+    const result: Array<{
+      step: number;
+      depth: number;
+      callType: string;
+      selector?: string;
+      decodedName?: string;
+      sourceLocation?: SourceLocation;
+      isInternal: boolean;
+    }> = [];
+
+    for (let i = 0; i < steps.length; i++) {
+      const s = steps[i]!;
+
+      if (isCallOp(s.op)) {
+        const selector = extractSelector(s);
+        const resolved = selector
+          ? signatureMap[selector.toLowerCase()]?.[0]?.textSignature
+          : undefined;
+
+        result.push({
+          step: i,
+          depth: s.depth,
+          callType: s.op,
+          selector,
+          decodedName: resolved,
+          sourceLocation: sourceMappings[s.pc] ?? undefined,
+          isInternal: false,
+        });
+      } else if (s.op === "JUMP") {
+        const mapping = sourceMappings[s.pc];
+        if (mapping?.jumpType === "i") {
+          result.push({
+            step: i,
+            depth: s.depth,
+            callType: "internal",
+            sourceLocation: mapping,
+            decodedName: mapping.sourceSnippet.trim().split("(")[0]?.split(" ").pop(),
+            isInternal: true,
+          });
+        }
+      }
+    }
+    return result;
+  }, [steps, signatureMap, sourceMappings]);
+
+  return (
+    <div
+      className="rounded-lg border overflow-hidden"
+      style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
+    >
+      <PanelHeader title="Decoded Trace" count={entries.length} suffix="calls" />
+      <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>
+        {entries.length === 0 ? (
+          <div className="px-3 py-6 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+            No function calls detected in this trace
+          </div>
+        ) : (
+          entries.map((entry, i) => {
+            const isActive = currentStep >= entry.step && (
+              i + 1 >= entries.length || currentStep < entries[i + 1]!.step
+            );
+
+            const bgColor = entry.isInternal
+              ? "rgba(148, 163, 184, 0.04)"
+              : CALL_TYPE_BG[entry.callType] ?? "transparent";
+            const borderColor = isActive
+              ? "var(--color-accent)"
+              : entry.isInternal
+                ? "rgba(148, 163, 184, 0.2)"
+                : CALL_TYPE_BORDER[entry.callType] ?? "transparent";
+
+            // Build the human-readable call string
+            const funcName = entry.decodedName
+              ? entry.decodedName.includes("(") ? entry.decodedName : `${entry.decodedName}()`
+              : entry.selector ?? "???";
+
+            return (
+              <div
+                key={i}
+                onClick={() => onJumpTo(entry.step)}
+                className="flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
+                style={{
+                  paddingLeft: `${12 + (entry.depth - 1) * 16}px`,
+                  backgroundColor: isActive ? "rgba(139, 92, 246, 0.12)" : bgColor,
+                  borderLeft: `3px solid ${borderColor}`,
+                  fontFamily: "var(--font-mono)",
+                  opacity: entry.isInternal ? 0.6 : 1,
+                }}
+              >
+                <span style={{ color: "var(--color-text-primary)", fontWeight: isActive ? 600 : 400 }}>
+                  {funcName}
+                </span>
+                {entry.sourceLocation && (
+                  <span style={{ color: "var(--color-text-muted)" }}>
+                    {entry.sourceLocation.file}:{entry.sourceLocation.line}
+                  </span>
+                )}
+                <span className="ml-auto flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                  step {entry.step}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
 }
 
 function CallTreeFromOpcodes({
