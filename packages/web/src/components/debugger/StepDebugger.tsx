@@ -524,18 +524,16 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
       {/* Main layout: Call tree sidebar + content */}
       <div className="flex flex-col lg:flex-row gap-3" style={{ minHeight: "500px" }}>
 
-        {/* Left sidebar: Call Tree — hidden on small screens, toggle to show */}
-        <div className="lg:flex-shrink-0 lg:block" style={{ width: undefined }}>
-          <div className="hidden lg:block" style={{ width: "280px" }}>
-            <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} />
-          </div>
-          <div className="lg:hidden">
-            <CollapsiblePanel title="Call Tree" count={steps.length} suffix="ops" defaultOpen={false}>
-              <div style={{ maxHeight: "250px" }} className="overflow-y-auto">
-                <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} inline />
-              </div>
-            </CollapsiblePanel>
-          </div>
+        {/* Left sidebar: Call Tree */}
+        <div className="hidden lg:block w-[280px] flex-shrink-0">
+          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} />
+        </div>
+        <div className="lg:hidden">
+          <CollapsiblePanel title="Call Tree" count={steps.length} suffix="ops" defaultOpen={false}>
+            <div style={{ maxHeight: "250px" }} className="overflow-y-auto">
+              <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} inline />
+            </div>
+          </CollapsiblePanel>
         </div>
 
         {/* Right: Tabbed content + Storage */}
