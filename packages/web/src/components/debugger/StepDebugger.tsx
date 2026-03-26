@@ -390,7 +390,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     <div className="flex flex-col gap-0">
       {/* Controls bar */}
       <div
-        className="flex items-center gap-3 px-4 py-2 rounded-lg border"
+        className="flex items-center gap-3 px-4 py-2 card"
         style={{
           backgroundColor: "var(--color-bg-card)",
           borderColor: "var(--color-border-default)",
@@ -502,7 +502,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
       {/* Call context breadcrumb */}
       <div
-        className="px-4 py-2 rounded-lg border text-xs flex items-center gap-1 overflow-x-auto"
+        className="px-4 py-2 card text-xs flex items-center gap-1 overflow-x-auto"
         style={{
           backgroundColor: "var(--color-bg-card)",
           borderColor: "var(--color-border-default)",
@@ -651,7 +651,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       {/* Source — full verified file with current line highlighted */}
       {contentView === "source" && currentSourceFile && (
         <div
-          className="rounded-lg border overflow-hidden"
+          className="card overflow-hidden"
           style={{
             backgroundColor: "var(--color-bg-card)",
             borderColor: "var(--color-border-default)",
@@ -680,9 +680,8 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
       {contentView === "source" && !currentSourceFile && (
         <div
-          className="rounded-lg border p-8 text-center space-y-3"
-          style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
-        >
+          className="card p-8 text-center space-y-3"
+          >
           <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
             {sourceLoading ? "Loading verified source..." : "No verified source available for this contract"}
           </p>
@@ -721,8 +720,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
       {/* Storage — always visible below the active tab */}
       <div
-        className="rounded-lg border overflow-hidden"
-        style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
+        className="card overflow-hidden"
       >
         <PanelHeader title="Storage" count={storageDiff.length} suffix="changes" />
         <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
@@ -821,7 +819,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
       {/* Keyboard shortcuts help */}
       <div
-        className="flex flex-wrap gap-4 px-4 py-2 rounded-lg border text-xs"
+        className="flex flex-wrap gap-4 px-4 py-2 card text-xs"
         style={{
           backgroundColor: "var(--color-bg-card)",
           borderColor: "var(--color-border-default)",
@@ -854,11 +852,8 @@ function PanelHeader({
 }) {
   return (
     <div
-      className="flex items-center justify-between px-3 py-2 border-b"
-      style={{
-        borderColor: "var(--color-border-default)",
-        backgroundColor: "var(--color-bg-secondary)",
-      }}
+      className="flex items-center justify-between px-3 py-2 card-divider"
+      style={{ backgroundColor: "var(--color-bg-secondary)" }}
     >
       <span
         className="text-xs font-semibold uppercase tracking-wider"
@@ -953,13 +948,13 @@ function CollapsiblePanel({
 
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="card overflow-hidden"
       style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
     >
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-3 py-2 border-b cursor-pointer"
-        style={{ borderColor: "var(--color-border-default)", backgroundColor: "var(--color-bg-secondary)" }}
+        className="w-full flex items-center justify-between px-3 py-2 card-divider cursor-pointer"
+        style={{ backgroundColor: "var(--color-bg-secondary)" }}
       >
         <span className="flex items-center gap-2">
           <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
@@ -1259,7 +1254,7 @@ function DecodedTrace({
 
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="card overflow-hidden"
       style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
     >
       <PanelHeader title="Decoded Trace" count={entries.length} suffix="calls" />
@@ -1383,7 +1378,7 @@ function CallTreeFromOpcodes({
 
   return (
     <div
-      className="rounded-lg border overflow-hidden flex flex-col h-full"
+      className="card overflow-hidden flex flex-col h-full"
       style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
     >
       <PanelHeader title="Call Tree" count={tree.children.length} suffix="calls" />
