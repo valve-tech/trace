@@ -963,22 +963,73 @@ function extractSelector(s: OpcodeStep): string | undefined {
   return undefined;
 }
 
-function flattenCallTreeSelectors(frame: CallFrame): string[] {
-  const result: string[] = [];
-  // Root frame's input is the top-level calldata
-  if (frame.input && frame.input.length >= 10) {
-    result.push(frame.input.slice(0, 10).toLowerCase());
-  }
-  for (const child of frame.calls ?? []) {
-    if (child.input && child.input.length >= 10) {
-      result.push(child.input.slice(0, 10).toLowerCase());
+interface FlatCallInfo {
+  selector: string;
+  to: string;
+  type: string;
+  value?: string;
+  input: string; // full calldata — used to disambiguate selector collisions
+}
+
+function flattenCallTree(frame: CallFrame): FlatCallInfo[] {
+  const result: FlatCallInfo[] = [];
+
+  function walk(f: CallFrame) {
+    for (const child of f.calls ?? []) {
+      result.push({
+        selector: child.input?.length >= 10 ? child.input.slice(0, 10).toLowerCase() : "",
+        to: child.to ?? "",
+        type: child.type ?? "CALL",
+        value: child.value,
+        input: child.input ?? "0x",
+      });
+      walk(child);
     }
-    // Recurse into children's children
-    const nested = flattenCallTreeSelectors(child);
-    // Skip the first one (already added above) and add the rest
-    result.push(...nested.slice(1));
   }
+
+  walk(frame);
   return result;
+}
+
+// Keep backward compat
+function flattenCallTreeSelectors(frame: CallFrame): string[] {
+  return flattenCallTree(frame).map((c) => c.selector);
+}
+
+/**
+ * Disambiguate 4byte selector collisions by checking if the calldata
+ * length matches each candidate signature's expected parameter count.
+ * ABI-encoded params are 32 bytes each (static types), so calldata
+ * length = 4 (selector) + 32 * paramCount for simple signatures.
+ */
+function bestMatchSignature(
+  candidates: SignatureMatch[],
+  calldata: string,
+): string | undefined {
+  if (candidates.length === 0) return undefined;
+  if (candidates.length === 1) return candidates[0]!.textSignature;
+
+  const dataBytes = (calldata.startsWith("0x") ? calldata.slice(2) : calldata).length / 2;
+  const paramBytes = dataBytes - 4; // subtract selector
+
+  for (const c of candidates) {
+    // Count params from the signature: transfer(address,uint256) → 2
+    const paramsStr = c.textSignature.split("(")[1]?.replace(")", "") ?? "";
+    if (paramsStr === "") {
+      // No params — calldata should be just the selector (4 bytes)
+      if (paramBytes === 0) return c.textSignature;
+      continue;
+    }
+    const paramCount = paramsStr.split(",").length;
+    // Static params: each is 32 bytes. Dynamic params add a 32-byte offset pointer.
+    // A simple heuristic: paramBytes should be >= 32 * paramCount
+    if (paramBytes >= 32 * paramCount && paramBytes <= 32 * paramCount * 3) {
+      return c.textSignature;
+    }
+  }
+
+  // Fallback: prefer shorter signatures (less likely to be hash collisions)
+  return [...candidates].sort((a, b) => a.textSignature.length - b.textSignature.length)[0]?.textSignature;
 }
 
 function buildCallTree(
@@ -1097,8 +1148,8 @@ function DecodedTrace({
   callTrace?: CallFrame | null;
   onJumpTo: (step: number) => void;
 }) {
-  const callTreeSelectors = useMemo(
-    () => callTrace ? flattenCallTreeSelectors(callTrace) : [],
+  const flatCalls = useMemo(
+    () => callTrace ? flattenCallTree(callTrace) : [],
     [callTrace],
   );
 
@@ -1108,6 +1159,7 @@ function DecodedTrace({
       depth: number;
       callType: string;
       selector?: string;
+      targetAddress?: string;
       decodedName?: string;
       sourceLocation?: SourceLocation;
       isInternal: boolean;
@@ -1118,17 +1170,20 @@ function DecodedTrace({
       const s = steps[i]!;
 
       if (isCallOp(s.op)) {
-        const selector = callTreeSelectors[extCallIdx] ?? extractSelector(s);
+        const callInfo = flatCalls[extCallIdx];
+        const selector = callInfo?.selector ?? extractSelector(s);
+        const targetAddress = callInfo?.to ?? undefined;
+        const calldata = callInfo?.input ?? "";
         extCallIdx++;
-        const resolved = selector
-          ? signatureMap[selector.toLowerCase()]?.[0]?.textSignature
-          : undefined;
+        const candidates = selector ? signatureMap[selector.toLowerCase()] ?? [] : [];
+        const resolved = bestMatchSignature(candidates, calldata);
 
         result.push({
           step: i,
           depth: s.depth,
           callType: s.op,
           selector,
+          targetAddress,
           decodedName: resolved,
           sourceLocation: sourceMappings[s.pc] ?? undefined,
           isInternal: false,
@@ -1176,16 +1231,25 @@ function DecodedTrace({
                 ? "rgba(148, 163, 184, 0.2)"
                 : CALL_TYPE_BORDER[entry.callType] ?? "transparent";
 
-            // Build the human-readable call string
-            const funcName = entry.decodedName
-              ? entry.decodedName.includes("(") ? entry.decodedName : `${entry.decodedName}()`
-              : entry.selector ?? "???";
+            // Build human-readable: Contract(0xAddr).functionName(args)
+            const funcSig = entry.decodedName
+              ? entry.decodedName
+              : entry.selector
+                ? `${entry.selector}()`
+                : "???()";
+            const funcNameOnly = funcSig.split("(")[0]!;
+            const funcArgs = funcSig.includes("(") ? `(${funcSig.split("(").slice(1).join("(")}` : "()";
+            // Don't show full args signature inline — just the name
+            const addrShort = entry.targetAddress
+              ? `${entry.targetAddress.slice(0, 6)}...${entry.targetAddress.slice(-4)}`
+              : "";
 
             return (
               <div
                 key={i}
                 onClick={() => onJumpTo(entry.step)}
-                className="flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
+                className="flex items-center gap-1 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
+                title={entry.decodedName ? `${entry.targetAddress ?? ""}.${funcSig}` : entry.selector}
                 style={{
                   paddingLeft: `${12 + (entry.depth - 1) * 16}px`,
                   backgroundColor: isActive ? "rgba(139, 92, 246, 0.12)" : bgColor,
@@ -1194,16 +1258,27 @@ function DecodedTrace({
                   opacity: entry.isInternal ? 0.6 : 1,
                 }}
               >
+                {entry.targetAddress && (
+                  <span style={{ color: "var(--color-text-muted)" }} title={entry.targetAddress}>
+                    {addrShort}
+                  </span>
+                )}
+                {entry.targetAddress && (
+                  <span style={{ color: "var(--color-text-muted)" }}>.</span>
+                )}
                 <span style={{ color: "var(--color-text-primary)", fontWeight: isActive ? 600 : 400 }}>
-                  {funcName}
+                  {funcNameOnly}
+                </span>
+                <span style={{ color: "var(--color-text-muted)" }}>
+                  {funcArgs}
                 </span>
                 {entry.sourceLocation && (
-                  <span style={{ color: "var(--color-text-muted)" }}>
+                  <span className="ml-2" style={{ color: "var(--color-text-muted)" }}>
                     {entry.sourceLocation.file}:{entry.sourceLocation.line}
                   </span>
                 )}
                 <span className="ml-auto flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
-                  step {entry.step}
+                  {entry.step}
                 </span>
               </div>
             );
