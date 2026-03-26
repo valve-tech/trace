@@ -205,9 +205,10 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     }
   }, [contractAddress, slitherLoading, showSource]);
 
-  // Fetch source code when toggled on
+  // Fetch source code when source view is active (via tab or toggle)
   useEffect(() => {
-    if (!showSource || !contractAddress || sourceData) return;
+    const shouldFetch = showSource || contentView === "source";
+    if (!shouldFetch || !contractAddress || sourceData) return;
 
     let cancelled = false;
     setSourceLoading(true);
@@ -238,7 +239,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     })();
 
     return () => { cancelled = true; };
-  }, [showSource, contractAddress, sourceData, steps]);
+  }, [showSource, contentView, contractAddress, sourceData, steps]);
 
   // ---- Navigation ----
 
@@ -1496,11 +1497,6 @@ function CallSegmentRow({
           {primaryText}
         </span>
 
-        {/* Step count — always visible */}
-        <span className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
-          {segment.stepCount.toLocaleString()} ops
-        </span>
-
         {hasChildren && (
           <span className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
             ({segment.children.length})
@@ -1525,7 +1521,7 @@ function CallSegmentRow({
             {segment.selector && !resolvedName && (
               <div style={{ color: "var(--color-text-muted)" }}>selector: {segment.selector}</div>
             )}
-            <div style={{ color: "var(--color-text-muted)" }}>steps {segment.startStep}–{segment.endStep}</div>
+            <div style={{ color: "var(--color-text-muted)" }}>steps {segment.startStep}–{segment.endStep} ({segment.stepCount.toLocaleString()} ops)</div>
           </div>
         )}
       </div>

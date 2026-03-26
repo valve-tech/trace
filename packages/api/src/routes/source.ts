@@ -32,10 +32,14 @@ router.get("/:address", async (req: Request, res: Response): Promise<void> => {
     let hasDeployedBytecode = !!source.deployedBytecode;
 
     if (!hasSourceMap && source.compilerVersion) {
-      const compiled = await compileForSourceMap(address);
-      if (compiled) {
-        hasSourceMap = true;
-        hasDeployedBytecode = true;
+      try {
+        const compiled = await compileForSourceMap(address);
+        if (compiled) {
+          hasSourceMap = true;
+          hasDeployedBytecode = true;
+        }
+      } catch (err) {
+        console.warn(`[source] recompilation failed for ${address}:`, err instanceof Error ? err.message : err);
       }
     }
 
