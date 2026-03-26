@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { OpcodeStep, CallFrame } from "../../api/debugger";
 import { fetchSource, fetchSourceMappings, analyzeContract, type ContractSource, type SourceLocation, type SlitherFinding } from "../../api/source";
 import { batchLookupSignatures, type SignatureMatch } from "../../api/signatures";
+import { resolveContractNames } from "../../api/contractNames";
 import SourceViewer from "./SourceViewer";
 import FindingsPanel from "./FindingsPanel";
 
@@ -106,6 +107,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const [slitherLoading, setSlitherLoading] = useState(false);
   const [showFindings, setShowFindings] = useState(false);
   const [signatureMap, setSignatureMap] = useState<Record<string, SignatureMatch[]>>({});
+  const [contractNames, setContractNames] = useState<Record<string, string | null>>({});
   const traceListRef = useRef<HTMLDivElement>(null);
   const rowHeight = 28;
 
@@ -142,6 +144,19 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     setSlitherFindings([]);
     setShowFindings(false);
   }, [steps, contractAddress]);
+
+  // Resolve contract names for all addresses in the call tree
+  useEffect(() => {
+    if (!callTrace) return;
+    const addresses: string[] = [];
+    function walk(f: CallFrame) {
+      if (f.to) addresses.push(f.to);
+      for (const child of f.calls ?? []) walk(child);
+    }
+    walk(callTrace);
+    if (addresses.length === 0) return;
+    resolveContractNames(addresses).then(setContractNames).catch(() => {});
+  }, [callTrace]);
 
   // Extract selectors from the call tree's input fields and batch-resolve
   useEffect(() => {
@@ -566,6 +581,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
           signatureMap={signatureMap}
           sourceMappings={sourceMappings}
           callTrace={callTrace}
+          contractNames={contractNames}
           onJumpTo={goTo}
         />
       )}
@@ -1139,6 +1155,7 @@ function DecodedTrace({
   signatureMap,
   sourceMappings,
   callTrace,
+  contractNames,
   onJumpTo,
 }: {
   steps: OpcodeStep[];
@@ -1146,6 +1163,7 @@ function DecodedTrace({
   signatureMap: Record<string, SignatureMatch[]>;
   sourceMappings: Record<number, SourceLocation | null>;
   callTrace?: CallFrame | null;
+  contractNames: Record<string, string | null>;
   onJumpTo: (step: number) => void;
 }) {
   const flatCalls = useMemo(
@@ -1258,14 +1276,20 @@ function DecodedTrace({
                   opacity: entry.isInternal ? 0.6 : 1,
                 }}
               >
-                {entry.targetAddress && (
-                  <span style={{ color: "var(--color-text-muted)" }} title={entry.targetAddress}>
-                    {addrShort}
-                  </span>
-                )}
-                {entry.targetAddress && (
-                  <span style={{ color: "var(--color-text-muted)" }}>.</span>
-                )}
+                {entry.targetAddress && (() => {
+                  const name = contractNames[entry.targetAddress.toLowerCase()];
+                  return (
+                    <>
+                      {name ? (
+                        <span style={{ color: "var(--color-accent)" }}>{name}</span>
+                      ) : null}
+                      <span style={{ color: "var(--color-text-muted)" }} title={entry.targetAddress}>
+                        ({addrShort})
+                      </span>
+                      <span style={{ color: "var(--color-text-muted)" }}>.</span>
+                    </>
+                  );
+                })()}
                 <span style={{ color: "var(--color-text-primary)", fontWeight: isActive ? 600 : 400 }}>
                   {funcNameOnly}
                 </span>
