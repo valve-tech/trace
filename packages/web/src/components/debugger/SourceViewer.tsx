@@ -1,11 +1,11 @@
-import { useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { SourceFile } from "../../api/source";
 
 // ---------------------------------------------------------------------------
-// Syntax token types for basic Solidity highlighting
+// Syntax token types
 // ---------------------------------------------------------------------------
 
-type TokenType = "keyword" | "type" | "number" | "string" | "comment" | "operator" | "punctuation" | "text";
+type TokenType = "keyword" | "type" | "number" | "string" | "comment" | "operator" | "punctuation" | "identifier" | "text";
 
 const SOLIDITY_KEYWORDS = new Set([
   "pragma", "solidity", "import", "contract", "interface", "library", "abstract",
@@ -21,7 +21,6 @@ const SOLIDITY_TYPES = new Set([
   "uint", "uint8", "uint16", "uint32", "uint64", "uint128", "uint256",
   "int", "int8", "int16", "int32", "int64", "int128", "int256",
   "bool", "address", "bytes", "bytes1", "bytes4", "bytes32", "string",
-  "uint256[]", "address[]", "bytes32[]",
 ]);
 
 const TOKEN_COLORS: Record<TokenType, string> = {
@@ -32,11 +31,12 @@ const TOKEN_COLORS: Record<TokenType, string> = {
   comment: "#5C6370",
   operator: "#56B6C2",
   punctuation: "#ABB2BF",
+  identifier: "#E06C75",
   text: "#ABB2BF",
 };
 
 // ---------------------------------------------------------------------------
-// Simple tokenizer (line-by-line, not a full parser)
+// Tokenizer
 // ---------------------------------------------------------------------------
 
 interface Token {
@@ -49,7 +49,6 @@ function tokenizeLine(line: string): Token[] {
   let i = 0;
 
   while (i < line.length) {
-    // Skip whitespace
     if (/\s/.test(line[i]!)) {
       let j = i;
       while (j < line.length && /\s/.test(line[j]!)) j++;
@@ -58,18 +57,16 @@ function tokenizeLine(line: string): Token[] {
       continue;
     }
 
-    // Single-line comment
     if (line[i] === "/" && line[i + 1] === "/") {
       tokens.push({ type: "comment", value: line.slice(i) });
       break;
     }
 
-    // String literal
     if (line[i] === '"' || line[i] === "'") {
       const quote = line[i]!;
       let j = i + 1;
       while (j < line.length && line[j] !== quote) {
-        if (line[j] === "\\") j++; // skip escaped char
+        if (line[j] === "\\") j++;
         j++;
       }
       tokens.push({ type: "string", value: line.slice(i, j + 1) });
@@ -77,7 +74,6 @@ function tokenizeLine(line: string): Token[] {
       continue;
     }
 
-    // Number (hex or decimal)
     if (/[0-9]/.test(line[i]!) || (line[i] === "0" && line[i + 1] === "x")) {
       let j = i;
       if (line[i] === "0" && line[i + 1] === "x") {
@@ -85,23 +81,17 @@ function tokenizeLine(line: string): Token[] {
         while (j < line.length && /[0-9a-fA-F_]/.test(line[j]!)) j++;
       } else {
         while (j < line.length && /[0-9_.]/.test(line[j]!)) j++;
-        if (j < line.length && /[eE]/.test(line[j]!)) {
-          j++;
-          if (j < line.length && /[+-]/.test(line[j]!)) j++;
-          while (j < line.length && /[0-9]/.test(line[j]!)) j++;
-        }
       }
       tokens.push({ type: "number", value: line.slice(i, j) });
       i = j;
       continue;
     }
 
-    // Word (identifier/keyword/type)
     if (/[a-zA-Z_$]/.test(line[i]!)) {
       let j = i;
       while (j < line.length && /[a-zA-Z0-9_$]/.test(line[j]!)) j++;
       const word = line.slice(i, j);
-      let type: TokenType = "text";
+      let type: TokenType = "identifier";
       if (SOLIDITY_KEYWORDS.has(word)) type = "keyword";
       else if (SOLIDITY_TYPES.has(word)) type = "type";
       tokens.push({ type, value: word });
@@ -109,10 +99,8 @@ function tokenizeLine(line: string): Token[] {
       continue;
     }
 
-    // Operators and punctuation
     if (/[=!<>+\-*/%&|^~?]/.test(line[i]!)) {
       let j = i + 1;
-      // Handle multi-char operators
       if (j < line.length && /[=<>&|]/.test(line[j]!)) j++;
       tokens.push({ type: "operator", value: line.slice(i, j) });
       i = j;
@@ -125,7 +113,6 @@ function tokenizeLine(line: string): Token[] {
       continue;
     }
 
-    // Fallback: single character
     tokens.push({ type: "text", value: line[i]! });
     i++;
   }
@@ -142,6 +129,7 @@ interface SourceViewerProps {
   currentLine: number | null;
   highlightLines?: Set<number>;
   findings?: Array<{ line: number; severity: string; message: string }>;
+  onIdentifierClick?: (identifier: string, line: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,9 +141,11 @@ export default function SourceViewer({
   currentLine,
   highlightLines,
   findings,
+  onIdentifierClick,
 }: SourceViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const lines = useMemo(() => file.content.split("\n"), [file.content]);
+  const [selectedIdentifier, setSelectedIdentifier] = useState<string | null>(null);
 
   // Auto-scroll to current line
   useEffect(() => {
@@ -178,6 +168,27 @@ export default function SourceViewer({
     return map;
   }, [findings]);
 
+  // Find all occurrences of selected identifier for highlighting
+  const identifierLines = useMemo(() => {
+    if (!selectedIdentifier) return new Set<number>();
+    const result = new Set<number>();
+    for (let i = 0; i < lines.length; i++) {
+      const regex = new RegExp(`\\b${selectedIdentifier}\\b`);
+      if (regex.test(lines[i]!)) result.add(i + 1);
+    }
+    return result;
+  }, [selectedIdentifier, lines]);
+
+  const handleTokenClick = useCallback(
+    (token: Token, lineNum: number) => {
+      if (token.type === "identifier") {
+        setSelectedIdentifier((prev) => (prev === token.value ? null : token.value));
+        onIdentifierClick?.(token.value, lineNum);
+      }
+    },
+    [onIdentifierClick],
+  );
+
   const severityColors: Record<string, string> = {
     High: "var(--color-danger)",
     Medium: "#F59E0B",
@@ -189,29 +200,32 @@ export default function SourceViewer({
     <div
       ref={containerRef}
       className="overflow-auto text-xs"
-      style={{
-        fontFamily: "var(--font-mono)",
-        maxHeight: "100%",
-      }}
+      style={{ fontFamily: "var(--font-mono)", maxHeight: "100%" }}
     >
       {/* File name header */}
       <div
-        className="sticky top-0 z-10 px-3 py-1.5 border-b text-xs font-semibold"
-        style={{
-          backgroundColor: "var(--color-bg-secondary)",
-          borderColor: "var(--color-border-default)",
-          color: "var(--color-text-secondary)",
-        }}
+        className="sticky top-0 z-10 px-3 py-1.5 card-divider text-xs font-semibold"
+        style={{ backgroundColor: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}
       >
         {file.name}
+        {selectedIdentifier && (
+          <span
+            className="ml-3 px-2 py-0.5 cursor-pointer"
+            style={{ backgroundColor: "var(--color-accent-muted)", color: "var(--color-accent)" }}
+            onClick={() => setSelectedIdentifier(null)}
+          >
+            {selectedIdentifier} ({identifierLines.size} refs) ×
+          </span>
+        )}
       </div>
 
       {/* Source lines */}
-      <div className="py-1">
+      <div className="py-0">
         {lines.map((line, i) => {
           const lineNum = i + 1;
           const isCurrentLine = lineNum === currentLine;
           const isHighlighted = highlightLines?.has(lineNum);
+          const isIdentifierLine = identifierLines.has(lineNum);
           const lineFindings = findingsByLine.get(lineNum);
           const tokens = tokenizeLine(line);
 
@@ -223,44 +237,57 @@ export default function SourceViewer({
               style={{
                 backgroundColor: isCurrentLine
                   ? "rgba(139, 92, 246, 0.15)"
-                  : isHighlighted
-                    ? "rgba(139, 92, 246, 0.05)"
-                    : "transparent",
+                  : isIdentifierLine
+                    ? "rgba(224, 108, 117, 0.08)"
+                    : isHighlighted
+                      ? "rgba(139, 92, 246, 0.05)"
+                      : "transparent",
                 borderLeft: isCurrentLine
                   ? "3px solid var(--color-accent)"
                   : "3px solid transparent",
                 minHeight: "20px",
               }}
             >
-              {/* Gutter: line number + finding marker */}
+              {/* Gutter */}
               <span
                 className="w-12 text-right pr-3 flex-shrink-0 select-none"
                 style={{
-                  color: isCurrentLine
-                    ? "var(--color-accent)"
-                    : "var(--color-text-muted)",
+                  color: isCurrentLine ? "var(--color-accent)" : "var(--color-text-muted)",
                   userSelect: "none",
                 }}
               >
                 {lineFindings && (
                   <span
-                    className="inline-block w-2 h-2 rounded-full mr-1"
+                    className="inline-block w-2 h-2 mr-1"
                     title={lineFindings.map((f) => `[${f.severity}] ${f.message}`).join("\n")}
-                    style={{
-                      backgroundColor: severityColors[lineFindings[0]?.severity ?? ""] ?? "#60A5FA",
-                    }}
+                    style={{ backgroundColor: severityColors[lineFindings[0]?.severity ?? ""] ?? "#60A5FA" }}
                   />
                 )}
                 {lineNum}
               </span>
 
-              {/* Code */}
+              {/* Code with interactive tokens */}
               <span className="flex-1 whitespace-pre" style={{ tabSize: 4 }}>
-                {tokens.map((token, j) => (
-                  <span key={j} style={{ color: TOKEN_COLORS[token.type] }}>
-                    {token.value}
-                  </span>
-                ))}
+                {tokens.map((token, j) => {
+                  const isClickable = token.type === "identifier";
+                  const isSelected = selectedIdentifier === token.value && isClickable;
+
+                  return (
+                    <span
+                      key={j}
+                      onClick={isClickable ? () => handleTokenClick(token, lineNum) : undefined}
+                      className={isClickable ? "cursor-pointer hover:underline" : ""}
+                      style={{
+                        color: isSelected ? "var(--color-accent)" : TOKEN_COLORS[token.type],
+                        fontWeight: isSelected ? 700 : undefined,
+                        textDecoration: isSelected ? "underline" : undefined,
+                        textDecorationColor: isSelected ? "var(--color-accent)" : undefined,
+                      }}
+                    >
+                      {token.value}
+                    </span>
+                  );
+                })}
               </span>
             </div>
           );

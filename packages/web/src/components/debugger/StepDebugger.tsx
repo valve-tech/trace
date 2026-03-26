@@ -382,8 +382,11 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   // ---- Current source location ----
 
   const currentSourceLocation = sourceMappings[step.pc] ?? null;
-  const currentSourceFile = currentSourceLocation && sourceData
-    ? sourceData.files.find((f) => f.name === currentSourceLocation.file) ?? sourceData.files[0]
+  // Show source file even without a source map — just no line highlighting
+  const currentSourceFile = sourceData
+    ? currentSourceLocation
+      ? sourceData.files.find((f) => f.name === currentSourceLocation.file) ?? sourceData.files[0] ?? null
+      : sourceData.files[0] ?? null
     : null;
 
   return (
