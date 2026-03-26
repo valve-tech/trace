@@ -261,8 +261,21 @@ async function cacheSource(source: VerifiedSource): Promise<void> {
 // Public API
 // ---------------------------------------------------------------------------
 
+// In-memory negative cache — addresses confirmed not verified
+// TTL: 10 minutes (they might get verified later)
+const NOT_FOUND_CACHE = new Map<string, number>();
+const NOT_FOUND_TTL = 10 * 60 * 1000;
+
 export async function getVerifiedSource(address: string): Promise<VerifiedSource | null> {
-  // Check cache first
+  const key = address.toLowerCase();
+
+  // Check negative cache first
+  const notFoundAt = NOT_FOUND_CACHE.get(key);
+  if (notFoundAt && Date.now() - notFoundAt < NOT_FOUND_TTL) {
+    return null;
+  }
+
+  // Check DB cache
   const cached = await getCachedSource(address);
   if (cached) return cached;
 
@@ -272,6 +285,7 @@ export async function getVerifiedSource(address: string): Promise<VerifiedSource
     await cacheSource(blockscoutResult).catch((err) => {
       console.error("[sourceCode] cache write failed:", err);
     });
+    NOT_FOUND_CACHE.delete(key);
     return blockscoutResult;
   }
 
@@ -281,8 +295,11 @@ export async function getVerifiedSource(address: string): Promise<VerifiedSource
     await cacheSource(sourcifyResult).catch((err) => {
       console.error("[sourceCode] cache write failed:", err);
     });
+    NOT_FOUND_CACHE.delete(key);
     return sourcifyResult;
   }
 
+  // Cache the miss
+  NOT_FOUND_CACHE.set(key, Date.now());
   return null;
 }

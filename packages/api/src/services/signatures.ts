@@ -79,6 +79,10 @@ async function cacheSignatures(
 // Public API
 // ---------------------------------------------------------------------------
 
+// Negative cache for selectors with no matches (TTL: 1 hour)
+const SIG_NOT_FOUND = new Map<string, number>();
+const SIG_NOT_FOUND_TTL = 60 * 60 * 1000;
+
 /**
  * Look up function/event signatures by their 4-byte selector.
  * Checks cache first, then tries Sourcify and 4byte.directory APIs.
@@ -91,7 +95,13 @@ export async function lookupSelector(
     ? selector.toLowerCase()
     : `0x${selector.toLowerCase()}`;
 
-  // Check cache
+  // Check negative cache
+  const notFoundAt = SIG_NOT_FOUND.get(normalized);
+  if (notFoundAt && Date.now() - notFoundAt < SIG_NOT_FOUND_TTL) {
+    return [];
+  }
+
+  // Check DB cache
   const cached = await getCached(normalized);
   if (cached.length > 0) return cached;
 
@@ -105,6 +115,9 @@ export async function lookupSelector(
 
   if (signatures.length > 0) {
     await cacheSignatures(normalized, sigType, signatures);
+    SIG_NOT_FOUND.delete(normalized);
+  } else {
+    SIG_NOT_FOUND.set(normalized, Date.now());
   }
 
   return signatures.map((sig) => ({
