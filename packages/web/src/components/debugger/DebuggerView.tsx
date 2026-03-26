@@ -341,6 +341,7 @@ export default function DebuggerView() {
                 <StepDebugger
                   steps={opcodeSteps}
                   contractAddress={targetAddress ?? undefined}
+                  callTrace={callTrace}
                 />
               ) : (
                 <NoDataPanel message="Step debugger requires opcode trace data. A debug-enabled node is needed." />

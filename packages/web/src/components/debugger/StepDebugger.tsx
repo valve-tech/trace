@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import type { OpcodeStep } from "../../api/debugger";
+import type { OpcodeStep, CallFrame } from "../../api/debugger";
 import { fetchSource, fetchSourceMappings, analyzeContract, type ContractSource, type SourceLocation, type SlitherFinding } from "../../api/source";
 import { batchLookupSignatures, type SignatureMatch } from "../../api/signatures";
 import SourceViewer from "./SourceViewer";
@@ -87,13 +87,14 @@ function formatMemoryRow(hex: string, offset: number): { hex: string; ascii: str
 interface StepDebuggerProps {
   steps: OpcodeStep[];
   contractAddress?: string;
+  callTrace?: CallFrame | null;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export default function StepDebugger({ steps, contractAddress }: StepDebuggerProps) {
+export default function StepDebugger({ steps, contractAddress, callTrace }: StepDebuggerProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [opcodeFilter, setOpcodeFilter] = useState("");
   const [contentView, setContentView] = useState<"trace" | "opcodes" | "source">("trace");
@@ -142,35 +143,32 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
     setShowFindings(false);
   }, [steps, contractAddress]);
 
-  // Batch-resolve 4byte selectors from CALL opcodes in the trace
+  // Extract selectors from the call tree's input fields and batch-resolve
   useEffect(() => {
-    if (steps.length === 0) return;
-
-    // Extract selectors from stack at CALL opcodes
-    // At a CALL, stack[1] (second from top) is the target address,
-    // and the calldata starts with the 4-byte selector
-    // We also look at the input data at depth transitions
     const selectors = new Set<string>();
-    for (const s of steps) {
-      if (isCallOp(s.op) && s.stack.length >= 2) {
-        // The calldata offset/length are on the stack, but we can't easily
-        // extract the selector from memory here. Instead, look for PUSH4
-        // opcodes that push 4-byte selectors.
+
+    // Extract from call tree (reliable — has the actual calldata)
+    function walkCallTree(frame: CallFrame) {
+      if (frame.input && frame.input.length >= 10) {
+        selectors.add(frame.input.slice(0, 10).toLowerCase());
       }
+      for (const child of frame.calls ?? []) {
+        walkCallTree(child);
+      }
+    }
+    if (callTrace) walkCallTree(callTrace);
+
+    // Also grab PUSH4 values from opcodes as a fallback
+    for (const s of steps) {
       if (s.op === "PUSH4" && s.stack.length > 0) {
         const val = s.stack[s.stack.length - 1];
-        if (val) selectors.add(val.slice(0, 10).toLowerCase());
+        if (val && val.length >= 10) selectors.add(val.slice(0, 10).toLowerCase());
       }
     }
 
-    // Also check the first 4 bytes of any data that appears in CALLDATACOPY
-    // Simpler: just look at steps right after CALL for depth changes
-    // and extract the selector from the top of stack at those points
-
     if (selectors.size === 0) return;
-
     batchLookupSignatures([...selectors]).then(setSignatureMap).catch(() => {});
-  }, [steps]);
+  }, [steps, callTrace]);
 
   // Slither analysis handler
   const handleAnalyze = useCallback(async () => {
@@ -526,12 +524,12 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
 
         {/* Left sidebar: Call Tree */}
         <div className="hidden lg:block w-[280px] flex-shrink-0">
-          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} />
+          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} />
         </div>
         <div className="lg:hidden">
           <CollapsiblePanel title="Call Tree" count={steps.length} suffix="ops" defaultOpen={false}>
             <div style={{ maxHeight: "250px" }} className="overflow-y-auto">
-              <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} inline />
+              <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} inline />
             </div>
           </CollapsiblePanel>
         </div>
@@ -567,6 +565,7 @@ export default function StepDebugger({ steps, contractAddress }: StepDebuggerPro
           currentStep={currentStep}
           signatureMap={signatureMap}
           sourceMappings={sourceMappings}
+          callTrace={callTrace}
           onJumpTo={goTo}
         />
       )}
@@ -964,9 +963,28 @@ function extractSelector(s: OpcodeStep): string | undefined {
   return undefined;
 }
 
+function flattenCallTreeSelectors(frame: CallFrame): string[] {
+  const result: string[] = [];
+  // Root frame's input is the top-level calldata
+  if (frame.input && frame.input.length >= 10) {
+    result.push(frame.input.slice(0, 10).toLowerCase());
+  }
+  for (const child of frame.calls ?? []) {
+    if (child.input && child.input.length >= 10) {
+      result.push(child.input.slice(0, 10).toLowerCase());
+    }
+    // Recurse into children's children
+    const nested = flattenCallTreeSelectors(child);
+    // Skip the first one (already added above) and add the rest
+    result.push(...nested.slice(1));
+  }
+  return result;
+}
+
 function buildCallTree(
   steps: OpcodeStep[],
   sourceMappings?: Record<number, SourceLocation | null>,
+  callTreeSelectors?: string[],
 ): CallSegment {
   const root: CallSegment = {
     type: "root",
@@ -979,8 +997,8 @@ function buildCallTree(
   };
 
   const stack: CallSegment[] = [root];
-  // Track internal call return addresses
   const internalReturnStack: Array<{ returnStep: number; segment: CallSegment }> = [];
+  let externalCallIndex = 0;
 
   for (let i = 0; i < steps.length; i++) {
     const s = steps[i]!;
@@ -1005,6 +1023,10 @@ function buildCallTree(
     }
 
     if (isCallOp(s.op)) {
+      // Get selector from call tree input data (reliable) or memory (fallback)
+      const selector = callTreeSelectors?.[externalCallIndex] ?? extractSelector(s);
+      externalCallIndex++;
+
       const child: CallSegment = {
         type: s.op,
         isInternal: false,
@@ -1012,7 +1034,7 @@ function buildCallTree(
         startStep: i,
         endStep: i,
         stepCount: 0,
-        selector: extractSelector(s),
+        selector,
         children: [],
       };
       parent.children.push(child);
@@ -1065,15 +1087,21 @@ function DecodedTrace({
   currentStep,
   signatureMap,
   sourceMappings,
+  callTrace,
   onJumpTo,
 }: {
   steps: OpcodeStep[];
   currentStep: number;
   signatureMap: Record<string, SignatureMatch[]>;
   sourceMappings: Record<number, SourceLocation | null>;
+  callTrace?: CallFrame | null;
   onJumpTo: (step: number) => void;
 }) {
-  // Build a list of decoded call entries from the opcode trace
+  const callTreeSelectors = useMemo(
+    () => callTrace ? flattenCallTreeSelectors(callTrace) : [],
+    [callTrace],
+  );
+
   const entries = useMemo(() => {
     const result: Array<{
       step: number;
@@ -1085,11 +1113,13 @@ function DecodedTrace({
       isInternal: boolean;
     }> = [];
 
+    let extCallIdx = 0;
     for (let i = 0; i < steps.length; i++) {
       const s = steps[i]!;
 
       if (isCallOp(s.op)) {
-        const selector = extractSelector(s);
+        const selector = callTreeSelectors[extCallIdx] ?? extractSelector(s);
+        extCallIdx++;
         const resolved = selector
           ? signatureMap[selector.toLowerCase()]?.[0]?.textSignature
           : undefined;
@@ -1190,6 +1220,7 @@ function CallTreeFromOpcodes({
   onJumpTo,
   signatureMap,
   sourceMappings,
+  callTrace,
   inline,
 }: {
   steps: OpcodeStep[];
@@ -1197,9 +1228,17 @@ function CallTreeFromOpcodes({
   onJumpTo: (step: number) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   sourceMappings: Record<number, SourceLocation | null>;
+  callTrace?: CallFrame | null;
   inline?: boolean;
 }) {
-  const tree = useMemo(() => buildCallTree(steps, sourceMappings), [steps, sourceMappings]);
+  const callTreeSelectors = useMemo(
+    () => callTrace ? flattenCallTreeSelectors(callTrace) : undefined,
+    [callTrace],
+  );
+  const tree = useMemo(
+    () => buildCallTree(steps, sourceMappings, callTreeSelectors),
+    [steps, sourceMappings, callTreeSelectors],
+  );
 
   if (inline) {
     return <CallSegmentRow segment={tree} currentStep={currentStep} onJumpTo={onJumpTo} depth={0} signatureMap={signatureMap} />;
