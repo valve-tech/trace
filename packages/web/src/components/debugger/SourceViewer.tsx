@@ -276,12 +276,14 @@ export default function SourceViewer({
                     <span
                       key={j}
                       onClick={isClickable ? () => handleTokenClick(token, lineNum) : undefined}
-                      className={isClickable ? "cursor-pointer hover:underline" : ""}
+                      onMouseEnter={isClickable ? (e) => { e.currentTarget.style.textDecoration = "underline"; } : undefined}
+                      onMouseLeave={isClickable ? (e) => { e.currentTarget.style.textDecoration = isSelected ? "underline" : "none"; } : undefined}
                       style={{
                         color: isSelected ? "var(--color-accent)" : TOKEN_COLORS[token.type],
                         fontWeight: isSelected ? 700 : undefined,
                         textDecoration: isSelected ? "underline" : undefined,
                         textDecorationColor: isSelected ? "var(--color-accent)" : undefined,
+                        cursor: isClickable ? "pointer" : undefined,
                       }}
                     >
                       {token.value}

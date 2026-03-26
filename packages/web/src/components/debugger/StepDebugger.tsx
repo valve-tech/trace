@@ -104,6 +104,8 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const [sourceData, setSourceData] = useState<ContractSource | null>(null);
   const [sourceMappings, setSourceMappings] = useState<Record<number, SourceLocation | null>>({});
   const [sourceLoading, setSourceLoading] = useState(false);
+  // Cache: address → source data for cross-contract navigation
+  const sourceCacheRef = useRef<Map<string, ContractSource>>(new Map());
   const [slitherFindings, setSlitherFindings] = useState<SlitherFinding[]>([]);
   const [slitherLoading, setSlitherLoading] = useState(false);
   const [showFindings, setShowFindings] = useState(false);
@@ -381,8 +383,67 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
   // ---- Current source location ----
 
+  // Determine which contract the current step is executing in
+  // by matching the step's depth to the call tree
+  const activeContractAddress = useMemo(() => {
+    if (!callTrace) return contractAddress ?? null;
+    // Build a depth→address map from the opcode trace
+    // When we see a CALL at step N going to depth D+1, the address at D+1
+    // is the call tree child's `to` address
+    const flatCalls = flattenCallTree(callTrace);
+    let callIdx = 0;
+    let currentAddr: string | null = callTrace.to ?? contractAddress ?? null;
+    const addrStack: Array<string | null> = [currentAddr];
+
+    for (let i = 0; i <= currentStep && i < steps.length; i++) {
+      const s = steps[i]!;
+      if (isCallOp(s.op) && callIdx < flatCalls.length) {
+        const target = flatCalls[callIdx]!.to;
+        callIdx++;
+        addrStack.push(target || currentAddr);
+        currentAddr = target || currentAddr;
+      } else if (i > 0 && s.depth < steps[i - 1]!.depth) {
+        addrStack.pop();
+        currentAddr = addrStack[addrStack.length - 1] ?? contractAddress ?? null;
+      }
+    }
+    return currentAddr;
+  }, [callTrace, contractAddress, currentStep, steps]);
+
+  // Auto-fetch source for the active contract when it changes
+  useEffect(() => {
+    if (!activeContractAddress) return;
+    const addr = activeContractAddress.toLowerCase();
+
+    // Already have it cached
+    if (sourceCacheRef.current.has(addr)) {
+      setSourceData(sourceCacheRef.current.get(addr)!);
+      return;
+    }
+
+    // Fetch it
+    let cancelled = false;
+    fetchSource(addr).then((res) => {
+      if (cancelled) return;
+      if (res.ok && res.source) {
+        sourceCacheRef.current.set(addr, res.source);
+        setSourceData(res.source);
+        // Fetch source mappings too
+        if (res.source.hasSourceMap) {
+          const uniquePcs = [...new Set(steps.map((s) => s.pc))];
+          fetchSourceMappings(addr, uniquePcs).then((mapRes) => {
+            if (!cancelled && mapRes.ok && mapRes.mappings) {
+              setSourceMappings((prev) => ({ ...prev, ...mapRes.mappings }));
+            }
+          }).catch(() => {});
+        }
+      }
+    }).catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [activeContractAddress, steps]);
+
   const currentSourceLocation = sourceMappings[step.pc] ?? null;
-  // Show source file even without a source map — just no line highlighting
   const currentSourceFile = sourceData
     ? currentSourceLocation
       ? sourceData.files.find((f) => f.name === currentSourceLocation.file) ?? sourceData.files[0] ?? null
