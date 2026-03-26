@@ -38,6 +38,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* No border-radius anywhere — sharp edges for dev tools */
+* {
+  border-radius: 0 !important;
+}
+
 /* Pulse animation for the header icon */
 @keyframes pulse-ring {
   0% {

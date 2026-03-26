@@ -3,6 +3,7 @@ import type { OpcodeStep, CallFrame } from "../../api/debugger";
 import { fetchSource, fetchSourceMappings, analyzeContract, type ContractSource, type SourceLocation, type SlitherFinding } from "../../api/source";
 import { batchLookupSignatures, type SignatureMatch } from "../../api/signatures";
 import { resolveContractNames } from "../../api/contractNames";
+import { lookupWellKnown } from "../../lib/wellKnownSignatures";
 import SourceViewer from "./SourceViewer";
 import FindingsPanel from "./FindingsPanel";
 
@@ -385,7 +386,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     : null;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-0">
       {/* Controls bar */}
       <div
         className="flex items-center gap-3 px-4 py-2 rounded-lg border"
@@ -535,7 +536,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       )}
 
       {/* Main layout: Call tree sidebar + content */}
-      <div className="flex flex-col lg:flex-row gap-3" style={{ minHeight: "500px" }}>
+      <div className="flex flex-col lg:flex-row gap-0" style={{ minHeight: "500px" }}>
 
         {/* Left sidebar: Call Tree */}
         <div className="hidden lg:block w-[280px] flex-shrink-0">
@@ -550,7 +551,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
         </div>
 
         {/* Right: Tabbed content + Storage */}
-        <div className="flex-1 min-w-0 flex flex-col gap-3">
+        <div className="flex-1 min-w-0 flex flex-col gap-0">
 
       {/* Content view tabs */}
       <div
@@ -678,12 +679,42 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
       {contentView === "source" && !currentSourceFile && (
         <div
-          className="rounded-lg border p-8 text-center"
+          className="rounded-lg border p-8 text-center space-y-3"
           style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
         >
           <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
             {sourceLoading ? "Loading verified source..." : "No verified source available for this contract"}
           </p>
+          {!sourceLoading && contractAddress && (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={async () => {
+                  setSourceLoading(true);
+                  try {
+                    // Force re-fetch from BlockScout (bypasses cache)
+                    const res = await fetchSource(contractAddress);
+                    if (res.ok && res.source) {
+                      setSourceData(res.source);
+                      if (res.source.hasSourceMap) {
+                        const uniquePcs = [...new Set(steps.map((s) => s.pc))];
+                        const mapRes = await fetchSourceMappings(contractAddress, uniquePcs);
+                        if (mapRes.ok && mapRes.mappings) setSourceMappings(mapRes.mappings);
+                      }
+                    }
+                  } finally {
+                    setSourceLoading(false);
+                  }
+                }}
+                className="text-xs px-3 py-1.5"
+                style={{ backgroundColor: "var(--color-accent)", color: "#fff", border: "1px solid var(--color-border-default)" }}
+              >
+                Fetch from BlockScout
+              </button>
+              <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                {contractAddress.slice(0, 8)}...{contractAddress.slice(-4)}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -1193,8 +1224,10 @@ function DecodedTrace({
         const targetAddress = callInfo?.to ?? undefined;
         const calldata = callInfo?.input ?? "";
         extCallIdx++;
+        // Priority: well-known signatures → 4byte API with disambiguation
+        const wellKnown = selector ? lookupWellKnown(selector) : undefined;
         const candidates = selector ? signatureMap[selector.toLowerCase()] ?? [] : [];
-        const resolved = bestMatchSignature(candidates, calldata);
+        const resolved = wellKnown?.signature ?? bestMatchSignature(candidates, calldata);
 
         result.push({
           step: i,
@@ -1277,11 +1310,15 @@ function DecodedTrace({
                 }}
               >
                 {entry.targetAddress && (() => {
-                  const name = contractNames[entry.targetAddress.toLowerCase()];
+                  const contractName = contractNames[entry.targetAddress.toLowerCase()];
+                  const interfaceName = entry.selector ? lookupWellKnown(entry.selector)?.interface : undefined;
+                  const displayLabel = contractName ?? interfaceName;
                   return (
                     <>
-                      {name ? (
-                        <span style={{ color: "var(--color-accent)" }}>{name}</span>
+                      {displayLabel ? (
+                        <span style={{ color: contractName ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
+                          {displayLabel}
+                        </span>
                       ) : null}
                       <span style={{ color: "var(--color-text-muted)" }} title={entry.targetAddress}>
                         ({addrShort})

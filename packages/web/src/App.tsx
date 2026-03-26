@@ -130,7 +130,7 @@ export default function App() {
       </div>
 
       {/* Content */}
-      <main className="px-4 py-4">
+      <main className="px-0 py-0">
         <Routes>
           <Route path="/" element={<Navigate to="/simulate" replace />} />
           <Route path="/simulate" element={<SimulationPage />} />
