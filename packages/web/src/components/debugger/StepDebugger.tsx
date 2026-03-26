@@ -386,7 +386,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     : null;
 
   return (
-    <div className="flex flex-col gap-0">
+    <div className="flex flex-col gap-px">
       {/* Controls bar */}
       <div
         className="flex items-center gap-3 px-4 py-2 rounded-lg border"
@@ -536,7 +536,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       )}
 
       {/* Main layout: Call tree sidebar + content */}
-      <div className="flex flex-col lg:flex-row gap-0" style={{ minHeight: "500px" }}>
+      <div className="flex flex-col lg:flex-row gap-px" style={{ minHeight: "500px" }}>
 
         {/* Left sidebar: Call Tree */}
         <div className="hidden lg:block w-[280px] flex-shrink-0">
@@ -551,7 +551,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
         </div>
 
         {/* Right: Tabbed content + Storage */}
-        <div className="flex-1 min-w-0 flex flex-col gap-0">
+        <div className="flex-1 min-w-0 flex flex-col gap-px">
 
       {/* Content view tabs */}
       <div
