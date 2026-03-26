@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { OpcodeStep, CallFrame } from "../../api/debugger";
-import { fetchSource, fetchSourceMappings, analyzeContract, type ContractSource, type SourceLocation, type SlitherFinding } from "../../api/source";
-import { batchLookupSignatures, type SignatureMatch } from "../../api/signatures";
-import { resolveContractNames } from "../../api/contractNames";
+import { analyzeContract, type SourceLocation, type SlitherFinding } from "../../api/source";
+import type { SignatureMatch } from "../../api/signatures";
+import { useContractSource, useSourceMappings } from "../../hooks/useContractSource";
+import { useContractNames } from "../../hooks/useContractNames";
+import { useSignatures } from "../../hooks/useSignatures";
 import { lookupWellKnown } from "../../lib/wellKnownSignatures";
 import SourceViewer from "./SourceViewer";
 import FindingsPanel from "./FindingsPanel";
@@ -100,17 +102,9 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const [currentStep, setCurrentStep] = useState(0);
   const [opcodeFilter, setOpcodeFilter] = useState("");
   const [contentView, setContentView] = useState<"trace" | "opcodes" | "source">("source");
-  const [showSource, setShowSource] = useState(false);
-  const [sourceData, setSourceData] = useState<ContractSource | null>(null);
-  const [sourceMappings, setSourceMappings] = useState<Record<number, SourceLocation | null>>({});
-  const [sourceLoading, setSourceLoading] = useState(false);
-  // Cache: address → source data for cross-contract navigation
-  const sourceCacheRef = useRef<Map<string, ContractSource>>(new Map());
   const [slitherFindings, setSlitherFindings] = useState<SlitherFinding[]>([]);
   const [slitherLoading, setSlitherLoading] = useState(false);
   const [showFindings, setShowFindings] = useState(false);
-  const [signatureMap, setSignatureMap] = useState<Record<string, SignatureMatch[]>>({});
-  const [contractNames, setContractNames] = useState<Record<string, string | null>>({});
   const traceListRef = useRef<HTMLDivElement>(null);
   const rowHeight = 28;
 
@@ -137,56 +131,15 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   }, [opcodeFilter, steps]);
 
   // Reset step when trace changes (new transaction loaded)
-  // Auto-enable source view when contract address is available
   useEffect(() => {
     setCurrentStep(0);
     setOpcodeFilter("");
-    setSourceData(null);
-    setSourceMappings({});
-    setShowSource(!!contractAddress);
     setSlitherFindings([]);
     setShowFindings(false);
-  }, [steps, contractAddress]);
+    setContentView("source");
+  }, [steps]);
 
-  // Resolve contract names for all addresses in the call tree
-  useEffect(() => {
-    if (!callTrace) return;
-    const addresses: string[] = [];
-    function walk(f: CallFrame) {
-      if (f.to) addresses.push(f.to);
-      for (const child of f.calls ?? []) walk(child);
-    }
-    walk(callTrace);
-    if (addresses.length === 0) return;
-    resolveContractNames(addresses).then(setContractNames).catch(() => {});
-  }, [callTrace]);
-
-  // Extract selectors from the call tree's input fields and batch-resolve
-  useEffect(() => {
-    const selectors = new Set<string>();
-
-    // Extract from call tree (reliable — has the actual calldata)
-    function walkCallTree(frame: CallFrame) {
-      if (frame.input && frame.input.length >= 10) {
-        selectors.add(frame.input.slice(0, 10).toLowerCase());
-      }
-      for (const child of frame.calls ?? []) {
-        walkCallTree(child);
-      }
-    }
-    if (callTrace) walkCallTree(callTrace);
-
-    // Also grab PUSH4 values from opcodes as a fallback
-    for (const s of steps) {
-      if (s.op === "PUSH4" && s.stack.length > 0) {
-        const val = s.stack[s.stack.length - 1];
-        if (val && val.length >= 10) selectors.add(val.slice(0, 10).toLowerCase());
-      }
-    }
-
-    if (selectors.size === 0) return;
-    batchLookupSignatures([...selectors]).then(setSignatureMap).catch(() => {});
-  }, [steps, callTrace]);
+  // Contract names and signatures are resolved via TanStack Query hooks above
 
   // Slither analysis handler
   const handleAnalyze = useCallback(async () => {
@@ -197,51 +150,46 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       if (res.ok && res.analysis) {
         setSlitherFindings(res.analysis.findings);
         setShowFindings(true);
-        // Also enable source view if not already on
-        if (!showSource) setShowSource(true);
+        setContentView("source");
       }
     } catch (err) {
       console.error("[StepDebugger] Slither analysis error:", err);
     } finally {
       setSlitherLoading(false);
     }
-  }, [contractAddress, slitherLoading, showSource]);
+  }, [contractAddress, slitherLoading]);
 
-  // Fetch source code when source view is active (via tab or toggle)
-  useEffect(() => {
-    const shouldFetch = showSource || contentView === "source";
-    if (!shouldFetch || !contractAddress || sourceData) return;
+  // --- TanStack Query hooks replace all manual fetching ---
 
-    let cancelled = false;
-    setSourceLoading(true);
+  // Extract all unique addresses from the call tree for contract name resolution
+  const callTreeAddresses = useMemo(() => {
+    if (!callTrace) return [];
+    const addrs: string[] = [];
+    function walk(f: CallFrame) {
+      if (f.to) addrs.push(f.to);
+      for (const child of f.calls ?? []) walk(child);
+    }
+    walk(callTrace);
+    return [...new Set(addrs)];
+  }, [callTrace]);
 
-    (async () => {
-      try {
-        const res = await fetchSource(contractAddress);
-        if (cancelled) return;
-        if (!res.ok || !res.source) {
-          setSourceLoading(false);
-          return;
-        }
-        setSourceData(res.source);
+  // Extract all unique selectors from the call tree for signature resolution
+  const callTreeSelectors = useMemo(() => {
+    if (!callTrace) return [];
+    const sels = new Set<string>();
+    function walk(f: CallFrame) {
+      if (f.input && f.input.length >= 10) sels.add(f.input.slice(0, 10).toLowerCase());
+      for (const child of f.calls ?? []) walk(child);
+    }
+    walk(callTrace);
+    return [...sels];
+  }, [callTrace]);
 
-        // If source map is available, map all unique PCs to source locations
-        if (res.source.hasSourceMap) {
-          const uniquePcs = [...new Set(steps.map((s) => s.pc))];
-          const mapRes = await fetchSourceMappings(contractAddress, uniquePcs);
-          if (!cancelled && mapRes.ok && mapRes.mappings) {
-            setSourceMappings(mapRes.mappings);
-          }
-        }
-      } catch (err) {
-        console.error("[StepDebugger] source fetch error:", err);
-      } finally {
-        if (!cancelled) setSourceLoading(false);
-      }
-    })();
+  const { data: contractNames = {} } = useContractNames(callTreeAddresses);
+  const { data: signatureMap = {} } = useSignatures(callTreeSelectors);
 
-    return () => { cancelled = true; };
-  }, [showSource, contentView, contractAddress, sourceData, steps]);
+  // Unique PCs for source mapping
+  const uniquePcs = useMemo(() => [...new Set(steps.map((s) => s.pc))], [steps]);
 
   // ---- Navigation ----
 
@@ -419,38 +367,12 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     return currentAddr;
   }, [callTrace, contractAddress, currentStep, steps]);
 
-  // Auto-fetch source for the active contract when it changes
-  useEffect(() => {
-    if (!activeContractAddress) return;
-    const addr = activeContractAddress.toLowerCase();
-
-    // Already have it cached
-    if (sourceCacheRef.current.has(addr)) {
-      setSourceData(sourceCacheRef.current.get(addr)!);
-      return;
-    }
-
-    // Fetch it
-    let cancelled = false;
-    fetchSource(addr).then((res) => {
-      if (cancelled) return;
-      if (res.ok && res.source) {
-        sourceCacheRef.current.set(addr, res.source);
-        setSourceData(res.source);
-        // Fetch source mappings too
-        if (res.source.hasSourceMap) {
-          const uniquePcs = [...new Set(steps.map((s) => s.pc))];
-          fetchSourceMappings(addr, uniquePcs).then((mapRes) => {
-            if (!cancelled && mapRes.ok && mapRes.mappings) {
-              setSourceMappings((prev) => ({ ...prev, ...mapRes.mappings }));
-            }
-          }).catch(() => {});
-        }
-      }
-    }).catch(() => {});
-
-    return () => { cancelled = true; };
-  }, [activeContractAddress, steps]);
+  // Source data and mappings via TanStack Query — cached automatically
+  const { data: sourceData = null, isLoading: sourceLoading } = useContractSource(activeContractAddress);
+  const { data: sourceMappings = {} } = useSourceMappings(
+    sourceData?.hasSourceMap ? activeContractAddress : null,
+    uniquePcs,
+  );
 
   const currentSourceLocation = sourceMappings[step.pc] ?? null;
   const currentSourceFile = sourceData
@@ -519,14 +441,13 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
               style={{ backgroundColor: "var(--color-border-default)" }}
             />
             <button
-              onClick={() => setShowSource(!showSource)}
+              onClick={() => setContentView("source")}
               className="rounded font-mono font-semibold transition-colors text-xs px-2 py-1"
               style={{
-                backgroundColor: showSource
+                backgroundColor: contentView === "source"
                   ? "var(--color-accent)"
                   : "var(--color-bg-secondary)",
-                color: showSource ? "#fff" : "var(--color-text-primary)",
-                border: "1px solid var(--color-border-default)",
+                color: contentView === "source" ? "#fff" : "var(--color-text-primary)",
               }}
             >
               {sourceLoading ? "Loading..." : "Source"}
@@ -758,35 +679,10 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
           <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
             {sourceLoading ? "Loading verified source..." : "No verified source available for this contract"}
           </p>
-          {!sourceLoading && contractAddress && (
-            <div className="flex items-center justify-center gap-2">
-              <button
-                onClick={async () => {
-                  setSourceLoading(true);
-                  try {
-                    // Force re-fetch from BlockScout (bypasses cache)
-                    const res = await fetchSource(contractAddress);
-                    if (res.ok && res.source) {
-                      setSourceData(res.source);
-                      if (res.source.hasSourceMap) {
-                        const uniquePcs = [...new Set(steps.map((s) => s.pc))];
-                        const mapRes = await fetchSourceMappings(contractAddress, uniquePcs);
-                        if (mapRes.ok && mapRes.mappings) setSourceMappings(mapRes.mappings);
-                      }
-                    }
-                  } finally {
-                    setSourceLoading(false);
-                  }
-                }}
-                className="text-xs px-3 py-1.5"
-                style={{ backgroundColor: "var(--color-accent)", color: "#fff", border: "1px solid var(--color-border-default)" }}
-              >
-                Fetch from BlockScout
-              </button>
-              <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                {contractAddress.slice(0, 8)}...{contractAddress.slice(-4)}
-              </span>
-            </div>
+          {!sourceLoading && activeContractAddress && (
+            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+              {activeContractAddress.slice(0, 10)}...{activeContractAddress.slice(-6)} is not verified on BlockScout
+            </p>
           )}
         </div>
       )}

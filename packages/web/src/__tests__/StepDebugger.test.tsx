@@ -1,7 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StepDebugger from "../components/debugger/StepDebugger";
 import type { OpcodeStep } from "../api/debugger";
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+});
+
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
 
 function makeStep(overrides: Partial<OpcodeStep> = {}): OpcodeStep {
   return {
@@ -36,33 +45,33 @@ const SAMPLE_STEPS: OpcodeStep[] = [
 
 describe("StepDebugger", () => {
   it("renders step counter showing total steps", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     expect(screen.getByText(/1 \/ 8/)).toBeInTheDocument();
   });
 
   it("renders the initial opcode name in context bar", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     // PUSH1 appears in both context bar and trace list
     const push1Elements = screen.getAllByText("PUSH1");
     expect(push1Elements.length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows keyboard shortcuts", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     expect(screen.getByText("Next CALL")).toBeInTheDocument();
     expect(screen.getByText("Next SSTORE")).toBeInTheDocument();
     expect(screen.getByText("Next LOG")).toBeInTheDocument();
   });
 
   it("steps forward when clicking the > button", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     const forwardBtn = screen.getByTitle("Step forward (Right arrow / Space)");
     fireEvent.click(forwardBtn);
     expect(screen.getByText(/2 \/ 8/)).toBeInTheDocument();
   });
 
   it("steps backward when clicking the < button", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     // Go forward first
     const forwardBtn = screen.getByTitle("Step forward (Right arrow / Space)");
     fireEvent.click(forwardBtn);
@@ -76,7 +85,7 @@ describe("StepDebugger", () => {
   });
 
   it("jumps to next CALL opcode", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     const callBtn = screen.getByTitle("Next CALL (C)");
     fireEvent.click(callBtn);
     // CALL is at index 5
@@ -84,7 +93,7 @@ describe("StepDebugger", () => {
   });
 
   it("jumps to next storage op (SLOAD/SSTORE)", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     const sstoreBtn = screen.getByTitle("Next SSTORE (S)");
     fireEvent.click(sstoreBtn);
     // SLOAD is at index 3 (first storage op)
@@ -92,7 +101,7 @@ describe("StepDebugger", () => {
   });
 
   it("jumps to start and end", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     const endBtn = screen.getByTitle("Jump to end (End)");
     fireEvent.click(endBtn);
     expect(screen.getByText(/8 \/ 8/)).toBeInTheDocument();
@@ -103,7 +112,7 @@ describe("StepDebugger", () => {
   });
 
   it("shows stack panel collapsed by default", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     // Stack is collapsed, so "Stack is empty" should not be visible
     expect(screen.queryByText("Stack is empty")).not.toBeInTheDocument();
     // But the panel header should show "Stack"
@@ -111,7 +120,7 @@ describe("StepDebugger", () => {
   });
 
   it("shows stack entries when panel is expanded and stepped", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     const forwardBtn = screen.getByTitle("Step forward (Right arrow / Space)");
     fireEvent.click(forwardBtn);
     // Step 1 has stack: ["0x80"]
@@ -119,7 +128,7 @@ describe("StepDebugger", () => {
   });
 
   it("shows storage changes at SSTORE step", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     // Navigate to SSTORE (index 4) by clicking Next twice (first hits SLOAD at 3)
     const sstoreBtn = screen.getByTitle("Next SSTORE (S)");
     fireEvent.click(sstoreBtn); // SLOAD at index 3
@@ -129,7 +138,7 @@ describe("StepDebugger", () => {
   });
 
   it("shows memory panel collapsed by default", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />);
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
     // Memory collapsed — content hidden, but header visible
     expect(screen.queryByText("Memory is empty")).not.toBeInTheDocument();
     expect(screen.getByText("Memory")).toBeInTheDocument();
