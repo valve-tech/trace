@@ -99,7 +99,7 @@ interface StepDebuggerProps {
 export default function StepDebugger({ steps, contractAddress, callTrace }: StepDebuggerProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [opcodeFilter, setOpcodeFilter] = useState("");
-  const [contentView, setContentView] = useState<"trace" | "opcodes" | "source">("trace");
+  const [contentView, setContentView] = useState<"trace" | "opcodes" | "source">("source");
   const [showSource, setShowSource] = useState(false);
   const [sourceData, setSourceData] = useState<ContractSource | null>(null);
   const [sourceMappings, setSourceMappings] = useState<Record<number, SourceLocation | null>>({});
@@ -254,6 +254,15 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
   const stepForward = useCallback(() => goTo(currentStep + 1), [currentStep, goTo]);
   const stepBackward = useCallback(() => goTo(currentStep - 1), [currentStep, goTo]);
+
+  // Jump to a step AND switch to source view
+  const jumpToAndShowSource = useCallback(
+    (step: number) => {
+      goTo(step);
+      setContentView("source");
+    },
+    [goTo],
+  );
 
   const jumpToNext = useCallback(
     (predicate: (op: string) => boolean) => {
@@ -605,12 +614,12 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
         {/* Left sidebar: Call Tree */}
         <div className="hidden lg:block w-[280px] flex-shrink-0">
-          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} />
+          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} />
         </div>
         <div className="lg:hidden">
           <CollapsiblePanel title="Call Tree" count={steps.length} suffix="ops" defaultOpen={false}>
             <div style={{ maxHeight: "250px" }} className="overflow-y-auto">
-              <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={goTo} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} inline />
+              <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} inline />
             </div>
           </CollapsiblePanel>
         </div>
@@ -648,7 +657,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
           sourceMappings={sourceMappings}
           callTrace={callTrace}
           contractNames={contractNames}
-          onJumpTo={goTo}
+          onJumpTo={jumpToAndShowSource}
         />
       )}
 
