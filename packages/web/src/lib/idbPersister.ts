@@ -2,15 +2,22 @@ import { get, set, del } from "idb-keyval";
 import type { PersistedClient, Persister } from "@tanstack/react-query-persist-client";
 
 const IDB_KEY = "pulsedev-query-cache";
+const MAX_QUERIES = 1000;
 
 /**
  * IndexedDB persister for TanStack Query.
- * Uses idb-keyval for a simple key-value API backed by IndexedDB.
- * Storage limit: ~60% of disk on Chrome, ~50% on Firefox, 1GB on Safari.
+ * Evicts oldest entries when the cache exceeds MAX_QUERIES.
  */
 export function createIdbPersister(): Persister {
   return {
     persistClient: async (client: PersistedClient) => {
+      // Evict oldest queries if over the limit
+      if (client.clientState.queries.length > MAX_QUERIES) {
+        const sorted = [...client.clientState.queries].sort(
+          (a, b) => (a.state.dataUpdatedAt ?? 0) - (b.state.dataUpdatedAt ?? 0),
+        );
+        client.clientState.queries = sorted.slice(sorted.length - MAX_QUERIES);
+      }
       await set(IDB_KEY, client);
     },
     restoreClient: async () => {
