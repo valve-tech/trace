@@ -399,35 +399,65 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   useEffect(() => {
     if (!pendingFuncSearch || !sourceData) return;
 
-    // Match function definitions OR public state variables (auto-generated getters)
     const funcPattern = new RegExp(`function\\s+${pendingFuncSearch}\\s*\\(`);
     const varPattern = new RegExp(`\\b${pendingFuncSearch}\\b`);
 
     // Search through all source files
     for (const file of sourceData.files ?? []) {
       const lines = file.content.split("\n");
-      // First pass: look for explicit function definitions
-      for (let i = 0; i < lines.length; i++) {
-        if (funcPattern.test(lines[i]!)) {
-          setOverrideLine(i + 1);
-          setScrollKey((k) => k + 1);
-          setPendingFuncSearch(null);
-          return;
-        }
-      }
-      // Second pass: look for public state variable declarations (auto-getters)
+
+      // Track whether we're inside a contract{} or interface{} block
+      // Prefer matches inside contract blocks over interface blocks
+      let inInterface = false;
+      let inContract = false;
+      let braceDepth = 0;
+      let interfaceMatch: number | null = null;
+      let contractMatch: number | null = null;
+
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]!;
-        if (varPattern.test(line) && /\bpublic\b/.test(line) && !/^\s*\/\//.test(line)) {
-          setOverrideLine(i + 1);
-          setScrollKey((k) => k + 1);
-          setPendingFuncSearch(null);
-          return;
+
+        // Track block context
+        if (/\binterface\s+\w+/.test(line)) inInterface = true;
+        if (/\bcontract\s+\w+/.test(line) || /\blibrary\s+\w+/.test(line)) { inContract = true; inInterface = false; }
+
+        for (const ch of line) {
+          if (ch === "{") braceDepth++;
+          if (ch === "}") {
+            braceDepth--;
+            if (braceDepth === 0) { inInterface = false; inContract = false; }
+          }
         }
+
+        // Check for function definition with a body (not just a signature)
+        if (funcPattern.test(line)) {
+          if (inContract && !inInterface) {
+            contractMatch = i + 1;
+          } else if (inInterface && interfaceMatch === null) {
+            interfaceMatch = i + 1;
+          } else if (contractMatch === null && interfaceMatch === null) {
+            contractMatch = i + 1;
+          }
+        }
+
+        // Check for public state variable
+        if (varPattern.test(line) && /\bpublic\b/.test(line) && !/^\s*\/\//.test(line)) {
+          if (inContract && contractMatch === null) {
+            contractMatch = i + 1;
+          }
+        }
+      }
+
+      // Prefer contract match over interface match
+      const bestMatch = contractMatch ?? interfaceMatch;
+      if (bestMatch !== null) {
+        setOverrideLine(bestMatch);
+        setScrollKey((k) => k + 1);
+        setPendingFuncSearch(null);
+        return;
       }
     }
 
-    // Not found — don't highlight anything rather than highlight line 1
     setPendingFuncSearch(null);
   }, [pendingFuncSearch, sourceData]);
 
@@ -1339,8 +1369,10 @@ function CallTreeFromOpcodes({
     return (
       <div className="card overflow-hidden flex flex-col h-full">
         <PanelHeader title="Call Tree" count={callTrace.calls?.length ?? 0} suffix="calls" />
-        <div className="overflow-y-auto flex-1">
-          {content}
+        <div className="overflow-auto flex-1">
+          <div style={{ minWidth: "fit-content" }}>
+            {content}
+          </div>
         </div>
       </div>
     );

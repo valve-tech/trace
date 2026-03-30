@@ -44,9 +44,21 @@ interface Token {
   value: string;
 }
 
-function tokenizeLine(line: string): Token[] {
+function tokenizeLine(line: string, inBlockComment: boolean): { tokens: Token[]; inBlockComment: boolean } {
   const tokens: Token[] = [];
   let i = 0;
+
+  // If we're inside a /* */ block comment from a previous line
+  if (inBlockComment) {
+    const endIdx = line.indexOf("*/");
+    if (endIdx === -1) {
+      tokens.push({ type: "comment", value: line });
+      return { tokens, inBlockComment: true };
+    }
+    tokens.push({ type: "comment", value: line.slice(0, endIdx + 2) });
+    i = endIdx + 2;
+    inBlockComment = false;
+  }
 
   while (i < line.length) {
     if (/\s/.test(line[i]!)) {
@@ -57,9 +69,22 @@ function tokenizeLine(line: string): Token[] {
       continue;
     }
 
+    // Single-line comment
     if (line[i] === "/" && line[i + 1] === "/") {
       tokens.push({ type: "comment", value: line.slice(i) });
-      break;
+      return { tokens, inBlockComment: false };
+    }
+
+    // Block comment start
+    if (line[i] === "/" && line[i + 1] === "*") {
+      const endIdx = line.indexOf("*/", i + 2);
+      if (endIdx === -1) {
+        tokens.push({ type: "comment", value: line.slice(i) });
+        return { tokens, inBlockComment: true };
+      }
+      tokens.push({ type: "comment", value: line.slice(i, endIdx + 2) });
+      i = endIdx + 2;
+      continue;
     }
 
     if (line[i] === '"' || line[i] === "'") {
@@ -117,7 +142,7 @@ function tokenizeLine(line: string): Token[] {
     i++;
   }
 
-  return tokens;
+  return { tokens, inBlockComment };
 }
 
 // ---------------------------------------------------------------------------
@@ -147,6 +172,16 @@ export default function SourceViewer({
 }: SourceViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const lines = useMemo(() => file.content.split("\n"), [file.content]);
+
+  // Pre-tokenize all lines with block comment tracking
+  const tokenizedLines = useMemo(() => {
+    let inComment = false;
+    return lines.map((line) => {
+      const result = tokenizeLine(line, inComment);
+      inComment = result.inBlockComment;
+      return result.tokens;
+    });
+  }, [lines]);
   const [selectedIdentifier, setSelectedIdentifier] = useState<string | null>(null);
 
   // Auto-scroll to current line — also triggers when file changes
@@ -225,13 +260,13 @@ export default function SourceViewer({
 
       {/* Source lines */}
       <div className="py-0">
-        {lines.map((line, i) => {
+        {lines.map((_line, i) => {
           const lineNum = i + 1;
           const isCurrentLine = lineNum === currentLine;
           const isHighlighted = highlightLines?.has(lineNum);
           const isIdentifierLine = identifierLines.has(lineNum);
           const lineFindings = findingsByLine.get(lineNum);
-          const tokens = tokenizeLine(line);
+          const tokens = tokenizedLines[i] ?? [];
 
           return (
             <div
