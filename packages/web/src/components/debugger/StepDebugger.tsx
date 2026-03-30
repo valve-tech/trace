@@ -54,6 +54,66 @@ function isLogOp(op: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Source-based function name resolution
+// ---------------------------------------------------------------------------
+
+interface SourceFuncEntry {
+  name: string;
+  /** 0-based character offset of the `function` keyword across all concatenated
+   *  source files. Used for proportional PC-to-function matching. */
+  charOffset: number;
+}
+
+/**
+ * Extract all named `function name(` declarations from all source files,
+ * sorted by their character offset in the concatenated source.
+ */
+function extractSourceFunctions(sourceData: ContractSource): SourceFuncEntry[] {
+  const entries: SourceFuncEntry[] = [];
+  let globalOffset = 0;
+  for (const file of sourceData.files) {
+    const pattern = /\bfunction\s+(\w+)\s*\(/g;
+    let m: RegExpExecArray | null;
+    while ((m = pattern.exec(file.content)) !== null) {
+      entries.push({ name: m[1]!, charOffset: globalOffset + m.index });
+    }
+    globalOffset += file.content.length;
+  }
+  entries.sort((a, b) => a.charOffset - b.charOffset);
+  return entries;
+}
+
+/**
+ * Given a target PC (the JUMPDEST we land on) and the PC range of the trace,
+ * return the function name whose source position most closely corresponds to
+ * the target PC's proportional position in the bytecode range.
+ *
+ * This approximation works well when source order mirrors bytecode order
+ * (the common case for Solidity without heavy inlining).
+ */
+function resolveFuncNameByProportion(
+  targetPc: number,
+  minPc: number,
+  maxPc: number,
+  sourceFuncs: SourceFuncEntry[],
+  totalSourceChars: number,
+): string | null {
+  if (sourceFuncs.length === 0 || maxPc <= minPc || totalSourceChars === 0) return null;
+  const fraction = (targetPc - minPc) / (maxPc - minPc);
+  const targetChar = Math.round(fraction * totalSourceChars);
+  let best: SourceFuncEntry | null = null;
+  let bestDist = Infinity;
+  for (const fn of sourceFuncs) {
+    const dist = Math.abs(fn.charOffset - targetChar);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = fn;
+    }
+  }
+  return best?.name ?? null;
+}
+
+// ---------------------------------------------------------------------------
 // Hex/Memory helpers
 // ---------------------------------------------------------------------------
 
@@ -617,12 +677,12 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
         {/* Left sidebar: Call Tree */}
         <div className="hidden lg:block w-[280px] flex-shrink-0">
-          <CallTreeFromOpcodes steps={steps} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} contractNames={contractNames} />
+          <CallTreeFromOpcodes steps={steps} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} sourceData={sourceData} callTrace={callTrace} contractNames={contractNames} />
         </div>
         <div className="lg:hidden">
           <CollapsiblePanel title="Call Tree" count={steps.length} suffix="ops" defaultOpen={false}>
             <div style={{ maxHeight: "250px" }} className="overflow-y-auto">
-              <CallTreeFromOpcodes steps={steps} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} contractNames={contractNames} inline />
+              <CallTreeFromOpcodes steps={steps} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} sourceData={sourceData} callTrace={callTrace} contractNames={contractNames} inline />
             </div>
           </CollapsiblePanel>
         </div>
@@ -1295,6 +1355,7 @@ function CallTreeFromOpcodes({
   onJumpTo,
   signatureMap,
   sourceMappings,
+  sourceData,
   callTrace,
   contractNames,
   inline,
@@ -1303,6 +1364,7 @@ function CallTreeFromOpcodes({
   onJumpTo: (step: number, funcName?: string) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   sourceMappings: Record<number, SourceLocation | null>;
+  sourceData: ContractSource | null;
   callTrace?: CallFrame | null;
   contractNames: Record<string, string | null>;
   inline?: boolean;
@@ -1316,6 +1378,21 @@ function CallTreeFromOpcodes({
     const map = new Map<CallFrame, number>();
     const internals = new Map<CallFrame, InternalCall[]>();
     if (!callTrace) return { frameStepMap: map, internalCallsByFrame: internals };
+
+    // Pre-compute source function list for proportional PC→name resolution.
+    // Only populated when source is available but source maps are not.
+    const sourceFuncs = sourceData ? extractSourceFunctions(sourceData) : [];
+    const totalSourceChars = sourceData
+      ? sourceData.files.reduce((sum, f) => sum + f.content.length, 0)
+      : 0;
+
+    // PC range across the entire trace for proportional mapping
+    let minPc = Infinity;
+    let maxPc = -Infinity;
+    for (const s of steps) {
+      if (s.pc < minPc) minPc = s.pc;
+      if (s.pc > maxPc) maxPc = s.pc;
+    }
 
     const callSteps: number[] = [];
     for (let i = 0; i < steps.length; i++) {
@@ -1347,7 +1424,7 @@ function CallTreeFromOpcodes({
         const s = steps[i];
         if (!s || s.op !== "JUMP") continue;
 
-        // Check source map for jumpType "i" (compiler-confirmed internal call)
+        // Primary: source map confirms an internal call (jumpType "i")
         const mapping = sourceMappings[s.pc];
         if (mapping?.jumpType === "i") {
           const snippet = mapping.sourceSnippet.trim();
@@ -1357,36 +1434,50 @@ function CallTreeFromOpcodes({
           continue;
         }
 
-        // Fallback heuristic: JUMP to a non-sequential JUMPDEST (large PC delta)
-        // at the same depth — likely an internal function dispatch
-        if (i + 1 < end) {
-          const next = steps[i + 1];
-          if (next && next.op === "JUMPDEST" && next.depth === s.depth) {
-            const pcDelta = next.pc - s.pc;
-            if (pcDelta < -10 || pcDelta > 30) {
-              // Try to resolve the function name from source code
-              // Look at the next ~20 opcodes after the JUMPDEST for a source map entry
-              let funcName = `fn@${next.pc}`;
-              for (let j = i + 1; j < Math.min(i + 20, end); j++) {
-                const jMap = sourceMappings[steps[j]!.pc];
-                if (jMap?.sourceSnippet) {
-                  const fnMatch = jMap.sourceSnippet.match(/function\s+(\w+)/);
-                  if (fnMatch) {
-                    funcName = fnMatch[1]!;
-                    break;
-                  }
-                }
-              }
-              internalList.push({ stepIndex: i, funcName, line: 0 });
+        // Heuristic: JUMP to a non-sequential JUMPDEST at the same depth —
+        // large PC delta indicates an internal function dispatch rather than a
+        // tight loop or short conditional branch.
+        if (i + 1 >= end) continue;
+        const next = steps[i + 1];
+        if (!next || next.op !== "JUMPDEST" || next.depth !== s.depth) continue;
+        const pcDelta = next.pc - s.pc;
+        if (pcDelta >= -10 && pcDelta <= 30) continue;
+
+        // --- Resolve the function name ---
+
+        // Step 1: scan the next 20 opcodes after the JUMPDEST for a source map
+        // snippet that names the function (works when source maps exist).
+        let funcName: string | null = null;
+        for (let j = i + 1; j < Math.min(i + 20, end); j++) {
+          const jMap = sourceMappings[steps[j]!.pc];
+          if (jMap?.sourceSnippet) {
+            const fnMatch = jMap.sourceSnippet.match(/function\s+(\w+)/);
+            if (fnMatch) {
+              funcName = fnMatch[1]!;
+              break;
             }
           }
         }
+
+        // Step 2: when no source map entry was found, use the proportional
+        // PC→source-function approach if source code is available.
+        if (funcName === null && sourceFuncs.length > 0) {
+          funcName = resolveFuncNameByProportion(
+            next.pc,
+            minPc,
+            maxPc,
+            sourceFuncs,
+            totalSourceChars,
+          );
+        }
+
+        internalList.push({ stepIndex: i, funcName: funcName ?? `fn@${next.pc}`, line: 0 });
       }
       if (internalList.length > 0) internals.set(frame, internalList);
     }
     assignSteps(callTrace, true);
     return { frameStepMap: map, internalCallsByFrame: internals };
-  }, [callTrace, steps, sourceMappings]);
+  }, [callTrace, steps, sourceMappings, sourceData]);
 
   if (callTrace) {
     const content = <CallFrameRow frame={callTrace} depth={0} onJumpTo={onJumpTo} signatureMap={signatureMap} contractNames={contractNames} frameStepMap={frameStepMap} internalCallsByFrame={internalCallsByFrame} />;
@@ -1593,9 +1684,11 @@ function CallFrameRow({
           <span style={{ color: "var(--color-text-secondary)", fontStyle: "italic" }}>
             {ic.funcName}()
           </span>
-          <span style={{ color: "var(--color-text-muted)" }}>
-            L{ic.line}
-          </span>
+          {ic.line > 0 && (
+            <span style={{ color: "var(--color-text-muted)" }}>
+              L{ic.line}
+            </span>
+          )}
         </div>
       ))}
     </div>
