@@ -1451,9 +1451,31 @@ function CallFrameRow({
 
   const stepIndex = frameStepMap.get(frame) ?? 0;
 
-  const bgColor = CALL_TYPE_BG[frame.type] ?? "transparent";
-  const borderColor = CALL_TYPE_BORDER[frame.type] ?? "transparent";
+  const bgColor = frame.error
+    ? "rgba(248, 81, 73, 0.06)"
+    : CALL_TYPE_BG[frame.type] ?? "transparent";
+  const borderColor = frame.error
+    ? "rgba(248, 81, 73, 0.4)"
+    : CALL_TYPE_BORDER[frame.type] ?? "transparent";
   const addrShort = frame.to ? `${frame.to.slice(0, 6)}...${frame.to.slice(-4)}` : "";
+
+  // Parse value from hex wei to PLS
+  const valuePLS = (() => {
+    if (!frame.value || frame.value === "0x0" || frame.value === "0") return null;
+    try {
+      const wei = BigInt(frame.value);
+      if (wei === 0n) return null;
+      const whole = wei / 10n ** 18n;
+      const frac = wei % 10n ** 18n;
+      if (whole > 0n) return `${whole}.${frac.toString().padStart(18, "0").slice(0, 4)}`;
+      // Small amounts: show more decimals
+      const fracStr = frac.toString().padStart(18, "0");
+      const firstNonZero = fracStr.search(/[^0]/);
+      return `0.${fracStr.slice(0, Math.max(firstNonZero + 4, 4))}`;
+    } catch {
+      return null;
+    }
+  })();
 
   return (
     <div>
@@ -1495,9 +1517,25 @@ function CallFrameRow({
 
         {frame.to && <span style={{ color: "var(--color-text-muted)" }}>.</span>}
 
-        <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
+        <span className="font-semibold" style={{ color: frame.error ? "var(--color-danger)" : "var(--color-text-primary)" }}>
           {funcName}
         </span>
+
+        {frame.error && (
+          <span
+            className="flex-shrink-0 px-1"
+            style={{ color: "var(--color-danger)", fontSize: "9px", fontWeight: 700 }}
+            title={frame.error}
+          >
+            REVERT
+          </span>
+        )}
+
+        {valuePLS && (
+          <span className="flex-shrink-0" style={{ color: "var(--color-warning)" }}>
+            {valuePLS} PLS
+          </span>
+        )}
 
         {hasChildren && (
           <span className="ml-auto flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
