@@ -1348,18 +1348,34 @@ function CallTreeFromOpcodes({
       for (let i = start; i < end; i++) {
         const s = steps[i];
         if (!s || s.op !== "JUMP") continue;
+
+        // Check source map for jumpType "i" (compiler-confirmed internal call)
         const mapping = sourceMappings[s.pc];
-        if (mapping?.jumpType !== "i") continue;
-        const snippet = mapping.sourceSnippet.trim();
-        const match = snippet.match(/(\w+)\s*\(/);
-        const funcName = match?.[1] ?? "internal";
-        internalList.push({ stepIndex: i, funcName, line: mapping.line });
+        if (mapping?.jumpType === "i") {
+          const snippet = mapping.sourceSnippet.trim();
+          const match = snippet.match(/(\w+)\s*\(/);
+          const funcName = match?.[1] ?? "internal";
+          internalList.push({ stepIndex: i, funcName, line: mapping.line });
+          continue;
+        }
+
+        // Fallback heuristic: JUMP to a non-sequential JUMPDEST (large PC delta)
+        // at the same depth — likely an internal function dispatch
+        if (!mapping && i + 1 < end) {
+          const next = steps[i + 1];
+          if (next && next.op === "JUMPDEST" && next.depth === s.depth) {
+            const pcDelta = next.pc - s.pc;
+            if (pcDelta < -10 || pcDelta > 30) {
+              internalList.push({ stepIndex: i, funcName: `fn@${next.pc}`, line: 0 });
+            }
+          }
+        }
       }
       if (internalList.length > 0) internals.set(frame, internalList);
     }
     assignSteps(callTrace, true);
     return { frameStepMap: map, internalCallsByFrame: internals };
-  }, [callTrace, steps]);
+  }, [callTrace, steps, sourceMappings]);
 
   if (callTrace) {
     const content = <CallFrameRow frame={callTrace} depth={0} onJumpTo={onJumpTo} signatureMap={signatureMap} contractNames={contractNames} frameStepMap={frameStepMap} internalCallsByFrame={internalCallsByFrame} />;

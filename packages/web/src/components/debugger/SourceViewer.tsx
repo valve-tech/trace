@@ -5,7 +5,7 @@ import type { SourceFile } from "../../api/source";
 // Syntax token types
 // ---------------------------------------------------------------------------
 
-type TokenType = "keyword" | "type" | "number" | "string" | "comment" | "operator" | "punctuation" | "identifier" | "text";
+type TokenType = "keyword" | "type" | "number" | "string" | "comment" | "comment-tag" | "operator" | "punctuation" | "identifier" | "text";
 
 const SOLIDITY_KEYWORDS = new Set([
   "pragma", "solidity", "import", "contract", "interface", "library", "abstract",
@@ -28,7 +28,8 @@ const TOKEN_COLORS: Record<TokenType, string> = {
   type: "#E5C07B",
   number: "#D19A66",
   string: "#98C379",
-  comment: "#4B5263",  // Much dimmer — clearly distinct from code
+  comment: "#4B5263",
+  "comment-tag": "#6B7394", // NatSpec tags — slightly brighter than comments
   operator: "#56B6C2",
   punctuation: "#636B7E",
   identifier: "#E06C75",
@@ -145,6 +146,32 @@ function tokenizeLine(line: string, inBlockComment: boolean): { tokens: Token[];
   return { tokens, inBlockComment };
 }
 
+const NATSPEC_TAG_RE = /@(dev|param|return|returns|notice|title|author|inheritdoc|custom)\b/g;
+
+/** Split a comment token to highlight NatSpec tags */
+function splitCommentToken(token: Token): Token[] {
+  if (token.type !== "comment") return [token];
+  const parts: Token[] = [];
+  let lastIdx = 0;
+  const val = token.value;
+  NATSPEC_TAG_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = NATSPEC_TAG_RE.exec(val)) !== null) {
+    if (match.index > lastIdx) {
+      parts.push({ type: "comment", value: val.slice(lastIdx, match.index) });
+    }
+    parts.push({ type: "comment-tag", value: match[0] });
+    lastIdx = match.index + match[0].length;
+  }
+
+  if (lastIdx === 0) return [token];
+  if (lastIdx < val.length) {
+    parts.push({ type: "comment", value: val.slice(lastIdx) });
+  }
+  return parts;
+}
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -179,7 +206,8 @@ export default function SourceViewer({
     return lines.map((line) => {
       const result = tokenizeLine(line, inComment);
       inComment = result.inBlockComment;
-      return result.tokens;
+      // Split comment tokens to highlight NatSpec tags
+      return result.tokens.flatMap(splitCommentToken);
     });
   }, [lines]);
   const [selectedIdentifier, setSelectedIdentifier] = useState<string | null>(null);
