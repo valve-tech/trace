@@ -434,10 +434,6 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   // Use override line (from call tree click) if set, otherwise use source map line
   const effectiveLine = overrideLine ?? currentSourceLocation?.line ?? null;
 
-  // Debug logging
-  useEffect(() => {
-    console.log("[debugger] effectiveLine:", effectiveLine, "overrideLine:", overrideLine, "sourceMapLine:", currentSourceLocation?.line, "pendingSearch:", pendingFuncSearch, "sourceFile:", sourceData?.files?.[0]?.name);
-  }, [effectiveLine, overrideLine, currentSourceLocation, pendingFuncSearch, sourceData]);
 
   return (
     <div className="flex flex-col gap-0">

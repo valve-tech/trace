@@ -151,12 +151,9 @@ export default function SourceViewer({
 
   // Auto-scroll to current line — also triggers when file changes
   useEffect(() => {
-    console.log("[sourceViewer] scroll effect:", { currentLine, fileName: file.name, scrollKey, hasContainer: !!containerRef.current });
     if (!containerRef.current || !currentLine) return;
-    // Small delay to let DOM render after file switch
     requestAnimationFrame(() => {
       const lineEl = containerRef.current?.querySelector(`[data-line="${currentLine}"]`);
-      console.log("[sourceViewer] scrolling to line", currentLine, "element found:", !!lineEl);
       if (lineEl) {
         lineEl.scrollIntoView({ block: "center", behavior: "instant" });
       }
