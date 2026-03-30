@@ -135,6 +135,35 @@ router.post("/:address/map", async (req: Request, res: Response): Promise<void> 
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/source/:address/storage-layout — Get storage layout
+// ---------------------------------------------------------------------------
+router.get("/:address/storage-layout", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const address = String(req.params.address ?? "");
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      res.status(400).json({ ok: false, error: "Invalid address" });
+      return;
+    }
+
+    const compiled = await compileForSourceMap(address);
+    if (!compiled) {
+      res.status(404).json({ ok: false, error: "Could not compile contract to get storage layout" });
+      return;
+    }
+
+    if (!compiled.storageLayout) {
+      res.status(404).json({ ok: false, error: "Storage layout not available (compiler may be too old)" });
+      return;
+    }
+
+    res.json({ ok: true, storageLayout: compiled.storageLayout, contractName: compiled.contractName });
+  } catch (err) {
+    console.error("[source] storage-layout error:", err);
+    res.status(500).json({ ok: false, error: "Failed to get storage layout" });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/source/:address/analyze — Run Slither static analysis
 // ---------------------------------------------------------------------------
 router.post("/:address/analyze", async (req: Request, res: Response): Promise<void> => {

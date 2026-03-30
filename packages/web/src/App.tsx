@@ -12,6 +12,8 @@ import DebuggerView from "./components/debugger/DebuggerView";
 import ActionsDashboard from "./components/actions/ActionsDashboard";
 import ForkSimulator from "./components/ForkSimulator";
 import TransactionBuilder from "./components/TransactionBuilder";
+import ContractDiff from "./components/ContractDiff";
+import StorageLayoutViewer from "./components/StorageLayoutViewer";
 
 const NAV_ITEMS = [
   { to: "/simulate", label: "Simulate" },
@@ -24,6 +26,8 @@ const NAV_ITEMS = [
   { to: "/explorer", label: "Explorer" },
   { to: "/debugger", label: "Debugger" },
   { to: "/actions", label: "Actions" },
+  { to: "/storage", label: "Storage" },
+  { to: "/diff", label: "Diff" },
 ] as const;
 
 function PulseLogo() {
@@ -183,6 +187,8 @@ export default function App() {
           <Route path="/debugger" element={<DebuggerView />} />
           <Route path="/debugger/:txHash" element={<DebuggerView />} />
           <Route path="/actions" element={<ActionsDashboard />} />
+          <Route path="/storage" element={<StorageLayoutViewer />} />
+          <Route path="/diff" element={<ContractDiff />} />
         </Routes>
       </main>
     </div>

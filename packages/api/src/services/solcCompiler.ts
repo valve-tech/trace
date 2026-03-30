@@ -9,11 +9,36 @@ import { getVerifiedSource, type VerifiedSource } from "./sourceCode.js";
 // Types
 // ---------------------------------------------------------------------------
 
+export interface StorageLayoutEntry {
+  astId: number;
+  contract: string;
+  label: string;
+  offset: number;
+  slot: string;
+  type: string;
+}
+
+export interface StorageLayoutType {
+  encoding: string;
+  key?: string;
+  label: string;
+  numberOfBytes: string;
+  value?: string;
+  base?: string;
+  members?: Array<{ astId: number; label: string; offset: number; slot: string; type: string }>;
+}
+
+export interface StorageLayout {
+  storage: StorageLayoutEntry[];
+  types: Record<string, StorageLayoutType>;
+}
+
 export interface CompilationResult {
   sourceMap: string;
   deployedBytecode: string;
   abi: unknown[];
   contractName: string;
+  storageLayout: StorageLayout | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -34,6 +59,7 @@ async function getCachedCompilation(address: string): Promise<CompilationResult 
     deployedBytecode: rows[0].deployed_bytecode,
     abi: [],
     contractName: "",
+    storageLayout: null, // Not cached in DB — recompile to get it
   };
 }
 
@@ -115,7 +141,7 @@ function runSolc(
       settings: {
         outputSelection: {
           "*": {
-            "*": ["abi", "evm.deployedBytecode.sourceMap", "evm.deployedBytecode.object"],
+            "*": ["abi", "storageLayout", "evm.deployedBytecode.sourceMap", "evm.deployedBytecode.object"],
           },
         },
         optimizer: { enabled: true, runs: 200 },
@@ -181,20 +207,23 @@ function buildSolcSources(dir: string): Record<string, { content: string }> {
 // Parse solc output to find the contract's source map
 // ---------------------------------------------------------------------------
 
-function extractSourceMap(
+interface SolcContract {
+  abi?: unknown[];
+  storageLayout?: StorageLayout;
+  evm?: {
+    deployedBytecode?: {
+      sourceMap?: string;
+      object?: string;
+    };
+  };
+}
+
+function extractCompilationData(
   solcOutput: unknown,
   contractName: string,
-): { sourceMap: string; deployedBytecode: string } | null {
+): { sourceMap: string; deployedBytecode: string; storageLayout: StorageLayout | null } | null {
   const output = solcOutput as {
-    contracts?: Record<string, Record<string, {
-      abi?: unknown[];
-      evm?: {
-        deployedBytecode?: {
-          sourceMap?: string;
-          object?: string;
-        };
-      };
-    }>>;
+    contracts?: Record<string, Record<string, SolcContract>>;
     errors?: Array<{ severity: string; message: string }>;
   };
 
@@ -207,7 +236,7 @@ function extractSourceMap(
         const sm = contract.evm?.deployedBytecode?.sourceMap;
         const bc = contract.evm?.deployedBytecode?.object;
         if (sm && bc) {
-          return { sourceMap: sm, deployedBytecode: "0x" + bc };
+          return { sourceMap: sm, deployedBytecode: "0x" + bc, storageLayout: contract.storageLayout ?? null };
         }
       }
     }
@@ -219,7 +248,7 @@ function extractSourceMap(
       const sm = contract.evm?.deployedBytecode?.sourceMap;
       const bc = contract.evm?.deployedBytecode?.object;
       if (sm && bc) {
-        return { sourceMap: sm, deployedBytecode: "0x" + bc };
+        return { sourceMap: sm, deployedBytecode: "0x" + bc, storageLayout: contract.storageLayout ?? null };
       }
     }
   }
@@ -272,7 +301,7 @@ export async function compileForSourceMap(address: string): Promise<CompilationR
       return null;
     }
 
-    const extracted = extractSourceMap(solcOutput, source.contractName ?? "");
+    const extracted = extractCompilationData(solcOutput, source.contractName ?? "");
     if (!extracted) {
       console.error("[solc] no source map in compilation output");
       return null;
@@ -281,13 +310,14 @@ export async function compileForSourceMap(address: string): Promise<CompilationR
     // Cache the result
     await cacheCompilationResult(address, extracted.sourceMap, extracted.deployedBytecode);
 
-    console.log(`[solc] ${address}: source map generated (${extracted.sourceMap.length} chars)`);
+    console.log(`[solc] ${address}: source map generated (${extracted.sourceMap.length} chars)${extracted.storageLayout ? `, storage layout: ${extracted.storageLayout.storage.length} entries` : ""}`);
 
     return {
       sourceMap: extracted.sourceMap,
       deployedBytecode: extracted.deployedBytecode,
       abi: source.abi,
       contractName: source.contractName ?? "",
+      storageLayout: extracted.storageLayout,
     };
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });

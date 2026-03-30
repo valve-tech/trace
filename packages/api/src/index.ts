@@ -16,6 +16,7 @@ import sourceRouter from "./routes/source.js";
 import forkSimulateRouter from "./routes/forkSimulate.js";
 import signaturesRouter from "./routes/signatures.js";
 import apiKeysRouter from "./routes/apiKeys.js";
+import diffRouter from "./routes/diff.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { startMonitor } from "./services/monitor.js";
 import { initScheduler } from "./services/actionScheduler.js";
@@ -65,6 +66,7 @@ app.use("/api/actions", actionsRouter);
 app.use("/api/source", sourceRouter);
 app.use("/api/signatures", signaturesRouter);
 app.use("/api/keys", apiKeysRouter);
+app.use("/api/diff", diffRouter);
 
 // ---------------------------------------------------------------------------
 // Global error handler
