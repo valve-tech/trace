@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Routes, Route, NavLink, Navigate } from "react-router-dom";
+import { useAlertWebSocket, type AlertEvent } from "./hooks/useAlertWebSocket";
+import AlertToast from "./components/AlertToast";
 import SimulationPage from "./pages/SimulationPage";
 import BundleSimulator from "./components/BundleSimulator";
 import AlertDashboard from "./components/monitoring/AlertDashboard";
@@ -9,10 +11,12 @@ import ExplorerPanel from "./components/explorer/ExplorerPanel";
 import DebuggerView from "./components/debugger/DebuggerView";
 import ActionsDashboard from "./components/actions/ActionsDashboard";
 import ForkSimulator from "./components/ForkSimulator";
+import TransactionBuilder from "./components/TransactionBuilder";
 
 const NAV_ITEMS = [
   { to: "/simulate", label: "Simulate" },
   { to: "/fork", label: "Fork Sim" },
+  { to: "/build", label: "Build Tx" },
   { to: "/bundle", label: "Bundle" },
   { to: "/monitoring", label: "Monitoring" },
   { to: "/testnets", label: "TestNets" },
@@ -43,6 +47,34 @@ function PulseLogo() {
 export default function App() {
   const [apiStatus, setApiStatus] = useState<"connected" | "disconnected" | "checking">("checking");
 
+  // Global alert WebSocket — toasts show on any page
+  const { lastAlert } = useAlertWebSocket();
+  const [appToast, setAppToast] = useState<AlertEvent | null>(null);
+  const appToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevLastAlertRef = useRef<AlertEvent | null>(null);
+
+  useEffect(() => {
+    if (lastAlert === null || lastAlert === prevLastAlertRef.current) return;
+    prevLastAlertRef.current = lastAlert;
+
+    if (appToastTimerRef.current !== null) {
+      clearTimeout(appToastTimerRef.current);
+    }
+    setAppToast(lastAlert);
+    appToastTimerRef.current = setTimeout(() => {
+      setAppToast(null);
+      appToastTimerRef.current = null;
+    }, 6_000);
+  }, [lastAlert]);
+
+  useEffect(() => {
+    return () => {
+      if (appToastTimerRef.current !== null) {
+        clearTimeout(appToastTimerRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -64,6 +96,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--color-bg-primary)" }}>
+      {/* Global alert toast overlay */}
+      {appToast !== null && (
+        <AlertToast
+          alert={appToast.data.alert}
+          match={appToast.data.match}
+        />
+      )}
       {/* Header */}
       <header
         className="border-b px-6 py-4 flex items-center justify-between"
@@ -135,6 +174,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/simulate" replace />} />
           <Route path="/simulate" element={<SimulationPage />} />
           <Route path="/fork" element={<ForkSimulator />} />
+          <Route path="/build" element={<TransactionBuilder />} />
           <Route path="/bundle" element={<BundleSimulator />} />
           <Route path="/monitoring" element={<AlertDashboard />} />
           <Route path="/testnets" element={<TestNetDashboard />} />

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   listAlerts,
   deleteAlert,
@@ -9,6 +9,8 @@ import {
 } from "../../api/alerts";
 import AlertBuilder from "./AlertBuilder";
 import AlertHistory from "./AlertHistory";
+import { useAlertWebSocket, type AlertEvent } from "../../hooks/useAlertWebSocket";
+import AlertToast from "../AlertToast";
 
 // ---------------------------------------------------------------------------
 // Type badge colors
@@ -64,6 +66,11 @@ export default function AlertDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { connected, lastAlert } = useAlertWebSocket();
+  const [activeToast, setActiveToast] = useState<AlertEvent | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevLastAlertRef = useRef<AlertEvent | null>(null);
+
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -81,6 +88,52 @@ export default function AlertDashboard() {
   useEffect(() => {
     void fetchAlerts();
   }, [fetchAlerts]);
+
+  // Prepend incoming WebSocket alerts to the list and show a toast
+  useEffect(() => {
+    if (lastAlert === null || lastAlert === prevLastAlertRef.current) return;
+    prevLastAlertRef.current = lastAlert;
+
+    const incoming = lastAlert.data.alert;
+    setAlerts((prev) => {
+      const exists = prev.some((a) => a.id === incoming.id);
+      if (exists) return prev;
+      // Build a minimal Alert shape from the WebSocket payload; fields not
+      // present in the WS message get sensible defaults so the card renders.
+      const synthetic: Alert = {
+        id: incoming.id,
+        name: incoming.name,
+        type: incoming.type as Alert["type"],
+        conditions: {},
+        notifications: [],
+        enabled: true,
+        cooldown_seconds: 0,
+        last_triggered_at: new Date().toISOString().replace("Z", ""),
+        created_at: new Date().toISOString().replace("Z", ""),
+        updated_at: new Date().toISOString().replace("Z", ""),
+      };
+      return [synthetic, ...prev];
+    });
+
+    // Show toast; clear any previous dismiss timer
+    if (toastTimerRef.current !== null) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setActiveToast(lastAlert);
+    toastTimerRef.current = setTimeout(() => {
+      setActiveToast(null);
+      toastTimerRef.current = null;
+    }, 6_000); // slightly longer than the toast's own 5 s so it finishes sliding out
+  }, [lastAlert]);
+
+  // Cleanup toast timer on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleToggleEnabled = async (alert: Alert) => {
     try {
@@ -209,12 +262,33 @@ export default function AlertDashboard() {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2
-          className="text-lg font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          Alerts
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            Alerts
+          </h2>
+          {connected && (
+            <div className="flex items-center gap-1.5">
+              <div
+                style={{
+                  width: "0.5rem",
+                  height: "0.5rem",
+                  borderRadius: "50%",
+                  backgroundColor: "var(--color-success)",
+                  boxShadow: "0 0 6px var(--color-success)",
+                }}
+              />
+              <span
+                className="text-xs font-medium"
+                style={{ color: "var(--color-success)" }}
+              >
+                Live
+              </span>
+            </div>
+          )}
+        </div>
         <button
           onClick={() => setView({ type: "create" })}
           className="text-sm px-4 py-2 rounded-lg font-medium"
@@ -261,6 +335,14 @@ export default function AlertDashboard() {
             Create an alert to start monitoring PulseChain activity.
           </p>
         </div>
+      )}
+
+      {/* Live alert toast */}
+      {activeToast !== null && (
+        <AlertToast
+          alert={activeToast.data.alert}
+          match={activeToast.data.match}
+        />
       )}
 
       {/* Alert cards */}
