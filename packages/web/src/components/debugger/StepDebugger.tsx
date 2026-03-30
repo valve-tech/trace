@@ -209,36 +209,18 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const [pendingFuncSearch, setPendingFuncSearch] = useState<string | null>(null);
   const [scrollKey, setScrollKey] = useState(0);
 
+  // Jump to a step, switch to source, and try to scroll to the function definition.
+  // Accepts an optional funcName so the call tree row can pass the resolved name directly.
   const jumpToAndShowSource = useCallback(
-    (step: number) => {
-      const targetStep = steps[step];
-      if (targetStep && isCallOp(targetStep.op) && step + 1 < steps.length) {
-        goTo(step + 1);
-
-        // Find the function name from the call tree for this CALL
-        if (callTrace) {
-          const flatCalls = flattenCallTree(callTrace);
-          let callIdx = 0;
-          for (let i = 0; i < step; i++) {
-            if (isCallOp(steps[i]!.op)) callIdx++;
-          }
-          const callInfo = flatCalls[callIdx];
-          if (callInfo) {
-            const sel = callInfo.selector;
-            const wk = sel ? lookupWellKnown(sel) : undefined;
-            const sig = sel ? signatureMap[sel]?.[0]?.textSignature : undefined;
-            const resolved = wk?.signature ?? sig;
-            const fn = resolved ? resolved.split("(")[0]! : null;
-            if (fn) setPendingFuncSearch(fn);
-          }
-        }
-      } else {
-        goTo(step);
-      }
+    (step: number, funcName?: string) => {
+      goTo(step);
       setContentView("source");
       setScrollKey((k) => k + 1);
+      if (funcName) {
+        setPendingFuncSearch(funcName);
+      }
     },
-    [goTo, steps, callTrace, signatureMap],
+    [goTo],
   );
 
   const jumpToNext = useCallback(
@@ -412,26 +394,50 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     : null;
 
   // Resolve pending function search → line number when source loads
+  // Search for the pending function in the currently loaded source.
+  // If not found (e.g., proxy contract), search all cached source files.
   useEffect(() => {
     if (!pendingFuncSearch || !sourceData) return;
-    const content = sourceData.files?.[0]?.content;
-    if (!content) return;
 
-    const lines = content.split("\n");
-    const pattern = new RegExp(`function\\s+${pendingFuncSearch}\\s*\\(`);
-    for (let i = 0; i < lines.length; i++) {
-      if (pattern.test(lines[i]!)) {
-        setOverrideLine(i + 1);
-        setScrollKey((k) => k + 1);
-        setPendingFuncSearch(null);
-        return;
+    // Match function definitions OR public state variables (auto-generated getters)
+    const funcPattern = new RegExp(`function\\s+${pendingFuncSearch}\\s*\\(`);
+    const varPattern = new RegExp(`\\b${pendingFuncSearch}\\b`);
+
+    // Search through all source files
+    for (const file of sourceData.files ?? []) {
+      const lines = file.content.split("\n");
+      // First pass: look for explicit function definitions
+      for (let i = 0; i < lines.length; i++) {
+        if (funcPattern.test(lines[i]!)) {
+          setOverrideLine(i + 1);
+          setScrollKey((k) => k + 1);
+          setPendingFuncSearch(null);
+          return;
+        }
+      }
+      // Second pass: look for public state variable declarations (auto-getters)
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        if (varPattern.test(line) && /\bpublic\b/.test(line) && !/^\s*\/\//.test(line)) {
+          setOverrideLine(i + 1);
+          setScrollKey((k) => k + 1);
+          setPendingFuncSearch(null);
+          return;
+        }
       }
     }
+
+    // Not found — don't highlight anything rather than highlight line 1
     setPendingFuncSearch(null);
   }, [pendingFuncSearch, sourceData]);
 
   // Use override line (from call tree click) if set, otherwise use source map line
   const effectiveLine = overrideLine ?? currentSourceLocation?.line ?? null;
+
+  // Debug logging
+  useEffect(() => {
+    console.log("[debugger] effectiveLine:", effectiveLine, "overrideLine:", overrideLine, "sourceMapLine:", currentSourceLocation?.line, "pendingSearch:", pendingFuncSearch, "sourceFile:", sourceData?.files?.[0]?.name);
+  }, [effectiveLine, overrideLine, currentSourceLocation, pendingFuncSearch, sourceData]);
 
   return (
     <div className="flex flex-col gap-0">
@@ -1099,7 +1105,7 @@ function DecodedTrace({
   sourceMappings: Record<number, SourceLocation | null>;
   callTrace?: CallFrame | null;
   contractNames: Record<string, string | null>;
-  onJumpTo: (step: number) => void;
+  onJumpTo: (step: number, funcName?: string) => void;
 }) {
   const flatCalls = useMemo(
     () => callTrace ? flattenCallTree(callTrace) : [],
@@ -1270,7 +1276,7 @@ function CallTreeFromOpcodes({
   inline,
 }: {
   steps: OpcodeStep[];
-  onJumpTo: (step: number) => void;
+  onJumpTo: (step: number, funcName?: string) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   sourceMappings: Record<number, SourceLocation | null>;
   callTrace?: CallFrame | null;
@@ -1369,7 +1375,7 @@ function CallFrameRow({
 }: {
   frame: CallFrame;
   depth: number;
-  onJumpTo: (step: number) => void;
+  onJumpTo: (step: number, funcName?: string) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   contractNames: Record<string, string | null>;
   frameStepMap: Map<CallFrame, number>;
@@ -1397,8 +1403,8 @@ function CallFrameRow({
   return (
     <div>
       <div
-        className="flex items-center gap-1 px-2 py-1.5 cursor-pointer text-xs relative"
-        onClick={() => onJumpTo(stepIndex)}
+        className="flex items-center gap-1 px-2 py-1.5 cursor-pointer text-xs relative whitespace-nowrap"
+        onClick={() => onJumpTo(stepIndex, funcName !== "???" ? funcName : undefined)}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
@@ -1480,8 +1486,8 @@ function CallFrameRow({
       {expanded && internalCallsByFrame.get(frame)?.map((ic, i) => (
         <div
           key={`internal-${i}`}
-          className="flex items-center gap-1 px-2 py-1 cursor-pointer text-xs"
-          onClick={() => onJumpTo(ic.stepIndex)}
+          className="flex items-center gap-1 px-2 py-1 cursor-pointer text-xs whitespace-nowrap"
+          onClick={() => onJumpTo(ic.stepIndex, ic.funcName)}
           style={{
             paddingLeft: `${8 + (depth + 1) * 14}px`,
             backgroundColor: "rgba(148, 163, 184, 0.04)",

@@ -28,9 +28,9 @@ const TOKEN_COLORS: Record<TokenType, string> = {
   type: "#E5C07B",
   number: "#D19A66",
   string: "#98C379",
-  comment: "#5C6370",
+  comment: "#4B5263",  // Much dimmer — clearly distinct from code
   operator: "#56B6C2",
-  punctuation: "#ABB2BF",
+  punctuation: "#636B7E",
   identifier: "#E06C75",
   text: "#ABB2BF",
 };
@@ -151,10 +151,12 @@ export default function SourceViewer({
 
   // Auto-scroll to current line — also triggers when file changes
   useEffect(() => {
+    console.log("[sourceViewer] scroll effect:", { currentLine, fileName: file.name, scrollKey, hasContainer: !!containerRef.current });
     if (!containerRef.current || !currentLine) return;
     // Small delay to let DOM render after file switch
     requestAnimationFrame(() => {
       const lineEl = containerRef.current?.querySelector(`[data-line="${currentLine}"]`);
+      console.log("[sourceViewer] scrolling to line", currentLine, "element found:", !!lineEl);
       if (lineEl) {
         lineEl.scrollIntoView({ block: "center", behavior: "instant" });
       }
