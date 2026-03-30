@@ -676,7 +676,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       <div className="flex flex-col lg:flex-row gap-0" style={{ minHeight: "500px" }}>
 
         {/* Left sidebar: Call Tree */}
-        <div className="hidden lg:block w-[280px] flex-shrink-0">
+        <div className="hidden lg:block w-[280px] flex-shrink-0 sticky top-0 self-start" style={{ maxHeight: "calc(100vh - 200px)" }}>
           <CallTreeFromOpcodes steps={steps} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} sourceData={sourceData} callTrace={callTrace} contractNames={contractNames} />
         </div>
         <div className="lg:hidden">
@@ -1479,8 +1479,10 @@ function CallTreeFromOpcodes({
     return { frameStepMap: map, internalCallsByFrame: internals };
   }, [callTrace, steps, sourceMappings, sourceData]);
 
+  const [selectedFrame, setSelectedFrame] = useState<CallFrame | null>(null);
+
   if (callTrace) {
-    const content = <CallFrameRow frame={callTrace} depth={0} onJumpTo={onJumpTo} signatureMap={signatureMap} contractNames={contractNames} frameStepMap={frameStepMap} internalCallsByFrame={internalCallsByFrame} />;
+    const content = <CallFrameRow frame={callTrace} depth={0} onJumpTo={onJumpTo} signatureMap={signatureMap} contractNames={contractNames} frameStepMap={frameStepMap} internalCallsByFrame={internalCallsByFrame} onSelect={setSelectedFrame} selectedFrame={selectedFrame} />;
 
     if (inline) return content;
 
@@ -1492,6 +1494,10 @@ function CallTreeFromOpcodes({
             {content}
           </div>
         </div>
+        {/* Selected frame detail panel */}
+        {selectedFrame && (
+          <FrameDetailPanel frame={selectedFrame} contractNames={contractNames} signatureMap={signatureMap} />
+        )}
       </div>
     );
   }
@@ -1518,6 +1524,8 @@ function CallFrameRow({
   contractNames,
   frameStepMap,
   internalCallsByFrame,
+  onSelect,
+  selectedFrame,
 }: {
   frame: CallFrame;
   depth: number;
@@ -1526,6 +1534,8 @@ function CallFrameRow({
   contractNames: Record<string, string | null>;
   frameStepMap: Map<CallFrame, number>;
   internalCallsByFrame: Map<CallFrame, InternalCall[]>;
+  onSelect?: (frame: CallFrame) => void;
+  selectedFrame?: CallFrame | null;
 }) {
   const [expanded, setExpanded] = useState(depth < 4);
   const [hovered, setHovered] = useState(false);
@@ -1542,13 +1552,17 @@ function CallFrameRow({
 
   const stepIndex = frameStepMap.get(frame) ?? 0;
 
-  const bgColor = frame.error
-    ? "rgba(248, 81, 73, 0.06)"
-    : CALL_TYPE_BG[frame.type] ?? "transparent";
-  const borderColor = frame.error
-    ? "rgba(248, 81, 73, 0.4)"
+  const isSelected = selectedFrame === frame;
+  const bgColor = isSelected
+    ? "var(--color-accent-muted)"
+    : frame.error
+      ? "rgba(248, 81, 73, 0.06)"
+      : CALL_TYPE_BG[frame.type] ?? "transparent";
+  const borderColor = isSelected
+    ? "var(--color-accent)"
+    : frame.error
+      ? "rgba(248, 81, 73, 0.4)"
     : CALL_TYPE_BORDER[frame.type] ?? "transparent";
-  const addrShort = frame.to ? `${frame.to.slice(0, 6)}...${frame.to.slice(-4)}` : "";
 
   // Parse value from hex wei to PLS
   const valuePLS = (() => {
@@ -1572,7 +1586,7 @@ function CallFrameRow({
     <div>
       <div
         className="flex items-center gap-1 px-2 py-1.5 cursor-pointer text-xs relative whitespace-nowrap"
-        onClick={() => onJumpTo(stepIndex, funcName !== "???" ? funcName : undefined)}
+        onClick={() => { onJumpTo(stepIndex, funcName !== "???" ? funcName : undefined); onSelect?.(frame); }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
@@ -1595,20 +1609,22 @@ function CallFrameRow({
         )}
 
         {displayLabel && (
-          <span style={{ color: contractName ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
-            {displayLabel}
-          </span>
+          <>
+            <span
+              style={{ color: contractName ? "var(--color-accent)" : "var(--color-text-secondary)" }}
+              title={frame.to ?? ""}
+            >
+              {displayLabel}
+            </span>
+            <span style={{ color: "var(--color-text-muted)" }}>.</span>
+          </>
         )}
 
-        {frame.to && (
-          <span style={{ color: "var(--color-text-muted)" }} title={frame.to}>
-            ({addrShort})
-          </span>
-        )}
-
-        {frame.to && <span style={{ color: "var(--color-text-muted)" }}>.</span>}
-
-        <span className="font-semibold" style={{ color: frame.error ? "var(--color-danger)" : "var(--color-text-primary)" }}>
+        <span
+          className="font-semibold"
+          style={{ color: frame.error ? "var(--color-danger)" : "var(--color-text-primary)" }}
+          title={frame.to ?? ""}
+        >
           {funcName}
         </span>
 
@@ -1665,6 +1681,8 @@ function CallFrameRow({
           contractNames={contractNames}
           frameStepMap={frameStepMap}
           internalCallsByFrame={internalCallsByFrame}
+          onSelect={onSelect}
+          selectedFrame={selectedFrame}
         />
       ))}
       {expanded && internalCallsByFrame.get(frame)?.map((ic, i) => (
@@ -1682,7 +1700,7 @@ function CallFrameRow({
         >
           <span className="w-4 flex-shrink-0" />
           <span style={{ color: "var(--color-text-secondary)", fontStyle: "italic" }}>
-            {ic.funcName}()
+            {ic.funcName}
           </span>
           {ic.line > 0 && (
             <span style={{ color: "var(--color-text-muted)" }}>
@@ -1716,4 +1734,96 @@ const CALL_TYPE_BORDER: Record<string, string> = {
   CREATE2: "rgba(56, 182, 194, 0.4)",
   root: "transparent",
 };
+
+// ---------------------------------------------------------------------------
+// Frame detail panel — shown below call tree when a frame is selected
+// ---------------------------------------------------------------------------
+
+function FrameDetailPanel({
+  frame,
+  contractNames,
+  signatureMap,
+}: {
+  frame: CallFrame;
+  contractNames: Record<string, string | null>;
+  signatureMap: Record<string, SignatureMatch[]>;
+}) {
+  const selector = frame.input?.length >= 10 ? frame.input.slice(0, 10).toLowerCase() : "";
+  const contractName = frame.to ? contractNames[frame.to.toLowerCase()] : null;
+  const wk = selector ? lookupWellKnown(selector) : undefined;
+  const sigMatch = selector ? signatureMap[selector]?.[0]?.textSignature : undefined;
+  const resolvedSig = wk?.signature ?? sigMatch;
+
+  return (
+    <div
+      className="card-divider px-3 py-2 text-xs space-y-1 overflow-auto"
+      style={{ backgroundColor: "var(--color-bg-secondary)", maxHeight: "120px" }}
+    >
+      <div className="flex gap-4">
+        <div>
+          <span style={{ color: "var(--color-text-muted)" }}>type </span>
+          <span style={{ color: OPCODE_COLORS[frame.type] ?? "var(--color-text-primary)" }}>{frame.type}</span>
+        </div>
+        <div>
+          <span style={{ color: "var(--color-text-muted)" }}>gas </span>
+          <span style={{ fontFamily: "var(--font-mono)" }}>{parseInt(frame.gasUsed).toLocaleString()}</span>
+        </div>
+        {frame.value && frame.value !== "0x0" && frame.value !== "0" && (
+          <div>
+            <span style={{ color: "var(--color-text-muted)" }}>value </span>
+            <span style={{ color: "var(--color-warning)", fontFamily: "var(--font-mono)" }}>{frame.value}</span>
+          </div>
+        )}
+      </div>
+
+      {frame.from && (
+        <div>
+          <span style={{ color: "var(--color-text-muted)" }}>from </span>
+          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-primary)" }}>{frame.from}</span>
+        </div>
+      )}
+
+      {frame.to && (
+        <div>
+          <span style={{ color: "var(--color-text-muted)" }}>to </span>
+          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-accent)" }}>
+            {contractName ? `${contractName} ` : ""}{frame.to}
+          </span>
+        </div>
+      )}
+
+      {resolvedSig && (
+        <div>
+          <span style={{ color: "var(--color-text-muted)" }}>sig </span>
+          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-primary)" }}>{resolvedSig}</span>
+        </div>
+      )}
+
+      {frame.input && frame.input.length > 10 && (
+        <div>
+          <span style={{ color: "var(--color-text-muted)" }}>input </span>
+          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-secondary)", wordBreak: "break-all" }}>
+            {frame.input}
+          </span>
+        </div>
+      )}
+
+      {frame.output && (
+        <div>
+          <span style={{ color: "var(--color-text-muted)" }}>output </span>
+          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-secondary)", wordBreak: "break-all" }}>
+            {frame.output}
+          </span>
+        </div>
+      )}
+
+      {frame.error && (
+        <div>
+          <span style={{ color: "var(--color-danger)" }}>error </span>
+          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-danger)" }}>{frame.error}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
