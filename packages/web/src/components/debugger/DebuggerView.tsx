@@ -13,6 +13,7 @@ import CallTree from "./CallTree";
 import GasProfiler from "./GasProfiler";
 import OpcodeViewer from "./OpcodeViewer";
 import StepDebugger from "./StepDebugger";
+import GasFlamegraph from "./GasFlamegraph";
 
 type DebugTab = "debugger" | "calltree" | "gas" | "opcodes";
 
@@ -357,14 +358,19 @@ export default function DebuggerView() {
             )}
 
             {activeTab === "gas" && (
-              gasProfile ? (
-                <GasProfiler
-                  gasProfile={gasProfile}
-                  opcodeProfile={opcodeProfile}
-                />
-              ) : (
-                <NoDataPanel message="Gas profile data is not available for this transaction." />
-              )
+              <div className="space-y-4">
+                {callTrace && (
+                  <GasFlamegraph callTrace={callTrace} signatureMap={{}} />
+                )}
+                {gasProfile ? (
+                  <GasProfiler
+                    gasProfile={gasProfile}
+                    opcodeProfile={opcodeProfile}
+                  />
+                ) : (
+                  <NoDataPanel message="Gas profile data is not available for this transaction." />
+                )}
+              </div>
             )}
 
             {activeTab === "opcodes" && (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { OpcodeStep, CallFrame } from "../../api/debugger";
-import { analyzeContract, type SourceLocation, type SlitherFinding } from "../../api/source";
+import { analyzeContract, type SourceLocation, type SlitherFinding, type ContractSource } from "../../api/source";
 import type { SignatureMatch } from "../../api/signatures";
 import { useContractSource, useSourceMappings } from "../../hooks/useContractSource";
 import { useContractNames } from "../../hooks/useContractNames";
