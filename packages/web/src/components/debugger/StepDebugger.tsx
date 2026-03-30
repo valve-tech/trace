@@ -204,20 +204,39 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const stepBackward = useCallback(() => goTo(currentStep - 1), [currentStep, goTo]);
 
   // Jump to a step AND switch to source view
-  // Jump to a step AND switch to source view.
-  // If the target step is a CALL opcode, jump to step+1 (first opcode
-  // inside the called function) so the source shows the callee's code.
+  // Track a pending function name to search for in the source after it loads
+  const [overrideLine, setOverrideLine] = useState<number | null>(null);
+  const [pendingFuncSearch, setPendingFuncSearch] = useState<string | null>(null);
+
   const jumpToAndShowSource = useCallback(
     (step: number) => {
       const targetStep = steps[step];
       if (targetStep && isCallOp(targetStep.op) && step + 1 < steps.length) {
         goTo(step + 1);
+
+        // Find the function name from the call tree for this CALL
+        if (callTrace) {
+          const flatCalls = flattenCallTree(callTrace);
+          let callIdx = 0;
+          for (let i = 0; i < step; i++) {
+            if (isCallOp(steps[i]!.op)) callIdx++;
+          }
+          const callInfo = flatCalls[callIdx];
+          if (callInfo) {
+            const sel = callInfo.selector;
+            const wk = sel ? lookupWellKnown(sel) : undefined;
+            const sig = sel ? signatureMap[sel]?.[0]?.textSignature : undefined;
+            const resolved = wk?.signature ?? sig;
+            const fn = resolved ? resolved.split("(")[0]! : null;
+            if (fn) setPendingFuncSearch(fn);
+          }
+        }
       } else {
         goTo(step);
       }
       setContentView("source");
     },
-    [goTo, steps],
+    [goTo, steps, callTrace, signatureMap],
   );
 
   const jumpToNext = useCallback(
@@ -388,6 +407,32 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       ? sourceData.files.find((f) => f.name === currentSourceLocation.file) ?? sourceData.files[0] ?? null
       : sourceData.files[0] ?? null
     : null;
+
+  // Resolve pending function search → line number when source loads
+  useEffect(() => {
+    if (!pendingFuncSearch || !sourceData) return;
+    const content = sourceData.files?.[0]?.content;
+    if (!content) return;
+
+    const lines = content.split("\n");
+    const pattern = new RegExp(`function\\s+${pendingFuncSearch}\\s*\\(`);
+    for (let i = 0; i < lines.length; i++) {
+      if (pattern.test(lines[i]!)) {
+        setOverrideLine(i + 1);
+        setPendingFuncSearch(null);
+        return;
+      }
+    }
+    setPendingFuncSearch(null);
+  }, [pendingFuncSearch, sourceData]);
+
+  // Use override line (from call tree click) if set, otherwise use source map line
+  const effectiveLine = overrideLine ?? currentSourceLocation?.line ?? null;
+
+  // Clear override when user steps manually
+  useEffect(() => {
+    setOverrideLine(null);
+  }, [currentStep]);
 
   return (
     <div className="flex flex-col gap-0">
@@ -662,7 +707,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
         >
           <SourceViewer
             file={currentSourceFile}
-            currentLine={currentSourceLocation?.line ?? null}
+            currentLine={effectiveLine}
             findings={slitherFindings
               .flatMap((f) =>
                 f.elements
