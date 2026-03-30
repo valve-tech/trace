@@ -127,6 +127,7 @@ function tokenizeLine(line: string): Token[] {
 interface SourceViewerProps {
   file: SourceFile;
   currentLine: number | null;
+  scrollKey?: number; // increment to force re-scroll even if currentLine hasn't changed
   highlightLines?: Set<number>;
   findings?: Array<{ line: number; severity: string; message: string }>;
   onIdentifierClick?: (identifier: string, line: number) => void;
@@ -139,6 +140,7 @@ interface SourceViewerProps {
 export default function SourceViewer({
   file,
   currentLine,
+  scrollKey,
   highlightLines,
   findings,
   onIdentifierClick,
@@ -157,7 +159,7 @@ export default function SourceViewer({
         lineEl.scrollIntoView({ block: "center", behavior: "instant" });
       }
     });
-  }, [currentLine, file.name]);
+  }, [currentLine, file.name, scrollKey]);
 
   // Build findings lookup
   const findingsByLine = useMemo(() => {

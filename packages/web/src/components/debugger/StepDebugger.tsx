@@ -200,13 +200,14 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     [totalSteps],
   );
 
-  const stepForward = useCallback(() => goTo(currentStep + 1), [currentStep, goTo]);
-  const stepBackward = useCallback(() => goTo(currentStep - 1), [currentStep, goTo]);
+  const stepForward = useCallback(() => { setOverrideLine(null); goTo(currentStep + 1); }, [currentStep, goTo]);
+  const stepBackward = useCallback(() => { setOverrideLine(null); goTo(currentStep - 1); }, [currentStep, goTo]);
 
   // Jump to a step AND switch to source view
   // Track a pending function name to search for in the source after it loads
   const [overrideLine, setOverrideLine] = useState<number | null>(null);
   const [pendingFuncSearch, setPendingFuncSearch] = useState<string | null>(null);
+  const [scrollKey, setScrollKey] = useState(0);
 
   const jumpToAndShowSource = useCallback(
     (step: number) => {
@@ -235,12 +236,14 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
         goTo(step);
       }
       setContentView("source");
+      setScrollKey((k) => k + 1);
     },
     [goTo, steps, callTrace, signatureMap],
   );
 
   const jumpToNext = useCallback(
-    (predicate: (op: string) => boolean) => {
+    (predicate: (op: string) => boolean): void => {
+      setOverrideLine(null);
       for (let i = currentStep + 1; i < totalSteps; i++) {
         if (predicate(steps[i]!.op)) {
           goTo(i);
@@ -419,6 +422,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     for (let i = 0; i < lines.length; i++) {
       if (pattern.test(lines[i]!)) {
         setOverrideLine(i + 1);
+        setScrollKey((k) => k + 1);
         setPendingFuncSearch(null);
         return;
       }
@@ -428,11 +432,6 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
   // Use override line (from call tree click) if set, otherwise use source map line
   const effectiveLine = overrideLine ?? currentSourceLocation?.line ?? null;
-
-  // Clear override when user steps manually
-  useEffect(() => {
-    setOverrideLine(null);
-  }, [currentStep]);
 
   return (
     <div className="flex flex-col gap-0">
@@ -708,6 +707,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
           <SourceViewer
             file={currentSourceFile}
             currentLine={effectiveLine}
+            scrollKey={scrollKey}
             findings={slitherFindings
               .flatMap((f) =>
                 f.elements
@@ -1254,10 +1254,17 @@ function DecodedTrace({
   );
 }
 
+interface InternalCall {
+  stepIndex: number;
+  funcName: string;
+  line: number;
+}
+
 function CallTreeFromOpcodes({
   steps,
   onJumpTo,
   signatureMap,
+  sourceMappings,
   callTrace,
   contractNames,
   inline,
@@ -1271,36 +1278,59 @@ function CallTreeFromOpcodes({
   inline?: boolean;
 }) {
   // Pre-compute: map each CallFrame to its opcode step index
-  // by walking the flat opcode trace and counting CALL opcodes
-  const frameStepMap = useMemo(() => {
-    if (!callTrace) return new Map<CallFrame, number>();
+  // Also detect internal function calls (JUMP with jumpType "i" from source map)
+  const { frameStepMap, internalCallsByFrame } = useMemo((): {
+    frameStepMap: Map<CallFrame, number>;
+    internalCallsByFrame: Map<CallFrame, InternalCall[]>;
+  } => {
     const map = new Map<CallFrame, number>();
-    const callSteps: number[] = [];
+    const internals = new Map<CallFrame, InternalCall[]>();
+    if (!callTrace) return { frameStepMap: map, internalCallsByFrame: internals };
 
-    // Collect all CALL opcode step indices
+    const callSteps: number[] = [];
     for (let i = 0; i < steps.length; i++) {
-      if (isCallOp(steps[i]!.op)) callSteps.push(i + 1); // step after the CALL
+      if (isCallOp(steps[i]!.op)) callSteps.push(i + 1);
     }
 
-    // Walk the call tree in execution order and assign step indices
     let idx = 0;
     function assignSteps(frame: CallFrame, isRoot: boolean) {
-      if (isRoot) {
-        map.set(frame, 0);
-      } else {
-        map.set(frame, callSteps[idx] ?? 0);
-        idx++;
-      }
+      const start = isRoot ? 0 : (callSteps[idx] ?? 0);
+      if (!isRoot) idx++;
+      map.set(frame, start);
+
       for (const child of frame.calls ?? []) {
         assignSteps(child, false);
       }
+
+      // Determine this frame's opcode range (from its start to next depth change back)
+      const end = (() => {
+        for (let i = start + 1; i < steps.length; i++) {
+          if (isCallOp(steps[i]!.op)) return i;
+          if (i > 0 && steps[i]!.depth < steps[start]!.depth) return i;
+        }
+        return steps.length;
+      })();
+
+      // Find internal calls within this frame
+      const internalList: InternalCall[] = [];
+      for (let i = start; i < end; i++) {
+        const s = steps[i];
+        if (!s || s.op !== "JUMP") continue;
+        const mapping = sourceMappings[s.pc];
+        if (mapping?.jumpType !== "i") continue;
+        const snippet = mapping.sourceSnippet.trim();
+        const match = snippet.match(/(\w+)\s*\(/);
+        const funcName = match?.[1] ?? "internal";
+        internalList.push({ stepIndex: i, funcName, line: mapping.line });
+      }
+      if (internalList.length > 0) internals.set(frame, internalList);
     }
     assignSteps(callTrace, true);
-    return map;
+    return { frameStepMap: map, internalCallsByFrame: internals };
   }, [callTrace, steps]);
 
   if (callTrace) {
-    const content = <CallFrameRow frame={callTrace} depth={0} onJumpTo={onJumpTo} signatureMap={signatureMap} contractNames={contractNames} frameStepMap={frameStepMap} />;
+    const content = <CallFrameRow frame={callTrace} depth={0} onJumpTo={onJumpTo} signatureMap={signatureMap} contractNames={contractNames} frameStepMap={frameStepMap} internalCallsByFrame={internalCallsByFrame} />;
 
     if (inline) return content;
 
@@ -1335,6 +1365,7 @@ function CallFrameRow({
   signatureMap,
   contractNames,
   frameStepMap,
+  internalCallsByFrame,
 }: {
   frame: CallFrame;
   depth: number;
@@ -1342,6 +1373,7 @@ function CallFrameRow({
   signatureMap: Record<string, SignatureMatch[]>;
   contractNames: Record<string, string | null>;
   frameStepMap: Map<CallFrame, number>;
+  internalCallsByFrame: Map<CallFrame, InternalCall[]>;
 }) {
   const [expanded, setExpanded] = useState(depth < 4);
   const [hovered, setHovered] = useState(false);
@@ -1442,7 +1474,30 @@ function CallFrameRow({
           signatureMap={signatureMap}
           contractNames={contractNames}
           frameStepMap={frameStepMap}
+          internalCallsByFrame={internalCallsByFrame}
         />
+      ))}
+      {expanded && internalCallsByFrame.get(frame)?.map((ic, i) => (
+        <div
+          key={`internal-${i}`}
+          className="flex items-center gap-1 px-2 py-1 cursor-pointer text-xs"
+          onClick={() => onJumpTo(ic.stepIndex)}
+          style={{
+            paddingLeft: `${8 + (depth + 1) * 14}px`,
+            backgroundColor: "rgba(148, 163, 184, 0.04)",
+            borderLeft: "3px solid rgba(148, 163, 184, 0.2)",
+            fontFamily: "var(--font-mono)",
+            opacity: 0.6,
+          }}
+        >
+          <span className="w-4 flex-shrink-0" />
+          <span style={{ color: "var(--color-text-secondary)", fontStyle: "italic" }}>
+            {ic.funcName}()
+          </span>
+          <span style={{ color: "var(--color-text-muted)" }}>
+            L{ic.line}
+          </span>
+        </div>
       ))}
     </div>
   );
