@@ -204,12 +204,20 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const stepBackward = useCallback(() => goTo(currentStep - 1), [currentStep, goTo]);
 
   // Jump to a step AND switch to source view
+  // Jump to a step AND switch to source view.
+  // If the target step is a CALL opcode, jump to step+1 (first opcode
+  // inside the called function) so the source shows the callee's code.
   const jumpToAndShowSource = useCallback(
     (step: number) => {
-      goTo(step);
+      const targetStep = steps[step];
+      if (targetStep && isCallOp(targetStep.op) && step + 1 < steps.length) {
+        goTo(step + 1);
+      } else {
+        goTo(step);
+      }
       setContentView("source");
     },
-    [goTo],
+    [goTo, steps],
   );
 
   const jumpToNext = useCallback(

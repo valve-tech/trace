@@ -147,14 +147,17 @@ export default function SourceViewer({
   const lines = useMemo(() => file.content.split("\n"), [file.content]);
   const [selectedIdentifier, setSelectedIdentifier] = useState<string | null>(null);
 
-  // Auto-scroll to current line
+  // Auto-scroll to current line — also triggers when file changes
   useEffect(() => {
     if (!containerRef.current || !currentLine) return;
-    const lineEl = containerRef.current.querySelector(`[data-line="${currentLine}"]`);
-    if (lineEl) {
-      lineEl.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
-  }, [currentLine]);
+    // Small delay to let DOM render after file switch
+    requestAnimationFrame(() => {
+      const lineEl = containerRef.current?.querySelector(`[data-line="${currentLine}"]`);
+      if (lineEl) {
+        lineEl.scrollIntoView({ block: "center", behavior: "instant" });
+      }
+    });
+  }, [currentLine, file.name]);
 
   // Build findings lookup
   const findingsByLine = useMemo(() => {
