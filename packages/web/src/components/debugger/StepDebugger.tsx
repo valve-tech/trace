@@ -63,9 +63,7 @@ function formatWord(hex: string): string {
 }
 
 function truncateWord(hex: string): string {
-  const full = formatWord(hex);
-  if (full.length <= 18) return full;
-  return full.slice(0, 10) + "..." + full.slice(-6);
+  return formatWord(hex);
 }
 
 function memoryToBytes(memoryArray: string[]): string {
@@ -1361,12 +1359,25 @@ function CallTreeFromOpcodes({
 
         // Fallback heuristic: JUMP to a non-sequential JUMPDEST (large PC delta)
         // at the same depth — likely an internal function dispatch
-        if (!mapping && i + 1 < end) {
+        if (i + 1 < end) {
           const next = steps[i + 1];
           if (next && next.op === "JUMPDEST" && next.depth === s.depth) {
             const pcDelta = next.pc - s.pc;
             if (pcDelta < -10 || pcDelta > 30) {
-              internalList.push({ stepIndex: i, funcName: `fn@${next.pc}`, line: 0 });
+              // Try to resolve the function name from source code
+              // Look at the next ~20 opcodes after the JUMPDEST for a source map entry
+              let funcName = `fn@${next.pc}`;
+              for (let j = i + 1; j < Math.min(i + 20, end); j++) {
+                const jMap = sourceMappings[steps[j]!.pc];
+                if (jMap?.sourceSnippet) {
+                  const fnMatch = jMap.sourceSnippet.match(/function\s+(\w+)/);
+                  if (fnMatch) {
+                    funcName = fnMatch[1]!;
+                    break;
+                  }
+                }
+              }
+              internalList.push({ stepIndex: i, funcName, line: 0 });
             }
           }
         }
