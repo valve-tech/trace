@@ -543,12 +543,12 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
         {/* Left sidebar: Call Tree */}
         <div className="hidden lg:block w-[280px] flex-shrink-0">
-          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} contractNames={contractNames} />
+          <CallTreeFromOpcodes steps={steps} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} contractNames={contractNames} />
         </div>
         <div className="lg:hidden">
           <CollapsiblePanel title="Call Tree" count={steps.length} suffix="ops" defaultOpen={false}>
             <div style={{ maxHeight: "250px" }} className="overflow-y-auto">
-              <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} contractNames={contractNames} inline />
+              <CallTreeFromOpcodes steps={steps} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} contractNames={contractNames} inline />
             </div>
           </CollapsiblePanel>
         </div>
@@ -1211,7 +1211,6 @@ function DecodedTrace({
 
 function CallTreeFromOpcodes({
   steps,
-  currentStep,
   onJumpTo,
   signatureMap,
   callTrace,
@@ -1219,7 +1218,6 @@ function CallTreeFromOpcodes({
   inline,
 }: {
   steps: OpcodeStep[];
-  currentStep: number;
   onJumpTo: (step: number) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   sourceMappings: Record<number, SourceLocation | null>;
@@ -1227,10 +1225,37 @@ function CallTreeFromOpcodes({
   contractNames: Record<string, string | null>;
   inline?: boolean;
 }) {
-  // If we have the actual call tree from the API, render it directly —
-  // it has addresses, input data, gas, and the correct hierarchy
+  // Pre-compute: map each CallFrame to its opcode step index
+  // by walking the flat opcode trace and counting CALL opcodes
+  const frameStepMap = useMemo(() => {
+    if (!callTrace) return new Map<CallFrame, number>();
+    const map = new Map<CallFrame, number>();
+    const callSteps: number[] = [];
+
+    // Collect all CALL opcode step indices
+    for (let i = 0; i < steps.length; i++) {
+      if (isCallOp(steps[i]!.op)) callSteps.push(i + 1); // step after the CALL
+    }
+
+    // Walk the call tree in execution order and assign step indices
+    let idx = 0;
+    function assignSteps(frame: CallFrame, isRoot: boolean) {
+      if (isRoot) {
+        map.set(frame, 0);
+      } else {
+        map.set(frame, callSteps[idx] ?? 0);
+        idx++;
+      }
+      for (const child of frame.calls ?? []) {
+        assignSteps(child, false);
+      }
+    }
+    assignSteps(callTrace, true);
+    return map;
+  }, [callTrace, steps]);
+
   if (callTrace) {
-    const content = <CallFrameRow frame={callTrace} depth={0} steps={steps} currentStep={currentStep} onJumpTo={onJumpTo} signatureMap={signatureMap} contractNames={contractNames} />;
+    const content = <CallFrameRow frame={callTrace} depth={0} onJumpTo={onJumpTo} signatureMap={signatureMap} contractNames={contractNames} frameStepMap={frameStepMap} />;
 
     if (inline) return content;
 
@@ -1256,35 +1281,29 @@ function CallTreeFromOpcodes({
 
 /**
  * Render a single CallFrame from the API call tree.
- * Maps each frame to its opcode step range by counting CALL opcodes.
+ * Step index comes from the pre-computed frameStepMap (no mutable counters).
  */
 function CallFrameRow({
   frame,
   depth,
-  steps,
-  currentStep,
   onJumpTo,
   signatureMap,
   contractNames,
-  callIndex = { value: 0 },
+  frameStepMap,
 }: {
   frame: CallFrame;
   depth: number;
-  steps: OpcodeStep[];
-  currentStep: number;
   onJumpTo: (step: number) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   contractNames: Record<string, string | null>;
-  callIndex?: { value: number };
+  frameStepMap: Map<CallFrame, number>;
 }) {
   const [expanded, setExpanded] = useState(depth < 4);
   const [hovered, setHovered] = useState(false);
   const hasChildren = (frame.calls?.length ?? 0) > 0;
 
-  // Get the selector from input data
   const selector = frame.input?.length >= 10 ? frame.input.slice(0, 10).toLowerCase() : "";
 
-  // Resolve names
   const contractName = frame.to ? contractNames[frame.to.toLowerCase()] : null;
   const wellKnown = selector ? lookupWellKnown(selector) : undefined;
   const sigMatch = selector ? signatureMap[selector]?.[0]?.textSignature : undefined;
@@ -1292,21 +1311,7 @@ function CallFrameRow({
   const funcName = resolvedSig ? resolvedSig.split("(")[0]! : selector || "???";
   const displayLabel = contractName ?? wellKnown?.interface ?? null;
 
-  // Find the opcode step for this call
-  const myStepIndex = useMemo(() => {
-    if (depth === 0) return 0;
-    let callCount = 0;
-    for (let i = 0; i < steps.length; i++) {
-      if (isCallOp(steps[i]!.op)) {
-        if (callCount === callIndex.value) {
-          callIndex.value++;
-          return i + 1; // step after the CALL opcode
-        }
-        callCount++;
-      }
-    }
-    return 0;
-  }, [depth, steps, callIndex]);
+  const stepIndex = frameStepMap.get(frame) ?? 0;
 
   const bgColor = CALL_TYPE_BG[frame.type] ?? "transparent";
   const borderColor = CALL_TYPE_BORDER[frame.type] ?? "transparent";
@@ -1315,8 +1320,8 @@ function CallFrameRow({
   return (
     <div>
       <div
-        className="flex items-center gap-1 px-2 py-1.5 cursor-pointer text-xs transition-colors relative"
-        onClick={() => onJumpTo(myStepIndex)}
+        className="flex items-center gap-1 px-2 py-1.5 cursor-pointer text-xs relative"
+        onClick={() => onJumpTo(stepIndex)}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
@@ -1338,14 +1343,12 @@ function CallFrameRow({
           <span className="w-4 flex-shrink-0" />
         )}
 
-        {/* Contract name or interface */}
         {displayLabel && (
           <span style={{ color: contractName ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
             {displayLabel}
           </span>
         )}
 
-        {/* Address */}
         {frame.to && (
           <span style={{ color: "var(--color-text-muted)" }} title={frame.to}>
             ({addrShort})
@@ -1354,7 +1357,6 @@ function CallFrameRow({
 
         {frame.to && <span style={{ color: "var(--color-text-muted)" }}>.</span>}
 
-        {/* Function name */}
         <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
           {funcName}
         </span>
@@ -1365,7 +1367,6 @@ function CallFrameRow({
           </span>
         )}
 
-        {/* Hover tooltip */}
         {hovered && (
           <div
             className="absolute left-full ml-2 z-20 px-3 py-2 shadow-lg text-xs whitespace-nowrap"
@@ -1392,12 +1393,10 @@ function CallFrameRow({
           key={i}
           frame={child}
           depth={depth + 1}
-          steps={steps}
-          currentStep={currentStep}
           onJumpTo={onJumpTo}
           signatureMap={signatureMap}
           contractNames={contractNames}
-          callIndex={callIndex}
+          frameStepMap={frameStepMap}
         />
       ))}
     </div>
