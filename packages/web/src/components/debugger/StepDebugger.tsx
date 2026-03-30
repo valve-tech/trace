@@ -543,12 +543,12 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
         {/* Left sidebar: Call Tree */}
         <div className="hidden lg:block w-[280px] flex-shrink-0">
-          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} />
+          <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} contractNames={contractNames} />
         </div>
         <div className="lg:hidden">
           <CollapsiblePanel title="Call Tree" count={steps.length} suffix="ops" defaultOpen={false}>
             <div style={{ maxHeight: "250px" }} className="overflow-y-auto">
-              <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} inline />
+              <CallTreeFromOpcodes steps={steps} currentStep={currentStep} onJumpTo={jumpToAndShowSource} signatureMap={signatureMap} sourceMappings={sourceMappings} callTrace={callTrace} contractNames={contractNames} inline />
             </div>
           </CollapsiblePanel>
         </div>
@@ -952,21 +952,6 @@ function CollapsiblePanel({
   );
 }
 
-// ---------------------------------------------------------------------------
-// CallTreeFromOpcodes — group opcode steps by CALL depth transitions
-// ---------------------------------------------------------------------------
-
-interface CallSegment {
-  type: string; // CALL, DELEGATECALL, STATICCALL, CREATE, "internal", or "root"
-  isInternal: boolean; // true = JUMP within same contract, false = cross-contract
-  depth: number;
-  startStep: number;
-  endStep: number;
-  stepCount: number;
-  selector?: string; // 4-byte function selector if available
-  children: CallSegment[];
-}
-
 function extractSelector(s: OpcodeStep): string | undefined {
   try {
     const stackLen = s.stack.length;
@@ -1012,9 +997,6 @@ function flattenCallTree(frame: CallFrame): FlatCallInfo[] {
 }
 
 // Keep backward compat
-function flattenCallTreeSelectors(frame: CallFrame): string[] {
-  return flattenCallTree(frame).map((c) => c.selector);
-}
 
 /**
  * Disambiguate 4byte selector collisions by checking if the calldata
@@ -1050,102 +1032,6 @@ function bestMatchSignature(
 
   // Fallback: prefer shorter signatures (less likely to be hash collisions)
   return [...candidates].sort((a, b) => a.textSignature.length - b.textSignature.length)[0]?.textSignature;
-}
-
-function buildCallTree(
-  steps: OpcodeStep[],
-  sourceMappings?: Record<number, SourceLocation | null>,
-  callTreeSelectors?: string[],
-): CallSegment {
-  const root: CallSegment = {
-    type: "root",
-    isInternal: false,
-    depth: 1,
-    startStep: 0,
-    endStep: steps.length - 1,
-    stepCount: steps.length,
-    children: [],
-  };
-
-  const stack: CallSegment[] = [root];
-  const internalReturnStack: Array<{ returnStep: number; segment: CallSegment }> = [];
-  let externalCallIndex = 0;
-
-  for (let i = 0; i < steps.length; i++) {
-    const s = steps[i]!;
-    const parent = stack[stack.length - 1]!;
-
-    // Check for internal call returns
-    while (internalReturnStack.length > 0) {
-      const top = internalReturnStack[internalReturnStack.length - 1]!;
-      // If we've returned (PC jumped back to near where we came from)
-      if (i > top.segment.startStep + 2 && s.depth === top.segment.depth) {
-        const nextStep = steps[i];
-        const prevStep = steps[i - 1];
-        if (nextStep && prevStep && prevStep.op === "JUMP" && s.op === "JUMPDEST") {
-          top.segment.endStep = i - 1;
-          top.segment.stepCount = top.segment.endStep - top.segment.startStep + 1;
-          internalReturnStack.pop();
-          if (stack[stack.length - 1] === top.segment) stack.pop();
-          continue;
-        }
-      }
-      break;
-    }
-
-    if (isCallOp(s.op)) {
-      // Get selector from call tree input data (reliable) or memory (fallback)
-      const selector = callTreeSelectors?.[externalCallIndex] ?? extractSelector(s);
-      externalCallIndex++;
-
-      const child: CallSegment = {
-        type: s.op,
-        isInternal: false,
-        depth: s.depth + 1,
-        startStep: i,
-        endStep: i,
-        stepCount: 0,
-        selector,
-        children: [],
-      };
-      parent.children.push(child);
-      stack.push(child);
-    } else if (s.op === "JUMP" && i + 1 < steps.length) {
-      // Use the compiler's source map jump type to identify internal function calls.
-      // jumpType "i" = jump into internal function, "o" = return from it.
-      // Without a source map, we skip internal call detection entirely —
-      // JUMP is also used for if/else, loops, require, etc.
-      const mapping = sourceMappings?.[s.pc];
-      if (mapping?.jumpType === "i") {
-        const child: CallSegment = {
-          type: "internal",
-          isInternal: true,
-          depth: s.depth,
-          startStep: i + 1,
-          endStep: i + 1,
-          stepCount: 0,
-          children: [],
-        };
-        parent.children.push(child);
-        stack.push(child);
-        internalReturnStack.push({ returnStep: i, segment: child });
-      }
-    } else if (s.depth < parent.depth && stack.length > 1) {
-      parent.endStep = i - 1;
-      parent.stepCount = parent.endStep - parent.startStep + 1;
-      stack.pop();
-    }
-  }
-
-  // Close any remaining open segments
-  while (stack.length > 1) {
-    const seg = stack.pop()!;
-    seg.endStep = steps.length - 1;
-    seg.stepCount = seg.endStep - seg.startStep + 1;
-  }
-  root.stepCount = steps.length;
-
-  return root;
 }
 
 // ---------------------------------------------------------------------------
@@ -1328,8 +1214,8 @@ function CallTreeFromOpcodes({
   currentStep,
   onJumpTo,
   signatureMap,
-  sourceMappings,
   callTrace,
+  contractNames,
   inline,
 }: {
   steps: OpcodeStep[];
@@ -1338,30 +1224,182 @@ function CallTreeFromOpcodes({
   signatureMap: Record<string, SignatureMatch[]>;
   sourceMappings: Record<number, SourceLocation | null>;
   callTrace?: CallFrame | null;
+  contractNames: Record<string, string | null>;
   inline?: boolean;
 }) {
-  const callTreeSelectors = useMemo(
-    () => callTrace ? flattenCallTreeSelectors(callTrace) : undefined,
-    [callTrace],
-  );
-  const tree = useMemo(
-    () => buildCallTree(steps, sourceMappings, callTreeSelectors),
-    [steps, sourceMappings, callTreeSelectors],
-  );
+  // If we have the actual call tree from the API, render it directly —
+  // it has addresses, input data, gas, and the correct hierarchy
+  if (callTrace) {
+    const content = <CallFrameRow frame={callTrace} depth={0} steps={steps} currentStep={currentStep} onJumpTo={onJumpTo} signatureMap={signatureMap} contractNames={contractNames} />;
 
-  if (inline) {
-    return <CallSegmentRow segment={tree} currentStep={currentStep} onJumpTo={onJumpTo} depth={0} signatureMap={signatureMap} />;
+    if (inline) return content;
+
+    return (
+      <div className="card overflow-hidden flex flex-col h-full">
+        <PanelHeader title="Call Tree" count={callTrace.calls?.length ?? 0} suffix="calls" />
+        <div className="overflow-y-auto flex-1">
+          {content}
+        </div>
+      </div>
+    );
   }
 
+  // Fallback: no call trace available
+  if (inline) return <div className="text-xs p-2" style={{ color: "var(--color-text-muted)" }}>No call tree</div>;
   return (
-    <div
-      className="card overflow-hidden flex flex-col h-full"
-      style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
-    >
-      <PanelHeader title="Call Tree" count={tree.children.length} suffix="calls" />
-      <div className="overflow-y-auto flex-1">
-        <CallSegmentRow segment={tree} currentStep={currentStep} onJumpTo={onJumpTo} depth={0} signatureMap={signatureMap} />
+    <div className="card overflow-hidden flex flex-col h-full">
+      <PanelHeader title="Call Tree" count={0} suffix="calls" />
+      <div className="p-3 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>No call tree available</div>
+    </div>
+  );
+}
+
+/**
+ * Render a single CallFrame from the API call tree.
+ * Maps each frame to its opcode step range by counting CALL opcodes.
+ */
+function CallFrameRow({
+  frame,
+  depth,
+  steps,
+  currentStep,
+  onJumpTo,
+  signatureMap,
+  contractNames,
+  callIndex = { value: 0 },
+}: {
+  frame: CallFrame;
+  depth: number;
+  steps: OpcodeStep[];
+  currentStep: number;
+  onJumpTo: (step: number) => void;
+  signatureMap: Record<string, SignatureMatch[]>;
+  contractNames: Record<string, string | null>;
+  callIndex?: { value: number };
+}) {
+  const [expanded, setExpanded] = useState(depth < 4);
+  const [hovered, setHovered] = useState(false);
+  const hasChildren = (frame.calls?.length ?? 0) > 0;
+
+  // Get the selector from input data
+  const selector = frame.input?.length >= 10 ? frame.input.slice(0, 10).toLowerCase() : "";
+
+  // Resolve names
+  const contractName = frame.to ? contractNames[frame.to.toLowerCase()] : null;
+  const wellKnown = selector ? lookupWellKnown(selector) : undefined;
+  const sigMatch = selector ? signatureMap[selector]?.[0]?.textSignature : undefined;
+  const resolvedSig = wellKnown?.signature ?? sigMatch;
+  const funcName = resolvedSig ? resolvedSig.split("(")[0]! : selector || "???";
+  const displayLabel = contractName ?? wellKnown?.interface ?? null;
+
+  // Find the opcode step for this call
+  const myStepIndex = useMemo(() => {
+    if (depth === 0) return 0;
+    let callCount = 0;
+    for (let i = 0; i < steps.length; i++) {
+      if (isCallOp(steps[i]!.op)) {
+        if (callCount === callIndex.value) {
+          callIndex.value++;
+          return i + 1; // step after the CALL opcode
+        }
+        callCount++;
+      }
+    }
+    return 0;
+  }, [depth, steps, callIndex]);
+
+  const bgColor = CALL_TYPE_BG[frame.type] ?? "transparent";
+  const borderColor = CALL_TYPE_BORDER[frame.type] ?? "transparent";
+  const addrShort = frame.to ? `${frame.to.slice(0, 6)}...${frame.to.slice(-4)}` : "";
+
+  return (
+    <div>
+      <div
+        className="flex items-center gap-1 px-2 py-1.5 cursor-pointer text-xs transition-colors relative"
+        onClick={() => onJumpTo(myStepIndex)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          paddingLeft: `${8 + depth * 14}px`,
+          backgroundColor: bgColor,
+          borderLeft: `3px solid ${borderColor}`,
+          fontFamily: "var(--font-mono)",
+        }}
+      >
+        {hasChildren ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="w-4 text-center flex-shrink-0"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {expanded ? "▼" : "▶"}
+          </button>
+        ) : (
+          <span className="w-4 flex-shrink-0" />
+        )}
+
+        {/* Contract name or interface */}
+        {displayLabel && (
+          <span style={{ color: contractName ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
+            {displayLabel}
+          </span>
+        )}
+
+        {/* Address */}
+        {frame.to && (
+          <span style={{ color: "var(--color-text-muted)" }} title={frame.to}>
+            ({addrShort})
+          </span>
+        )}
+
+        {frame.to && <span style={{ color: "var(--color-text-muted)" }}>.</span>}
+
+        {/* Function name */}
+        <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
+          {funcName}
+        </span>
+
+        {hasChildren && (
+          <span className="ml-auto flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+            ({frame.calls!.length})
+          </span>
+        )}
+
+        {/* Hover tooltip */}
+        {hovered && (
+          <div
+            className="absolute left-full ml-2 z-20 px-3 py-2 shadow-lg text-xs whitespace-nowrap"
+            style={{
+              backgroundColor: "var(--color-bg-secondary)",
+              boxShadow: "inset 0 0 0 1px var(--color-border-default)",
+              color: "var(--color-text-primary)",
+              fontFamily: "var(--font-mono)",
+              top: "50%",
+              transform: "translateY(-50%)",
+            }}
+          >
+            <div style={{ color: OPCODE_COLORS[frame.type] ?? "#94A3B8" }}>{frame.type}</div>
+            {resolvedSig && <div>{resolvedSig}</div>}
+            {frame.to && <div style={{ color: "var(--color-text-muted)" }}>{frame.to}</div>}
+            <div style={{ color: "var(--color-text-muted)" }}>gas: {frame.gasUsed}</div>
+            {frame.error && <div style={{ color: "var(--color-danger)" }}>error: {frame.error}</div>}
+          </div>
+        )}
       </div>
+
+      {expanded && frame.calls?.map((child, i) => (
+        <CallFrameRow
+          key={i}
+          frame={child}
+          depth={depth + 1}
+          steps={steps}
+          currentStep={currentStep}
+          onJumpTo={onJumpTo}
+          signatureMap={signatureMap}
+          contractNames={contractNames}
+          callIndex={callIndex}
+        />
+      ))}
     </div>
   );
 }
@@ -1388,126 +1426,3 @@ const CALL_TYPE_BORDER: Record<string, string> = {
   root: "transparent",
 };
 
-function CallSegmentRow({
-  segment,
-  currentStep,
-  onJumpTo,
-  depth,
-  signatureMap,
-}: {
-  segment: CallSegment;
-  currentStep: number;
-  onJumpTo: (step: number) => void;
-  depth: number;
-  signatureMap: Record<string, SignatureMatch[]>;
-}) {
-  const [expanded, setExpanded] = useState(depth < 3);
-  const [hovered, setHovered] = useState(false);
-  const isActive = currentStep >= segment.startStep && currentStep <= segment.endStep;
-  const hasChildren = segment.children.length > 0;
-
-  const resolvedName = segment.selector
-    ? signatureMap[segment.selector.toLowerCase()]?.[0]?.textSignature
-    : undefined;
-
-  // Primary display: function name, or "internal" for same-contract jumps
-  const primaryText = resolvedName
-    ? resolvedName.split("(")[0]!
-    : segment.selector
-      ? segment.selector
-      : segment.type === "root"
-        ? "Transaction"
-        : segment.isInternal
-          ? "internal fn"
-          : segment.type;
-
-  const fullSignature = resolvedName ?? segment.selector ?? segment.type;
-
-  const bgColor = isActive
-    ? "rgba(139, 92, 246, 0.12)"
-    : segment.isInternal
-      ? "rgba(148, 163, 184, 0.04)"
-      : CALL_TYPE_BG[segment.type] ?? "transparent";
-  const borderColor = isActive
-    ? "var(--color-accent)"
-    : segment.isInternal
-      ? "rgba(148, 163, 184, 0.2)"
-      : CALL_TYPE_BORDER[segment.type] ?? "transparent";
-  const rowOpacity = segment.isInternal ? 0.6 : 1;
-
-  return (
-    <div>
-      <div
-        className="flex items-center gap-2 px-2 py-1.5 cursor-pointer text-xs transition-colors relative"
-        onClick={() => onJumpTo(segment.startStep)}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          paddingLeft: `${8 + depth * 16}px`,
-          backgroundColor: bgColor,
-          borderLeft: `3px solid ${borderColor}`,
-          fontFamily: "var(--font-mono)",
-          opacity: rowOpacity,
-        }}
-      >
-        {hasChildren && (
-          <button
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-            className="w-4 text-center flex-shrink-0"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            {expanded ? "▼" : "▶"}
-          </button>
-        )}
-        {!hasChildren && <span className="w-4 flex-shrink-0" />}
-
-        {/* Primary: function name */}
-        <span
-          className="font-semibold truncate"
-          style={{ color: isActive ? "var(--color-accent)" : "var(--color-text-primary)" }}
-        >
-          {primaryText}
-        </span>
-
-        {hasChildren && (
-          <span className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
-            ({segment.children.length})
-          </span>
-        )}
-
-        {/* Hover detail tooltip */}
-        {hovered && segment.type !== "root" && (
-          <div
-            className="absolute left-full ml-2 z-20 px-3 py-2 rounded-lg shadow-lg text-xs whitespace-nowrap"
-            style={{
-              backgroundColor: "var(--color-bg-secondary)",
-              border: "1px solid var(--color-border-default)",
-              color: "var(--color-text-primary)",
-              fontFamily: "var(--font-mono)",
-              top: "50%",
-              transform: "translateY(-50%)",
-            }}
-          >
-            <div style={{ color: OPCODE_COLORS[segment.type] ?? "#94A3B8" }}>{segment.type}</div>
-            {resolvedName && <div style={{ color: "var(--color-text-secondary)" }}>{fullSignature}</div>}
-            {segment.selector && !resolvedName && (
-              <div style={{ color: "var(--color-text-muted)" }}>selector: {segment.selector}</div>
-            )}
-            <div style={{ color: "var(--color-text-muted)" }}>steps {segment.startStep}–{segment.endStep} ({segment.stepCount.toLocaleString()} ops)</div>
-          </div>
-        )}
-      </div>
-
-      {expanded && segment.children.map((child, i) => (
-        <CallSegmentRow
-          key={i}
-          segment={child}
-          currentStep={currentStep}
-          onJumpTo={onJumpTo}
-          depth={depth + 1}
-          signatureMap={signatureMap}
-        />
-      ))}
-    </div>
-  );
-}
