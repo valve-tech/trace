@@ -1,85 +1,187 @@
 # PulseChain Dev Platform — Progress
 
-## Session: 2026-03-25
-
-### Commits (this session)
-```
-4e73620 Initial commit: PulseChain dev platform
-21943b9 feat: add Docker/PostgreSQL, React Router, and step-through debugger
-d9a2fc2 fix: wire monitor→scheduler, URL debugger, fix frontend bugs, add trace filter
-1557766 feat: add source code viewer, API key auth, WebSocket alerts
-69fd908 feat: add Slither static analysis integration
-94824fc fix(security): path traversal, command injection, rate limit memory leak
-a904cec docs: add session progress checkpoint
-55c31cc feat: add fork-based simulation with state diffs
-8f03575 chore: change ports to 10100 (API) and 11800 (Web)
-ea45229 feat: auto-fork via Anvil when debug RPC is unavailable
-7000e5e fix: make connection status indicator check API health endpoint
-e97a0ee feat: cache trace results in PostgreSQL for instant replays
-95a1683 feat: recompile verified source to generate source maps
-548d7b0 fix: add /health to Vite dev proxy
-915f74f fix: auto-load source code when debugger loads a transaction
-a060916 fix: explorer tx endpoint timeouts and token transfer performance
-```
+## Session: 2026-05-16
 
 ### What was accomplished
 
-**Infrastructure**
-- Docker Compose with PostgreSQL 17, API, nginx-served web
-- Migration system with advisory locking
-- Health-checked connection pool
-- Ports: 10100 (API, d*e), 11800 (Web, d*v)
+Full codebase audit. All 7 features are implemented and the debugger received significant
+polish in recent sessions (clean call tree UI, frame detail panel, gas flamegraph,
+NatSpec tag highlighting, internal call name resolution, source scroll-to-line).
 
-**Step-through debugger**
-- Virtual-scrolled opcode trace (50k+ steps)
-- Stack/memory/storage panels with diff highlighting
-- Keyboard shortcuts (arrows, Space, Home/End, C/S/L)
-- Opcode filter, depth bands, call-level indentation
+---
 
-**Source code debugging**
-- Fetch verified Solidity from BlockScout + Sourcify
-- Recompile with correct solc version to regenerate source maps
-- Map every opcode PC to Solidity file:line:column
-- SourceViewer with syntax highlighting, auto-loaded on debug
-- Source toggles automatically when contract address is available
+### Current state
 
-**Slither static analysis**
-- Docker-based Slither runner with security hardening
-- Findings as inline gutter markers on source viewer
-- FindingsPanel with severity filtering
+**All 7 features implemented:**
+- Transaction Simulator (single + bundle, state overrides, fork-based with state diffs)
+- Transaction Explorer (BlockScout + viem, ABI decoding, internal tx tracing)
+- Monitoring & Alerting (block poller, 5 alert types, Discord/Slack/Telegram/Webhook, WebSocket broadcast)
+- Virtual TestNets (Anvil pool, snapshot/revert/fund/mine/time-travel)
+- Smart Contract Debugger (opcode trace, call tree, flamegraph, source maps via recompile, Slither)
+- Enhanced JSON-RPC Proxy (standard passthrough + 5 custom pulsedev_* methods, analytics)
+- Web3 Actions (sandboxed JS, webhook + scheduler triggers, execution logs)
 
-**Fork-based simulation**
-- Anvil fork at tx's block, debug_traceCall for full traces
-- No debug node needed — Anvil provides debug APIs natively
-- State diffs: balance/storage/nonce before/after
-- ForkSimulator UI with tx hash and manual mode
-- "Debug This Tx" bridge to step debugger
+**Test coverage:**
+- 31 backend integration tests (node:test, covers all 7 features)
+- 8 frontend unit tests (Vitest, StepDebugger only)
+- Zero service-level unit tests
+- Zero frontend component tests outside StepDebugger
 
-**Trace caching**
-- PostgreSQL cache for immutable tx traces
-- Cold: 2-10s (fork + trace), Cached: 60ms
+**Stats:** ~23K lines of source, 37 frontend components, 26 backend services, 13 route files,
+8 database tables (5 migration files), 39 total tests.
 
-**API key auth + rate limiting**
-- SHA-256 hashed key storage, sliding window limiter
-- Periodic stale-bucket eviction
+---
 
-**WebSocket real-time alerts**
-- /ws/alerts with per-client subscription filtering
+### Known bugs (documented in CODEBASE_MAP.md, not yet fixed)
 
-**Bug fixes**
-- Explorer tx endpoint timeouts (v2 API for token transfers, per-fetch timeouts)
-- Connection status indicator actually checks /health
-- Source auto-loads when debugger opens
-- Multiple frontend bugs fixed (null safety, off-by-one, wrong API field)
+**Critical — broken functionality:**
+1. Action scheduler dead — `monitor.ts` does NOT call `actionScheduler.processBlock()`.
+   Block/event-triggered Web3 Actions have no call site. The wiring exists; the call is missing.
+2. `AddressView` crashes on contract-creation transactions — `tx.to.toLowerCase()` throws when `to` is null.
+3. `ContractView` reads wrong field — checks `json.result.decodedOutput` but API returns `decodedReturn`.
 
-### Known issues
-- Public PulseChain RPC can be slow (10-15s for complex tx lookups)
-  - Fix: use a faster RPC endpoint via PULSECHAIN_RPC_URL env var
-- Source map recompilation requires internet access (downloads solc binary)
-  - First compile ~3s, subsequent instant (cached)
+**High — incorrect behavior:**
+4. `BlockView` "Prev" button navigates to block -1 (no lower-bound guard).
+5. `RpcDashboard` hardcodes port 3001 in displayed RPC URL regardless of actual server port.
+6. `RpcTester` "Try it" bridge only works on first click — `useState` initializer runs once.
+7. Anvil fork processes bind to 0.0.0.0 — fork RPC ports accessible on the network.
 
-### Next steps
-- Transaction builder (pick contract + function from ABI, fill in args)
-- Storage layout viewer (map slots to Solidity variable names)
-- Contract upgrade diffing
-- CI/CD simulation API
+**Medium — missing validation:**
+8. `/api/actions` POST + PUT routes use type assertions, not Zod schemas (unlike alert routes
+   which have proper discriminated union schemas). Webhook endpoint passes raw body to executor.
+9. `actionExecutor.ts` vm sandbox can be escaped via prototype chain — not safe for multi-tenant use.
+
+**Low — code quality:**
+10. `getOpcodeColor` duplicated in OpcodeViewer.tsx and GasProfiler.tsx.
+11. `StatusBadge` duplicated in SimulationResult.tsx and BundleSimulator.tsx.
+12. `notifier.ts` sets Telegram parse_mode to HTML but sends plain text.
+13. ABI cache never invalidates — requires server restart for newly verified contracts.
+14. RPC analytics lost on restart — 10k ring buffer is in-memory only.
+15. Tab switching unmounts components — unsaved form state is lost.
+16. 23+ `console.log` calls in production API code — no structured logger.
+17. Alert matching does one RPC call per balance_threshold alert per block (N+1 pattern).
+18. Fire-and-forget `void setCachedTrace()` calls in tracer.ts — cache failures are silent.
+
+---
+
+### Next steps (prioritized)
+
+**Phase 1 — Bug fixes (do first, small targeted commits)**
+- Fix #1: Wire monitor.ts → actionScheduler.processBlock() (one-liner)
+- Fix #2: Null guard on tx.to in AddressView
+- Fix #3: Correct field name in ContractView (decodedReturn not decodedOutput)
+- Fix #4: Guard block -1 in BlockView Prev button
+- Fix #5: Fix RpcDashboard port to use window.location.port or env config
+- Fix #6: Fix RpcTester useState initializer (move bridge value into effect or ref)
+
+**Phase 2 — Trace SDK (next major feature)**
+Design and ship a standalone `packages/sdk` package that lets external consumers load
+trace data from any source and render (or process) each piece independently.
+Full design in "Trace SDK — design notes" section below.
+
+**Phase 3 — Validation hardening**
+- Add Zod schemas to /api/actions routes (POST, PUT, webhook body)
+- Add ownership checks to action/alert routes (multi-user safety)
+
+**Phase 4 — Test coverage**
+- Service-level unit tests for simulator, decoder, tracer, gasProfiler
+- Frontend component tests for Explorer, Debugger, Monitoring, Actions tabs
+- Integration tests for fork simulation paths
+
+**Phase 5 — Infrastructure quality**
+- Replace console.log with structured logger (pino)
+- Persist RPC analytics to PostgreSQL
+- Add database indexes on alerts.enabled, actions.enabled, alert_history.triggered_at
+- Batch alert matching queries (one RPC multicall, fan out to matchers)
+- Bind Anvil forks to 127.0.0.1
+
+---
+
+### Trace SDK — design notes
+
+**Goal:** A standalone package (`packages/sdk`, published as `@pulsechain-dev/trace-sdk`)
+that lets users load EVM trace data from any source and render or process each piece
+independently. No dependency on this platform's API or database — works with any node
+that supports debug_traceTransaction.
+
+**Package structure:**
+```
+packages/sdk/
+  src/
+    loaders/         # fetch + normalize trace data into canonical types
+    traversal/       # recursive utilities for walking / querying the tree
+    components/      # headless-styleable React components
+    templates/       # pre-composed layouts (drop-in full debugger, compact summary)
+    types.ts         # TraceFrame, OpcodeStep, StateDiff, GasProfile (canonical, not wire format)
+  index.ts
+```
+
+**1. Loaders** — normalize any input into a canonical TraceFrame tree
+- `loadTraceFromHash(txHash, rpcUrl)` — calls debug_traceTransaction, normalizes result
+- `loadTraceFromObject(rawTrace)` — accepts a callTracer or structLogger payload already in memory
+- `loadTraceFromFile(json)` — parse a JSON export (useful for offline analysis)
+- All loaders return `Promise<TraceResult>` with the same shape regardless of source
+
+**2. Recursive traversal utilities** — must use an explicit stack, not recursion,
+   to handle arbitrarily deep call trees without stack overflow
+- `walkCallTree(frame, visitor)` — depth-first walk with enter/exit hooks per frame
+- `flattenCallTree(frame)` — returns ordered flat array with depth + index metadata
+- `filterByAddress(frames, address)` — extract all calls to/from a specific contract
+- `filterBySelector(frames, selector)` — extract calls matching a 4-byte selector
+- `findRevertFrame(frames)` — locate the innermost reverting call
+- `buildGasProfile(frame)` — aggregate gas by contract + function from the tree
+- `computeStateDiffs(beforeState, afterState)` — returns StateDiff[]
+
+**3. Rendering components** — extract existing debugger components, make them
+   importable + headless-styleable (className + style props, no hardcoded colors)
+- `<CallTree frames={...} onSelect={...} className={...} />`
+- `<GasFlamegraph frames={...} />`
+- `<OpcodeViewer steps={...} currentStep={...} />`
+- `<SourceViewer source={...} highlightLine={...} />`
+- `<StateDiffPanel diffs={...} />`
+- `<FrameDetailPanel frame={...} />`
+
+**4. Templates** — pre-composed, drop-in layouts
+- `<FullDebuggerLayout trace={...} />` — everything, styled, self-contained
+- `<CompactCallSummary trace={...} />` — top-level call + gas in one row
+- `<RevertExplainer trace={...} />` — surfaces the revert frame + reason string
+
+**5. Canonical types** (in types.ts, not tied to any wire format):
+```typescript
+interface TraceFrame {
+  type: 'CALL' | 'STATICCALL' | 'DELEGATECALL' | 'CREATE' | 'CREATE2'
+  from: Address
+  to: Address | null
+  value: bigint
+  gas: bigint
+  gasUsed: bigint
+  input: Hex
+  output: Hex
+  error?: string
+  revertReason?: string
+  depth: number
+  children: TraceFrame[]
+  // enriched fields (populated by loaders when available)
+  functionName?: string
+  decodedInput?: DecodedParam[]
+  decodedOutput?: DecodedParam[]
+  sourceLocation?: { file: string; line: number; column: number }
+}
+```
+
+**Key design principles:**
+- SDK must be usable outside this app with no hidden platform dependency
+- Components accept className/style props so consumers can apply their own theme
+- Loaders return the same canonical types regardless of input format
+- All traversal utilities use explicit stacks — no recursive calls on user data
+
+---
+
+### Blockers / gotchas
+
+- Public PulseChain RPC (rpc.pulsechain.com) is slow for complex traces (10-15s). Using a
+  private/dedicated RPC via PULSECHAIN_RPC_URL env var is strongly recommended.
+- Source map recompilation downloads the correct solc binary on first use (~3s), then caches.
+  Requires internet access at debug time for contracts not yet in the local cache.
+- Anvil must be installed (Foundry toolchain) for fork-based simulation and fork testnets.
+  The integration tests skip gracefully if Anvil is not present.
