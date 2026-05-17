@@ -11,12 +11,14 @@
 - **Monorepo brand rename**: `pulsechain-dev` → `@valve-tech` for all
   packages; DB credentials `pulsedev` → `valvetech`; JSON-RPC method
   namespace `pulsedev_*` → `valve_*`.
-- **Four feature buckets shipped from the queue**:
+- **Five feature buckets shipped from the queue**:
   1. Pure parsers (`parseTokenDeltas`, `parsePrestateDiff`) — in 0.1.1
   2. Risk analyzer (`analyzeRisks` + `<FindingsPanel>`) — committed,
      not yet published (still on 0.1.1 in package.json per user direction)
   3. Detail components (`<StateDiffPanel>`, `<FrameDetailPanel>`) — committed
   4. Web-side type cleanup — `as unknown as` cast removed in DebuggerView
+  5. Templates (`<FullDebuggerLayout>`, `<RevertExplainer>`,
+     `<CompactCallSummary>`) on a new `/templates` subpath — committed
 
 ### Commits this session
 
@@ -28,6 +30,8 @@ c857e10 feat(sdk): add analyzeRisks + FindingsPanel (risk-analysis bucket)
 865e556 feat(sdk): add StateDiffPanel component for visualizing state changes
 ec3f427 feat(sdk): add FrameDetailPanel for single-frame metadata views
 633f549 refactor(web): alias CallFrame to SDK RawCallFrame; drop OpcodeViewer cast
+9e2614b chore: refresh progress.txt — 2026-05-17 session checkpoint
+1742645 feat(sdk): add /templates subpath — FullDebuggerLayout, RevertExplainer, CompactCallSummary
 ```
 
 All on `main` and pushed to `origin/main`. Tag `sdk-v0.1.1` published.
@@ -37,8 +41,9 @@ All on `main` and pushed to `origin/main`. Tag `sdk-v0.1.1` published.
 ### Trace SDK — current state at HEAD
 
 `packages/sdk` is `@valve-tech/trace-sdk`, **version 0.1.1 in package.json**
-(unchanged since publish — three feature commits accumulated on top
-waiting for the next bump).
+(unchanged since publish — four feature commits accumulated on top
+waiting for the next bump: risk analyzer, StateDiffPanel, FrameDetailPanel,
+templates bucket).
 
 #### Public-facing API surface
 
@@ -96,12 +101,26 @@ waiting for the next bump).
   `OPCODE_CATEGORY_COLORS`, `buildFlamegraphLayout`, `adjustBrightness`,
   `getBarColor`
 
+**Templates** (`src/templates/`) — NEW; higher-order compositions
+- `<FullDebuggerLayout trace? opcodes? stateDiffs? risks? />` — tabbed
+  Call Tree / Opcodes / State / Risks view. Each tab independently
+  renders an empty state when its data is missing. Call Tree tab wires
+  `onSelect` to a `<FrameDetailPanel>` rendered inline. Selection
+  resets via useEffect when trace identity changes. Props for
+  defaultTab and hideTabs.
+- `<RevertExplainer frame />` — locates innermost reverting frame,
+  surfaces revertReason in a prominent banner, renders the breadcrumb
+  chain from root to reverter. Success state for non-reverted traces.
+- `<CompactCallSummary frame maxDepth? />` — one-line-per-call summary,
+  indented by depth, with status badge + total-gas chip + call count.
+  maxDepth caps rendering with a "…N deeper frames hidden" footer.
+
 **Util** (`src/util/`)
 - `describeUnknownError(err)` — extracted catch-block helper
 
 **Test infrastructure**
 - vitest + jsdom + @testing-library/react + @vitest/coverage-v8
-- 252 tests pass; coverage gated at **100/100/100/100** via vitest thresholds
+- 300 tests pass; coverage gated at **100/100/100/100** via vitest thresholds
 
 **Wiring into web**
 - `packages/web` depends on `@valve-tech/trace-sdk: "*"` (npm workspace link)
@@ -123,6 +142,8 @@ waiting for the next bump).
 "./parsers"    → parseTokenDeltas, parsePrestateDiff      (NEW)
 "./risks"      → analyzeRisks, BUILTIN_RULES, RiskRule    (NEW)
 "./components" → React components (peer dep)
+"./templates"  → FullDebuggerLayout, RevertExplainer,     (NEW)
+                 CompactCallSummary
 ```
 
 OIDC trusted publishing configured: GitHub repo `valve-tech/trace`,
@@ -163,8 +184,28 @@ treat the `"(fallback)"` sentinel as no selector.
      an optional `classifyAddress?: (addr) => boolean` to
      `AnalyzeRisksOptions`.
    - `LARGE_APPROVAL` — flag `approve(..., uint256.max)` patterns.
+     Pure rule, no classifier needed.
 
-**4. Cosmetics / future**
+**4. More parsers (extending /parsers)**
+   - `parseSwaps(frame)` — UniV2 Swap (topic
+     `0xd78ad95f...4022`) + UniV3 Swap (different topic) decoders.
+   - `parseApprovals(frame)` — ERC-20 Approval events; pair with
+     LARGE_APPROVAL rule for full flow.
+   - `parseEvents(frame, eventSig)` — generic by-signature filter.
+
+**5. Platform-side security fixes** (from original audit,
+   `docs/CODEBASE_MAP.md` Gotchas)
+   - vm sandbox in `actionExecutor.ts` is escapable.
+   - Anvil forks bind `0.0.0.0` instead of `127.0.0.1`.
+   - `/api/actions` POST + PUT lack Zod validation.
+   - 6 fire-and-forget `void setCachedTrace()` in tracer.ts.
+   - ABI cache never invalidates.
+
+**6. DX**
+   - Docs site (TypeDoc → static site).
+   - `npm create @valve-tech/trace-app` CodeSandbox template.
+
+**7. Cosmetics / future**
    - Web's `FindingsPanel.tsx` (Slither static analysis) collides in
      name with SDK's runtime `FindingsPanel`. Rename to
      `SlitherFindingsPanel` for clarity.
@@ -220,10 +261,10 @@ Implementation status:
 - ✅ Parsers (2 of 2 named): parseTokenDeltas, parsePrestateDiff
 - ✅ Risks (1 of 3 rules): DELEGATECALL_UNRECOGNIZED; remaining
      TOKEN_SENT_TO_TOKEN_CONTRACT + LARGE_APPROVAL deferred
-- ✅ Components (5 of 6+): CallTree, GasFlamegraph, OpcodeViewer,
+- ✅ Components (6 of 6+): CallTree, GasFlamegraph, OpcodeViewer,
      FindingsPanel, StateDiffPanel, FrameDetailPanel
 - ⏳ Components (2 remaining): StepDebugger, SourceViewer
-- ⏳ Templates (0 of 3): FullDebuggerLayout, CompactCallSummary, RevertExplainer
+- ✅ Templates (3 of 3): FullDebuggerLayout, RevertExplainer, CompactCallSummary
 
 ---
 
