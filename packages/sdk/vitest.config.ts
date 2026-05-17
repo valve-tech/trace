@@ -14,11 +14,16 @@ export default defineConfig({
       // Re-export barrels and pure type files have no logic to cover.
       exclude: ["src/**/index.ts", "src/types.ts"],
       all: true,
+      // 100% across the board is a hard gate. Coverage degradations fail
+      // the test suite (and therefore CI). Policy: every change to src/
+      // ships tests that maintain 100%. If a path is genuinely impossible
+      // to exercise, extract it into a pure helper that CAN be tested
+      // directly (see src/util/errors.ts for the prior example).
       thresholds: {
-        statements: 95,
-        branches: 90,
-        functions: 95,
-        lines: 95,
+        statements: 100,
+        branches: 100,
+        functions: 100,
+        lines: 100,
       },
     },
   },
