@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   CallTree,
   GasFlamegraph,
+  OpcodeViewer,
   normalizeCallFrame,
 } from "@pulsechain-dev/trace-sdk";
 import {
@@ -16,7 +17,6 @@ import {
 } from "../../api/debugger";
 import { lookupWellKnown } from "../../lib/wellKnownSignatures";
 import GasProfiler from "./GasProfiler";
-import OpcodeViewer from "./OpcodeViewer";
 import StepDebugger from "./StepDebugger";
 
 type DebugTab = "debugger" | "calltree" | "gas" | "opcodes";
@@ -392,7 +392,12 @@ export default function DebuggerView() {
 
             {activeTab === "opcodes" && (
               opcodeSteps.length > 0 ? (
-                <OpcodeViewer steps={opcodeSteps} />
+                {/* SDK's OpcodeStep types stack/memory/storage as viem `Hex`
+                    (a branded `0x${string}`); the web API client uses plain
+                    `string` — same runtime shape, different nominal type. */}
+                <OpcodeViewer
+                  steps={opcodeSteps as unknown as Parameters<typeof OpcodeViewer>[0]["steps"]}
+                />
               ) : (
                 <NoDataPanel message="Opcode trace data is not available for this transaction." />
               )

@@ -10,6 +10,18 @@ export {
   type LayoutOptions,
 } from "./GasFlamegraph.js";
 export {
+  OpcodeViewer,
+  type OpcodeViewerProps,
+  type OpcodeViewerClassNames,
+} from "./OpcodeViewer.js";
+export {
+  classifyOpcode,
+  getOpcodeColor,
+  isExpensiveOp,
+  OPCODE_CATEGORY_COLORS,
+  type OpcodeCategory,
+} from "./opcodeClassify.js";
+export {
   truncateAddress,
   formatGas,
   formatWei,
