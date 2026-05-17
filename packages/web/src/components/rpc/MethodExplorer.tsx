@@ -41,10 +41,10 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
     {},
   );
 
-  // Order: pulsedev first, then alphabetical
+  // Order: valve namespace first, then alphabetical
   const namespaces = Object.keys(grouped).sort((a, b) => {
-    if (a === "pulsedev") return -1;
-    if (b === "pulsedev") return 1;
+    if (a === "valve") return -1;
+    if (b === "valve") return 1;
     return a.localeCompare(b);
   });
 
@@ -84,11 +84,11 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
               className="text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
               style={{
                 backgroundColor:
-                  ns === "pulsedev"
+                  ns === "valve"
                     ? "var(--color-accent-muted, rgba(139,92,246,0.15))"
                     : "var(--color-bg-secondary)",
                 color:
-                  ns === "pulsedev"
+                  ns === "valve"
                     ? "var(--color-accent)"
                     : "var(--color-text-secondary)",
               }}
@@ -99,7 +99,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
               className="text-sm font-semibold"
               style={{ color: "var(--color-text-primary)" }}
             >
-              {ns === "pulsedev"
+              {ns === "valve"
                 ? "PulseDev Custom Methods"
                 : ns === "eth"
                   ? "Ethereum Standard Methods"
@@ -144,7 +144,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
                       className="font-mono text-sm font-medium"
                       style={{
                         color:
-                          ns === "pulsedev"
+                          ns === "valve"
                             ? "var(--color-accent)"
                             : "var(--color-text-primary)",
                       }}

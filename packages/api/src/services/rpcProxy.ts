@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // JSON-RPC Proxy Service
-// Routes standard eth_/net_/web3_ methods upstream and custom pulsedev_
+// Routes standard eth_/net_/web3_ methods upstream and custom valve_
 // methods to internal simulation / decoding services.
 // ---------------------------------------------------------------------------
 
@@ -184,8 +184,8 @@ export function getSupportedMethods(): MethodDescription[] {
 
     // --- Custom PulseDev methods ---
     {
-      name: "pulsedev_simulateTransaction",
-      namespace: "pulsedev",
+      name: "valve_simulateTransaction",
+      namespace: "valve",
       description:
         "Simulate a transaction and return decoded results, gas estimate, and revert reason if applicable.",
       params:
@@ -194,7 +194,7 @@ export function getSupportedMethods(): MethodDescription[] {
         request: {
           jsonrpc: "2.0",
           id: 1,
-          method: "pulsedev_simulateTransaction",
+          method: "valve_simulateTransaction",
           params: [
             {
               from: "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD3E",
@@ -217,8 +217,8 @@ export function getSupportedMethods(): MethodDescription[] {
       },
     },
     {
-      name: "pulsedev_simulateBundle",
-      namespace: "pulsedev",
+      name: "valve_simulateBundle",
+      namespace: "valve",
       description:
         "Simulate a bundle of transactions sequentially with cumulative state overrides.",
       params:
@@ -227,7 +227,7 @@ export function getSupportedMethods(): MethodDescription[] {
         request: {
           jsonrpc: "2.0",
           id: 1,
-          method: "pulsedev_simulateBundle",
+          method: "valve_simulateBundle",
           params: [
             {
               transactions: [
@@ -248,8 +248,8 @@ export function getSupportedMethods(): MethodDescription[] {
       },
     },
     {
-      name: "pulsedev_decodeTransaction",
-      namespace: "pulsedev",
+      name: "valve_decodeTransaction",
+      namespace: "valve",
       description:
         "Fetch a transaction by hash and decode its input data using the auto-fetched ABI from BlockScout.",
       params: "[txHash: string]",
@@ -257,7 +257,7 @@ export function getSupportedMethods(): MethodDescription[] {
         request: {
           jsonrpc: "2.0",
           id: 1,
-          method: "pulsedev_decodeTransaction",
+          method: "valve_decodeTransaction",
           params: ["0xabc123..."],
         },
         response: {
@@ -273,8 +273,8 @@ export function getSupportedMethods(): MethodDescription[] {
       },
     },
     {
-      name: "pulsedev_getAssetChanges",
-      namespace: "pulsedev",
+      name: "valve_getAssetChanges",
+      namespace: "valve",
       description:
         "Simulate a transaction and return the token / native balance changes that would occur.",
       params: "[txParams: { from, to, value?, data?, gas? }]",
@@ -282,7 +282,7 @@ export function getSupportedMethods(): MethodDescription[] {
         request: {
           jsonrpc: "2.0",
           id: 1,
-          method: "pulsedev_getAssetChanges",
+          method: "valve_getAssetChanges",
           params: [
             {
               from: "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD3E",
@@ -558,15 +558,15 @@ async function dispatchSingle(req: JsonRpcRequest): Promise<JsonRpcResponse> {
 
   const params = req.params ?? [];
 
-  // Check for custom pulsedev_ methods first
+  // Check for custom valve_ methods first
   switch (req.method) {
-    case "pulsedev_simulateTransaction":
+    case "valve_simulateTransaction":
       return handleSimulateTransaction(id, params);
-    case "pulsedev_simulateBundle":
+    case "valve_simulateBundle":
       return handleSimulateBundle(id, params);
-    case "pulsedev_decodeTransaction":
+    case "valve_decodeTransaction":
       return handleDecodeTransaction(id, params);
-    case "pulsedev_getAssetChanges":
+    case "valve_getAssetChanges":
       return handleGetAssetChanges(id, params);
   }
 

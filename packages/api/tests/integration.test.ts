@@ -699,12 +699,12 @@ describe("Feature 6: Enhanced RPC", () => {
     });
   });
 
-  it("22. Custom method: pulsedev_simulateTransaction", async () => {
-    await timed("RPC pulsedev_simulateTransaction", async () => {
+  it("22. Custom method: valve_simulateTransaction", async () => {
+    await timed("RPC valve_simulateTransaction", async () => {
       const res = await post("/rpc", {
         jsonrpc: "2.0",
         id: 2,
-        method: "pulsedev_simulateTransaction",
+        method: "valve_simulateTransaction",
         params: [
           {
             from: ZERO_ADDRESS,
@@ -730,12 +730,12 @@ describe("Feature 6: Enhanced RPC", () => {
     });
   });
 
-  it("23. Custom method: pulsedev_decodeTransaction", async () => {
-    await timed("RPC pulsedev_decodeTransaction", async () => {
+  it("23. Custom method: valve_decodeTransaction", async () => {
+    await timed("RPC valve_decodeTransaction", async () => {
       const res = await post("/rpc", {
         jsonrpc: "2.0",
         id: 3,
-        method: "pulsedev_decodeTransaction",
+        method: "valve_decodeTransaction",
         params: [TEST_TX_HASH],
       });
 
@@ -795,14 +795,14 @@ describe("Feature 6: Enhanced RPC", () => {
         "Should have at least one method",
       );
 
-      // Check that both eth_ and pulsedev_ methods are present
+      // Check that both eth_ and valve_ methods are present
       const names = json.methods.map((m: any) => m.name);
       const hasEth = names.some((n: string) => n.startsWith("eth_"));
       const hasPulsedev = names.some((n: string) =>
-        n.startsWith("pulsedev_"),
+        n.startsWith("valve_"),
       );
       assert.ok(hasEth, "Should have eth_ methods");
-      assert.ok(hasPulsedev, "Should have pulsedev_ methods");
+      assert.ok(hasPulsedev, "Should have valve_ methods");
     });
   });
 

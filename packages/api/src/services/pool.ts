@@ -2,7 +2,7 @@ import pg from "pg";
 
 const DATABASE_URL =
   process.env.DATABASE_URL ??
-  "postgres://pulsedev:pulsedev@localhost:5432/pulsedev";
+  "postgres://valvetech:valvetech@localhost:5432/valvetech";
 
 // Return TIMESTAMPTZ as ISO strings instead of Date objects
 pg.types.setTypeParser(1184, (val: string) => val); // timestamptz

@@ -1,7 +1,7 @@
 import { get, set, del } from "idb-keyval";
 import type { PersistedClient, Persister } from "@tanstack/react-query-persist-client";
 
-const IDB_KEY = "pulsedev-query-cache";
+const IDB_KEY = "valvetech-query-cache";
 const MAX_QUERIES = 1000;
 
 /**

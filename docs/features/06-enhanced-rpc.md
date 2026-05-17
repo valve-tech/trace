@@ -6,12 +6,12 @@
 A JSON-RPC proxy layer that passes standard methods through to PulseChain while adding custom methods for simulation, tracing, and event subscriptions. Includes API key management, rate limiting, and request analytics.
 
 ## Custom RPC Methods
-- `pulsedev_simulateTransaction` — simulate a tx (calls our simulator service)
-- `pulsedev_simulateBundle` — simulate a sequence of txs
-- `pulsedev_traceTransaction` — get execution trace (calls our debug service)
-- `pulsedev_getAssetChanges` — preview asset changes for a tx
-- `pulsedev_decodeTransaction` — decode calldata with auto-fetched ABI
-- `pulsedev_subscribe` — subscribe to custom event filters with webhook delivery
+- `valve_simulateTransaction` — simulate a tx (calls our simulator service)
+- `valve_simulateBundle` — simulate a sequence of txs
+- `valve_traceTransaction` — get execution trace (calls our debug service)
+- `valve_getAssetChanges` — preview asset changes for a tx
+- `valve_decodeTransaction` — decode calldata with auto-fetched ABI
+- `valve_subscribe` — subscribe to custom event filters with webhook delivery
 
 ## Standard Passthrough Methods
 All standard `eth_*` methods are proxied directly to the upstream PulseChain RPC:

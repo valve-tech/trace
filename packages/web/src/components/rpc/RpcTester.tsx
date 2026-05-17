@@ -46,11 +46,11 @@ const TEMPLATES: Template[] = [
     request: { jsonrpc: "2.0", id: 1, method: "net_version", params: [] },
   },
   {
-    label: "pulsedev_simulateTransaction",
+    label: "valve_simulateTransaction",
     request: {
       jsonrpc: "2.0",
       id: 1,
-      method: "pulsedev_simulateTransaction",
+      method: "valve_simulateTransaction",
       params: [
         {
           from: "0x0000000000000000000000000000000000000001",
@@ -61,11 +61,11 @@ const TEMPLATES: Template[] = [
     },
   },
   {
-    label: "pulsedev_simulateBundle",
+    label: "valve_simulateBundle",
     request: {
       jsonrpc: "2.0",
       id: 1,
-      method: "pulsedev_simulateBundle",
+      method: "valve_simulateBundle",
       params: [
         {
           transactions: [
@@ -80,20 +80,20 @@ const TEMPLATES: Template[] = [
     },
   },
   {
-    label: "pulsedev_decodeTransaction",
+    label: "valve_decodeTransaction",
     request: {
       jsonrpc: "2.0",
       id: 1,
-      method: "pulsedev_decodeTransaction",
+      method: "valve_decodeTransaction",
       params: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
     },
   },
   {
-    label: "pulsedev_getAssetChanges",
+    label: "valve_getAssetChanges",
     request: {
       jsonrpc: "2.0",
       id: 1,
-      method: "pulsedev_getAssetChanges",
+      method: "valve_getAssetChanges",
       params: [
         {
           from: "0x0000000000000000000000000000000000000001",
@@ -217,7 +217,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
               className="px-2.5 py-1 rounded-md border text-xs font-medium transition-colors hover:opacity-80"
               style={{
                 borderColor: "var(--color-border-default)",
-                color: t.label.startsWith("pulsedev_")
+                color: t.label.startsWith("valve_")
                   ? "var(--color-accent)"
                   : "var(--color-text-secondary)",
                 backgroundColor: "var(--color-bg-secondary)",

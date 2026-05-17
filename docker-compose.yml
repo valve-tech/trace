@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: pulsedev
-      POSTGRES_USER: pulsedev
-      POSTGRES_PASSWORD: pulsedev
+      POSTGRES_DB: valvetech
+      POSTGRES_USER: valvetech
+      POSTGRES_PASSWORD: valvetech
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pulsedev"]
+      test: ["CMD-SHELL", "pg_isready -U valvetech"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,7 +22,7 @@ services:
     ports:
       - "10100:10100"
     environment:
-      DATABASE_URL: postgres://pulsedev:pulsedev@postgres:5432/pulsedev
+      DATABASE_URL: postgres://valvetech:valvetech@postgres:5432/valvetech
       PULSECHAIN_RPC_URL: ${PULSECHAIN_RPC_URL:-https://rpc.pulsechain.com}
       DEBUG_RPC_URL: ${DEBUG_RPC_URL:-}
       BLOCKSCOUT_API_URL: ${BLOCKSCOUT_API_URL:-https://api.scan.pulsechain.com/api}

@@ -149,7 +149,7 @@ pulsechain-dev-platform/
 | notifier.ts | Webhook/Discord/Slack/Telegram dispatcher | `dispatch` |
 | actionExecutor.ts | Sandboxed JS execution via Node.js vm module | `executeAction` |
 | actionScheduler.ts | Periodic/event action scheduling via setInterval | `initScheduler`, `processBlock` |
-| rpcProxy.ts | JSON-RPC router: standard passthrough + pulsedev_* custom methods | `handleRpcRequest` |
+| rpcProxy.ts | JSON-RPC router: standard passthrough + valve_* custom methods | `handleRpcRequest` |
 | rpcAnalytics.ts | In-memory ring buffer (10k records) for RPC metrics | `rpcAnalytics` singleton |
 
 ---
@@ -294,7 +294,7 @@ sequenceDiagram
 - Zod for request validation at API boundaries
 - viem for all Ethereum interactions (PublicClient singleton)
 - SQLite via better-sqlite3 with WAL mode and prepared statements
-- Two separate databases: `data/pulsedev.db` (alerts) and `data/actions.db` (actions)
+- Two separate databases: `data/valvetech.db` (alerts) and `data/actions.db` (actions)
 - Services export pure functions or singletons; routes wire validation to services
 - BigInts serialized to strings before JSON responses
 

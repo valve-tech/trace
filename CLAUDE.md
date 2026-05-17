@@ -29,7 +29,7 @@ npm run dev:web                # Frontend only
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `PORT` | `10100` | API server port |
-| `DATABASE_URL` | `postgres://pulsedev:pulsedev@localhost:5432/pulsedev` | Postgres connection |
+| `DATABASE_URL` | `postgres://valvetech:valvetech@localhost:5432/valvetech` | Postgres connection |
 | `PULSECHAIN_RPC_URL` | `https://rpc.pulsechain.com` | PulseChain RPC endpoint |
 | `DEBUG_RPC_URL` | (falls back to `PULSECHAIN_RPC_URL`) | Debug-enabled node for traces |
 | `BLOCKSCOUT_API_URL` | `https://api.scan.pulsechain.com/api` | ABI + explorer data |
