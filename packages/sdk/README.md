@@ -53,7 +53,8 @@ Tree-shake friendly — import only what you need:
 import { parseCallTrace } from "@valve-tech/trace-sdk/loaders";
 import { walkCallTree, buildGasProfile } from "@valve-tech/trace-sdk/traversal";
 import { parseTokenDeltas, parsePrestateDiff } from "@valve-tech/trace-sdk/parsers";
-import { CallTree, GasFlamegraph, OpcodeViewer } from "@valve-tech/trace-sdk/components";
+import { analyzeRisks } from "@valve-tech/trace-sdk/risks";
+import { CallTree, GasFlamegraph, OpcodeViewer, FindingsPanel } from "@valve-tech/trace-sdk/components";
 import type { CallNode, TraceFrame, GasProfile } from "@valve-tech/trace-sdk/types";
 ```
 
@@ -81,10 +82,20 @@ import type { CallNode, TraceFrame, GasProfile } from "@valve-tech/trace-sdk/typ
 - `parsePrestateDiff(raw)` — compute signed ETH balance changes per address
   from a prestateTracer `diffMode: true` payload, sorted by address.
 
+### Risks (`/risks`)
+- `analyzeRisks(frame, options?)` — walk the call tree and emit `RiskFlag[]`
+  findings. Continues into reverted subtrees, tagging findings from there
+  with `reverted: true` so consumers can filter or visually distinguish.
+- Built-in rule: `DELEGATECALL_UNRECOGNIZED` flags any DELEGATECALL whose
+  target isn't in the optional `whitelist` set. Pass known-good
+  implementation contracts in the whitelist to suppress noise.
+- `BUILTIN_RULES` / `RiskRule` are exported for composing custom analyses.
+
 ### Components (`/components`, React peer dep)
 - `<CallTree>` — interactive call tree with expand/collapse
 - `<GasFlamegraph>` — proportional gas-cost flamegraph
 - `<OpcodeViewer>` — step-by-step opcode trace with category coloring
+- `<FindingsPanel>` — renders `analyzeRisks` output, grouped by severity
 
 All components accept a `classNames` prop for full style override.
 

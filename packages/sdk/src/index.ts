@@ -1,5 +1,6 @@
 // Canonical types
 export type {
+  AnalyzeRisksOptions,
   BalanceDelta,
   CallType,
   DecodedParam,
@@ -13,6 +14,9 @@ export type {
   RawPrestateAccount,
   RawPrestateDiff,
   RawStructLog,
+  RiskFlag,
+  RiskFlagType,
+  RiskSeverity,
   SourceLocation,
   StateDiff,
   StorageChange,
@@ -59,11 +63,20 @@ export {
   parsePrestateDiff,
 } from "./parsers/index.js";
 
+// Risks
+export {
+  analyzeRisks,
+  BUILTIN_RULES,
+  delegatecallUnrecognized,
+  type RiskRule,
+} from "./risks/index.js";
+
 // Components (React peer dep)
 export {
   CallTree,
   GasFlamegraph,
   OpcodeViewer,
+  FindingsPanel,
   buildFlamegraphLayout,
   adjustBrightness,
   getBarColor,
@@ -81,6 +94,8 @@ export {
   type GasFlamegraphClassNames,
   type OpcodeViewerProps,
   type OpcodeViewerClassNames,
+  type FindingsPanelProps,
+  type FindingsPanelClassNames,
   type OpcodeCategory,
   type FlamegraphBar,
   type LayoutOptions,

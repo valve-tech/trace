@@ -53,6 +53,10 @@
     "./parsers": {
       "types": "./dist/parsers/index.d.ts",
       "import": "./dist/parsers/index.js"
+    },
+    "./risks": {
+      "types": "./dist/risks/index.d.ts",
+      "import": "./dist/risks/index.js"
     }
   },
   "files": [

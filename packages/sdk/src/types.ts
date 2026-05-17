@@ -236,3 +236,51 @@ export interface BalanceDelta {
   preBalance: bigint;
   postBalance: bigint;
 }
+
+// ---------------------------------------------------------------------------
+// Risk analyzer types
+// ---------------------------------------------------------------------------
+
+/**
+ * Risk severity tier. Three-level scheme aligned with common security UX
+ * conventions (Dependabot, OWASP, Sentry) — lets the UI map to semantic
+ * colors without inventing a custom scale.
+ */
+export type RiskSeverity = "info" | "warning" | "danger";
+
+/**
+ * Discriminator string for the rule that produced a flag. Open-ended so
+ * downstream consumers can extend with their own rules and still satisfy
+ * the type; the SDK's built-in rules add their own literal members here as
+ * they ship.
+ */
+export type RiskFlagType = "DELEGATECALL_UNRECOGNIZED";
+
+/**
+ * One finding emitted by `analyzeRisks`. `depth` and `childIndex` give a
+ * stable handle back to the offending call frame; `address` is the target
+ * (callee) of that frame, or null for contract-creation frames.
+ *
+ * `reverted` is `true` when the finding's frame or any ancestor reverted —
+ * i.e. the code path was exercised but its on-chain effect was rolled back.
+ * The analyzer surfaces these findings rather than discarding them, since
+ * "what was almost executed" is informative for audits.
+ */
+export interface RiskFlag {
+  type: RiskFlagType;
+  severity: RiskSeverity;
+  message: string;
+  address: Address | null;
+  depth: number;
+  childIndex: number;
+  reverted: boolean;
+}
+
+/**
+ * Optional inputs to `analyzeRisks`. The whitelist suppresses rules that
+ * would otherwise flag a known-trusted target — addresses must be lowercase
+ * to match the normalized call-frame address shape.
+ */
+export interface AnalyzeRisksOptions {
+  whitelist?: Set<Address>;
+}

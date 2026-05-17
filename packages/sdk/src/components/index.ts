@@ -15,6 +15,11 @@ export {
   type OpcodeViewerClassNames,
 } from "./OpcodeViewer.js";
 export {
+  FindingsPanel,
+  type FindingsPanelProps,
+  type FindingsPanelClassNames,
+} from "./FindingsPanel.js";
+export {
   classifyOpcode,
   getOpcodeColor,
   isExpensiveOp,
