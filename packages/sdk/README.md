@@ -52,6 +52,7 @@ Tree-shake friendly — import only what you need:
 ```ts
 import { parseCallTrace } from "@valve-tech/trace-sdk/loaders";
 import { walkCallTree, buildGasProfile } from "@valve-tech/trace-sdk/traversal";
+import { parseTokenDeltas, parsePrestateDiff } from "@valve-tech/trace-sdk/parsers";
 import { CallTree, GasFlamegraph, OpcodeViewer } from "@valve-tech/trace-sdk/components";
 import type { CallNode, TraceFrame, GasProfile } from "@valve-tech/trace-sdk/types";
 ```
@@ -71,6 +72,14 @@ import type { CallNode, TraceFrame, GasProfile } from "@valve-tech/trace-sdk/typ
 - `filterByAddress(root, addr)` / `filterBySelector(root, sel)` — subtree filters
 - `findRevertFrame(root)` — first frame whose call reverted
 - `buildGasProfile(root)` — aggregated gas per contract / selector
+
+### Parsers (`/parsers`)
+- `parseTokenDeltas(frame)` — extract ERC-20 Transfer events as `TokenDelta[]`.
+  Skips reverted call frames (and their subtrees) so output matches the
+  on-chain receipt. Requires the trace to have been captured with the
+  callTracer `withLog: true` option.
+- `parsePrestateDiff(raw)` — compute signed ETH balance changes per address
+  from a prestateTracer `diffMode: true` payload, sorted by address.
 
 ### Components (`/components`, React peer dep)
 - `<CallTree>` — interactive call tree with expand/collapse

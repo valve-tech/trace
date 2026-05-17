@@ -1,6 +1,6 @@
 {
   "name": "@valve-tech/trace-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Standalone EVM trace loading, traversal, and rendering toolkit. No platform dependencies.",
   "keywords": [
     "evm",
@@ -49,6 +49,10 @@
     "./components": {
       "types": "./dist/components/index.d.ts",
       "import": "./dist/components/index.js"
+    },
+    "./parsers": {
+      "types": "./dist/parsers/index.d.ts",
+      "import": "./dist/parsers/index.js"
     }
   },
   "files": [

@@ -1,16 +1,22 @@
 // Canonical types
 export type {
+  BalanceDelta,
   CallType,
   DecodedParam,
   GasProfile,
   GasProfileEntry,
+  Log,
   OpcodeStep,
   RawCallFrame,
   RawCallType,
+  RawLog,
+  RawPrestateAccount,
+  RawPrestateDiff,
   RawStructLog,
   SourceLocation,
   StateDiff,
   StorageChange,
+  TokenDelta,
   TraceFrame,
   TraceResult,
 } from "./types.js";
@@ -46,6 +52,12 @@ export {
   type FlatFrame,
   type AddressMatchOptions,
 } from "./traversal/index.js";
+
+// Parsers
+export {
+  parseTokenDeltas,
+  parsePrestateDiff,
+} from "./parsers/index.js";
 
 // Components (React peer dep)
 export {

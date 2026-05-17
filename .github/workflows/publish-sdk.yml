@@ -1,26 +1,14 @@
 name: Publish SDK
 
-# TODO(user): decide how this workflow should fire. Three sensible patterns
-# below — uncomment ONE and delete the others. The choice shapes your
-# release process. See the bottom of this file for the trade-off notes.
-
+# Fires when an `sdk-vX.Y.Z` tag is pushed. To ship a new version:
+#   1. Bump `version` in packages/sdk/package.json on main
+#   2. git tag sdk-v0.1.x && git push --tags
 on:
-  # Pattern A — fires when you publish a GitHub Release tagged `sdk-vX.Y.Z`
-  # release:
-  #   types: [published]
-
-  # Pattern B — fires when you push a git tag like `sdk-v0.1.1`
-  # push:
-  #   tags:
-  #     - "sdk-v*"
-
-  # Pattern C — manual button in the Actions tab, with a version override
-  # workflow_dispatch:
-  #   inputs:
-  #     dry_run:
-  #       description: "Run npm publish --dry-run instead of publishing"
-  #       type: boolean
-  #       default: false
+  push:
+    tags:
+      - "sdk-v*"
+  # Also allow manual dispatch as an escape hatch if a tag push is misfired.
+  workflow_dispatch: {}
 
 # Trusted publishing needs id-token:write so the workflow can mint a short-lived
 # OIDC token that npm exchanges for publish auth — no NPM_TOKEN secret needed.
@@ -66,23 +54,3 @@ jobs:
         # No NPM_TOKEN env var — auth comes from the OIDC id-token above,
         # exchanged with the trusted-publisher rule configured on npmjs.com.
 
-# ──────────────────────────────────────────────────────────────────────────
-# Trigger trade-offs (for the TODO above)
-#
-# A. release:published
-#    + Forces you through GitHub's Release UI → you write release notes first.
-#    + Tag and changelog stay in sync; consumers click the release for context.
-#    − Two steps: create tag, then publish release. Slightly heavier.
-#
-# B. push tags
-#    + One command to ship: git tag sdk-v0.1.1 && git push --tags
-#    + Fast, scriptable, plays well with changeset-style tools.
-#    − No forced changelog; easy to ship without release notes.
-#
-# C. workflow_dispatch
-#    + Explicit human click in Actions UI. Safest for paid/audited releases.
-#    + Can add an environment with required reviewers for two-person rule.
-#    − Less linkage between code state and release; relies on discipline.
-#
-# Most teams pick A or B. C is best when you want gated approval.
-# ──────────────────────────────────────────────────────────────────────────

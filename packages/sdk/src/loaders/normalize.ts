@@ -1,7 +1,9 @@
 import type { Address, Hex } from "viem";
 import type {
   CallType,
+  Log,
   RawCallFrame,
+  RawLog,
   RawStructLog,
   OpcodeStep,
   TraceFrame,
@@ -45,6 +47,14 @@ function toCallType(t: string): CallType {
   return VALID_CALL_TYPES.has(upper) ? upper : "CALL";
 }
 
+function normalizeLog(raw: RawLog): Log {
+  return {
+    address: (raw.address ? raw.address.toLowerCase() : "0x") as Address,
+    topics: (raw.topics ?? []) as Hex[],
+    data: (raw.data ?? "0x") as Hex,
+  };
+}
+
 /**
  * Convert a raw callTracer frame (as returned by debug_traceTransaction) into
  * the canonical TraceFrame shape. Recursively normalizes nested calls.
@@ -84,6 +94,7 @@ export function normalizeCallFrame(
     revertReason: raw.revertReason,
     depth,
     children,
+    logs: raw.logs ? raw.logs.map(normalizeLog) : undefined,
   };
 }
 

@@ -14,9 +14,21 @@ export type RawCallType =
   | "SELFDESTRUCT";
 
 /**
+ * Raw event log as emitted inside a callTracer frame when the tracer is run
+ * with `withLog: true`. Same shape as a JSON-RPC eth_getLogs entry, minus
+ * block/transaction metadata (those are implied by the enclosing trace).
+ */
+export interface RawLog {
+  address: string;
+  topics: string[];
+  data: string;
+}
+
+/**
  * Raw callTracer frame as returned by geth/erigon/anvil debug_traceTransaction
  * with `tracer: "callTracer"`. Fields are hex strings; nested calls live under
- * `calls`. Some clients omit `value` for non-payable calls.
+ * `calls`. Some clients omit `value` for non-payable calls. `logs` is only
+ * populated when the tracer is invoked with `withLog: true`.
  */
 export interface RawCallFrame {
   type: string;
@@ -29,6 +41,7 @@ export interface RawCallFrame {
   output?: string;
   error?: string;
   revertReason?: string;
+  logs?: RawLog[];
   calls?: RawCallFrame[];
 }
 
@@ -68,6 +81,16 @@ export interface DecodedParam {
   value: unknown;
 }
 
+/**
+ * Canonical event log. Same shape as `RawLog` but with branded `Address`/`Hex`
+ * types and lowercased address for consistent identity comparisons.
+ */
+export interface Log {
+  address: Address;
+  topics: Hex[];
+  data: Hex;
+}
+
 export interface SourceLocation {
   file: string;
   line: number;
@@ -96,6 +119,7 @@ export interface TraceFrame {
   revertReason?: string;
   depth: number;
   children: TraceFrame[];
+  logs?: Log[];
 
   // Enriched (optional)
   functionName?: string;
@@ -160,4 +184,55 @@ export interface TraceResult {
   stateDiffs?: StateDiff[];
   txHash?: Hex;
   blockNumber?: bigint;
+}
+
+// ---------------------------------------------------------------------------
+// Parser output types
+// ---------------------------------------------------------------------------
+
+/**
+ * A decoded ERC-20 Transfer event. `from`/`to` are zero-padded out of the
+ * topic words; `value` is the uint256 from the data field. `logIndex` is the
+ * position among non-reverted logs in the trace (pre-order across the call
+ * tree), useful for stable references back to the raw log stream.
+ */
+export interface TokenDelta {
+  token: Address;
+  from: Address;
+  to: Address;
+  value: bigint;
+  logIndex: number;
+}
+
+/**
+ * Per-address account state as it appears inside the prestateTracer diff-mode
+ * envelope. All fields are optional — only changed fields appear, and an
+ * account may be entirely absent from `post` if it self-destructed.
+ */
+export interface RawPrestateAccount {
+  balance?: string;
+  nonce?: number;
+  code?: string;
+  storage?: Record<string, string>;
+}
+
+/**
+ * Wire-format envelope from `debug_traceTransaction` with
+ * `tracer: "prestateTracer"` and `tracerConfig: { diffMode: true }`.
+ */
+export interface RawPrestateDiff {
+  pre: Record<string, RawPrestateAccount>;
+  post: Record<string, RawPrestateAccount>;
+}
+
+/**
+ * Net balance change for one address across a transaction. `delta` is signed
+ * (post − pre); positive means the address received ETH, negative means it
+ * sent. Zero-delta addresses are filtered out by `parsePrestateDiff`.
+ */
+export interface BalanceDelta {
+  address: Address;
+  delta: bigint;
+  preBalance: bigint;
+  postBalance: bigint;
 }
