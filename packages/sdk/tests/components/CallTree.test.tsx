@@ -198,4 +198,100 @@ describe("CallTree", () => {
     // SELFDESTRUCT never appears as a frame in our tree — only via the legend
     expect(screen.getByText("SELFDESTRUCT")).toBeDefined();
   });
+
+  it("shows REVERT badge when only `error` is set (no revertReason)", () => {
+    const tree = makeFrame({
+      from: addrs.ALICE,
+      to: addrs.CONTRACT,
+      error: "out of gas",
+      // no revertReason
+    });
+    render(<CallTree frame={tree} hideLegend />);
+    expect(screen.getByText("REVERT")).toBeDefined();
+  });
+
+  it("shows Error row (not Revert row) in detail panel when only error is set", () => {
+    const tree = makeFrame({
+      from: addrs.ALICE,
+      to: addrs.CONTRACT,
+      error: "out of gas",
+    });
+    render(<CallTree frame={tree} hideLegend />);
+    fireEvent.click(screen.getByTitle("Show details"));
+    expect(screen.getByText("Error:")).toBeDefined();
+    expect(screen.getByText("out of gas")).toBeDefined();
+    expect(screen.queryByText("Revert:")).toBeNull();
+  });
+
+  it("shows '(contract creation)' in detail panel when to is null", () => {
+    const tree = makeFrame({
+      type: "CREATE",
+      from: addrs.ALICE,
+      to: null,
+      input: "0x60806040",
+    });
+    render(<CallTree frame={tree} hideLegend />);
+    fireEvent.click(screen.getByTitle("Show details"));
+    // Detail panel renders "To:" label with the placeholder text as value
+    const matches = screen.getAllByText("(contract creation)");
+    // Two instances: the inline cell + the detail panel row
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("shows Value row in detail panel when value > 0n", () => {
+    const tree = makeFrame({
+      from: addrs.ALICE,
+      to: addrs.CONTRACT,
+      value: 7n * 10n ** 18n,
+    });
+    render(<CallTree frame={tree} hideLegend />);
+    fireEvent.click(screen.getByTitle("Show details"));
+    expect(screen.getByText("Value:")).toBeDefined();
+  });
+
+  it("shows Output DataBlock in detail panel when output is non-empty", () => {
+    const tree = makeFrame({
+      from: addrs.ALICE,
+      to: addrs.CONTRACT,
+      output: "0xdeadbeef",
+    });
+    render(<CallTree frame={tree} hideLegend />);
+    fireEvent.click(screen.getByTitle("Show details"));
+    expect(screen.getByText("Output:")).toBeDefined();
+  });
+
+  it("renders a CREATE child without throwing (covers child key fallback)", () => {
+    const tree = makeFrame({
+      from: addrs.ALICE,
+      to: addrs.CONTRACT,
+      children: [
+        makeFrame({
+          type: "CREATE",
+          from: addrs.CONTRACT,
+          to: null,
+          depth: 1,
+          input: "0x60806040",
+        }),
+      ],
+    });
+    expect(() =>
+      render(<CallTree frame={tree} hideLegend />),
+    ).not.toThrow();
+  });
+
+  it("falls back to neutral colors when type is outside the known set", () => {
+    // Bypass the type system to simulate a frame from an unknown source
+    // (e.g. a future EVM opcode not yet in our CallType union). The fallback
+    // ensures the renderer doesn't crash on novel inputs.
+    const tree = makeFrame({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      type: "FUTURE_OPCODE" as any,
+      from: addrs.ALICE,
+      to: addrs.CONTRACT,
+    });
+    expect(() =>
+      render(<CallTree frame={tree} hideLegend />),
+    ).not.toThrow();
+    expect(screen.getByText("FUTURE_OPCODE")).toBeDefined();
+  });
 });

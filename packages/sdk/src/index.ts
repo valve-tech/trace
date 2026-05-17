@@ -15,12 +15,20 @@ export type {
   TraceResult,
 } from "./types.js";
 
+// Consumer-friendly type aliases.
+// `CallNode` is the same shape as `TraceFrame` — exported under the name
+// external consumers expect (per the SDK API contract).
+export type { TraceFrame as CallNode } from "./types.js";
+
 // Loaders
 export {
   loadTraceFromObject,
   loadTraceFromFile,
   loadTraceFromHash,
   normalizeCallFrame,
+  // Consumer-friendly alias for `normalizeCallFrame`. Same function, the
+  // name the external API contract uses.
+  normalizeCallFrame as parseCallTrace,
   normalizeStructLogs,
   type LoadObjectInput,
   type LoadHashOptions,

@@ -106,6 +106,25 @@ describe("loadTraceFromObject", () => {
     expect(result.opcodes).toHaveLength(1);
     expect(result.opcodes![0]!.op).toBe("PUSH1");
   });
+
+  it("defaults missing optional struct-log fields (stack/memory/storage)", () => {
+    const result = loadTraceFromObject({
+      callFrame: sampleRawCallFrame(),
+      structLogs: [
+        {
+          pc: 0,
+          op: "STOP",
+          gas: 0,
+          gasCost: 0,
+          depth: 0,
+          // no stack, memory, or storage — should default to []/[]/{}
+        },
+      ],
+    });
+    expect(result.opcodes![0]!.stack).toEqual([]);
+    expect(result.opcodes![0]!.memory).toEqual([]);
+    expect(result.opcodes![0]!.storage).toEqual({});
+  });
 });
 
 describe("loadTraceFromFile", () => {
@@ -258,6 +277,47 @@ describe("loadTraceFromHash", () => {
         fetch: mockFetch,
       }),
     ).rejects.toThrow(/no result/);
+  });
+
+  it("honors an explicit timeoutMs option", async () => {
+    let receivedSignal: AbortSignal | undefined;
+    const mockFetch: typeof globalThis.fetch = async (_url, init) => {
+      receivedSignal = init?.signal ?? undefined;
+      return new Response(
+        JSON.stringify({ jsonrpc: "2.0", id: 1, result: sampleRawCallFrame() }),
+        { status: 200 },
+      );
+    };
+
+    await loadTraceFromHash({
+      txHash: "0xdeadbeef",
+      rpcUrl: "https://rpc.example.test",
+      fetch: mockFetch,
+      timeoutMs: 5000,
+    });
+    // The timeout-controlled abort signal must reach fetch even when
+    // timeoutMs is provided explicitly (not just the default-branch path).
+    expect(receivedSignal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("aborts the fetch when timeoutMs elapses", async () => {
+    // A fetch that hangs forever — only the timeout's abort will rescue it.
+    const mockFetch: typeof globalThis.fetch = (_url, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new DOMException("aborted", "AbortError")),
+        );
+      });
+
+    await expect(
+      loadTraceFromHash({
+        txHash: "0xdeadbeef",
+        rpcUrl: "https://rpc.example.test",
+        fetch: mockFetch,
+        timeoutMs: 10, // 10ms — short enough for tests, long enough for the
+        // event loop to wire up the addEventListener above.
+      }),
+    ).rejects.toBeDefined();
   });
 
   it("throws when no fetch implementation is available", async () => {

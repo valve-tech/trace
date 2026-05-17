@@ -213,6 +213,53 @@ describe("buildGasProfile", () => {
     const profile = buildGasProfile(weird);
     expect(profile.entries[0]!.selfGas).toBe(0n);
   });
+
+  it("uses frame.functionName when present in the GasProfileEntry", () => {
+    const tree = makeFrame({
+      gasUsed: 10_000n,
+      functionName: "transfer(address,uint256)",
+    });
+    const profile = buildGasProfile(tree);
+    expect(profile.entries[0]!.functionName).toBe("transfer(address,uint256)");
+  });
+
+  it("uses `from` as the entry address when `to` is null (CREATE frame)", () => {
+    const tree = makeFrame({
+      type: "CREATE",
+      from: addrs.ALICE,
+      to: null,
+      gasUsed: 100_000n,
+    });
+    const profile = buildGasProfile(tree);
+    expect(profile.entries[0]!.address).toBe(addrs.ALICE);
+  });
+});
+
+describe("walkCallTree visitor optionality", () => {
+  it("works with only an exit hook (no enter)", () => {
+    const exits: bigint[] = [];
+    walkCallTree(tree(), {
+      exit: (f) => {
+        exits.push(f.gasUsed);
+      },
+    });
+    // Post-order: deepest first
+    expect(exits).toEqual([10_000n, 30_000n, 20_000n, 100_000n]);
+  });
+
+  it("works with only an enter hook (no exit)", () => {
+    const enters: bigint[] = [];
+    walkCallTree(tree(), {
+      enter: (f) => {
+        enters.push(f.gasUsed);
+      },
+    });
+    expect(enters).toEqual([100_000n, 30_000n, 10_000n, 20_000n]);
+  });
+
+  it("does nothing when no hooks are provided", () => {
+    expect(() => walkCallTree(tree(), {})).not.toThrow();
+  });
 });
 
 describe("walkCallTree exit early-termination", () => {

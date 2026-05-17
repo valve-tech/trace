@@ -1,4 +1,5 @@
 import type { TraceResult } from "../types.js";
+import { describeUnknownError } from "../util/errors.js";
 import { loadTraceFromObject, type LoadObjectInput } from "./loadTraceFromObject.js";
 
 /**
@@ -16,7 +17,7 @@ export function loadTraceFromFile(json: string): TraceResult {
     parsed = JSON.parse(json);
   } catch (err) {
     throw new Error(
-      `loadTraceFromFile: invalid JSON — ${err instanceof Error ? err.message : String(err)}`,
+      `loadTraceFromFile: invalid JSON — ${describeUnknownError(err)}`,
     );
   }
 
