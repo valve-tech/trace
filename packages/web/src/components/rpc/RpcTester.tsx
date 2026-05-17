@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { testRpcRequest, type JsonRpcRequest, type RpcTestResponse } from "../../api/rpc";
 
 // ---------------------------------------------------------------------------
@@ -141,12 +141,11 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
     [],
   );
 
-  // Expose for parent — but also react to prop changes
-  useState(() => {
+  useEffect(() => {
     if (initialRequest) {
       handleSetInitialRequest(initialRequest);
     }
-  });
+  }, [initialRequest, handleSetInitialRequest]);
 
   const handleTemplateSelect = (template: Template) => {
     setRequestText(JSON.stringify(template.request, null, 2));

@@ -331,8 +331,10 @@ export default function AddressView({
                   </thead>
                   <tbody>
                     {txs.map((tx, i) => {
+                      const isContractCreation = !tx.to || tx.to === "0x";
                       const isIn =
-                        tx.to?.toLowerCase() === address.toLowerCase();
+                        !isContractCreation &&
+                        tx.to.toLowerCase() === address.toLowerCase();
                       return (
                         <tr
                           key={i}
@@ -396,36 +398,48 @@ export default function AddressView({
                             </button>
                           </td>
                           <td className="px-3 py-2">
-                            <div className="flex items-center gap-1.5">
+                            {isContractCreation ? (
                               <span
-                                className="text-[9px] font-bold px-1 py-0.5 rounded"
+                                className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider"
                                 style={{
-                                  backgroundColor: isIn
-                                    ? "var(--color-success-muted)"
-                                    : "var(--color-warning-muted)",
-                                  color: isIn
-                                    ? "var(--color-success)"
-                                    : "var(--color-warning)",
-                                }}
-                              >
-                                {isIn ? "IN" : "OUT"}
-                              </span>
-                              <button
-                                onClick={() =>
-                                  onNavigate({
-                                    type: "address",
-                                    value: tx.to,
-                                  })
-                                }
-                                className="font-mono text-xs hover:underline cursor-pointer"
-                                style={{
+                                  backgroundColor: "var(--color-accent-muted)",
                                   color: "var(--color-accent)",
                                 }}
-                                title={tx.to}
                               >
-                                {truncateAddr(tx.to)}
-                              </button>
-                            </div>
+                                Contract Creation
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className="text-[9px] font-bold px-1 py-0.5 rounded"
+                                  style={{
+                                    backgroundColor: isIn
+                                      ? "var(--color-success-muted)"
+                                      : "var(--color-warning-muted)",
+                                    color: isIn
+                                      ? "var(--color-success)"
+                                      : "var(--color-warning)",
+                                  }}
+                                >
+                                  {isIn ? "IN" : "OUT"}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    onNavigate({
+                                      type: "address",
+                                      value: tx.to,
+                                    })
+                                  }
+                                  className="font-mono text-xs hover:underline cursor-pointer"
+                                  style={{
+                                    color: "var(--color-accent)",
+                                  }}
+                                  title={tx.to}
+                                >
+                                  {truncateAddr(tx.to)}
+                                </button>
+                              </div>
+                            )}
                           </td>
                           <td
                             className="px-3 py-2 font-mono text-xs whitespace-nowrap"

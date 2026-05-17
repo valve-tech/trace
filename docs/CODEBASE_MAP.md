@@ -1,5 +1,6 @@
 ---
 last_mapped: 2026-03-24T22:30:00Z
+gotchas_reverified: 2026-05-16
 total_files: 86
 total_tokens: 145958
 ---
@@ -313,28 +314,38 @@ sequenceDiagram
 
 ## Gotchas
 
-### Critical
-- **vm sandbox is not secure:** `actionExecutor.ts` uses Node.js `vm.createContext` which can be escaped via prototype chain. Adequate for local dev tooling, not for multi-tenant production.
-- **Forks bind to 0.0.0.0:** Anvil processes listen on all interfaces — fork RPC ports are network-accessible.
-- **Bundle simulation does not propagate state:** `simulateBundle` only merges explicit `stateOverrides`, not actual on-chain state changes between transactions.
-- **Monitor ↔ Action Scheduler gap:** `monitor.ts` does not call `actionScheduler.processBlock()` — block/event-triggered actions currently have no call site.
+> Last verified: 2026-05-16. Entries marked **[stale]** appeared in earlier versions of this section but no longer reflect the code.
 
-### Important
-- **ABI cache never invalidates:** Requires server restart to pick up newly verified contracts on BlockScout.
-- **RPC analytics are in-memory only:** Lost on server restart (10k record ring buffer).
-- **RpcTester initial request bug:** `useState` initializer only runs once — the MethodExplorer → RpcTester "Try it" bridge works on first click only.
-- **RpcDashboard hardcodes port 3001:** The displayed RPC URL uses `window.location.hostname:3001` regardless of environment.
-- **BlockView off-by-one:** "Prev" button can navigate to block -1 (no guard like the parent hash link has).
-- **AddressView null `to`:** `tx.to.toLowerCase()` throws for contract creation transactions where `to` is null.
-- **ContractView uses wrong response field:** `ReadFunction` checks `json.result.decodedOutput` but the API returns `decodedReturn`.
-- **"Connected" badge is cosmetic:** Never actually checks backend connectivity.
+### Critical (still present)
+- **vm sandbox is not secure:** `actionExecutor.ts:198` uses Node.js `vm.createContext` which can be escaped via prototype chain. Adequate for local dev tooling, not for multi-tenant production.
+- **Forks bind to 0.0.0.0:** `forkManager.ts:132-133` passes `--host 0.0.0.0` to Anvil — fork RPC ports are network-accessible.
+- **Bundle simulation does not propagate state by design:** `simulator.ts:214-215` comment makes this explicit — because `eth_call` is read-only, true state propagation requires the caller to supply explicit `stateOverrides` between steps. This is an architecture limitation, not a fixable bug, until we switch the bundle path to a fork-based simulator.
 
-### Minor
-- `getOpcodeColor` duplicated in OpcodeViewer.tsx and GasProfiler.tsx
-- `StatusBadge` duplicated in SimulationResult.tsx and BundleSimulator.tsx
-- `StateOverrides` allows only one empty-key storage slot at a time
-- `formatMessage` in notifier.ts sets Telegram parse_mode to HTML but sends plain text
-- Tab switching unmounts components — all unsaved form state is lost
+### Important (still present)
+- **ABI cache never invalidates:** `decoder.ts:14,29` — in-memory cache lives for the lifetime of the process. Requires server restart to pick up newly verified contracts.
+- **RPC analytics are in-memory only:** `rpcAnalytics.ts:2` — 10k record ring buffer, lost on restart.
+- **`/api/actions` POST + PUT lack Zod validation:** Routes use type assertions instead of discriminated union schemas (cf. alert routes which validate properly). Webhook endpoint passes raw body to executor.
+- **Alert matching N+1 RPC pattern:** Each `balance_threshold` alert triggers one `getBalance` call per block. Batch via multicall would help.
+- **Fire-and-forget cache writes in tracer:** `tracer.ts:414,427,436,513,534,540` use `void setCachedTrace(...)` — cache write failures are silently dropped.
+
+### Minor (still present)
+- `getOpcodeColor` duplicated across 3 files: `OpcodeViewer.tsx`, `GasProfiler.tsx`, `StepDebugger.tsx`.
+- `StatusBadge` duplicated across 3 files: `SimulationResult.tsx`, `BundleSimulator.tsx`, `explorer/TxDetail.tsx`.
+- `StateOverrides.tsx:19` — `onChange({ ...storage, "": "" })` allows only one empty-key storage slot at a time.
+- `notifier.ts:153` sets Telegram `parse_mode: "HTML"` but `formatMessage` produces plain text — latent bug if match payload contains `<`, `>`, or `&`.
+- Tab switching in `App.tsx` uses conditional rendering — components unmount and unsaved form state is lost.
+- API has 119 `console.*` calls (no structured logger).
+
+### Fixed (kept here for traceability — remove on next major edit)
+- **[fixed 2026-05-16]** AddressView null/empty `tx.to` — now renders a "Contract Creation" badge (`AddressView.tsx:398`).
+- **[fixed 2026-05-16]** RpcTester initial-request bridge — replaced `useState(() => …)` antipattern with `useEffect` reacting to `[initialRequest]` (`RpcTester.tsx:144-148`).
+- **[fixed earlier]** `monitor.ts:159` now calls `processActionsBlock(...)` — Web3 Actions block/event triggers wired.
+- **[fixed earlier]** `ContractView.tsx:82` reads `decodedReturn ?? decodedOutput`.
+- **[fixed earlier]** `BlockView.tsx:161,163` guards Prev against block < 0.
+- **[fixed earlier]** `RpcDashboard.tsx:43` uses `${window.location.origin}/rpc` (no hardcoded port).
+
+### Stale claims (verified false)
+- **[stale]** "'Connected' badge is cosmetic" — `checkRpcConnection()` in `packages/web/src/api/rpc.ts` actually sends `eth_chainId` and returns based on the response. The check is real.
 
 ## Navigation Guide
 

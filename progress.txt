@@ -1,110 +1,102 @@
 # PulseChain Dev Platform — Progress
 
-## Session: 2026-05-16
+## Session: 2026-05-16 (continuation)
 
-### What was accomplished
+### What was accomplished this session
 
-Full codebase audit. All 7 features are implemented and the debugger received significant
-polish in recent sessions (clean call tree UI, frame detail panel, gas flamegraph,
-NatSpec tag highlighting, internal call name resolution, source scroll-to-line).
+Re-audit of all "known bugs" listed in the prior checkpoint. Found 4 of 6
+Phase-1 bugs were already fixed in earlier commits and the audit was stale.
+Also corrected the broader CODEBASE_MAP.md "Gotchas" section.
+
+**Fixes applied this session:**
+1. `AddressView` contract-creation display — was showing a broken empty-string
+   button for `tx.to === ""` (BlockScout returns empty string, not null, for
+   contract-creation txs). Now renders a "Contract Creation" badge mirroring
+   the BlockView pattern. (AddressView.tsx:333-336, 398-441)
+2. `RpcTester` initial-request bridge — replaced the `useState(() => {...})`
+   antipattern (initializer fires once on mount, ignores subsequent prop
+   changes) with a proper `useEffect` keyed on `[initialRequest]`.
+   (RpcTester.tsx:1, 144-148)
+
+**Audit corrections to CODEBASE_MAP.md:**
+- Removed 6 entries that were already fixed (bugs #1, #3, #4, #5, and the 2
+  fixed above).
+- Removed the false "Connected badge is cosmetic" claim — `checkRpcConnection`
+  actually calls eth_chainId and returns based on the response.
+- Reclassified "Bundle simulation does not propagate state" as an architecture
+  limitation (per the code comment in simulator.ts:214-215), not a bug.
+- Corrected `getOpcodeColor` duplication count (3 files, not 2).
+- Corrected `StatusBadge` duplication count (3 files, not 2).
+- Corrected console.* count (119 in API, not 23+).
+- Added file:line references for every remaining gotcha.
+
+**Memory entries created:**
+- `secrets-handling` (feedback) — private RPC URLs stay in .env only.
+- `deployment-and-env` (project) — no remote deploy configs; API port is
+  actually 10100 (not 3001 as CLAUDE.md says); dotenv auto-loads from
+  packages/api/src/index.ts:1.
+
+**Environment setup:**
+- `.env` (gitignored) populated with PULSECHAIN_RPC_URL + DEBUG_RPC_URL pointing
+  at the user's private RPC endpoint. `git check-ignore` verified .env is
+  excluded.
 
 ---
 
 ### Current state
 
-**All 7 features implemented:**
-- Transaction Simulator (single + bundle, state overrides, fork-based with state diffs)
-- Transaction Explorer (BlockScout + viem, ABI decoding, internal tx tracing)
-- Monitoring & Alerting (block poller, 5 alert types, Discord/Slack/Telegram/Webhook, WebSocket broadcast)
-- Virtual TestNets (Anvil pool, snapshot/revert/fund/mine/time-travel)
-- Smart Contract Debugger (opcode trace, call tree, flamegraph, source maps via recompile, Slither)
-- Enhanced JSON-RPC Proxy (standard passthrough + 5 custom pulsedev_* methods, analytics)
-- Web3 Actions (sandboxed JS, webhook + scheduler triggers, execution logs)
+**All 7 features implemented** (unchanged from prior checkpoint).
 
-**Test coverage:**
-- 31 backend integration tests (node:test, covers all 7 features)
-- 8 frontend unit tests (Vitest, StepDebugger only)
-- Zero service-level unit tests
-- Zero frontend component tests outside StepDebugger
+**Test coverage** (unchanged): 31 backend integration tests, 8 frontend unit
+tests (StepDebugger only).
 
-**Stats:** ~23K lines of source, 37 frontend components, 26 backend services, 13 route files,
-8 database tables (5 migration files), 39 total tests.
+**Deployment surface:** Local docker-compose only. No remote PaaS configs
+(fly.toml, render.yaml, vercel.json, etc.) and no CI workflows committed. If
+this is deployed somewhere, the config lives outside this repo.
 
 ---
 
-### Known bugs (documented in CODEBASE_MAP.md, not yet fixed)
+### Outstanding bugs (verified present as of 2026-05-16)
 
-**Critical — broken functionality:**
-1. Action scheduler dead — `monitor.ts` does NOT call `actionScheduler.processBlock()`.
-   Block/event-triggered Web3 Actions have no call site. The wiring exists; the call is missing.
-2. `AddressView` crashes on contract-creation transactions — `tx.to.toLowerCase()` throws when `to` is null.
-3. `ContractView` reads wrong field — checks `json.result.decodedOutput` but API returns `decodedReturn`.
+See docs/CODEBASE_MAP.md "Gotchas" section for canonical list with file:line
+references. Summary:
 
-**High — incorrect behavior:**
-4. `BlockView` "Prev" button navigates to block -1 (no lower-bound guard).
-5. `RpcDashboard` hardcodes port 3001 in displayed RPC URL regardless of actual server port.
-6. `RpcTester` "Try it" bridge only works on first click — `useState` initializer runs once.
-7. Anvil fork processes bind to 0.0.0.0 — fork RPC ports accessible on the network.
+**Critical (architectural / security):**
+- vm sandbox in actionExecutor.ts escapable via prototype chain
+- Anvil forks bind 0.0.0.0 (network-accessible)
+- Bundle simulation doesn't propagate inter-tx state (by design — needs
+  fork-based simulator to fix)
 
-**Medium — missing validation:**
-8. `/api/actions` POST + PUT routes use type assertions, not Zod schemas (unlike alert routes
-   which have proper discriminated union schemas). Webhook endpoint passes raw body to executor.
-9. `actionExecutor.ts` vm sandbox can be escaped via prototype chain — not safe for multi-tenant use.
+**Important (correctness / data loss):**
+- /api/actions POST + PUT lack Zod validation
+- ABI cache never invalidates (process-lifetime in-memory only)
+- RPC analytics in-memory only (10k ring buffer, lost on restart)
+- Alert matching N+1 RPC pattern (one getBalance per balance_threshold per block)
+- tracer.ts: 6 fire-and-forget `void setCachedTrace()` calls — silent failures
 
-**Low — code quality:**
-10. `getOpcodeColor` duplicated in OpcodeViewer.tsx and GasProfiler.tsx.
-11. `StatusBadge` duplicated in SimulationResult.tsx and BundleSimulator.tsx.
-12. `notifier.ts` sets Telegram parse_mode to HTML but sends plain text.
-13. ABI cache never invalidates — requires server restart for newly verified contracts.
-14. RPC analytics lost on restart — 10k ring buffer is in-memory only.
-15. Tab switching unmounts components — unsaved form state is lost.
-16. 23+ `console.log` calls in production API code — no structured logger.
-17. Alert matching does one RPC call per balance_threshold alert per block (N+1 pattern).
-18. Fire-and-forget `void setCachedTrace()` calls in tracer.ts — cache failures are silent.
+**Minor (code quality / latent):**
+- getOpcodeColor duplicated across 3 debugger components
+- StatusBadge duplicated across 3 simulation/explorer components
+- StateOverrides UI allows only one empty-key storage slot at a time
+- Telegram parse_mode HTML mismatch (latent — fails only if message contains
+  raw `<`, `>`, `&`)
+- Tab switching unmounts components — unsaved form state lost
+- 119 console.* calls in API source (no structured logger)
 
 ---
 
-### Next steps (prioritized)
+### Phase 2 — Trace SDK (the actual "next" work)
 
-**Phase 1 — Bug fixes (do first, small targeted commits)**
-- Fix #1: Wire monitor.ts → actionScheduler.processBlock() (one-liner)
-- Fix #2: Null guard on tx.to in AddressView
-- Fix #3: Correct field name in ContractView (decodedReturn not decodedOutput)
-- Fix #4: Guard block -1 in BlockView Prev button
-- Fix #5: Fix RpcDashboard port to use window.location.port or env config
-- Fix #6: Fix RpcTester useState initializer (move bridge value into effect or ref)
-
-**Phase 2 — Trace SDK (next major feature)**
-Design and ship a standalone `packages/sdk` package that lets external consumers load
-trace data from any source and render (or process) each piece independently.
-Full design in "Trace SDK — design notes" section below.
-
-**Phase 3 — Validation hardening**
-- Add Zod schemas to /api/actions routes (POST, PUT, webhook body)
-- Add ownership checks to action/alert routes (multi-user safety)
-
-**Phase 4 — Test coverage**
-- Service-level unit tests for simulator, decoder, tracer, gasProfiler
-- Frontend component tests for Explorer, Debugger, Monitoring, Actions tabs
-- Integration tests for fork simulation paths
-
-**Phase 5 — Infrastructure quality**
-- Replace console.log with structured logger (pino)
-- Persist RPC analytics to PostgreSQL
-- Add database indexes on alerts.enabled, actions.enabled, alert_history.triggered_at
-- Batch alert matching queries (one RPC multicall, fan out to matchers)
-- Bind Anvil forks to 127.0.0.1
-
----
-
-### Trace SDK — design notes
+The session was named `trace` and the Trace SDK is still the next major piece.
+Full design notes preserved below.
 
 **Goal:** A standalone package (`packages/sdk`, published as `@pulsechain-dev/trace-sdk`)
-that lets users load EVM trace data from any source and render or process each piece
-independently. No dependency on this platform's API or database — works with any node
-that supports debug_traceTransaction.
+that lets users load EVM trace data from any source and render or process each
+piece independently. No dependency on this platform's API or database — works
+with any node that supports debug_traceTransaction.
 
 **Package structure:**
+
 ```
 packages/sdk/
   src/
@@ -147,6 +139,7 @@ packages/sdk/
 - `<RevertExplainer trace={...} />` — surfaces the revert frame + reason string
 
 **5. Canonical types** (in types.ts, not tied to any wire format):
+
 ```typescript
 interface TraceFrame {
   type: 'CALL' | 'STATICCALL' | 'DELEGATECALL' | 'CREATE' | 'CREATE2'
@@ -177,11 +170,29 @@ interface TraceFrame {
 
 ---
 
-### Blockers / gotchas
+### Suggested next steps
 
-- Public PulseChain RPC (rpc.pulsechain.com) is slow for complex traces (10-15s). Using a
-  private/dedicated RPC via PULSECHAIN_RPC_URL env var is strongly recommended.
-- Source map recompilation downloads the correct solc binary on first use (~3s), then caches.
-  Requires internet access at debug time for contracts not yet in the local cache.
-- Anvil must be installed (Foundry toolchain) for fork-based simulation and fork testnets.
-  The integration tests skip gracefully if Anvil is not present.
+**A. Phase 2 — Trace SDK** (the original plan; design above)
+- Scaffold packages/sdk with canonical types
+- Implement loaders + traversal utilities first (testable in isolation)
+- Extract components from packages/web/src/components/debugger/ second
+- Templates last
+
+**B. Phase 3 — Validation hardening**
+- Add Zod schemas to /api/actions routes
+- Add ownership checks to action/alert routes
+
+**C. CLAUDE.md cleanup**
+- Fix the stale "port 3001" — actual API port is 10100 (see .env.example,
+  docker-compose.yml). Same fix needed in packages/api/Dockerfile:30.
+
+---
+
+### Blockers / gotchas (unchanged)
+
+- Public PulseChain RPC (rpc.pulsechain.com) is slow for complex traces. The
+  user has provided a private RPC; it lives in `.env` only (never commit).
+- Source map recompilation downloads solc on first use (~3s), then caches.
+  Requires internet access at debug time for fresh contracts.
+- Anvil must be installed (Foundry toolchain) for fork-based simulation and
+  fork testnets. Integration tests skip gracefully if Anvil is absent.

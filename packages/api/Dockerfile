@@ -27,5 +27,5 @@ COPY shared/ shared/
 COPY --from=base /app/packages/api/dist packages/api/dist
 COPY packages/api/migrations packages/api/migrations
 
-EXPOSE 3001
+EXPOSE 10100
 CMD ["node", "packages/api/dist/index.js"]
