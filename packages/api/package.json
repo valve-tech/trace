@@ -1,5 +1,5 @@
 {
-  "name": "@pulsechain-dev-platform/api",
+  "name": "@valve-tech/trace-api",
   "version": "1.0.0",
   "private": true,
   "type": "module",

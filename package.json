@@ -1,5 +1,5 @@
 {
-  "name": "pulsechain-dev-platform",
+  "name": "@valve-tech/trace-platform",
   "private": true,
   "type": "module",
   "workspaces": [

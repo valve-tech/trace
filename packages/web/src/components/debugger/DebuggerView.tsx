@@ -5,7 +5,7 @@ import {
   GasFlamegraph,
   OpcodeViewer,
   normalizeCallFrame,
-} from "@pulsechain-dev/trace-sdk";
+} from "@valve-tech/trace-sdk";
 import {
   fetchTrace,
   fetchGasProfile,

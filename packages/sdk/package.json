@@ -1,10 +1,34 @@
 {
-  "name": "@pulsechain-dev/trace-sdk",
+  "name": "@valve-tech/trace-sdk",
   "version": "0.1.0",
   "description": "Standalone EVM trace loading, traversal, and rendering toolkit. No platform dependencies.",
+  "keywords": [
+    "evm",
+    "trace",
+    "pulsechain",
+    "ethereum",
+    "debugger",
+    "flamegraph",
+    "gas-profiler",
+    "react"
+  ],
+  "homepage": "https://github.com/valve-tech/trace/tree/main/packages/sdk#readme",
+  "bugs": {
+    "url": "https://github.com/valve-tech/trace/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/valve-tech/trace.git",
+    "directory": "packages/sdk"
+  },
+  "license": "MIT",
+  "author": "Valve Tech <dev@valve.city>",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -28,13 +52,16 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
@@ -60,6 +87,5 @@
     "viem": "^2.23.2",
     "vitest": "^4.1.1"
   },
-  "sideEffects": false,
-  "license": "UNLICENSED"
+  "sideEffects": false
 }

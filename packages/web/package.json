@@ -1,5 +1,5 @@
 {
-  "name": "@pulsechain-dev-platform/web",
+  "name": "@valve-tech/trace-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -11,7 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@pulsechain-dev/trace-sdk": "*",
+    "@valve-tech/trace-sdk": "*",
     "@tanstack/query-persist-client-core": "^5.95.2",
     "@tanstack/query-sync-storage-persister": "^5.95.2",
     "@tanstack/react-query": "^5.95.2",
