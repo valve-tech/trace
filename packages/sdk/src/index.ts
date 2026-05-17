@@ -50,10 +50,18 @@ export {
 // Components (React peer dep)
 export {
   CallTree,
+  GasFlamegraph,
+  buildFlamegraphLayout,
+  adjustBrightness,
+  getBarColor,
   truncateAddress,
   formatGas,
   formatWei,
   getFunctionSelector,
   type CallTreeProps,
   type CallTreeClassNames,
+  type GasFlamegraphProps,
+  type GasFlamegraphClassNames,
+  type FlamegraphBar,
+  type LayoutOptions,
 } from "./components/index.js";

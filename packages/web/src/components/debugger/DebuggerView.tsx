@@ -1,6 +1,10 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CallTree, normalizeCallFrame } from "@pulsechain-dev/trace-sdk";
+import {
+  CallTree,
+  GasFlamegraph,
+  normalizeCallFrame,
+} from "@pulsechain-dev/trace-sdk";
 import {
   fetchTrace,
   fetchGasProfile,
@@ -10,10 +14,10 @@ import {
   type OpcodeProfile,
   type OpcodeStep,
 } from "../../api/debugger";
+import { lookupWellKnown } from "../../lib/wellKnownSignatures";
 import GasProfiler from "./GasProfiler";
 import OpcodeViewer from "./OpcodeViewer";
 import StepDebugger from "./StepDebugger";
-import GasFlamegraph from "./GasFlamegraph";
 
 type DebugTab = "debugger" | "calltree" | "gas" | "opcodes";
 
@@ -367,8 +371,13 @@ export default function DebuggerView() {
 
             {activeTab === "gas" && (
               <div className="space-y-4">
-                {callTrace && (
-                  <GasFlamegraph callTrace={callTrace} signatureMap={{}} />
+                {normalizedTrace && (
+                  <GasFlamegraph
+                    frame={normalizedTrace}
+                    resolveSelector={(sel) =>
+                      lookupWellKnown(sel)?.signature?.split("(")[0]
+                    }
+                  />
                 )}
                 {gasProfile ? (
                   <GasProfiler
