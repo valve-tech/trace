@@ -106,3 +106,17 @@ export {
   type FlamegraphBar,
   type LayoutOptions,
 } from "./components/index.js";
+
+// Templates (composition of components — React peer dep)
+export {
+  CompactCallSummary,
+  RevertExplainer,
+  FullDebuggerLayout,
+  type CompactCallSummaryProps,
+  type CompactCallSummaryClassNames,
+  type RevertExplainerProps,
+  type RevertExplainerClassNames,
+  type FullDebuggerLayoutProps,
+  type FullDebuggerLayoutClassNames,
+  type FullDebuggerTabId,
+} from "./templates/index.js";

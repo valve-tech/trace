@@ -55,6 +55,7 @@ import { walkCallTree, buildGasProfile } from "@valve-tech/trace-sdk/traversal";
 import { parseTokenDeltas, parsePrestateDiff } from "@valve-tech/trace-sdk/parsers";
 import { analyzeRisks } from "@valve-tech/trace-sdk/risks";
 import { CallTree, GasFlamegraph, OpcodeViewer, FindingsPanel } from "@valve-tech/trace-sdk/components";
+import { FullDebuggerLayout, RevertExplainer, CompactCallSummary } from "@valve-tech/trace-sdk/templates";
 import type { CallNode, TraceFrame, GasProfile } from "@valve-tech/trace-sdk/types";
 ```
 
@@ -100,6 +101,23 @@ import type { CallNode, TraceFrame, GasProfile } from "@valve-tech/trace-sdk/typ
 - `<FrameDetailPanel>` — renders metadata for a single `TraceFrame` (call type, gas, value, error, decoded I/O)
 
 All components accept a `classNames` prop for full style override.
+
+### Templates (`/templates`, React peer dep)
+
+Higher-order compositions of the components — drop-in views for common
+trace consumers:
+
+- `<FullDebuggerLayout trace? opcodes? stateDiffs? risks? />` — tabbed
+  view (Call Tree / Opcodes / State / Risks). Each tab independently
+  renders its empty state when data is missing; the Call Tree tab
+  shows a `<FrameDetailPanel>` underneath after a frame is selected.
+- `<RevertExplainer frame />` — locates the innermost reverting frame,
+  surfaces its `revertReason` prominently, and shows the breadcrumb
+  chain from root to the reverter. Renders a success message when the
+  transaction did not revert.
+- `<CompactCallSummary frame maxDepth? />` — one-line-per-call terse
+  summary with status badge + total-gas chip; suitable for embedding
+  in logs, alerts, or chat messages.
 
 ## License
 

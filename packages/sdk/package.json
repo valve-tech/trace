@@ -57,6 +57,10 @@
     "./risks": {
       "types": "./dist/risks/index.d.ts",
       "import": "./dist/risks/index.js"
+    },
+    "./templates": {
+      "types": "./dist/templates/index.d.ts",
+      "import": "./dist/templates/index.js"
     }
   },
   "files": [
