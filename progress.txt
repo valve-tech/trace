@@ -1,186 +1,229 @@
 # PulseChain Dev Platform — Progress
 
-## Session: 2026-05-16 — checkpoint after Trace SDK push
+## Session: 2026-05-17 — public repo, multi-feature drop, SDK 0.1.1 published
 
-### Commits this session (oldest → newest)
+### Headline events
+
+- **`@valve-tech/trace-sdk` 0.1.0 and 0.1.1 published to npm.**
+  - 0.1.0 was a manual `npm publish`; 0.1.1 went through OIDC trusted
+    publishing from `.github/workflows/publish-sdk.yml` (run 25981335444).
+  - Repo is now public to unblock free GitHub Actions minutes.
+- **Monorepo brand rename**: `pulsechain-dev` → `@valve-tech` for all
+  packages; DB credentials `pulsedev` → `valvetech`; JSON-RPC method
+  namespace `pulsedev_*` → `valve_*`.
+- **Four feature buckets shipped from the queue**:
+  1. Pure parsers (`parseTokenDeltas`, `parsePrestateDiff`) — in 0.1.1
+  2. Risk analyzer (`analyzeRisks` + `<FindingsPanel>`) — committed,
+     not yet published (still on 0.1.1 in package.json per user direction)
+  3. Detail components (`<StateDiffPanel>`, `<FrameDetailPanel>`) — committed
+  4. Web-side type cleanup — `as unknown as` cast removed in DebuggerView
+
+### Commits this session
 
 ```
-9668e68 fix:      AddressView contract-creation + RpcTester prop reactivity + re-audit
-77f05f8 feat:     scaffold trace SDK (packages/sdk) with loaders, traversal, tests
-7169b35 refactor: extract CallTree component from packages/web into SDK
-e010ec5 test:     backfill SDK coverage to 99/93/97/99 + add components/formatters tests
-c89a8ba feat(sdk): 100% coverage + consumer API aliases (parseCallTrace, CallNode)
-1a8ab13 test(sdk): enforce 100% coverage via vitest thresholds
-3083951 refactor: extract GasFlamegraph to SDK with 100% coverage
-290e114 refactor: extract OpcodeViewer to SDK with 100% coverage
+43250a2 feat(sdk): prepare 0.1.0 for npm publish; rename monorepo to @valve-tech
+e9fc0a7 feat(sdk): add parseTokenDeltas and parsePrestateDiff parsers (0.1.1)
+88ec65d refactor: rename pulsedev → valvetech (DB) and pulsedev_ → valve_ (RPC)
+c857e10 feat(sdk): add analyzeRisks + FindingsPanel (risk-analysis bucket)
+865e556 feat(sdk): add StateDiffPanel component for visualizing state changes
+ec3f427 feat(sdk): add FrameDetailPanel for single-frame metadata views
+633f549 refactor(web): alias CallFrame to SDK RawCallFrame; drop OpcodeViewer cast
 ```
 
-All on `main`, none pushed.
+All on `main` and pushed to `origin/main`. Tag `sdk-v0.1.1` published.
 
 ---
 
-### Trace SDK — current state
+### Trace SDK — current state at HEAD
 
-`packages/sdk` (`@pulsechain-dev/trace-sdk`) is a standalone EVM trace toolkit.
-Public-facing API surface:
+`packages/sdk` is `@valve-tech/trace-sdk`, **version 0.1.1 in package.json**
+(unchanged since publish — three feature commits accumulated on top
+waiting for the next bump).
+
+#### Public-facing API surface
 
 **Types** (`src/types.ts`)
-- Wire-format: `RawCallFrame`, `RawStructLog`, `RawCallType`
-- Canonical: `TraceFrame` (bigint values, `children`, branded Address/Hex,
-  `to: Address | null` for CREATE), `OpcodeStep`, `StateDiff`, `StorageChange`,
-  `GasProfile`, `GasProfileEntry`, `DecodedParam`, `TraceResult`, `CallType`
+- Wire-format: `RawCallFrame` (with `logs?: RawLog[]`), `RawLog`,
+  `RawStructLog`, `RawCallType`, `RawPrestateAccount`, `RawPrestateDiff`
+- Canonical: `TraceFrame` (with `logs?: Log[]`), `Log`, `OpcodeStep`,
+  `StateDiff`, `StorageChange`, `GasProfile`, `GasProfileEntry`,
+  `DecodedParam`, `TraceResult`, `CallType`
+- Parser outputs: `TokenDelta`, `BalanceDelta`
+- Risk types: `RiskFlag`, `RiskSeverity`, `RiskFlagType`,
+  `AnalyzeRisksOptions`
 - Consumer aliases: `CallNode = TraceFrame`
 
-**Loaders** (`src/loaders/`)
-- `loadTraceFromObject({ callFrame, structLogs?, txHash?, blockNumber? })`
-- `loadTraceFromFile(jsonString)`
-- `loadTraceFromHash({ txHash, rpcUrl, fetch?, timeoutMs? })`
-- `normalizeCallFrame` / consumer alias `parseCallTrace`
-- `normalizeStructLogs`
+**Loaders** (`src/loaders/`) — unchanged
+- `loadTraceFromObject`, `loadTraceFromFile`, `loadTraceFromHash`
+- `normalizeCallFrame` / alias `parseCallTrace`, `normalizeStructLogs`
+- `normalizeCallFrame` now passes `logs` through (lowercased addresses,
+  preserved topics/data)
 
-**Traversal** (`src/traversal/`) — all explicit-stack, safe on 50k-deep trees
-- `walkCallTree(frame, { enter?, exit? })` — `enter` can return `false` or `"skip"`
-- `flattenCallTree(frame)` → `FlatFrame[]` with pre-order indices
-- `filterByAddress(frame, address, options)`
-- `filterBySelector(frame, selector)`
-- `findRevertFrame(frame)` — innermost reverter
-- `buildGasProfile(frame)` — bottom-up `selfGas` reduction
+**Traversal** (`src/traversal/`) — unchanged
+- `walkCallTree`, `flattenCallTree`, `filterByAddress`, `filterBySelector`,
+  `findRevertFrame`, `buildGasProfile`
+
+**Parsers** (`src/parsers/`) — NEW in 0.1.1
+- `parseTokenDeltas(frame) → TokenDelta[]` — ERC-20 Transfer extractor.
+  Walks tree, skips reverted subtrees (their logs are rolled back).
+  Disambiguates ERC-20 (3 topics) from ERC-721 (4 topics) by topic count.
+- `parsePrestateDiff(raw) → BalanceDelta[]` — net ETH balance changes
+  from prestateTracer diffMode payload. Three-way semantic for missing
+  post entries (absent address = self-destruct, undefined .balance =
+  unchanged, defined = new value). Sorted by address ascending.
+
+**Risks** (`src/risks/`) — NEW (committed, in 0.1.1+, not yet published)
+- `analyzeRisks(frame, options?) → RiskFlag[]` — pure call-tree walker.
+  Walks INTO reverted subtrees and tags findings with `reverted: true`
+  rather than skipping (security audits want "what almost happened").
+  Maintains a reverted-ancestor stack via enter/exit hooks.
+- Built-in rule: `delegatecallUnrecognized` — flags any DELEGATECALL
+  whose target is not in the optional `whitelist` Set.
+- `BUILTIN_RULES` and `RiskRule` type exported for custom rule composition.
+- Rules return `Omit<RiskFlag, "reverted">` — analyzer owns that field.
 
 **Components** (`src/components/`)
-- `<CallTree frame={…} onSelect={…} classNames={…} />`
-- `<GasFlamegraph frame={…} resolveSelector={…} classNames={…} />`
-- `<OpcodeViewer steps={…} onSelectStep={…} classNames={…} />`
+- `<CallTree>` — interactive call tree (existing)
+- `<GasFlamegraph>` — proportional gas-cost flamegraph (existing)
+- `<OpcodeViewer>` — step-by-step opcode trace (existing)
+- `<FindingsPanel>` — renders `RiskFlag[]` grouped by severity (NEW)
+- `<StateDiffPanel>` — renders `StateDiff[]` with balance/nonce/code/
+  storage changes per address (NEW)
+- `<FrameDetailPanel>` — single-frame metadata view with decoded I/O,
+  error banner, function selector (NEW)
 - Pure helpers also exported: `truncateAddress`, `formatGas`, `formatWei`,
   `getFunctionSelector`, `classifyOpcode`, `getOpcodeColor`, `isExpensiveOp`,
   `OPCODE_CATEGORY_COLORS`, `buildFlamegraphLayout`, `adjustBrightness`,
   `getBarColor`
-- All components use sensible default colors + per-slot `classNames` for theming
 
 **Util** (`src/util/`)
 - `describeUnknownError(err)` — extracted catch-block helper
 
 **Test infrastructure**
 - vitest + jsdom + @testing-library/react + @vitest/coverage-v8
-- 157 tests pass; coverage gated at **100/100/100/100** via vitest thresholds
-- Coverage threshold enforcement IS active — drops fail `npm run test --workspace=packages/sdk`
-- Test fixtures: `tests/fixtures.ts` (`sampleRawCallFrame`, `makeFrame`, `addrs`)
+- 252 tests pass; coverage gated at **100/100/100/100** via vitest thresholds
 
 **Wiring into web**
-- `packages/web` depends on `@pulsechain-dev/trace-sdk: "*"` (npm workspace link)
-- `DebuggerView.tsx` imports `CallTree`, `GasFlamegraph`, `OpcodeViewer`,
-  `normalizeCallFrame` from SDK; normalizes wire-format CallFrame at the
-  render boundary via `useMemo(() => normalizeCallFrame(callTrace), [callTrace])`
-- For OpcodeViewer the Hex-vs-string nominal mismatch is bridged with
-  `as unknown as Parameters<typeof OpcodeViewer>[0]["steps"]` — runtime
-  identical, type system reconciliation deferred until the web API client
-  is migrated to import types from SDK
+- `packages/web` depends on `@valve-tech/trace-sdk: "*"` (npm workspace link)
+- `DebuggerView.tsx` now uses `normalizeStructLogs` to convert raw opcode
+  steps; the `as unknown as` cast is gone
+- `packages/web/src/api/debugger.ts` aliases `CallFrame` to SDK's
+  `RawCallFrame`; `OpcodeStep` kept local with required stack/memory/storage
+  (loosening to optional would cascade into StepDebugger)
+
+---
+
+### Subpath exports + provenance
+
+```jsonc
+"./" → main index
+"./types"      → all types
+"./loaders"    → loaders
+"./traversal"  → traversal helpers
+"./parsers"    → parseTokenDeltas, parsePrestateDiff      (NEW)
+"./risks"      → analyzeRisks, BUILTIN_RULES, RiskRule    (NEW)
+"./components" → React components (peer dep)
+```
+
+OIDC trusted publishing configured: GitHub repo `valve-tech/trace`,
+workflow `publish-sdk.yml`, no environment. Tag-push trigger on `sdk-v*`.
 
 ---
 
 ### Coverage policy (hard gate, enforced)
 
 100/100/100/100 statements/branches/functions/lines, enforced by
-`packages/sdk/vitest.config.ts` `coverage.thresholds`. The gate has
-already caught 3 regressions in this session:
-1. Empty-string `from` bug in `normalize.ts` (the test forced the fix)
-2. Dead-code while loop in `flamegraphLayout.ts` (deleted, not tested)
-3. Unmeasured `OpcodeLegend` component (added a `hideLegend=false` test)
-
-Memory note: `~/.claude/projects/.../memory/sdk_coverage_policy.md`
-captures the policy + the pure-function extraction pattern (`src/util/errors.ts`)
-for the "next session" to follow.
+`packages/sdk/vitest.config.ts` `coverage.thresholds`. Caught a dead
+sort-equality branch in `parsePrestateDiff` (refactored to 2-branch
+comparator) and forced the FrameDetailPanel's selector handling to
+treat the `"(fallback)"` sentinel as no selector.
 
 ---
 
 ### Outstanding work — explicit consumer queue
 
-Per user requests captured in memory
-(`sdk_consumer_api_contract.md`, `sdk_findings_features.md`):
+**1. StepDebugger extraction** (1829 lines in web; deferred)
+   - Web's version is deeply intertwined with: useContractSource,
+     useSourceMappings, useContractNames, useSignatures hooks plus
+     analyzeContract, lookupWellKnown calls. Pulling it cleanly into
+     SDK needs a data-agnostic redesign (`steps`, optional source map
+     overlay via props/callback).
+   - Recommended next-session approach: ship a minimal SDK
+     `<StepDebugger>` + `useOpcodeNavigation` hook covering pure
+     step-navigation (forward/back/jumpTo, semantic next-call /
+     next-storage stepping). Web wraps it with the source-map hooks.
 
-**1. Remaining component extractions**
-   - `StepDebugger` — step-by-step opcode navigator (couples to OpcodeViewer
-     via shared step index; likely extract small `useOpcodeNavigation` hook)
-   - `SourceViewer` — most complex; depends on source-map + recompile data
-     from the API. Should ship as data-agnostic with `source: string` +
-     `highlightLine: number` props
-   - `StateDiffPanel`, `FrameDetailPanel` — not explicitly requested but
-     listed in original SDK design notes
+**2. SourceViewer extraction**
+   - Should ship as data-agnostic with `source: string` +
+     `highlightLine: number` props; web wraps with source-map fetcher.
 
-**2. Pure-parser additions (consumer API contract)**
-   - `parseTokenDeltas(callTree): TokenDelta[]` — extract ERC-20 Transfer
-     events. Requires extending `RawCallFrame` with optional
-     `logs?: RawLog[]` (from callTracer `withLog: true` mode) OR accepting
-     logs as a sibling input
-   - `parsePrestateDiff(raw): BalanceDelta[]` — parse prestateTracer
-     diffMode JSON. Independent of call tree
-   - Both pure functions, no I/O, easy to test at 100%
+**3. Risk analyzer follow-ups**
+   - `TOKEN_SENT_TO_TOKEN_CONTRACT` — needs an address classifier
+     (`eth_getCode` non-empty + `balanceOf(address)` selector). Adds
+     an optional `classifyAddress?: (addr) => boolean` to
+     `AnalyzeRisksOptions`.
+   - `LARGE_APPROVAL` — flag `approve(..., uint256.max)` patterns.
 
-**3. Risk analyzer + UI**
-   - `analyzeRisks(callTree, whitelist: Set<Address>): RiskFlag[]`
-   - Initial rule types: `DELEGATECALL_UNRECOGNIZED`,
-     `TOKEN_SENT_TO_TOKEN_CONTRACT`, eventually `LARGE_APPROVAL`
-   - `<FindingsPanel risks={…} />` component to render the output
-   - Need a heuristic or registry for "is this address a token contract?"
-     (heuristic: `eth_getCode` non-empty + `balanceOf(address)` selector)
-
-**4. Web-side cleanup (small)**
-   - Migrate `packages/web/src/api/debugger.ts` `OpcodeStep` to import from
-     SDK, eliminating the `as unknown as` cast in DebuggerView
-   - Same for `CallFrame` — would let us drop the `normalizeCallFrame` step
-     for already-canonical data (though API server returns wire format so
-     normalization at boundary still needed; this is more about type
-     compatibility than runtime)
+**4. Cosmetics / future**
+   - Web's `FindingsPanel.tsx` (Slither static analysis) collides in
+     name with SDK's runtime `FindingsPanel`. Rename to
+     `SlitherFindingsPanel` for clarity.
+   - `.serena/project.yml` still says `pulsechain-dev-platform`.
+   - GitHub Actions Node 20 deprecation warning on `actions/checkout@v4`
+     and `actions/setup-node@v4` — forced to Node 24 in June 2026.
 
 ---
 
-### Audit context (still valid from earlier this session)
+### How to ship the accumulated commits (next publish)
 
-**Bugs verified present** (see `docs/CODEBASE_MAP.md` Gotchas for canonical
-list with file:line refs):
-- vm sandbox in `actionExecutor.ts` escapable
-- Anvil forks bind 0.0.0.0
-- Bundle simulation doesn't propagate inter-tx state (by design)
-- `/api/actions` POST + PUT lack Zod validation
-- ABI cache never invalidates
-- RPC analytics in-memory only
-- Alert matching N+1 RPC pattern
-- 6 fire-and-forget `void setCachedTrace()` in tracer.ts
-- 3 places of `getOpcodeColor` duplication (now collapsing as SDK helpers
-  spread — this list will shrink as more components extract)
-- `StatusBadge` duplicated across 3 components
-- `StateOverrides` UI single-empty-slot limit
-- Telegram parse_mode HTML mismatch (latent)
-- Tab switching unmounts components — unsaved form state lost
-- 119 `console.*` calls in API source (no structured logger)
-
-**Bugs fixed this session in commit 9668e68:**
-- `AddressView` "Contract Creation" badge for `tx.to === ""`
-- `RpcTester` `useState(initializer)` → `useEffect` for prop reactivity
+1. Bump `packages/sdk/package.json` version to `0.2.0` (new
+   subpath exports + new React component = minor under conventional
+   semver, even though no breakages; alternative: stay on patch with
+   `0.1.2`)
+2. `git tag -a sdk-v0.2.0 -m "..."` and `git push --tags`
+3. Workflow fires, OIDC publish via trusted publisher
 
 ---
 
-### Environment / deployment
+### Environment / deployment (unchanged)
 
-- `.env` (gitignored) has `PULSECHAIN_RPC_URL` + `DEBUG_RPC_URL` pointing at
-  the user's private RPC. Never commit. See memory `secrets_handling.md`.
-- No remote deploy configs in repo — only local docker-compose. API port
-  is **10100** (not 3001; CLAUDE.md was updated). See memory
-  `deployment_and_env.md`.
-- API loads `.env` via `dotenv/config` in `packages/api/src/index.ts:1`.
+- `.env` (gitignored, never tracked in git history — verified)
+  has `PULSECHAIN_RPC_URL` + `DEBUG_RPC_URL` pointing at the user's
+  private RPC. Never commit. See memory `secrets_handling.md`.
+- API port is **10100**. API loads `.env` via `dotenv/config` in
+  `packages/api/src/index.ts:1`.
+- Local Postgres: docker-compose env now uses `valvetech` user/pass/db.
+  If a previous `pulsedev`-initialized `pgdata` volume exists locally,
+  either `docker compose down -v` or `ALTER USER … RENAME TO …` inside
+  the running container.
 
 ---
 
-### Trace SDK — original design notes (preserved for reference)
+### Audit context — pre-public secrets scan (passed, repo is public)
 
-The full design spec from the prior checkpoint remains accurate. The work
-to date implements:
+Verified before flipping repo public:
+- `.env` never tracked in git history
+- No private keys, JWTs, AWS keys, or third-party RPC URLs in source or history
+- No cert/key files tracked
+- API key system properly hashes; no seed data
+- Dev DB creds (`valvetech:valvetech@localhost`) are localhost-only placeholders
+
+---
+
+### Trace SDK — design completion vs original notes
+
+The full design spec from earlier checkpoints remains accurate.
+Implementation status:
 - ✅ Loaders (3 of 3): hash, object, file
 - ✅ Traversal (6 of 6): walk, flatten, filterByAddress, filterBySelector,
      findRevertFrame, buildGasProfile
-- ✅ Components (3 of 6+): CallTree, GasFlamegraph, OpcodeViewer
-- ⏳ Components (3 remaining): StepDebugger, SourceViewer, FindingsPanel
+- ✅ Parsers (2 of 2 named): parseTokenDeltas, parsePrestateDiff
+- ✅ Risks (1 of 3 rules): DELEGATECALL_UNRECOGNIZED; remaining
+     TOKEN_SENT_TO_TOKEN_CONTRACT + LARGE_APPROVAL deferred
+- ✅ Components (5 of 6+): CallTree, GasFlamegraph, OpcodeViewer,
+     FindingsPanel, StateDiffPanel, FrameDetailPanel
+- ⏳ Components (2 remaining): StepDebugger, SourceViewer
 - ⏳ Templates (0 of 3): FullDebuggerLayout, CompactCallSummary, RevertExplainer
-- ⏳ Parsers (0 of 3 new): parseTokenDeltas, parsePrestateDiff, analyzeRisks
 
 ---
 
