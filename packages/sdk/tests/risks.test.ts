@@ -1,7 +1,33 @@
 import { describe, it, expect } from "vitest";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 import { analyzeRisks } from "../src/risks/index.js";
 import { addrs, makeFrame } from "./fixtures.js";
+import type { Log, TraceFrame } from "../src/types.js";
+
+const APPROVAL_TOPIC =
+  "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925";
+const UINT256_MAX = 2n ** 256n - 1n;
+
+function addrTopic(address: Address): Hex {
+  return (`0x000000000000000000000000${address.slice(2)}`).toLowerCase() as Hex;
+}
+
+function uint256Hex(n: bigint): Hex {
+  return (`0x${n.toString(16).padStart(64, "0")}`) as Hex;
+}
+
+function approvalLog(
+  token: Address,
+  owner: Address,
+  spender: Address,
+  value: bigint,
+): Log {
+  return {
+    address: token,
+    topics: [APPROVAL_TOPIC as Hex, addrTopic(owner), addrTopic(spender)],
+    data: uint256Hex(value),
+  };
+}
 
 describe("analyzeRisks", () => {
   it("returns empty array for a trace with no delegatecalls", () => {
@@ -174,5 +200,141 @@ describe("analyzeRisks", () => {
       to: addrs.VAULT,
     });
     expect(analyzeRisks(frame)).toHaveLength(1);
+  });
+});
+
+describe("analyzeRisks — largeApproval rule", () => {
+  it("flags an Approval at uint256.max with warning severity", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({ to: addrs.CONTRACT }),
+      logs: [approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, UINT256_MAX)],
+    };
+    const flags = analyzeRisks(frame);
+    expect(flags).toHaveLength(1);
+    expect(flags[0]).toEqual({
+      type: "LARGE_APPROVAL",
+      severity: "warning",
+      message: `Large ERC-20 approval to ${addrs.BOB} (value ${UINT256_MAX})`,
+      address: addrs.BOB,
+      depth: 0,
+      childIndex: 0,
+      reverted: false,
+    });
+  });
+
+  it("does not flag a small Approval at default threshold", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, 1_000n)],
+    };
+    expect(analyzeRisks(frame)).toEqual([]);
+  });
+
+  it("flags everything >= a lowered threshold", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, 2n ** 128n),
+        approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.VAULT, 1_000n),
+      ],
+    };
+    const flags = analyzeRisks(frame, { largeApprovalThreshold: 2n ** 128n });
+    expect(flags).toHaveLength(1);
+    expect(flags[0].address).toBe(addrs.BOB);
+  });
+
+  it("emits one flag per large Approval log on the same frame", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, UINT256_MAX),
+        approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.VAULT, UINT256_MAX),
+      ],
+    };
+    const flags = analyzeRisks(frame);
+    expect(flags).toHaveLength(2);
+    expect(flags.map((f) => f.address)).toEqual([addrs.BOB, addrs.VAULT]);
+  });
+
+  it("ignores ERC-721 Approval (4 topics) and non-Approval logs", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          // ERC-721 Approval — 4 topics
+          address: addrs.CONTRACT,
+          topics: [
+            APPROVAL_TOPIC as Hex,
+            addrTopic(addrs.ALICE),
+            addrTopic(addrs.BOB),
+            uint256Hex(42n),
+          ],
+          data: "0x" as Hex,
+        },
+        {
+          // Transfer topic — not an Approval
+          address: addrs.CONTRACT,
+          topics: [
+            "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as Hex,
+            addrTopic(addrs.ALICE),
+            addrTopic(addrs.BOB),
+          ],
+          data: uint256Hex(UINT256_MAX),
+        },
+      ],
+    };
+    expect(analyzeRisks(frame)).toEqual([]);
+  });
+
+  it("ignores Approval-shaped logs with unparseable value data", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [APPROVAL_TOPIC as Hex, addrTopic(addrs.ALICE), addrTopic(addrs.BOB)],
+          data: "garbage" as Hex,
+        },
+      ],
+    };
+    expect(analyzeRisks(frame)).toEqual([]);
+  });
+
+  it("ignores Approval-shaped logs with malformed topic lengths", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [APPROVAL_TOPIC as Hex, "0x1234" as Hex, addrTopic(addrs.BOB)],
+          data: uint256Hex(UINT256_MAX),
+        },
+        {
+          address: addrs.CONTRACT,
+          topics: [APPROVAL_TOPIC as Hex, addrTopic(addrs.ALICE), "0x5678" as Hex],
+          data: uint256Hex(UINT256_MAX),
+        },
+      ],
+    };
+    expect(analyzeRisks(frame)).toEqual([]);
+  });
+
+  it("stamps reverted: true on flags from reverted subtrees", () => {
+    const frame = makeFrame({
+      type: "CALL",
+      children: [
+        {
+          ...makeFrame({
+            type: "CALL",
+            depth: 1,
+            error: "execution reverted",
+          }),
+          logs: [approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, UINT256_MAX)],
+        },
+      ],
+    });
+    const flags = analyzeRisks(frame);
+    expect(flags).toHaveLength(1);
+    expect(flags[0].reverted).toBe(true);
   });
 });

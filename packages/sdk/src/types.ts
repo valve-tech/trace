@@ -205,6 +205,19 @@ export interface TokenDelta {
 }
 
 /**
+ * A decoded ERC-20 Approval event. ERC-721 shares the topic hash but is
+ * filtered out by topic count. `value` is the approved allowance amount —
+ * `2n ** 256n - 1n` is the canonical "unlimited approval" sentinel.
+ */
+export interface TokenApproval {
+  token: Address;
+  owner: Address;
+  spender: Address;
+  value: bigint;
+  logIndex: number;
+}
+
+/**
  * Per-address account state as it appears inside the prestateTracer diff-mode
  * envelope. All fields are optional — only changed fields appear, and an
  * account may be entirely absent from `post` if it self-destructed.
@@ -254,7 +267,7 @@ export type RiskSeverity = "info" | "warning" | "danger";
  * the type; the SDK's built-in rules add their own literal members here as
  * they ship.
  */
-export type RiskFlagType = "DELEGATECALL_UNRECOGNIZED";
+export type RiskFlagType = "DELEGATECALL_UNRECOGNIZED" | "LARGE_APPROVAL";
 
 /**
  * One finding emitted by `analyzeRisks`. `depth` and `childIndex` give a
@@ -280,7 +293,13 @@ export interface RiskFlag {
  * Optional inputs to `analyzeRisks`. The whitelist suppresses rules that
  * would otherwise flag a known-trusted target — addresses must be lowercase
  * to match the normalized call-frame address shape.
+ *
+ * `largeApprovalThreshold` lowers the cutoff for the LARGE_APPROVAL rule:
+ * any decoded Approval whose `value >= threshold` is flagged. Defaults to
+ * `2n ** 256n - 1n` (only literal "unlimited" approvals); pass e.g.
+ * `2n ** 128n` to also catch common phishing variants.
  */
 export interface AnalyzeRisksOptions {
   whitelist?: Set<Address>;
+  largeApprovalThreshold?: bigint;
 }

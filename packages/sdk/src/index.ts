@@ -20,6 +20,7 @@ export type {
   SourceLocation,
   StateDiff,
   StorageChange,
+  TokenApproval,
   TokenDelta,
   TraceFrame,
   TraceResult,
@@ -61,6 +62,7 @@ export {
 export {
   parseTokenDeltas,
   parsePrestateDiff,
+  parseApprovals,
 } from "./parsers/index.js";
 
 // Risks
@@ -68,6 +70,7 @@ export {
   analyzeRisks,
   BUILTIN_RULES,
   delegatecallUnrecognized,
+  largeApproval,
   type RiskRule,
 } from "./risks/index.js";
 

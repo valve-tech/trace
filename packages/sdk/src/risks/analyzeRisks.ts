@@ -32,8 +32,9 @@ export function analyzeRisks(
     enter(frame, depth, childIndex) {
       const inReverted = revertedAncestors > 0 || !!frame.error;
       for (const rule of BUILTIN_RULES) {
-        const flag = rule(frame, depth, childIndex, options);
-        if (flag) flags.push({ ...flag, reverted: inReverted });
+        for (const flag of rule(frame, depth, childIndex, options)) {
+          flags.push({ ...flag, reverted: inReverted });
+        }
       }
       if (frame.error) revertedAncestors++;
     },

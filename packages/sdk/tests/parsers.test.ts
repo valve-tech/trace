@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import type { Address, Hex } from "viem";
-import { parseTokenDeltas, parsePrestateDiff } from "../src/parsers/index.js";
+import {
+  parseTokenDeltas,
+  parsePrestateDiff,
+  parseApprovals,
+} from "../src/parsers/index.js";
 import { normalizeCallFrame } from "../src/loaders/normalize.js";
 import { addrs, makeFrame } from "./fixtures.js";
 import type {
@@ -396,5 +400,175 @@ describe("parsePrestateDiff", () => {
       post: { [addrs.ALICE]: { balance: "0x5" } },
     };
     expect(parsePrestateDiff(raw)[0].preBalance).toBe(0n);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseApprovals
+// ---------------------------------------------------------------------------
+
+const APPROVAL_TOPIC =
+  "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925";
+
+function approvalLog(
+  token: Address,
+  owner: Address,
+  spender: Address,
+  value: bigint,
+): Log {
+  return {
+    address: token,
+    topics: [APPROVAL_TOPIC as Hex, addrTopic(owner), addrTopic(spender)],
+    data: uint256Hex(value),
+  };
+}
+
+describe("parseApprovals", () => {
+  it("returns empty array when no logs", () => {
+    expect(parseApprovals(makeFrame({}))).toEqual([]);
+  });
+
+  it("decodes a single ERC-20 Approval event", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, 1_000n)],
+    };
+    const approvals = parseApprovals(frame);
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0]).toEqual({
+      token: addrs.CONTRACT,
+      owner: addrs.ALICE,
+      spender: addrs.BOB,
+      value: 1_000n,
+      logIndex: 0,
+    });
+  });
+
+  it("filters ERC-721 Approval (4 topics) by topic count", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [
+            APPROVAL_TOPIC as Hex,
+            addrTopic(addrs.ALICE),
+            addrTopic(addrs.BOB),
+            uint256Hex(42n),
+          ],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseApprovals(frame)).toEqual([]);
+  });
+
+  it("ignores logs with a non-Approval topic", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [
+            // Transfer topic, not Approval
+            "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as Hex,
+            addrTopic(addrs.ALICE),
+            addrTopic(addrs.BOB),
+          ],
+          data: uint256Hex(5n),
+        },
+      ],
+    };
+    expect(parseApprovals(frame)).toEqual([]);
+  });
+
+  it("rejects malformed owner-topic length", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [APPROVAL_TOPIC as Hex, "0x1234" as Hex, addrTopic(addrs.BOB)],
+          data: uint256Hex(1n),
+        },
+      ],
+    };
+    expect(parseApprovals(frame)).toEqual([]);
+  });
+
+  it("rejects malformed spender-topic length", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [APPROVAL_TOPIC as Hex, addrTopic(addrs.ALICE), "0x5678" as Hex],
+          data: uint256Hex(1n),
+        },
+      ],
+    };
+    expect(parseApprovals(frame)).toEqual([]);
+  });
+
+  it("rejects unparseable value data", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [APPROVAL_TOPIC as Hex, addrTopic(addrs.ALICE), addrTopic(addrs.BOB)],
+          data: "garbage" as Hex,
+        },
+      ],
+    };
+    expect(parseApprovals(frame)).toEqual([]);
+  });
+
+  it("skips reverted frames AND their subtree", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, 1n)],
+      children: [
+        {
+          ...makeFrame({
+            depth: 1,
+            from: addrs.CONTRACT,
+            to: addrs.VAULT,
+            error: "execution reverted",
+          }),
+          logs: [approvalLog(addrs.VAULT, addrs.ALICE, addrs.BOB, 999n)],
+          children: [
+            {
+              ...makeFrame({ depth: 2, from: addrs.VAULT, to: addrs.BOB }),
+              logs: [approvalLog(addrs.VAULT, addrs.ALICE, addrs.BOB, 888n)],
+            },
+          ],
+        },
+        {
+          ...makeFrame({ depth: 1, from: addrs.CONTRACT, to: addrs.BOB }),
+          logs: [approvalLog(addrs.BOB, addrs.ALICE, addrs.CONTRACT, 3n)],
+        },
+      ],
+    };
+    const approvals = parseApprovals(frame);
+    expect(approvals).toHaveLength(2);
+    expect(approvals.map((a) => a.value)).toEqual([1n, 3n]);
+  });
+
+  it("increments logIndex for non-Approval logs we skip", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: ["0xdeadbeef" as Hex],
+          data: "0x" as Hex,
+        },
+        approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, 5n),
+      ],
+    };
+    const approvals = parseApprovals(frame);
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0].logIndex).toBe(1);
   });
 });
