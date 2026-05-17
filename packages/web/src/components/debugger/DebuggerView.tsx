@@ -5,6 +5,7 @@ import {
   GasFlamegraph,
   OpcodeViewer,
   normalizeCallFrame,
+  normalizeStructLogs,
 } from "@valve-tech/trace-sdk";
 import {
   fetchTrace,
@@ -49,6 +50,12 @@ export default function DebuggerView() {
   const normalizedTrace = useMemo(
     () => (callTrace ? normalizeCallFrame(callTrace) : null),
     [callTrace],
+  );
+
+  // Same shape conversion for opcode steps — raw strings to branded Hex.
+  const normalizedSteps = useMemo(
+    () => normalizeStructLogs(opcodeSteps),
+    [opcodeSteps],
   );
 
   const handleTrace = useCallback(async () => {
@@ -391,13 +398,8 @@ export default function DebuggerView() {
             )}
 
             {activeTab === "opcodes" && (
-              opcodeSteps.length > 0 ? (
-                // SDK's OpcodeStep types stack/memory/storage as viem `Hex` (a
-                // branded `0x${string}`); the web API client uses plain `string`
-                // — same runtime shape, different nominal type.
-                <OpcodeViewer
-                  steps={opcodeSteps as unknown as Parameters<typeof OpcodeViewer>[0]["steps"]}
-                />
+              normalizedSteps.length > 0 ? (
+                <OpcodeViewer steps={normalizedSteps} />
               ) : (
                 <NoDataPanel message="Opcode trace data is not available for this transaction." />
               )

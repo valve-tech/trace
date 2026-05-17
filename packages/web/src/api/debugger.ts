@@ -2,24 +2,24 @@
  * API client for the debugger endpoints.
  */
 
+import type { RawCallFrame } from "@valve-tech/trace-sdk";
+
 const API_BASE = "/api/debug";
 
 // ---------------------------------------------------------------------------
 // Types (mirroring backend)
+//
+// CallFrame is a wire-format alias of the SDK's RawCallFrame. Normalize it
+// (via SDK `normalizeCallFrame`) at the render boundary before passing to
+// SDK components.
+//
+// OpcodeStep is kept as a local type with stack/memory/storage REQUIRED —
+// the API server always populates them. The SDK's `RawStructLog` has these
+// as optional to match the broader JSON-RPC spec; web's stricter version
+// is assignable to it, so `normalizeStructLogs` accepts our shape unchanged.
 // ---------------------------------------------------------------------------
 
-export interface CallFrame {
-  type: string;
-  from: string;
-  to: string;
-  value?: string;
-  gas: string;
-  gasUsed: string;
-  input: string;
-  output?: string;
-  error?: string;
-  calls?: CallFrame[];
-}
+export type CallFrame = RawCallFrame;
 
 export interface OpcodeStep {
   pc: number;
