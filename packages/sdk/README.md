@@ -97,6 +97,7 @@ import type { CallNode, TraceFrame, GasProfile } from "@valve-tech/trace-sdk/typ
 - `<OpcodeViewer>` — step-by-step opcode trace with category coloring
 - `<FindingsPanel>` — renders `analyzeRisks` output, grouped by severity
 - `<StateDiffPanel>` — renders `StateDiff[]` with balance/nonce/storage changes per address
+- `<FrameDetailPanel>` — renders metadata for a single `TraceFrame` (call type, gas, value, error, decoded I/O)
 
 All components accept a `classNames` prop for full style override.
 

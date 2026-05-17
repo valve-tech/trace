@@ -25,6 +25,11 @@ export {
   type StateDiffPanelClassNames,
 } from "./StateDiffPanel.js";
 export {
+  FrameDetailPanel,
+  type FrameDetailPanelProps,
+  type FrameDetailPanelClassNames,
+} from "./FrameDetailPanel.js";
+export {
   classifyOpcode,
   getOpcodeColor,
   isExpensiveOp,
