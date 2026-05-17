@@ -20,6 +20,11 @@ export {
   type FindingsPanelClassNames,
 } from "./FindingsPanel.js";
 export {
+  StateDiffPanel,
+  type StateDiffPanelProps,
+  type StateDiffPanelClassNames,
+} from "./StateDiffPanel.js";
+export {
   classifyOpcode,
   getOpcodeColor,
   isExpensiveOp,
