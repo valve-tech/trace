@@ -392,9 +392,9 @@ export default function DebuggerView() {
 
             {activeTab === "opcodes" && (
               opcodeSteps.length > 0 ? (
-                {/* SDK's OpcodeStep types stack/memory/storage as viem `Hex`
-                    (a branded `0x${string}`); the web API client uses plain
-                    `string` — same runtime shape, different nominal type. */}
+                // SDK's OpcodeStep types stack/memory/storage as viem `Hex` (a
+                // branded `0x${string}`); the web API client uses plain `string`
+                // — same runtime shape, different nominal type.
                 <OpcodeViewer
                   steps={opcodeSteps as unknown as Parameters<typeof OpcodeViewer>[0]["steps"]}
                 />

@@ -1,198 +1,191 @@
 # PulseChain Dev Platform — Progress
 
-## Session: 2026-05-16 (continuation)
+## Session: 2026-05-16 — checkpoint after Trace SDK push
 
-### What was accomplished this session
+### Commits this session (oldest → newest)
 
-Re-audit of all "known bugs" listed in the prior checkpoint. Found 4 of 6
-Phase-1 bugs were already fixed in earlier commits and the audit was stale.
-Also corrected the broader CODEBASE_MAP.md "Gotchas" section.
+```
+9668e68 fix:      AddressView contract-creation + RpcTester prop reactivity + re-audit
+77f05f8 feat:     scaffold trace SDK (packages/sdk) with loaders, traversal, tests
+7169b35 refactor: extract CallTree component from packages/web into SDK
+e010ec5 test:     backfill SDK coverage to 99/93/97/99 + add components/formatters tests
+c89a8ba feat(sdk): 100% coverage + consumer API aliases (parseCallTrace, CallNode)
+1a8ab13 test(sdk): enforce 100% coverage via vitest thresholds
+3083951 refactor: extract GasFlamegraph to SDK with 100% coverage
+290e114 refactor: extract OpcodeViewer to SDK with 100% coverage
+```
 
-**Fixes applied this session:**
-1. `AddressView` contract-creation display — was showing a broken empty-string
-   button for `tx.to === ""` (BlockScout returns empty string, not null, for
-   contract-creation txs). Now renders a "Contract Creation" badge mirroring
-   the BlockView pattern. (AddressView.tsx:333-336, 398-441)
-2. `RpcTester` initial-request bridge — replaced the `useState(() => {...})`
-   antipattern (initializer fires once on mount, ignores subsequent prop
-   changes) with a proper `useEffect` keyed on `[initialRequest]`.
-   (RpcTester.tsx:1, 144-148)
-
-**Audit corrections to CODEBASE_MAP.md:**
-- Removed 6 entries that were already fixed (bugs #1, #3, #4, #5, and the 2
-  fixed above).
-- Removed the false "Connected badge is cosmetic" claim — `checkRpcConnection`
-  actually calls eth_chainId and returns based on the response.
-- Reclassified "Bundle simulation does not propagate state" as an architecture
-  limitation (per the code comment in simulator.ts:214-215), not a bug.
-- Corrected `getOpcodeColor` duplication count (3 files, not 2).
-- Corrected `StatusBadge` duplication count (3 files, not 2).
-- Corrected console.* count (119 in API, not 23+).
-- Added file:line references for every remaining gotcha.
-
-**Memory entries created:**
-- `secrets-handling` (feedback) — private RPC URLs stay in .env only.
-- `deployment-and-env` (project) — no remote deploy configs; API port is
-  actually 10100 (not 3001 as CLAUDE.md says); dotenv auto-loads from
-  packages/api/src/index.ts:1.
-
-**Environment setup:**
-- `.env` (gitignored) populated with PULSECHAIN_RPC_URL + DEBUG_RPC_URL pointing
-  at the user's private RPC endpoint. `git check-ignore` verified .env is
-  excluded.
+All on `main`, none pushed.
 
 ---
 
-### Current state
+### Trace SDK — current state
 
-**All 7 features implemented** (unchanged from prior checkpoint).
+`packages/sdk` (`@pulsechain-dev/trace-sdk`) is a standalone EVM trace toolkit.
+Public-facing API surface:
 
-**Test coverage** (unchanged): 31 backend integration tests, 8 frontend unit
-tests (StepDebugger only).
+**Types** (`src/types.ts`)
+- Wire-format: `RawCallFrame`, `RawStructLog`, `RawCallType`
+- Canonical: `TraceFrame` (bigint values, `children`, branded Address/Hex,
+  `to: Address | null` for CREATE), `OpcodeStep`, `StateDiff`, `StorageChange`,
+  `GasProfile`, `GasProfileEntry`, `DecodedParam`, `TraceResult`, `CallType`
+- Consumer aliases: `CallNode = TraceFrame`
 
-**Deployment surface:** Local docker-compose only. No remote PaaS configs
-(fly.toml, render.yaml, vercel.json, etc.) and no CI workflows committed. If
-this is deployed somewhere, the config lives outside this repo.
+**Loaders** (`src/loaders/`)
+- `loadTraceFromObject({ callFrame, structLogs?, txHash?, blockNumber? })`
+- `loadTraceFromFile(jsonString)`
+- `loadTraceFromHash({ txHash, rpcUrl, fetch?, timeoutMs? })`
+- `normalizeCallFrame` / consumer alias `parseCallTrace`
+- `normalizeStructLogs`
+
+**Traversal** (`src/traversal/`) — all explicit-stack, safe on 50k-deep trees
+- `walkCallTree(frame, { enter?, exit? })` — `enter` can return `false` or `"skip"`
+- `flattenCallTree(frame)` → `FlatFrame[]` with pre-order indices
+- `filterByAddress(frame, address, options)`
+- `filterBySelector(frame, selector)`
+- `findRevertFrame(frame)` — innermost reverter
+- `buildGasProfile(frame)` — bottom-up `selfGas` reduction
+
+**Components** (`src/components/`)
+- `<CallTree frame={…} onSelect={…} classNames={…} />`
+- `<GasFlamegraph frame={…} resolveSelector={…} classNames={…} />`
+- `<OpcodeViewer steps={…} onSelectStep={…} classNames={…} />`
+- Pure helpers also exported: `truncateAddress`, `formatGas`, `formatWei`,
+  `getFunctionSelector`, `classifyOpcode`, `getOpcodeColor`, `isExpensiveOp`,
+  `OPCODE_CATEGORY_COLORS`, `buildFlamegraphLayout`, `adjustBrightness`,
+  `getBarColor`
+- All components use sensible default colors + per-slot `classNames` for theming
+
+**Util** (`src/util/`)
+- `describeUnknownError(err)` — extracted catch-block helper
+
+**Test infrastructure**
+- vitest + jsdom + @testing-library/react + @vitest/coverage-v8
+- 157 tests pass; coverage gated at **100/100/100/100** via vitest thresholds
+- Coverage threshold enforcement IS active — drops fail `npm run test --workspace=packages/sdk`
+- Test fixtures: `tests/fixtures.ts` (`sampleRawCallFrame`, `makeFrame`, `addrs`)
+
+**Wiring into web**
+- `packages/web` depends on `@pulsechain-dev/trace-sdk: "*"` (npm workspace link)
+- `DebuggerView.tsx` imports `CallTree`, `GasFlamegraph`, `OpcodeViewer`,
+  `normalizeCallFrame` from SDK; normalizes wire-format CallFrame at the
+  render boundary via `useMemo(() => normalizeCallFrame(callTrace), [callTrace])`
+- For OpcodeViewer the Hex-vs-string nominal mismatch is bridged with
+  `as unknown as Parameters<typeof OpcodeViewer>[0]["steps"]` — runtime
+  identical, type system reconciliation deferred until the web API client
+  is migrated to import types from SDK
 
 ---
 
-### Outstanding bugs (verified present as of 2026-05-16)
+### Coverage policy (hard gate, enforced)
 
-See docs/CODEBASE_MAP.md "Gotchas" section for canonical list with file:line
-references. Summary:
+100/100/100/100 statements/branches/functions/lines, enforced by
+`packages/sdk/vitest.config.ts` `coverage.thresholds`. The gate has
+already caught 3 regressions in this session:
+1. Empty-string `from` bug in `normalize.ts` (the test forced the fix)
+2. Dead-code while loop in `flamegraphLayout.ts` (deleted, not tested)
+3. Unmeasured `OpcodeLegend` component (added a `hideLegend=false` test)
 
-**Critical (architectural / security):**
-- vm sandbox in actionExecutor.ts escapable via prototype chain
-- Anvil forks bind 0.0.0.0 (network-accessible)
-- Bundle simulation doesn't propagate inter-tx state (by design — needs
-  fork-based simulator to fix)
+Memory note: `~/.claude/projects/.../memory/sdk_coverage_policy.md`
+captures the policy + the pure-function extraction pattern (`src/util/errors.ts`)
+for the "next session" to follow.
 
-**Important (correctness / data loss):**
-- /api/actions POST + PUT lack Zod validation
-- ABI cache never invalidates (process-lifetime in-memory only)
-- RPC analytics in-memory only (10k ring buffer, lost on restart)
-- Alert matching N+1 RPC pattern (one getBalance per balance_threshold per block)
-- tracer.ts: 6 fire-and-forget `void setCachedTrace()` calls — silent failures
+---
 
-**Minor (code quality / latent):**
-- getOpcodeColor duplicated across 3 debugger components
-- StatusBadge duplicated across 3 simulation/explorer components
-- StateOverrides UI allows only one empty-key storage slot at a time
-- Telegram parse_mode HTML mismatch (latent — fails only if message contains
-  raw `<`, `>`, `&`)
+### Outstanding work — explicit consumer queue
+
+Per user requests captured in memory
+(`sdk_consumer_api_contract.md`, `sdk_findings_features.md`):
+
+**1. Remaining component extractions**
+   - `StepDebugger` — step-by-step opcode navigator (couples to OpcodeViewer
+     via shared step index; likely extract small `useOpcodeNavigation` hook)
+   - `SourceViewer` — most complex; depends on source-map + recompile data
+     from the API. Should ship as data-agnostic with `source: string` +
+     `highlightLine: number` props
+   - `StateDiffPanel`, `FrameDetailPanel` — not explicitly requested but
+     listed in original SDK design notes
+
+**2. Pure-parser additions (consumer API contract)**
+   - `parseTokenDeltas(callTree): TokenDelta[]` — extract ERC-20 Transfer
+     events. Requires extending `RawCallFrame` with optional
+     `logs?: RawLog[]` (from callTracer `withLog: true` mode) OR accepting
+     logs as a sibling input
+   - `parsePrestateDiff(raw): BalanceDelta[]` — parse prestateTracer
+     diffMode JSON. Independent of call tree
+   - Both pure functions, no I/O, easy to test at 100%
+
+**3. Risk analyzer + UI**
+   - `analyzeRisks(callTree, whitelist: Set<Address>): RiskFlag[]`
+   - Initial rule types: `DELEGATECALL_UNRECOGNIZED`,
+     `TOKEN_SENT_TO_TOKEN_CONTRACT`, eventually `LARGE_APPROVAL`
+   - `<FindingsPanel risks={…} />` component to render the output
+   - Need a heuristic or registry for "is this address a token contract?"
+     (heuristic: `eth_getCode` non-empty + `balanceOf(address)` selector)
+
+**4. Web-side cleanup (small)**
+   - Migrate `packages/web/src/api/debugger.ts` `OpcodeStep` to import from
+     SDK, eliminating the `as unknown as` cast in DebuggerView
+   - Same for `CallFrame` — would let us drop the `normalizeCallFrame` step
+     for already-canonical data (though API server returns wire format so
+     normalization at boundary still needed; this is more about type
+     compatibility than runtime)
+
+---
+
+### Audit context (still valid from earlier this session)
+
+**Bugs verified present** (see `docs/CODEBASE_MAP.md` Gotchas for canonical
+list with file:line refs):
+- vm sandbox in `actionExecutor.ts` escapable
+- Anvil forks bind 0.0.0.0
+- Bundle simulation doesn't propagate inter-tx state (by design)
+- `/api/actions` POST + PUT lack Zod validation
+- ABI cache never invalidates
+- RPC analytics in-memory only
+- Alert matching N+1 RPC pattern
+- 6 fire-and-forget `void setCachedTrace()` in tracer.ts
+- 3 places of `getOpcodeColor` duplication (now collapsing as SDK helpers
+  spread — this list will shrink as more components extract)
+- `StatusBadge` duplicated across 3 components
+- `StateOverrides` UI single-empty-slot limit
+- Telegram parse_mode HTML mismatch (latent)
 - Tab switching unmounts components — unsaved form state lost
-- 119 console.* calls in API source (no structured logger)
+- 119 `console.*` calls in API source (no structured logger)
+
+**Bugs fixed this session in commit 9668e68:**
+- `AddressView` "Contract Creation" badge for `tx.to === ""`
+- `RpcTester` `useState(initializer)` → `useEffect` for prop reactivity
 
 ---
 
-### Phase 2 — Trace SDK (the actual "next" work)
+### Environment / deployment
 
-The session was named `trace` and the Trace SDK is still the next major piece.
-Full design notes preserved below.
-
-**Goal:** A standalone package (`packages/sdk`, published as `@pulsechain-dev/trace-sdk`)
-that lets users load EVM trace data from any source and render or process each
-piece independently. No dependency on this platform's API or database — works
-with any node that supports debug_traceTransaction.
-
-**Package structure:**
-
-```
-packages/sdk/
-  src/
-    loaders/         # fetch + normalize trace data into canonical types
-    traversal/       # recursive utilities for walking / querying the tree
-    components/      # headless-styleable React components
-    templates/       # pre-composed layouts (drop-in full debugger, compact summary)
-    types.ts         # TraceFrame, OpcodeStep, StateDiff, GasProfile (canonical, not wire format)
-  index.ts
-```
-
-**1. Loaders** — normalize any input into a canonical TraceFrame tree
-- `loadTraceFromHash(txHash, rpcUrl)` — calls debug_traceTransaction, normalizes result
-- `loadTraceFromObject(rawTrace)` — accepts a callTracer or structLogger payload already in memory
-- `loadTraceFromFile(json)` — parse a JSON export (useful for offline analysis)
-- All loaders return `Promise<TraceResult>` with the same shape regardless of source
-
-**2. Recursive traversal utilities** — must use an explicit stack, not recursion,
-   to handle arbitrarily deep call trees without stack overflow
-- `walkCallTree(frame, visitor)` — depth-first walk with enter/exit hooks per frame
-- `flattenCallTree(frame)` — returns ordered flat array with depth + index metadata
-- `filterByAddress(frames, address)` — extract all calls to/from a specific contract
-- `filterBySelector(frames, selector)` — extract calls matching a 4-byte selector
-- `findRevertFrame(frames)` — locate the innermost reverting call
-- `buildGasProfile(frame)` — aggregate gas by contract + function from the tree
-- `computeStateDiffs(beforeState, afterState)` — returns StateDiff[]
-
-**3. Rendering components** — extract existing debugger components, make them
-   importable + headless-styleable (className + style props, no hardcoded colors)
-- `<CallTree frames={...} onSelect={...} className={...} />`
-- `<GasFlamegraph frames={...} />`
-- `<OpcodeViewer steps={...} currentStep={...} />`
-- `<SourceViewer source={...} highlightLine={...} />`
-- `<StateDiffPanel diffs={...} />`
-- `<FrameDetailPanel frame={...} />`
-
-**4. Templates** — pre-composed, drop-in layouts
-- `<FullDebuggerLayout trace={...} />` — everything, styled, self-contained
-- `<CompactCallSummary trace={...} />` — top-level call + gas in one row
-- `<RevertExplainer trace={...} />` — surfaces the revert frame + reason string
-
-**5. Canonical types** (in types.ts, not tied to any wire format):
-
-```typescript
-interface TraceFrame {
-  type: 'CALL' | 'STATICCALL' | 'DELEGATECALL' | 'CREATE' | 'CREATE2'
-  from: Address
-  to: Address | null
-  value: bigint
-  gas: bigint
-  gasUsed: bigint
-  input: Hex
-  output: Hex
-  error?: string
-  revertReason?: string
-  depth: number
-  children: TraceFrame[]
-  // enriched fields (populated by loaders when available)
-  functionName?: string
-  decodedInput?: DecodedParam[]
-  decodedOutput?: DecodedParam[]
-  sourceLocation?: { file: string; line: number; column: number }
-}
-```
-
-**Key design principles:**
-- SDK must be usable outside this app with no hidden platform dependency
-- Components accept className/style props so consumers can apply their own theme
-- Loaders return the same canonical types regardless of input format
-- All traversal utilities use explicit stacks — no recursive calls on user data
+- `.env` (gitignored) has `PULSECHAIN_RPC_URL` + `DEBUG_RPC_URL` pointing at
+  the user's private RPC. Never commit. See memory `secrets_handling.md`.
+- No remote deploy configs in repo — only local docker-compose. API port
+  is **10100** (not 3001; CLAUDE.md was updated). See memory
+  `deployment_and_env.md`.
+- API loads `.env` via `dotenv/config` in `packages/api/src/index.ts:1`.
 
 ---
 
-### Suggested next steps
+### Trace SDK — original design notes (preserved for reference)
 
-**A. Phase 2 — Trace SDK** (the original plan; design above)
-- Scaffold packages/sdk with canonical types
-- Implement loaders + traversal utilities first (testable in isolation)
-- Extract components from packages/web/src/components/debugger/ second
-- Templates last
-
-**B. Phase 3 — Validation hardening**
-- Add Zod schemas to /api/actions routes
-- Add ownership checks to action/alert routes
-
-**C. CLAUDE.md cleanup**
-- Fix the stale "port 3001" — actual API port is 10100 (see .env.example,
-  docker-compose.yml). Same fix needed in packages/api/Dockerfile:30.
+The full design spec from the prior checkpoint remains accurate. The work
+to date implements:
+- ✅ Loaders (3 of 3): hash, object, file
+- ✅ Traversal (6 of 6): walk, flatten, filterByAddress, filterBySelector,
+     findRevertFrame, buildGasProfile
+- ✅ Components (3 of 6+): CallTree, GasFlamegraph, OpcodeViewer
+- ⏳ Components (3 remaining): StepDebugger, SourceViewer, FindingsPanel
+- ⏳ Templates (0 of 3): FullDebuggerLayout, CompactCallSummary, RevertExplainer
+- ⏳ Parsers (0 of 3 new): parseTokenDeltas, parsePrestateDiff, analyzeRisks
 
 ---
 
 ### Blockers / gotchas (unchanged)
 
-- Public PulseChain RPC (rpc.pulsechain.com) is slow for complex traces. The
-  user has provided a private RPC; it lives in `.env` only (never commit).
+- Public PulseChain RPC slow for complex traces. Use the private RPC in `.env`.
 - Source map recompilation downloads solc on first use (~3s), then caches.
-  Requires internet access at debug time for fresh contracts.
-- Anvil must be installed (Foundry toolchain) for fork-based simulation and
-  fork testnets. Integration tests skip gracefully if Anvil is absent.
+- Anvil must be installed (Foundry toolchain) for fork-based simulation.
