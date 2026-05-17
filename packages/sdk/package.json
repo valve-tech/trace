@@ -21,6 +21,10 @@
     "./traversal": {
       "types": "./dist/traversal/index.d.ts",
       "import": "./dist/traversal/index.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js"
     }
   },
   "files": [
@@ -33,10 +37,18 @@
     "test:watch": "vitest"
   },
   "peerDependencies": {
+    "react": ">=18.0.0",
     "viem": "^2.23.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
     "typescript": "^5.7.3",
     "viem": "^2.23.2",
     "vitest": "^4.1.1"

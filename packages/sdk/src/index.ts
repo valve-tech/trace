@@ -38,3 +38,14 @@ export {
   type FlatFrame,
   type AddressMatchOptions,
 } from "./traversal/index.js";
+
+// Components (React peer dep)
+export {
+  CallTree,
+  truncateAddress,
+  formatGas,
+  formatWei,
+  getFunctionSelector,
+  type CallTreeProps,
+  type CallTreeClassNames,
+} from "./components/index.js";

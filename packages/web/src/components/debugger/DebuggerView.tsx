@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { CallTree, normalizeCallFrame } from "@pulsechain-dev/trace-sdk";
 import {
   fetchTrace,
   fetchGasProfile,
@@ -9,7 +10,6 @@ import {
   type OpcodeProfile,
   type OpcodeStep,
 } from "../../api/debugger";
-import CallTree from "./CallTree";
 import GasProfiler from "./GasProfiler";
 import OpcodeViewer from "./OpcodeViewer";
 import StepDebugger from "./StepDebugger";
@@ -38,6 +38,14 @@ export default function DebuggerView() {
   const [hasResult, setHasResult] = useState(false);
 
   const isValidHash = /^0x[0-9a-fA-F]{64}$/.test(txHash);
+
+  // Normalize the wire-format trace into the SDK's canonical TraceFrame so
+  // the SDK CallTree component can render it. Memoized so we don't re-walk
+  // the tree on every render.
+  const normalizedTrace = useMemo(
+    () => (callTrace ? normalizeCallFrame(callTrace) : null),
+    [callTrace],
+  );
 
   const handleTrace = useCallback(async () => {
     if (!isValidHash) return;
@@ -350,8 +358,8 @@ export default function DebuggerView() {
             )}
 
             {activeTab === "calltree" && (
-              callTrace ? (
-                <CallTree trace={callTrace} />
+              normalizedTrace ? (
+                <CallTree frame={normalizedTrace} />
               ) : (
                 <NoDataPanel message="Call tree data is not available for this transaction." />
               )
