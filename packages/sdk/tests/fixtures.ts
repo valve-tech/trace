@@ -61,7 +61,9 @@ export function makeFrame(partial: Partial<TraceFrame> & { type?: CallType }): T
   return {
     type: partial.type ?? "CALL",
     from: partial.from ?? (ALICE as Address),
-    to: partial.to ?? (CONTRACT as Address),
+    // Use `in` check so callers can pass `to: null` for contract-creation frames
+    // without our `??` overriding it back to a default address.
+    to: "to" in partial ? partial.to ?? null : (CONTRACT as Address),
     value: partial.value ?? 0n,
     gas: partial.gas ?? 100_000n,
     gasUsed: partial.gasUsed ?? 50_000n,

@@ -73,7 +73,7 @@ export function normalizeCallFrame(
 
   return {
     type: callType,
-    from: (raw.from?.toLowerCase() ?? "0x") as Address,
+    from: (raw.from ? raw.from.toLowerCase() : "0x") as Address,
     to: isCreate ? null : toAddress(raw.to),
     value: toBigInt(raw.value),
     gas: toBigInt(raw.gas),

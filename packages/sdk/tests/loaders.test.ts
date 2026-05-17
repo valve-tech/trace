@@ -124,6 +124,70 @@ describe("loadTraceFromFile", () => {
   });
 });
 
+describe("normalizeCallFrame edge cases", () => {
+  it("coerces invalid hex in value to 0n (no throw)", () => {
+    const frame = normalizeCallFrame({
+      type: "CALL",
+      from: addrs.ALICE,
+      to: addrs.CONTRACT,
+      value: "not-a-hex-string",
+      gas: "0x1000",
+      gasUsed: "0x100",
+      input: "0x",
+    });
+    expect(frame.value).toBe(0n);
+  });
+
+  it("throws when depth exceeds MAX_NORMALIZE_DEPTH", () => {
+    // Build a 2048-deep linear chain in the raw format
+    type Raw = ReturnType<typeof sampleRawCallFrame>;
+    let leaf: Raw = {
+      type: "CALL",
+      from: addrs.ALICE,
+      to: addrs.CONTRACT,
+      gas: "0x0",
+      gasUsed: "0x0",
+      input: "0x",
+    };
+    for (let i = 0; i < 2048; i++) {
+      leaf = {
+        type: "CALL",
+        from: addrs.ALICE,
+        to: addrs.CONTRACT,
+        gas: "0x0",
+        gasUsed: "0x0",
+        input: "0x",
+        calls: [leaf],
+      };
+    }
+    expect(() => normalizeCallFrame(leaf)).toThrow(/MAX_NORMALIZE_DEPTH/);
+  });
+
+  it("normalizes empty `to` ('0x' or empty string) to null on non-CREATE frames", () => {
+    const frame = normalizeCallFrame({
+      type: "CALL",
+      from: addrs.ALICE,
+      to: "0x",
+      gas: "0x0",
+      gasUsed: "0x0",
+      input: "0x",
+    });
+    expect(frame.to).toBeNull();
+  });
+
+  it("defaults missing `from` to '0x' (defensive)", () => {
+    const frame = normalizeCallFrame({
+      type: "CALL",
+      from: "",
+      to: addrs.CONTRACT,
+      gas: "0x0",
+      gasUsed: "0x0",
+      input: "0x",
+    });
+    expect(frame.from).toBe("0x");
+  });
+});
+
 describe("loadTraceFromHash", () => {
   it("calls debug_traceTransaction with callTracer mode", async () => {
     const calls: Array<{ url: string; body: unknown }> = [];
@@ -181,5 +245,36 @@ describe("loadTraceFromHash", () => {
         fetch: mockFetch,
       }),
     ).rejects.toThrow(/HTTP 500/);
+  });
+
+  it("throws when the RPC returns neither result nor error", async () => {
+    const mockFetch: typeof globalThis.fetch = async () =>
+      new Response(JSON.stringify({ jsonrpc: "2.0", id: 1 }), { status: 200 });
+
+    await expect(
+      loadTraceFromHash({
+        txHash: "0xdeadbeef",
+        rpcUrl: "https://rpc.example.test",
+        fetch: mockFetch,
+      }),
+    ).rejects.toThrow(/no result/);
+  });
+
+  it("throws when no fetch implementation is available", async () => {
+    // Use a stubbed global to simulate an environment with no fetch
+    const origFetch = globalThis.fetch;
+    // @ts-expect-error -- intentional unset for this test
+    delete (globalThis as { fetch?: unknown }).fetch;
+
+    try {
+      await expect(
+        loadTraceFromHash({
+          txHash: "0xdeadbeef",
+          rpcUrl: "https://rpc.example.test",
+        }),
+      ).rejects.toThrow(/no fetch implementation/);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
   });
 });

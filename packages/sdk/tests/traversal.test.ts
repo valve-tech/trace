@@ -196,4 +196,41 @@ describe("buildGasProfile", () => {
     expect(profile.byCallType.STATICCALL).toBe(20_000n);
     expect(profile.byCallType.DELEGATECALL).toBe(20_000n);
   });
+
+  it("returns zeroed percentages when root gasUsed is 0n", () => {
+    const empty = makeFrame({ gasUsed: 0n });
+    const profile = buildGasProfile(empty);
+    expect(profile.totalGas).toBe(0n);
+    expect(profile.entries[0]!.percentage).toBe(0);
+  });
+
+  it("clamps selfGas to 0n when children claim more gas than parent", () => {
+    // Malformed trace: root says 5k but children sum to 30k.
+    const weird = makeFrame({
+      gasUsed: 5_000n,
+      children: [makeFrame({ depth: 1, gasUsed: 30_000n })],
+    });
+    const profile = buildGasProfile(weird);
+    expect(profile.entries[0]!.selfGas).toBe(0n);
+  });
+});
+
+describe("walkCallTree exit early-termination", () => {
+  it("stops the walk when exit returns false", () => {
+    const visited: string[] = [];
+    walkCallTree(tree(), {
+      enter: (f) => {
+        visited.push(`enter:${f.gasUsed}`);
+      },
+      exit: (f) => {
+        visited.push(`exit:${f.gasUsed}`);
+        if (f.gasUsed === 10_000n) return false;
+        return undefined;
+      },
+    });
+    // After exiting the 10_000n grandchild (which returned false), walk halts.
+    // We should not see exit:30000 or anything later.
+    expect(visited).toContain("exit:10000");
+    expect(visited).not.toContain("exit:30000");
+  });
 });
