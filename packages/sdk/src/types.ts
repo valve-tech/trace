@@ -218,6 +218,71 @@ export interface TokenApproval {
 }
 
 /**
+ * A decoded Uniswap V1 trade. V1 contracts emit one of two events depending
+ * on direction — `TokenPurchase` (ETH in, token out) or `EthPurchase` (token
+ * in, ETH out). Both index all three parameters, so the data field is empty
+ * and every value lives in topics; topic count = 4 disambiguates from V2's
+ * single `Swap` event.
+ *
+ * `pool` here is the V1 exchange contract (one per ERC-20 token). `direction`
+ * is normalized from the event name so consumers don't need to know which
+ * underlying event fired.
+ */
+export interface SwapV1 {
+  variant: "univ1";
+  pool: Address;
+  buyer: Address;
+  direction: "buyToken" | "sellToken";
+  ethAmount: bigint;
+  tokenAmount: bigint;
+  logIndex: number;
+}
+
+/**
+ * A decoded Uniswap V2 (or V2-compatible fork) `Swap` event. Fields mirror
+ * the event signature one-to-one — pools emit four unsigned amounts and the
+ * routing direction is inferred by which `*In`/`*Out` fields are non-zero.
+ */
+export interface SwapV2 {
+  variant: "univ2";
+  /** The pool contract that emitted the event. */
+  pool: Address;
+  sender: Address;
+  to: Address;
+  amount0In: bigint;
+  amount1In: bigint;
+  amount0Out: bigint;
+  amount1Out: bigint;
+  logIndex: number;
+}
+
+/**
+ * A decoded Uniswap V3 `Swap` event. `amount0`/`amount1` are signed (int256)
+ * from the pool's perspective — positive means the pool received that token,
+ * negative means it sent. `sqrtPriceX96`/`liquidity`/`tick` capture pool
+ * state at the moment of the swap.
+ */
+export interface SwapV3 {
+  variant: "univ3";
+  pool: Address;
+  sender: Address;
+  recipient: Address;
+  amount0: bigint;
+  amount1: bigint;
+  sqrtPriceX96: bigint;
+  liquidity: bigint;
+  tick: number;
+  logIndex: number;
+}
+
+/**
+ * Discriminated union over the AMM Swap event shapes the SDK decodes.
+ * Branch on `variant` to access protocol-specific fields without casts.
+ * V4 hook-style pools are not yet decoded.
+ */
+export type Swap = SwapV1 | SwapV2 | SwapV3;
+
+/**
  * Per-address account state as it appears inside the prestateTracer diff-mode
  * envelope. All fields are optional — only changed fields appear, and an
  * account may be entirely absent from `post` if it self-destructed.

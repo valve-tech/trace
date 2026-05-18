@@ -4,6 +4,7 @@ import {
   parseTokenDeltas,
   parsePrestateDiff,
   parseApprovals,
+  parseSwaps,
 } from "../src/parsers/index.js";
 import { normalizeCallFrame } from "../src/loaders/normalize.js";
 import { addrs, makeFrame } from "./fixtures.js";
@@ -570,5 +571,480 @@ describe("parseApprovals", () => {
     const approvals = parseApprovals(frame);
     expect(approvals).toHaveLength(1);
     expect(approvals[0].logIndex).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseSwaps
+// ---------------------------------------------------------------------------
+
+const UNIV1_TOKEN_PURCHASE_TOPIC =
+  "0xcd60aa75dea3072fbc07ae6d7d856b5dc5f4eee88854f5b4abf7b680ef8bc50f";
+const UNIV1_ETH_PURCHASE_TOPIC =
+  "0x7f4091b46c33e918a0f3aa42307641d17bb67029427a5369e54b353984238705";
+const UNIV2_SWAP_TOPIC =
+  "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822";
+const UNIV3_SWAP_TOPIC =
+  "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67";
+
+function univ1Log(
+  exchange: Address,
+  buyer: Address,
+  topic0: Hex,
+  first: bigint,
+  second: bigint,
+): Log {
+  return {
+    address: exchange,
+    topics: [topic0, addrTopic(buyer), uint256Hex(first), uint256Hex(second)],
+    data: "0x" as Hex,
+  };
+}
+
+function univ2SwapLog(
+  pool: Address,
+  sender: Address,
+  to: Address,
+  amounts: {
+    amount0In: bigint;
+    amount1In: bigint;
+    amount0Out: bigint;
+    amount1Out: bigint;
+  },
+): Log {
+  const data = ("0x" +
+    [amounts.amount0In, amounts.amount1In, amounts.amount0Out, amounts.amount1Out]
+      .map((n) => n.toString(16).padStart(64, "0"))
+      .join("")) as Hex;
+  return {
+    address: pool,
+    topics: [UNIV2_SWAP_TOPIC as Hex, addrTopic(sender), addrTopic(to)],
+    data,
+  };
+}
+
+/**
+ * Encode an int256 as a 256-bit two's-complement uint, the way the EVM stores
+ * signed values on the data bus. Negative numbers wrap to `2^256 + n`.
+ */
+function int256Hex(n: bigint): string {
+  const masked = ((n % (1n << 256n)) + (1n << 256n)) % (1n << 256n);
+  return masked.toString(16).padStart(64, "0");
+}
+
+function univ3SwapLog(
+  pool: Address,
+  sender: Address,
+  recipient: Address,
+  parts: {
+    amount0: bigint;
+    amount1: bigint;
+    sqrtPriceX96: bigint;
+    liquidity: bigint;
+    tick: number;
+  },
+): Log {
+  const data = ("0x" +
+    int256Hex(parts.amount0) +
+    int256Hex(parts.amount1) +
+    parts.sqrtPriceX96.toString(16).padStart(64, "0") +
+    parts.liquidity.toString(16).padStart(64, "0") +
+    int256Hex(BigInt(parts.tick))) as Hex;
+  return {
+    address: pool,
+    topics: [UNIV3_SWAP_TOPIC as Hex, addrTopic(sender), addrTopic(recipient)],
+    data,
+  };
+}
+
+describe("parseSwaps", () => {
+  it("returns empty for a frame with no logs", () => {
+    expect(parseSwaps(makeFrame({}))).toEqual([]);
+  });
+
+  it("decodes a UniV2 Swap with positive outflows", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        univ2SwapLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, {
+          amount0In: 1_000n,
+          amount1In: 0n,
+          amount0Out: 0n,
+          amount1Out: 950n,
+        }),
+      ],
+    };
+    const swaps = parseSwaps(frame);
+    expect(swaps).toHaveLength(1);
+    expect(swaps[0]).toEqual({
+      variant: "univ2",
+      pool: addrs.CONTRACT,
+      sender: addrs.ALICE,
+      to: addrs.BOB,
+      amount0In: 1_000n,
+      amount1In: 0n,
+      amount0Out: 0n,
+      amount1Out: 950n,
+      logIndex: 0,
+    });
+  });
+
+  it("decodes a UniV3 Swap with signed amounts and pool state", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        univ3SwapLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, {
+          amount0: 1_000n,
+          amount1: -950n,
+          sqrtPriceX96: 79228162514264337593543950336n, // ~1.0 price
+          liquidity: 1_000_000n,
+          tick: -42,
+        }),
+      ],
+    };
+    const swaps = parseSwaps(frame);
+    expect(swaps).toHaveLength(1);
+    expect(swaps[0]).toEqual({
+      variant: "univ3",
+      pool: addrs.CONTRACT,
+      sender: addrs.ALICE,
+      recipient: addrs.BOB,
+      amount0: 1_000n,
+      amount1: -950n,
+      sqrtPriceX96: 79228162514264337593543950336n,
+      liquidity: 1_000_000n,
+      tick: -42,
+      logIndex: 0,
+    });
+  });
+
+  it("skips reverted subtrees but counts their logs in logIndex of later siblings", () => {
+    // The reverted subtree's logs are rolled back AND not walked,
+    // so the sibling sees logIndex starting from 1 (only the first
+    // outer log was counted).
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        univ2SwapLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, {
+          amount0In: 1n,
+          amount1In: 0n,
+          amount0Out: 0n,
+          amount1Out: 1n,
+        }),
+      ],
+      children: [
+        {
+          ...makeFrame({
+            depth: 1,
+            from: addrs.CONTRACT,
+            to: addrs.VAULT,
+            error: "execution reverted",
+          }),
+          logs: [
+            univ2SwapLog(addrs.VAULT, addrs.ALICE, addrs.BOB, {
+              amount0In: 999n,
+              amount1In: 0n,
+              amount0Out: 0n,
+              amount1Out: 999n,
+            }),
+          ],
+        },
+        {
+          ...makeFrame({ depth: 1, from: addrs.CONTRACT, to: addrs.BOB }),
+          logs: [
+            univ2SwapLog(addrs.BOB, addrs.ALICE, addrs.BOB, {
+              amount0In: 2n,
+              amount1In: 0n,
+              amount0Out: 0n,
+              amount1Out: 2n,
+            }),
+          ],
+        },
+      ],
+    };
+    const swaps = parseSwaps(frame);
+    expect(swaps).toHaveLength(2);
+    expect(swaps.map((s) => s.logIndex)).toEqual([0, 1]);
+  });
+
+  it("ignores logs with wrong topic count", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [UNIV2_SWAP_TOPIC as Hex, addrTopic(addrs.ALICE)],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("ignores malformed sender-topic length", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [UNIV2_SWAP_TOPIC as Hex, "0x1234" as Hex, addrTopic(addrs.BOB)],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("ignores malformed counterparty-topic length", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [UNIV2_SWAP_TOPIC as Hex, addrTopic(addrs.ALICE), "0x5678" as Hex],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("ignores logs whose topic[0] is not a known Swap hash", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [
+            // Random 3-topic event (not a Swap)
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex,
+            addrTopic(addrs.ALICE),
+            addrTopic(addrs.BOB),
+          ],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("returns null on a UniV2-shape log with short data", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [UNIV2_SWAP_TOPIC as Hex, addrTopic(addrs.ALICE), addrTopic(addrs.BOB)],
+          data: "0x00" as Hex, // not enough bytes for 4 uint256s
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("returns null on a UniV3-shape log with short data", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [UNIV3_SWAP_TOPIC as Hex, addrTopic(addrs.ALICE), addrTopic(addrs.BOB)],
+          data: "0x00" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("collects swaps from nested non-reverted frames", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      children: [
+        {
+          ...makeFrame({ depth: 1, from: addrs.ALICE, to: addrs.CONTRACT }),
+          logs: [
+            univ3SwapLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, {
+              amount0: 5n,
+              amount1: -4n,
+              sqrtPriceX96: 1n,
+              liquidity: 1n,
+              tick: 0,
+            }),
+          ],
+        },
+      ],
+    };
+    const swaps = parseSwaps(frame);
+    expect(swaps).toHaveLength(1);
+    expect(swaps[0].variant).toBe("univ3");
+  });
+
+  it("decodes a UniV1 TokenPurchase (ETH→token, buyToken direction)", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        univ1Log(
+          addrs.CONTRACT,
+          addrs.ALICE,
+          UNIV1_TOKEN_PURCHASE_TOPIC as Hex,
+          10_000n, // eth_sold
+          50_000n, // tokens_bought
+        ),
+      ],
+    };
+    const swaps = parseSwaps(frame);
+    expect(swaps).toHaveLength(1);
+    expect(swaps[0]).toEqual({
+      variant: "univ1",
+      pool: addrs.CONTRACT,
+      buyer: addrs.ALICE,
+      direction: "buyToken",
+      ethAmount: 10_000n,
+      tokenAmount: 50_000n,
+      logIndex: 0,
+    });
+  });
+
+  it("decodes a UniV1 EthPurchase (token→ETH, sellToken direction)", () => {
+    // EthPurchase: (tokens_sold, eth_bought) — first param is tokens, second is eth
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        univ1Log(
+          addrs.CONTRACT,
+          addrs.ALICE,
+          UNIV1_ETH_PURCHASE_TOPIC as Hex,
+          50_000n, // tokens_sold
+          10_000n, // eth_bought
+        ),
+      ],
+    };
+    const swaps = parseSwaps(frame);
+    expect(swaps).toHaveLength(1);
+    expect(swaps[0]).toEqual({
+      variant: "univ1",
+      pool: addrs.CONTRACT,
+      buyer: addrs.ALICE,
+      direction: "sellToken",
+      ethAmount: 10_000n,
+      tokenAmount: 50_000n,
+      logIndex: 0,
+    });
+  });
+
+  it("ignores 4-topic logs whose topic[0] is not a V1 event", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        univ1Log(
+          addrs.CONTRACT,
+          addrs.ALICE,
+          // Some random 4-topic event we don't recognize
+          "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef" as Hex,
+          1n,
+          2n,
+        ),
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("ignores V1 logs with malformed buyer-topic length", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [
+            UNIV1_TOKEN_PURCHASE_TOPIC as Hex,
+            "0x1234" as Hex,
+            uint256Hex(1n),
+            uint256Hex(2n),
+          ],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("ignores V1 logs with malformed amount[2]-topic length", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [
+            UNIV1_ETH_PURCHASE_TOPIC as Hex,
+            addrTopic(addrs.ALICE),
+            "0x5678" as Hex,
+            uint256Hex(2n),
+          ],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("ignores V1 logs with malformed amount[3]-topic length", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [
+            UNIV1_TOKEN_PURCHASE_TOPIC as Hex,
+            addrTopic(addrs.ALICE),
+            uint256Hex(1n),
+            "0x9abc" as Hex,
+          ],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("ignores V1 logs with non-hex topic data (BigInt throws)", () => {
+    // 66 chars total so length check passes, but chars are not valid hex.
+    const garbageTopic =
+      ("0x" + "g".repeat(64)) as Hex;
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [
+            UNIV1_TOKEN_PURCHASE_TOPIC as Hex,
+            addrTopic(addrs.ALICE),
+            garbageTopic,
+            uint256Hex(2n),
+          ],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
+  });
+
+  it("ignores 5-topic logs (not a recognized swap shape)", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [
+            UNIV2_SWAP_TOPIC as Hex,
+            addrTopic(addrs.ALICE),
+            addrTopic(addrs.BOB),
+            uint256Hex(1n),
+            uint256Hex(2n),
+          ],
+          data: "0x" as Hex,
+        },
+      ],
+    };
+    expect(parseSwaps(frame)).toEqual([]);
   });
 });

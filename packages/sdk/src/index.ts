@@ -20,6 +20,9 @@ export type {
   SourceLocation,
   StateDiff,
   StorageChange,
+  Swap,
+  SwapV2,
+  SwapV3,
   TokenApproval,
   TokenDelta,
   TraceFrame,
@@ -63,6 +66,7 @@ export {
   parseTokenDeltas,
   parsePrestateDiff,
   parseApprovals,
+  parseSwaps,
 } from "./parsers/index.js";
 
 // Risks
