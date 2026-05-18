@@ -123,3 +123,13 @@ export {
   type FullDebuggerLayoutClassNames,
   type FullDebuggerTabId,
 } from "./templates/index.js";
+
+// Hooks (React peer dep)
+export {
+  useOpcodeNavigation,
+  isCallOp,
+  isStorageOp,
+  isLogOp,
+  type OpcodeNavigation,
+  type UseOpcodeNavigationOptions,
+} from "./hooks/index.js";
