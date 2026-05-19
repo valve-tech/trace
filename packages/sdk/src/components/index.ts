@@ -30,6 +30,11 @@ export {
   type FrameDetailPanelClassNames,
 } from "./FrameDetailPanel.js";
 export {
+  StepDebugger,
+  type StepDebuggerProps,
+  type StepDebuggerClassNames,
+} from "./StepDebugger.js";
+export {
   classifyOpcode,
   getOpcodeColor,
   isExpensiveOp,
