@@ -10,6 +10,7 @@ import {
   type PublicActions,
   type TestClient,
 } from "viem";
+import { ApiError } from "../lib/respond.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -337,13 +338,13 @@ export class ForkManager {
 
   private requireFork(id: string): Fork {
     const fork = this.forks.get(id);
-    if (!fork) throw new Error(`Fork not found: ${id}`);
+    if (!fork) throw new ApiError(404, `Fork not found: ${id}`);
     return fork;
   }
 
   private requireClient(id: string): ForkClient {
     const client = this.clients.get(id);
-    if (!client) throw new Error(`Fork not found: ${id}`);
+    if (!client) throw new ApiError(404, `Fork not found: ${id}`);
     return client;
   }
 

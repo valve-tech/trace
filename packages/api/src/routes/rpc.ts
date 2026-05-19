@@ -5,6 +5,7 @@ import {
   type JsonRpcRequest,
 } from "../services/rpcProxy.js";
 import { rpcAnalytics } from "../services/rpcAnalytics.js";
+import { ApiError, asyncRoute, respond } from "../lib/respond.js";
 
 const router = Router();
 
@@ -63,34 +64,21 @@ router.get("/methods", (_req: Request, res: Response): void => {
 // Same as /rpc but wraps response with timing info.
 // ---------------------------------------------------------------------------
 
-router.post("/test", async (req: Request, res: Response): Promise<void> => {
-  try {
+router.post(
+  "/test",
+  asyncRoute(async (req: Request, res: Response) => {
     const body = req.body as JsonRpcRequest | JsonRpcRequest[];
 
     if (!body || typeof body !== "object") {
-      res.status(400).json({
-        ok: false,
-        error: "Invalid JSON-RPC request",
-      });
-      return;
+      throw new ApiError(400, "Invalid JSON-RPC request");
     }
 
     const start = performance.now();
     const result = await handleRpcRequest(body);
     const latencyMs = Math.round((performance.now() - start) * 100) / 100;
 
-    res.json({
-      ok: true,
-      latencyMs,
-      response: result,
-    });
-  } catch (err) {
-    console.error("[rpc/test] unhandled error:", err);
-    res.status(500).json({
-      ok: false,
-      error: err instanceof Error ? err.message : "Internal error",
-    });
-  }
-});
+    respond.ok(res, { latencyMs, response: result });
+  }, "rpc/test"),
+);
 
 export default router;

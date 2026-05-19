@@ -2,6 +2,7 @@ import { forkManager, type Fork } from "./forkManager.js";
 import { publicClient } from "./rpc.js";
 import { fetchAbi, decodeInput, decodeLogs } from "./decoder.js";
 import { type Address, type Hex, formatEther } from "viem";
+import { ApiError } from "../lib/respond.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -216,7 +217,10 @@ export async function forkSimulate(
   request: ForkSimulationRequest,
 ): Promise<ForkSimulationResult> {
   if (activeForks >= MAX_SIM_FORKS) {
-    throw new Error("Too many concurrent simulations. Try again in a moment.");
+    throw new ApiError(
+      429,
+      "Too many concurrent simulations. Try again in a moment.",
+    );
   }
 
   activeForks++;

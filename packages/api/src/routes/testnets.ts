@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { forkManager } from "../services/forkManager.js";
 import { parseEther } from "viem";
+import { ApiError, asyncRoute, respond } from "../lib/respond.js";
 
 const router = Router();
 
@@ -14,8 +15,9 @@ function paramStr(val: string | string[] | undefined): string {
 // POST /api/testnets — Create a new fork
 // ---------------------------------------------------------------------------
 
-router.post("/", async (req: Request, res: Response): Promise<void> => {
-  try {
+router.post(
+  "/",
+  asyncRoute(async (req: Request, res: Response) => {
     const { blockNumber, label } = req.body as {
       blockNumber?: number;
       label?: string;
@@ -23,8 +25,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     const fork = await forkManager.createFork({ blockNumber, label });
 
-    res.json({
-      ok: true,
+    respond.ok(res, {
       fork: {
         id: fork.id,
         port: fork.port,
@@ -35,14 +36,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         pid: fork.pid,
       },
     });
-  } catch (err) {
-    console.error("[testnets] create fork error:", err);
-    res.status(500).json({
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to create fork",
-    });
-  }
-});
+  }, "testnets"),
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/testnets — List all active forks
@@ -59,30 +54,27 @@ router.get("/", (_req: Request, res: Response): void => {
     pid: f.pid,
   }));
 
-  res.json({ ok: true, forks });
+  respond.ok(res, { forks });
 });
 
 // ---------------------------------------------------------------------------
 // GET /api/testnets/:id — Get fork details + current block number
 // ---------------------------------------------------------------------------
 
-router.get("/:id", async (req: Request, res: Response): Promise<void> => {
-  try {
+router.get(
+  "/:id",
+  asyncRoute(async (req: Request, res: Response) => {
     const fork = forkManager.getFork(paramStr(req.params.id));
-    if (!fork) {
-      res.status(404).json({ ok: false, error: "Fork not found" });
-      return;
-    }
+    if (!fork) throw new ApiError(404, "Fork not found");
 
     let currentBlock: number | null = null;
     try {
       currentBlock = await forkManager.getBlockNumber(fork.id);
     } catch {
-      // fork may be unresponsive
+      // fork may be unresponsive — surface null currentBlock rather than 500
     }
 
-    res.json({
-      ok: true,
+    respond.ok(res, {
       fork: {
         id: fork.id,
         port: fork.port,
@@ -94,14 +86,8 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
         currentBlock,
       },
     });
-  } catch (err) {
-    console.error("[testnets] get fork error:", err);
-    res.status(500).json({
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to get fork details",
-    });
-  }
-});
+  }, "testnets"),
+);
 
 // ---------------------------------------------------------------------------
 // DELETE /api/testnets/:id — Destroy a fork
@@ -110,10 +96,10 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
 router.delete("/:id", (req: Request, res: Response): void => {
   const destroyed = forkManager.destroyFork(paramStr(req.params.id));
   if (!destroyed) {
-    res.status(404).json({ ok: false, error: "Fork not found" });
+    respond.fail(res, new ApiError(404, "Fork not found"));
     return;
   }
-  res.json({ ok: true });
+  respond.ok(res);
 });
 
 // ---------------------------------------------------------------------------
@@ -122,18 +108,10 @@ router.delete("/:id", (req: Request, res: Response): void => {
 
 router.post(
   "/:id/snapshot",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const snapshotId = await forkManager.snapshot(paramStr(req.params.id));
-      res.json({ ok: true, snapshotId });
-    } catch (err) {
-      console.error("[testnets] snapshot error:", err);
-      res.status(err instanceof Error && err.message.includes("not found") ? 404 : 500).json({
-        ok: false,
-        error: err instanceof Error ? err.message : "Failed to create snapshot",
-      });
-    }
-  },
+  asyncRoute(async (req: Request, res: Response) => {
+    const snapshotId = await forkManager.snapshot(paramStr(req.params.id));
+    respond.ok(res, { snapshotId });
+  }, "testnets"),
 );
 
 // ---------------------------------------------------------------------------
@@ -142,24 +120,18 @@ router.post(
 
 router.post(
   "/:id/revert",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { snapshotId } = req.body as { snapshotId: string };
-      if (!snapshotId) {
-        res.status(400).json({ ok: false, error: "snapshotId is required" });
-        return;
-      }
-
-      const success = await forkManager.revert(paramStr(req.params.id), snapshotId);
-      res.json({ ok: true, success });
-    } catch (err) {
-      console.error("[testnets] revert error:", err);
-      res.status(err instanceof Error && err.message.includes("not found") ? 404 : 500).json({
-        ok: false,
-        error: err instanceof Error ? err.message : "Failed to revert snapshot",
-      });
+  asyncRoute(async (req: Request, res: Response) => {
+    const { snapshotId } = req.body as { snapshotId: string };
+    if (!snapshotId) {
+      throw new ApiError(400, "snapshotId is required");
     }
-  },
+
+    const success = await forkManager.revert(
+      paramStr(req.params.id),
+      snapshotId,
+    );
+    respond.ok(res, { success });
+  }, "testnets"),
 );
 
 // ---------------------------------------------------------------------------
@@ -168,35 +140,21 @@ router.post(
 
 router.post(
   "/:id/fund",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { address, amount } = req.body as {
-        address: string;
-        amount: string;
-      };
+  asyncRoute(async (req: Request, res: Response) => {
+    const { address, amount } = req.body as {
+      address: string;
+      amount: string;
+    };
 
-      if (!address) {
-        res.status(400).json({ ok: false, error: "address is required" });
-        return;
-      }
-      if (!amount) {
-        res.status(400).json({ ok: false, error: "amount is required" });
-        return;
-      }
+    if (!address) throw new ApiError(400, "address is required");
+    if (!amount) throw new ApiError(400, "amount is required");
 
-      // Convert PLS amount to wei hex string
-      const amountWei = "0x" + parseEther(amount).toString(16);
+    // Convert PLS amount to wei hex string
+    const amountWei = "0x" + parseEther(amount).toString(16);
 
-      await forkManager.fund(paramStr(req.params.id), address, amountWei);
-      res.json({ ok: true, address, amountWei });
-    } catch (err) {
-      console.error("[testnets] fund error:", err);
-      res.status(err instanceof Error && err.message.includes("not found") ? 404 : 500).json({
-        ok: false,
-        error: err instanceof Error ? err.message : "Failed to fund address",
-      });
-    }
-  },
+    await forkManager.fund(paramStr(req.params.id), address, amountWei);
+    respond.ok(res, { address, amountWei });
+  }, "testnets"),
 );
 
 // ---------------------------------------------------------------------------
@@ -205,26 +163,16 @@ router.post(
 
 router.post(
   "/:id/mine",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { count } = req.body as { count: number };
-      if (!count || count < 1) {
-        res
-          .status(400)
-          .json({ ok: false, error: "count must be a positive integer" });
-        return;
-      }
-
-      await forkManager.mineBlocks(paramStr(req.params.id), Math.min(count, 1000));
-      res.json({ ok: true, mined: Math.min(count, 1000) });
-    } catch (err) {
-      console.error("[testnets] mine error:", err);
-      res.status(err instanceof Error && err.message.includes("not found") ? 404 : 500).json({
-        ok: false,
-        error: err instanceof Error ? err.message : "Failed to mine blocks",
-      });
+  asyncRoute(async (req: Request, res: Response) => {
+    const { count } = req.body as { count: number };
+    if (!count || count < 1) {
+      throw new ApiError(400, "count must be a positive integer");
     }
-  },
+
+    const mined = Math.min(count, 1000);
+    await forkManager.mineBlocks(paramStr(req.params.id), mined);
+    respond.ok(res, { mined });
+  }, "testnets"),
 );
 
 // ---------------------------------------------------------------------------
@@ -233,27 +181,15 @@ router.post(
 
 router.post(
   "/:id/time-travel",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { seconds } = req.body as { seconds: number };
-      if (!seconds || seconds < 1) {
-        res
-          .status(400)
-          .json({ ok: false, error: "seconds must be a positive integer" });
-        return;
-      }
-
-      await forkManager.timeTravel(paramStr(req.params.id), seconds);
-      res.json({ ok: true, seconds });
-    } catch (err) {
-      console.error("[testnets] time-travel error:", err);
-      res.status(err instanceof Error && err.message.includes("not found") ? 404 : 500).json({
-        ok: false,
-        error:
-          err instanceof Error ? err.message : "Failed to advance time",
-      });
+  asyncRoute(async (req: Request, res: Response) => {
+    const { seconds } = req.body as { seconds: number };
+    if (!seconds || seconds < 1) {
+      throw new ApiError(400, "seconds must be a positive integer");
     }
-  },
+
+    await forkManager.timeTravel(paramStr(req.params.id), seconds);
+    respond.ok(res, { seconds });
+  }, "testnets"),
 );
 
 // ---------------------------------------------------------------------------
@@ -262,32 +198,21 @@ router.post(
 
 router.post(
   "/:id/rpc",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { method, params } = req.body as {
-        method: string;
-        params?: unknown[];
-      };
+  asyncRoute(async (req: Request, res: Response) => {
+    const { method, params } = req.body as {
+      method: string;
+      params?: unknown[];
+    };
 
-      if (!method) {
-        res.status(400).json({ ok: false, error: "method is required" });
-        return;
-      }
+    if (!method) throw new ApiError(400, "method is required");
 
-      const result = await forkManager.proxyRpc(
-        paramStr(req.params.id),
-        method,
-        params ?? [],
-      );
-      res.json({ jsonrpc: "2.0", id: req.body.id ?? 1, result });
-    } catch (err) {
-      console.error("[testnets] rpc proxy error:", err);
-      res.status(err instanceof Error && err.message.includes("not found") ? 404 : 500).json({
-        ok: false,
-        error: err instanceof Error ? err.message : "RPC proxy error",
-      });
-    }
-  },
+    const result = await forkManager.proxyRpc(
+      paramStr(req.params.id),
+      method,
+      params ?? [],
+    );
+    res.json({ jsonrpc: "2.0", id: req.body.id ?? 1, result });
+  }, "testnets"),
 );
 
 export default router;

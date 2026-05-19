@@ -10,56 +10,64 @@ import {
   getAddressBalance,
   isContract,
 } from "../services/explorer.js";
+import { ApiError, asyncRoute, respond } from "../lib/respond.js";
 
 const router = Router();
+
+const HASH_RE = /^0x[0-9a-fA-F]{64}$/;
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
+function requireAddress(raw: string | string[] | undefined): string {
+  const address = String(raw ?? "");
+  if (!ADDRESS_RE.test(address)) throw new ApiError(400, "Invalid address");
+  return address;
+}
 
 // ---------------------------------------------------------------------------
 // GET /api/tx/:hash
 // ---------------------------------------------------------------------------
 
-router.get("/tx/:hash", async (req: Request, res: Response): Promise<void> => {
-  try {
+router.get(
+  "/tx/:hash",
+  asyncRoute(async (req: Request, res: Response) => {
     const hash = String(req.params.hash ?? "");
-
-    if (!hash || !hash.match(/^0x[0-9a-fA-F]{64}$/)) {
-      res.status(400).json({ ok: false, error: "Invalid transaction hash" });
-      return;
+    if (!HASH_RE.test(hash)) {
+      throw new ApiError(400, "Invalid transaction hash");
     }
 
     const timeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
-      Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
+      Promise.race([
+        p,
+        new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+      ]);
 
-    // All data fetched in parallel with generous timeouts
     // RPC can be slow for complex txs — 15s timeout per call
     const [details, internalTxs, tokenTransfers] = await Promise.all([
-      timeout(getTransactionDetails(hash), 15_000, null as Awaited<ReturnType<typeof getTransactionDetails>> | null),
+      timeout(
+        getTransactionDetails(hash),
+        15_000,
+        null as Awaited<ReturnType<typeof getTransactionDetails>> | null,
+      ),
       timeout(getInternalTransactions(hash), 10_000, []),
       timeout(getTokenTransfers(hash), 10_000, []),
     ]);
 
     if (!details) {
-      res.status(504).json({ ok: false, error: "Transaction fetch timed out — PulseChain RPC may be slow" });
-      return;
+      throw new ApiError(
+        504,
+        "Transaction fetch timed out — PulseChain RPC may be slow",
+      );
     }
 
-    const merged = details;
-
-    res.json({
-      ok: true,
+    respond.ok(res, {
       result: {
-        ...merged,
+        ...details,
         internalTransactions: internalTxs,
         tokenTransfers,
       },
     });
-  } catch (err) {
-    console.error("[explorer/tx] error:", err);
-    res.status(500).json({
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to fetch transaction",
-    });
-  }
-});
+  }, "explorer/tx"),
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/address/:address/txs
@@ -67,33 +75,17 @@ router.get("/tx/:hash", async (req: Request, res: Response): Promise<void> => {
 
 router.get(
   "/address/:address/txs",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const address = String(req.params.address ?? "");
-      const page = parseInt(String(req.query.page ?? "1"), 10) || 1;
-      const limit = Math.min(
-        parseInt(String(req.query.limit ?? "25"), 10) || 25,
-        100,
-      );
+  asyncRoute(async (req: Request, res: Response) => {
+    const address = requireAddress(req.params.address);
+    const page = parseInt(String(req.query.page ?? "1"), 10) || 1;
+    const limit = Math.min(
+      parseInt(String(req.query.limit ?? "25"), 10) || 25,
+      100,
+    );
 
-      if (!address || !address.match(/^0x[0-9a-fA-F]{40}$/)) {
-        res.status(400).json({ ok: false, error: "Invalid address" });
-        return;
-      }
-
-      const result = await getAddressTransactions(address, page, limit);
-      res.json({ ok: true, result });
-    } catch (err) {
-      console.error("[explorer/address/txs] error:", err);
-      res.status(500).json({
-        ok: false,
-        error:
-          err instanceof Error
-            ? err.message
-            : "Failed to fetch address transactions",
-      });
-    }
-  },
+    const result = await getAddressTransactions(address, page, limit);
+    respond.ok(res, { result });
+  }, "explorer/address/txs"),
 );
 
 // ---------------------------------------------------------------------------
@@ -102,28 +94,11 @@ router.get(
 
 router.get(
   "/address/:address/tokens",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const address = String(req.params.address ?? "");
-
-      if (!address || !address.match(/^0x[0-9a-fA-F]{40}$/)) {
-        res.status(400).json({ ok: false, error: "Invalid address" });
-        return;
-      }
-
-      const tokens = await getAddressTokens(address);
-      res.json({ ok: true, result: tokens });
-    } catch (err) {
-      console.error("[explorer/address/tokens] error:", err);
-      res.status(500).json({
-        ok: false,
-        error:
-          err instanceof Error
-            ? err.message
-            : "Failed to fetch address tokens",
-      });
-    }
-  },
+  asyncRoute(async (req: Request, res: Response) => {
+    const address = requireAddress(req.params.address);
+    const tokens = await getAddressTokens(address);
+    respond.ok(res, { result: tokens });
+  }, "explorer/address/tokens"),
 );
 
 // ---------------------------------------------------------------------------
@@ -132,37 +107,21 @@ router.get(
 
 router.get(
   "/address/:address",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const address = String(req.params.address ?? "");
+  asyncRoute(async (req: Request, res: Response) => {
+    const address = requireAddress(req.params.address);
+    const [balance, isContractAddr] = await Promise.all([
+      getAddressBalance(address),
+      isContract(address),
+    ]);
 
-      if (!address || !address.match(/^0x[0-9a-fA-F]{40}$/)) {
-        res.status(400).json({ ok: false, error: "Invalid address" });
-        return;
-      }
-
-      const [balance, isContractAddr] = await Promise.all([
-        getAddressBalance(address),
-        isContract(address),
-      ]);
-
-      res.json({
-        ok: true,
-        result: {
-          address,
-          ...balance,
-          isContract: isContractAddr,
-        },
-      });
-    } catch (err) {
-      console.error("[explorer/address] error:", err);
-      res.status(500).json({
-        ok: false,
-        error:
-          err instanceof Error ? err.message : "Failed to fetch address info",
-      });
-    }
-  },
+    respond.ok(res, {
+      result: {
+        address,
+        ...balance,
+        isContract: isContractAddr,
+      },
+    });
+  }, "explorer/address"),
 );
 
 // ---------------------------------------------------------------------------
@@ -171,28 +130,11 @@ router.get(
 
 router.get(
   "/contract/:address",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const address = String(req.params.address ?? "");
-
-      if (!address || !address.match(/^0x[0-9a-fA-F]{40}$/)) {
-        res.status(400).json({ ok: false, error: "Invalid address" });
-        return;
-      }
-
-      const info = await getContractInfo(address);
-      res.json({ ok: true, result: info });
-    } catch (err) {
-      console.error("[explorer/contract] error:", err);
-      res.status(500).json({
-        ok: false,
-        error:
-          err instanceof Error
-            ? err.message
-            : "Failed to fetch contract info",
-      });
-    }
-  },
+  asyncRoute(async (req: Request, res: Response) => {
+    const address = requireAddress(req.params.address);
+    const info = await getContractInfo(address);
+    respond.ok(res, { result: info });
+  }, "explorer/contract"),
 );
 
 // ---------------------------------------------------------------------------
@@ -201,28 +143,15 @@ router.get(
 
 router.get(
   "/block/:numberOrHash",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const numberOrHash = String(req.params.numberOrHash ?? "");
-
-      if (!numberOrHash) {
-        res
-          .status(400)
-          .json({ ok: false, error: "Block number or hash required" });
-        return;
-      }
-
-      const block = await getBlockDetails(numberOrHash);
-      res.json({ ok: true, result: block });
-    } catch (err) {
-      console.error("[explorer/block] error:", err);
-      res.status(500).json({
-        ok: false,
-        error:
-          err instanceof Error ? err.message : "Failed to fetch block details",
-      });
+  asyncRoute(async (req: Request, res: Response) => {
+    const numberOrHash = String(req.params.numberOrHash ?? "");
+    if (!numberOrHash) {
+      throw new ApiError(400, "Block number or hash required");
     }
-  },
+
+    const block = await getBlockDetails(numberOrHash);
+    respond.ok(res, { result: block });
+  }, "explorer/block"),
 );
 
 export default router;

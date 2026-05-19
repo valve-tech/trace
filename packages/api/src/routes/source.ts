@@ -1,30 +1,37 @@
 import { Router, type Request, type Response } from "express";
 import { getVerifiedSource } from "../services/sourceCode.js";
-import { precomputeSourceMap, lookupPc, type SourceLocation } from "../services/sourceMap.js";
+import {
+  precomputeSourceMap,
+  lookupPc,
+  type SourceLocation,
+} from "../services/sourceMap.js";
 import { compileForSourceMap } from "../services/solcCompiler.js";
 import { analyzeContract } from "../services/slither.js";
+import { ApiError, asyncRoute, respond } from "../lib/respond.js";
 
 const router = Router();
+
+const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
+
+function requireAddress(raw: string | string[] | undefined): string {
+  const address = String(raw ?? "");
+  if (!ADDRESS_RE.test(address)) throw new ApiError(400, "Invalid address");
+  return address;
+}
 
 // ---------------------------------------------------------------------------
 // GET /api/source/:address — Get verified source code and source map
 // ---------------------------------------------------------------------------
-router.get("/:address", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const address = String(req.params.address ?? "");
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      res.status(400).json({ ok: false, error: "Invalid address" });
-      return;
-    }
+router.get(
+  "/:address",
+  asyncRoute(async (req: Request, res: Response) => {
+    const address = requireAddress(req.params.address);
 
     const source = await getVerifiedSource(address);
     if (!source) {
-      res.status(404).json({
-        ok: false,
-        error: "Verified source not found",
+      throw new ApiError(404, "Verified source not found", {
         hint: "Contract may not be verified on BlockScout or Sourcify",
       });
-      return;
     }
 
     // If source map is missing, try recompilation to generate it
@@ -39,12 +46,16 @@ router.get("/:address", async (req: Request, res: Response): Promise<void> => {
           hasDeployedBytecode = true;
         }
       } catch (err) {
-        console.warn(`[source] recompilation failed for ${address}:`, err instanceof Error ? err.message : err);
+        // Recompilation is best-effort — warn and continue with whatever
+        // BlockScout/Sourcify already gave us.
+        console.warn(
+          `[source] recompilation failed for ${address}:`,
+          err instanceof Error ? err.message : err,
+        );
       }
     }
 
-    res.json({
-      ok: true,
+    respond.ok(res, {
       source: {
         address: source.address,
         chainSource: source.chainSource,
@@ -58,11 +69,8 @@ router.get("/:address", async (req: Request, res: Response): Promise<void> => {
         hasDeployedBytecode,
       },
     });
-  } catch (err) {
-    console.error("[source] fetch error:", err);
-    res.status(500).json({ ok: false, error: "Failed to fetch source" });
-  }
-});
+  }, "source"),
+);
 
 // ---------------------------------------------------------------------------
 // POST /api/source/:address/map — Map an array of PCs to source locations
@@ -70,30 +78,21 @@ router.get("/:address", async (req: Request, res: Response): Promise<void> => {
 // Body: { pcs: number[] }
 // Returns: { ok, mappings: { [pc]: SourceLocation | null } }
 // ---------------------------------------------------------------------------
-router.post("/:address/map", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const address = String(req.params.address ?? "");
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      res.status(400).json({ ok: false, error: "Invalid address" });
-      return;
-    }
+router.post(
+  "/:address/map",
+  asyncRoute(async (req: Request, res: Response) => {
+    const address = requireAddress(req.params.address);
 
     const { pcs } = req.body as { pcs?: number[] };
     if (!Array.isArray(pcs) || pcs.length === 0) {
-      res.status(400).json({ ok: false, error: "pcs must be a non-empty array of numbers" });
-      return;
+      throw new ApiError(400, "pcs must be a non-empty array of numbers");
     }
-
     if (pcs.length > 100_000) {
-      res.status(400).json({ ok: false, error: "Too many PCs (max 100,000)" });
-      return;
+      throw new ApiError(400, "Too many PCs (max 100,000)");
     }
 
     const source = await getVerifiedSource(address);
-    if (!source) {
-      res.status(404).json({ ok: false, error: "Verified source not found" });
-      return;
-    }
+    if (!source) throw new ApiError(404, "Verified source not found");
 
     let sourceMap = source.sourceMap;
     let deployedBytecode = source.deployedBytecode;
@@ -108,12 +107,13 @@ router.post("/:address/map", async (req: Request, res: Response): Promise<void> 
     }
 
     if (!sourceMap || !deployedBytecode) {
-      res.status(404).json({
-        ok: false,
-        error: "Source map not available — recompilation failed",
-        hint: "The contract source is verified but could not be recompiled to generate the source map",
-      });
-      return;
+      throw new ApiError(
+        404,
+        "Source map not available — recompilation failed",
+        {
+          hint: "The contract source is verified but could not be recompiled to generate the source map",
+        },
+      );
     }
 
     const precomputed = precomputeSourceMap(
@@ -127,67 +127,60 @@ router.post("/:address/map", async (req: Request, res: Response): Promise<void> 
       mappings[pc] = lookupPc(pc, precomputed);
     }
 
-    res.json({ ok: true, mappings });
-  } catch (err) {
-    console.error("[source] map error:", err);
-    res.status(500).json({ ok: false, error: "Failed to map source" });
-  }
-});
+    respond.ok(res, { mappings });
+  }, "source/map"),
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/source/:address/storage-layout — Get storage layout
 // ---------------------------------------------------------------------------
-router.get("/:address/storage-layout", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const address = String(req.params.address ?? "");
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      res.status(400).json({ ok: false, error: "Invalid address" });
-      return;
-    }
+router.get(
+  "/:address/storage-layout",
+  asyncRoute(async (req: Request, res: Response) => {
+    const address = requireAddress(req.params.address);
 
     const compiled = await compileForSourceMap(address);
     if (!compiled) {
-      res.status(404).json({ ok: false, error: "Could not compile contract to get storage layout" });
-      return;
+      throw new ApiError(
+        404,
+        "Could not compile contract to get storage layout",
+      );
     }
-
     if (!compiled.storageLayout) {
-      res.status(404).json({ ok: false, error: "Storage layout not available (compiler may be too old)" });
-      return;
+      throw new ApiError(
+        404,
+        "Storage layout not available (compiler may be too old)",
+      );
     }
 
-    res.json({ ok: true, storageLayout: compiled.storageLayout, contractName: compiled.contractName });
-  } catch (err) {
-    console.error("[source] storage-layout error:", err);
-    res.status(500).json({ ok: false, error: "Failed to get storage layout" });
-  }
-});
+    respond.ok(res, {
+      storageLayout: compiled.storageLayout,
+      contractName: compiled.contractName,
+    });
+  }, "source/storage-layout"),
+);
 
 // ---------------------------------------------------------------------------
 // POST /api/source/:address/analyze — Run Slither static analysis
 // ---------------------------------------------------------------------------
-router.post("/:address/analyze", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const address = String(req.params.address ?? "");
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      res.status(400).json({ ok: false, error: "Invalid address" });
-      return;
-    }
+router.post(
+  "/:address/analyze",
+  asyncRoute(async (req: Request, res: Response) => {
+    const address = requireAddress(req.params.address);
 
     const { skipCache } = req.body as { skipCache?: boolean };
 
-    const result = await analyzeContract(address, { skipCache: skipCache === true });
+    const result = await analyzeContract(address, {
+      skipCache: skipCache === true,
+    });
 
     if (result.error) {
-      res.json({ ok: true, analysis: result, warning: result.error });
+      respond.ok(res, { analysis: result, warning: result.error });
       return;
     }
 
-    res.json({ ok: true, analysis: result });
-  } catch (err) {
-    console.error("[source] analyze error:", err);
-    res.status(500).json({ ok: false, error: "Failed to analyze contract" });
-  }
-});
+    respond.ok(res, { analysis: result });
+  }, "source/analyze"),
+);
 
 export default router;
