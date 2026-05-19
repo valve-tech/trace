@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>trace-sdk widgets · demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0d1117;
+        --fg: #c9d1d9;
+        --muted: #8b949e;
+        --accent: #f59e0b;
+      }
+      html, body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+        padding: 32px;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      h1 { font-size: 22px; margin: 0 0 4px 0; }
+      h2 { font-size: 14px; margin: 32px 0 12px 0; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+      p  { color: var(--muted); margin: 0 0 16px 0; }
+      pre { background: rgba(139,148,158,0.08); padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-size: 12px; color: var(--fg); }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

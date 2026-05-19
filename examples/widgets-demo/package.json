@@ -1,0 +1,25 @@
+{
+  "name": "@valve-tech/trace-widgets-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Standalone Vite demo showing how to embed @valve-tech/trace-sdk widgets in your own React site.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@valve-tech/trace-sdk": "*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "viem": "^2.23.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.3.0",
+    "typescript": "^5.7.0",
+    "vite": "^5.4.0"
+  }
+}
