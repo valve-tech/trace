@@ -112,8 +112,72 @@ export const largeApproval: RiskRule = (
   return flags;
 };
 
+const TRANSFER_TOPIC: Hex =
+  "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+function decodeTransferRecipient(log: Log): Address | null {
+  // Matches the ERC-20 shape used by parseTokenDeltas: topic[0] = Transfer,
+  // 3 topics total, both addr topics zero-padded to 32 bytes. We don't need
+  // the value — only the destination — so skip BigInt parsing.
+  if (log.topics.length !== 3) return null;
+  if (log.topics[0] !== TRANSFER_TOPIC) return null;
+  const toTopic = log.topics[2]!;
+  if (toTopic.length !== TOPIC_HEX_LENGTH) return null;
+  return (`0x${toTopic.slice(-40)}`).toLowerCase() as Address;
+}
+
+/**
+ * Flag ERC-20 Transfer events whose recipient is a token contract — funds
+ * sent to a token's own contract address are functionally burned, as the
+ * token contract has no mechanism to forward or recover them.
+ *
+ * Two cases are detected:
+ *  1. Self-transfer: `to === log.address` (sending tokenA to tokenA). Caught
+ *     unconditionally — it's a syntactic check, no external knowledge needed.
+ *  2. Cross-token: `to` is a different token contract (sending tokenA to
+ *     tokenB). Caught only when the consumer provides
+ *     `options.classifyAddress`, since the SDK has no built-in registry of
+ *     token contracts to consult. A typical consumer wires this to a
+ *     `code(to).length > 0` + ERC-165/EIP-1820 check, or a token-list lookup.
+ *
+ * Severity is `warning` (not `danger`) because while the funds are unrecoverable,
+ * the action is observable and self-inflicted — there's no exploit involved.
+ * ERC-721/1155 share the topic hash but have different topic shapes; this
+ * rule deliberately matches only the ERC-20 shape via topic-count filter.
+ */
+export const tokenSentToTokenContract: RiskRule = (
+  frame,
+  depth,
+  childIndex,
+  { classifyAddress },
+) => {
+  if (!frame.logs) return [];
+  const flags: Omit<RiskFlag, "reverted">[] = [];
+  for (const log of frame.logs) {
+    const to = decodeTransferRecipient(log);
+    if (to === null) continue;
+
+    const isSelfTransfer = to === log.address.toLowerCase();
+    const isOtherTokenContract = !isSelfTransfer && (classifyAddress?.(to) ?? false);
+    if (!isSelfTransfer && !isOtherTokenContract) continue;
+
+    flags.push({
+      type: "TOKEN_SENT_TO_TOKEN_CONTRACT",
+      severity: "warning",
+      message: isSelfTransfer
+        ? `ERC-20 Transfer to token's own contract ${to} (funds unrecoverable)`
+        : `ERC-20 Transfer to a different token contract ${to} (funds unrecoverable)`,
+      address: to,
+      depth,
+      childIndex,
+    });
+  }
+  return flags;
+};
+
 /** Built-in rule registry. Order is preserved in the output `RiskFlag[]`. */
 export const BUILTIN_RULES: readonly RiskRule[] = [
   delegatecallUnrecognized,
   largeApproval,
+  tokenSentToTokenContract,
 ];

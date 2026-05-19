@@ -338,3 +338,158 @@ describe("analyzeRisks — largeApproval rule", () => {
     expect(flags[0].reverted).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// tokenSentToTokenContract rule
+// ---------------------------------------------------------------------------
+
+const TRANSFER_TOPIC =
+  "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+function transferLog(
+  token: Address,
+  from: Address,
+  to: Address,
+  value: bigint,
+): Log {
+  return {
+    address: token,
+    topics: [TRANSFER_TOPIC as Hex, addrTopic(from), addrTopic(to)],
+    data: uint256Hex(value),
+  };
+}
+
+describe("analyzeRisks — tokenSentToTokenContract rule", () => {
+  it("flags a Transfer whose `to` is the emitting token contract", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [transferLog(addrs.CONTRACT, addrs.ALICE, addrs.CONTRACT, 100n)],
+    };
+    const flags = analyzeRisks(frame).filter(
+      (f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT",
+    );
+    expect(flags).toHaveLength(1);
+    expect(flags[0]).toEqual({
+      type: "TOKEN_SENT_TO_TOKEN_CONTRACT",
+      severity: "warning",
+      message: `ERC-20 Transfer to token's own contract ${addrs.CONTRACT} (funds unrecoverable)`,
+      address: addrs.CONTRACT,
+      depth: 0,
+      childIndex: 0,
+      reverted: false,
+    });
+  });
+
+  it("does NOT flag a Transfer to a normal EOA", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [transferLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, 100n)],
+    };
+    expect(
+      analyzeRisks(frame).filter((f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT"),
+    ).toEqual([]);
+  });
+
+  it("flags Transfers to a different token contract when classifyAddress returns true", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [transferLog(addrs.CONTRACT, addrs.ALICE, addrs.VAULT, 100n)],
+    };
+    const flags = analyzeRisks(frame, {
+      classifyAddress: (addr) => addr === addrs.VAULT,
+    }).filter((f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT");
+    expect(flags).toHaveLength(1);
+    expect(flags[0]!.message).toContain("a different token contract");
+    expect(flags[0]!.address).toBe(addrs.VAULT);
+  });
+
+  it("does not flag cross-token when classifyAddress returns false", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [transferLog(addrs.CONTRACT, addrs.ALICE, addrs.VAULT, 100n)],
+    };
+    expect(
+      analyzeRisks(frame, { classifyAddress: () => false }).filter(
+        (f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT",
+      ),
+    ).toEqual([]);
+  });
+
+  it("self-transfers are always flagged, even when classifyAddress is omitted", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [transferLog(addrs.CONTRACT, addrs.ALICE, addrs.CONTRACT, 1n)],
+    };
+    expect(
+      analyzeRisks(frame).filter((f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT"),
+    ).toHaveLength(1);
+  });
+
+  it("ignores logs that are not ERC-20 Transfers", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      // Approval, not Transfer
+      logs: [approvalLog(addrs.CONTRACT, addrs.ALICE, addrs.CONTRACT, 1n)],
+    };
+    expect(
+      analyzeRisks(frame).filter((f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT"),
+    ).toEqual([]);
+  });
+
+  it("ignores 4-topic (ERC-721) Transfers even if `to` equals the token", () => {
+    const erc721: Log = {
+      address: addrs.CONTRACT,
+      topics: [
+        TRANSFER_TOPIC as Hex,
+        addrTopic(addrs.ALICE),
+        addrTopic(addrs.CONTRACT),
+        uint256Hex(1n),
+      ],
+      data: "0x" as Hex,
+    };
+    const frame: TraceFrame = { ...makeFrame({}), logs: [erc721] };
+    expect(
+      analyzeRisks(frame).filter((f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT"),
+    ).toEqual([]);
+  });
+
+  it("ignores malformed 3-topic logs with bad topic length", () => {
+    const bad: Log = {
+      address: addrs.CONTRACT,
+      topics: [
+        TRANSFER_TOPIC as Hex,
+        addrTopic(addrs.ALICE),
+        // truncated `to` topic
+        ("0x" + "00".repeat(20)) as Hex,
+      ],
+      data: uint256Hex(1n),
+    };
+    const frame: TraceFrame = { ...makeFrame({}), logs: [bad] };
+    expect(
+      analyzeRisks(frame).filter((f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT"),
+    ).toEqual([]);
+  });
+
+  it("returns no flags when the frame has no logs", () => {
+    expect(
+      analyzeRisks(makeFrame({})).filter(
+        (f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT",
+      ),
+    ).toEqual([]);
+  });
+
+  it("flags multiple offenders on one frame, in log order", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        transferLog(addrs.CONTRACT, addrs.ALICE, addrs.CONTRACT, 1n),
+        transferLog(addrs.CONTRACT, addrs.ALICE, addrs.BOB, 2n),
+        transferLog(addrs.CONTRACT, addrs.ALICE, addrs.CONTRACT, 3n),
+      ],
+    };
+    const flags = analyzeRisks(frame).filter(
+      (f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT",
+    );
+    expect(flags).toHaveLength(2);
+  });
+});

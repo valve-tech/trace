@@ -332,7 +332,10 @@ export type RiskSeverity = "info" | "warning" | "danger";
  * the type; the SDK's built-in rules add their own literal members here as
  * they ship.
  */
-export type RiskFlagType = "DELEGATECALL_UNRECOGNIZED" | "LARGE_APPROVAL";
+export type RiskFlagType =
+  | "DELEGATECALL_UNRECOGNIZED"
+  | "LARGE_APPROVAL"
+  | "TOKEN_SENT_TO_TOKEN_CONTRACT";
 
 /**
  * One finding emitted by `analyzeRisks`. `depth` and `childIndex` give a
@@ -363,8 +366,18 @@ export interface RiskFlag {
  * any decoded Approval whose `value >= threshold` is flagged. Defaults to
  * `2n ** 256n - 1n` (only literal "unlimited" approvals); pass e.g.
  * `2n ** 128n` to also catch common phishing variants.
+ *
+ * `classifyAddress` is consulted by the TOKEN_SENT_TO_TOKEN_CONTRACT rule:
+ * given a recipient address, it should return `true` if the address is a
+ * token contract (ERC-20/721/1155). The rule always flags self-transfers
+ * (a Transfer log whose `to` equals the emitting token contract) regardless
+ * of the classifier — that case needs no extra knowledge. The classifier
+ * extends the check to cross-token mistakes (sending tokenA to tokenB's
+ * contract), which the SDK can't detect without external bytecode lookup.
+ * Receives lowercase normalized addresses.
  */
 export interface AnalyzeRisksOptions {
   whitelist?: Set<Address>;
   largeApprovalThreshold?: bigint;
+  classifyAddress?: (address: Address) => boolean;
 }
