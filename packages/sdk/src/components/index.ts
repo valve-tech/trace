@@ -35,6 +35,16 @@ export {
   type StepDebuggerClassNames,
 } from "./StepDebugger.js";
 export {
+  SwapsPanel,
+  type SwapsPanelProps,
+  type SwapsPanelClassNames,
+} from "./SwapsPanel.js";
+export {
+  ApprovalsPanel,
+  type ApprovalsPanelProps,
+  type ApprovalsPanelClassNames,
+} from "./ApprovalsPanel.js";
+export {
   classifyOpcode,
   getOpcodeColor,
   isExpensiveOp,
