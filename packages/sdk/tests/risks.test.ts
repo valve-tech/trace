@@ -1,6 +1,16 @@
 import { describe, it, expect } from "vitest";
 import type { Address, Hex } from "viem";
-import { analyzeRisks } from "../src/risks/index.js";
+import {
+  analyzeRisks,
+  defineRule,
+  getRuleById,
+  BUILTIN_RULE_DEFS,
+  RULE_DELEGATECALL_UNRECOGNIZED,
+  RULE_LARGE_APPROVAL,
+  RULE_TOKEN_SENT_TO_TOKEN_CONTRACT,
+  type Rule,
+  type RiskRule,
+} from "../src/risks/index.js";
 import { addrs, makeFrame } from "./fixtures.js";
 import type { Log, TraceFrame } from "../src/types.js";
 
@@ -491,5 +501,107 @@ describe("analyzeRisks — tokenSentToTokenContract rule", () => {
       (f) => f.type === "TOKEN_SENT_TO_TOKEN_CONTRACT",
     );
     expect(flags).toHaveLength(2);
+  });
+});
+
+describe("rule-engine metadata", () => {
+  it("defineRule returns the same object (identity helper)", () => {
+    const myRule: Rule = defineRule({
+      id: "my-rule",
+      severity: "info",
+      category: "test",
+      title: "My Rule",
+      description: "A test rule.",
+      run: () => [],
+    });
+    expect(myRule.id).toBe("my-rule");
+    expect(myRule.severity).toBe("info");
+    expect(myRule.category).toBe("test");
+    expect(typeof myRule.run).toBe("function");
+  });
+
+  it("exposes built-in rule definitions with metadata", () => {
+    expect(BUILTIN_RULE_DEFS).toHaveLength(3);
+    expect(BUILTIN_RULE_DEFS[0]).toBe(RULE_DELEGATECALL_UNRECOGNIZED);
+    expect(BUILTIN_RULE_DEFS[1]).toBe(RULE_LARGE_APPROVAL);
+    expect(BUILTIN_RULE_DEFS[2]).toBe(RULE_TOKEN_SENT_TO_TOKEN_CONTRACT);
+    expect(RULE_DELEGATECALL_UNRECOGNIZED.id).toBe("delegatecall-unrecognized");
+    expect(RULE_DELEGATECALL_UNRECOGNIZED.severity).toBe("danger");
+    expect(RULE_DELEGATECALL_UNRECOGNIZED.category).toBe("delegatecall");
+    expect(RULE_LARGE_APPROVAL.id).toBe("large-approval");
+    expect(RULE_LARGE_APPROVAL.severity).toBe("warning");
+    expect(RULE_LARGE_APPROVAL.category).toBe("approval");
+    expect(RULE_TOKEN_SENT_TO_TOKEN_CONTRACT.id).toBe(
+      "token-sent-to-token-contract",
+    );
+    expect(RULE_TOKEN_SENT_TO_TOKEN_CONTRACT.severity).toBe("warning");
+    expect(RULE_TOKEN_SENT_TO_TOKEN_CONTRACT.category).toBe("transfer");
+  });
+
+  it("getRuleById returns the matching rule", () => {
+    expect(getRuleById("delegatecall-unrecognized")).toBe(
+      RULE_DELEGATECALL_UNRECOGNIZED,
+    );
+    expect(getRuleById("large-approval")).toBe(RULE_LARGE_APPROVAL);
+  });
+
+  it("getRuleById returns undefined for unknown ids", () => {
+    expect(getRuleById("does-not-exist")).toBeUndefined();
+  });
+
+  it("analyzeRisks runs an override rule set passed via options.rules", () => {
+    const frame = makeFrame({
+      type: "CALL",
+      children: [
+        makeFrame({
+          type: "DELEGATECALL",
+          from: addrs.CONTRACT,
+          to: addrs.VAULT,
+          depth: 1,
+        }),
+      ],
+    });
+    // Empty rule set: zero findings even though there's a DELEGATECALL
+    expect(analyzeRisks(frame, { rules: [] })).toEqual([]);
+
+    // Subset: only the delegatecall rule
+    const onlyDelegate = analyzeRisks(frame, {
+      rules: [RULE_DELEGATECALL_UNRECOGNIZED],
+    });
+    expect(onlyDelegate).toHaveLength(1);
+    expect(onlyDelegate[0].type).toBe("DELEGATECALL_UNRECOGNIZED");
+  });
+
+  it("analyzeRisks accepts mixed bare-function and Rule entries", () => {
+    const frame = makeFrame({
+      type: "CALL",
+      children: [
+        makeFrame({
+          type: "DELEGATECALL",
+          from: addrs.CONTRACT,
+          to: addrs.VAULT,
+          depth: 1,
+        }),
+      ],
+    });
+    const customCounter: RiskRule = (f, depth, childIndex) => {
+      if (f.type !== "CALL") return [];
+      return [
+        {
+          type: "DELEGATECALL_UNRECOGNIZED",
+          severity: "info",
+          message: "custom",
+          address: f.to,
+          depth,
+          childIndex,
+        },
+      ];
+    };
+    const flags = analyzeRisks(frame, {
+      rules: [RULE_DELEGATECALL_UNRECOGNIZED, customCounter],
+    });
+    // 1 from built-in (DELEGATECALL frame) + 1 from custom (CALL frame)
+    expect(flags).toHaveLength(2);
+    expect(flags.find((f) => f.message === "custom")).toBeDefined();
   });
 });

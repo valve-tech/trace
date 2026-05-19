@@ -129,17 +129,19 @@ describe("RisksWidget", () => {
     const { container } = render(
       <RisksWidget frame={frame} onSelect={(i) => calls.push(i)} />,
     );
-    // FindingsPanel rows are clickable when onSelect is wired through.
-    // Click the first severity-row child.
-    const row = container.querySelector("[role='button'], button, li, div[onClick]");
-    // Fallback: find any descendant with the message text.
-    const target = row ?? container.querySelector('[data-testid], div');
-    if (target) fireEvent.click(target);
-    // We don't assert the index value (depends on which element FindingsPanel
-    // makes clickable); we assert the click handler ran without throwing and
-    // RisksWidget memoized the analysis identity so onSelect could compute
-    // an index without re-running analyzeRisks.
-    expect(Array.isArray(calls)).toBe(true);
+    // FindingsPanel renders each finding as a div with inline
+    // `cursor: pointer` when an onSelect is supplied. Match on that style
+    // so we click an actual row (vs. the panel root, which has no handler).
+    const rows = container.querySelectorAll<HTMLDivElement>(
+      'div[style*="cursor: pointer"]',
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    fireEvent.click(rows[0]);
+    // The wrapper in RisksWidget computes the index by re-finding the risk
+    // in its memoized analyze result. Just assert the handler ran and
+    // produced a numeric index.
+    expect(calls).toHaveLength(1);
+    expect(typeof calls[0]).toBe("number");
   });
 
   it("threads classNames, style, and className through to FindingsPanel", () => {

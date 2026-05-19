@@ -78,7 +78,16 @@ export {
   delegatecallUnrecognized,
   largeApproval,
   tokenSentToTokenContract,
+  defineRule,
+  getRuleById,
+  BUILTIN_RULE_DEFS,
+  RULE_DELEGATECALL_UNRECOGNIZED,
+  RULE_LARGE_APPROVAL,
+  RULE_TOKEN_SENT_TO_TOKEN_CONTRACT,
   type RiskRule,
+  type Rule,
+  type AnalyzableRule,
+  type AnalyzeRisksOptionsWithRules,
 } from "./risks/index.js";
 
 // Components (React peer dep)
