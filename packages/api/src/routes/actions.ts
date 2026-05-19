@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { z, ZodError } from "zod";
 import {
   createAction,
   getAction,
@@ -18,44 +19,78 @@ import {
 const router = Router();
 
 // ---------------------------------------------------------------------------
+// Validation schemas
+// ---------------------------------------------------------------------------
+
+const triggerTypeEnum = z.enum(["block", "event", "periodic", "webhook"]);
+
+/**
+ * Cap user-controlled action code at 64 KB. The vm executor runs whatever
+ * lands here; even with proper isolation a multi-MB script would balloon
+ * memory and serialization cost. 64 KB is far more than any reasonable
+ * snippet needs.
+ */
+const MAX_CODE_LENGTH = 64 * 1024;
+
+/**
+ * Per-key cap on secret values. Keeps a hostile or buggy client from
+ * trying to dump GB-scale blobs into Postgres via the secrets JSONB column.
+ */
+const MAX_SECRET_LENGTH = 4 * 1024;
+
+const secretsSchema = z
+  .record(z.string().max(MAX_SECRET_LENGTH, `Secret value exceeds ${MAX_SECRET_LENGTH} chars`))
+  .refine((obj) => Object.keys(obj).length <= 32, {
+    message: "At most 32 secret keys",
+  });
+
+const createActionSchema = z.object({
+  name: z.string().min(1, "Name is required").max(200),
+  code: z.string().max(MAX_CODE_LENGTH).optional().default(""),
+  triggerType: triggerTypeEnum,
+  triggerConfig: z.record(z.unknown()).optional().default({}),
+  secrets: secretsSchema.optional().default({}),
+});
+
+const updateActionSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  code: z.string().max(MAX_CODE_LENGTH).optional(),
+  triggerType: triggerTypeEnum.optional(),
+  triggerConfig: z.record(z.unknown()).optional(),
+  secrets: secretsSchema.optional(),
+  enabled: z.boolean().optional(),
+});
+
+const testActionSchema = z.object({
+  event: z.record(z.unknown()).optional(),
+});
+
+const idParamSchema = z.coerce.number().int().positive("Invalid action ID");
+
+/** Send a 400 with consistent error shape for Zod validation failures. */
+function sendValidationError(res: Response, err: ZodError): void {
+  res.status(400).json({ ok: false, error: "Validation error", details: err.errors });
+}
+
+// ---------------------------------------------------------------------------
 // POST /api/actions — Create action
 // ---------------------------------------------------------------------------
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const { name, code, triggerType, triggerConfig, secrets } = req.body as {
-      name?: string;
-      code?: string;
-      triggerType?: string;
-      triggerConfig?: Record<string, unknown>;
-      secrets?: Record<string, string>;
-    };
-
-    if (!name || !triggerType) {
-      res.status(400).json({ ok: false, error: "name and triggerType are required" });
-      return;
-    }
-
-    const validTypes = ["block", "event", "periodic", "webhook"];
-    if (!validTypes.includes(triggerType)) {
-      res.status(400).json({
-        ok: false,
-        error: `Invalid triggerType. Must be one of: ${validTypes.join(", ")}`,
-      });
-      return;
-    }
-
+    const parsed = createActionSchema.parse(req.body);
     const action = await createAction({
-      name,
-      code: code ?? "",
-      trigger_type: triggerType,
-      trigger_config: JSON.stringify(triggerConfig ?? {}),
-      secrets: JSON.stringify(secrets ?? {}),
+      name: parsed.name,
+      code: parsed.code,
+      trigger_type: parsed.triggerType,
+      trigger_config: JSON.stringify(parsed.triggerConfig),
+      secrets: JSON.stringify(parsed.secrets),
     });
 
     registerAction(action);
 
     res.status(201).json({ ok: true, action: formatAction(action) });
   } catch (err: unknown) {
+    if (err instanceof ZodError) return sendValidationError(res, err);
     console.error("[actions] create error:", err);
     res.status(500).json({ ok: false, error: "Failed to create action" });
   }
@@ -90,20 +125,15 @@ router.get("/", async (_req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const id = parseInt(String(req.params.id ?? ""), 10);
-    if (isNaN(id)) {
-      res.status(400).json({ ok: false, error: "Invalid action ID" });
-      return;
-    }
-
+    const id = idParamSchema.parse(req.params.id);
     const action = await getAction(id);
     if (!action) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
     }
-
     res.json({ ok: true, action: formatAction(action) });
   } catch (err: unknown) {
+    if (err instanceof ZodError) return sendValidationError(res, err);
     console.error("[actions] get error:", err);
     res.status(500).json({ ok: false, error: "Failed to get action" });
   }
@@ -114,36 +144,26 @@ router.get("/:id", async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 router.put("/:id", async (req: Request, res: Response) => {
   try {
-    const id = parseInt(String(req.params.id ?? ""), 10);
-    if (isNaN(id)) {
-      res.status(400).json({ ok: false, error: "Invalid action ID" });
-      return;
-    }
-
+    const id = idParamSchema.parse(req.params.id);
     const existing = await getAction(id);
     if (!existing) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
     }
 
-    const { name, code, triggerType, triggerConfig, secrets, enabled } = req.body as {
-      name?: string;
-      code?: string;
-      triggerType?: string;
-      triggerConfig?: Record<string, unknown>;
-      secrets?: Record<string, string>;
-      enabled?: boolean;
-    };
+    const parsed = updateActionSchema.parse(req.body);
 
     const updated = await updateAction(id, {
-      name: name ?? existing.name,
-      code: code ?? existing.code,
-      trigger_type: triggerType ?? existing.trigger_type,
-      trigger_config: triggerConfig
-        ? JSON.stringify(triggerConfig)
+      name: parsed.name ?? existing.name,
+      code: parsed.code ?? existing.code,
+      trigger_type: parsed.triggerType ?? existing.trigger_type,
+      trigger_config: parsed.triggerConfig
+        ? JSON.stringify(parsed.triggerConfig)
         : JSON.stringify(existing.trigger_config),
-      secrets: secrets ? JSON.stringify(secrets) : JSON.stringify(existing.secrets),
-      enabled: enabled ?? existing.enabled,
+      secrets: parsed.secrets
+        ? JSON.stringify(parsed.secrets)
+        : JSON.stringify(existing.secrets),
+      enabled: parsed.enabled ?? existing.enabled,
     });
 
     if (!updated) {
@@ -158,6 +178,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 
     res.json({ ok: true, action: formatAction(updated) });
   } catch (err: unknown) {
+    if (err instanceof ZodError) return sendValidationError(res, err);
     console.error("[actions] update error:", err);
     res.status(500).json({ ok: false, error: "Failed to update action" });
   }
@@ -168,12 +189,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
-    const id = parseInt(String(req.params.id ?? ""), 10);
-    if (isNaN(id)) {
-      res.status(400).json({ ok: false, error: "Invalid action ID" });
-      return;
-    }
-
+    const id = idParamSchema.parse(req.params.id);
     unregisterAction(id);
 
     const deleted = await deleteAction(id);
@@ -184,6 +200,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
     res.json({ ok: true, deleted: true });
   } catch (err: unknown) {
+    if (err instanceof ZodError) return sendValidationError(res, err);
     console.error("[actions] delete error:", err);
     res.status(500).json({ ok: false, error: "Failed to delete action" });
   }
@@ -194,27 +211,23 @@ router.delete("/:id", async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 router.post("/:id/test", async (req: Request, res: Response) => {
   try {
-    const id = parseInt(String(req.params.id ?? ""), 10);
-    if (isNaN(id)) {
-      res.status(400).json({ ok: false, error: "Invalid action ID" });
-      return;
-    }
-
+    const id = idParamSchema.parse(req.params.id);
     const action = await getAction(id);
     if (!action) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
     }
 
-    const { event } = req.body as { event?: Record<string, unknown> };
+    const parsed = testActionSchema.parse(req.body ?? {});
     const triggerEvent: TriggerEvent = {
       type: "test",
-      ...(event ?? {}),
+      ...(parsed.event ?? {}),
     };
 
     const result = await executeAction(action, triggerEvent);
     res.json({ ok: true, result });
   } catch (err: unknown) {
+    if (err instanceof ZodError) return sendValidationError(res, err);
     console.error("[actions] test error:", err);
     res.status(500).json({ ok: false, error: "Failed to test action" });
   }
@@ -223,26 +236,25 @@ router.post("/:id/test", async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 // GET /api/actions/:id/logs — Execution logs (paginated)
 // ---------------------------------------------------------------------------
+const logsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+});
+
 router.get("/:id/logs", async (req: Request, res: Response) => {
   try {
-    const id = parseInt(String(req.params.id ?? ""), 10);
-    if (isNaN(id)) {
-      res.status(400).json({ ok: false, error: "Invalid action ID" });
-      return;
-    }
-
+    const id = idParamSchema.parse(req.params.id);
     const action = await getAction(id);
     if (!action) {
       res.status(404).json({ ok: false, error: "Action not found" });
       return;
     }
 
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
-
+    const { page, limit } = logsQuerySchema.parse(req.query);
     const logs = await getActionLogs(id, page, limit);
     res.json({ ok: true, ...logs });
   } catch (err: unknown) {
+    if (err instanceof ZodError) return sendValidationError(res, err);
     console.error("[actions] logs error:", err);
     res.status(500).json({ ok: false, error: "Failed to get logs" });
   }
@@ -253,12 +265,7 @@ router.get("/:id/logs", async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 router.post("/webhooks/:actionId", async (req: Request, res: Response) => {
   try {
-    const actionId = parseInt(String(req.params.actionId ?? ""), 10);
-    if (isNaN(actionId)) {
-      res.status(400).json({ ok: false, error: "Invalid action ID" });
-      return;
-    }
-
+    const actionId = idParamSchema.parse(req.params.actionId);
     const action = await getAction(actionId);
     if (!action) {
       res.status(404).json({ ok: false, error: "Action not found" });
@@ -288,6 +295,7 @@ router.post("/webhooks/:actionId", async (req: Request, res: Response) => {
     const result = await executeAction(action, triggerEvent);
     res.json({ ok: true, result });
   } catch (err: unknown) {
+    if (err instanceof ZodError) return sendValidationError(res, err);
     console.error("[actions] webhook error:", err);
     res.status(500).json({ ok: false, error: "Failed to execute webhook action" });
   }

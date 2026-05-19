@@ -11,10 +11,68 @@ import {
 import type { DecodedFunction, DecodedOutput, DecodedEvent, DecodedParam } from "../types.js";
 
 // ---------------------------------------------------------------------------
-// In-memory ABI cache
+// In-memory ABI cache — bounded LRU with TTL
 // ---------------------------------------------------------------------------
 
-const abiCache = new Map<string, Abi>();
+/**
+ * One hour. Long enough to amortize repeat lookups inside a single
+ * user's session; short enough that re-verified contracts and
+ * proxy-implementation upgrades don't strand stale ABIs for days.
+ */
+const ABI_CACHE_TTL_MS = 60 * 60 * 1000;
+
+/**
+ * Cap entries to bound memory. JS `Map` preserves insertion order, so we
+ * evict the oldest key when we cross the cap — simple FIFO eviction
+ * (close enough to LRU for this workload: re-fetches refresh `entry.t`
+ * but not insertion order, which is fine since the timestamp also gates
+ * expiry).
+ */
+const ABI_CACHE_MAX_ENTRIES = 500;
+
+interface AbiCacheEntry {
+  abi: Abi;
+  /** Epoch millis at insert / refresh. */
+  t: number;
+}
+
+const abiCache = new Map<string, AbiCacheEntry>();
+
+function readCachedAbi(key: string): Abi | null {
+  const entry = abiCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.t > ABI_CACHE_TTL_MS) {
+    abiCache.delete(key);
+    return null;
+  }
+  return entry.abi;
+}
+
+function writeCachedAbi(key: string, abi: Abi): void {
+  abiCache.set(key, { abi, t: Date.now() });
+  if (abiCache.size > ABI_CACHE_MAX_ENTRIES) {
+    const oldest = abiCache.keys().next().value;
+    if (oldest !== undefined) abiCache.delete(oldest);
+  }
+}
+
+/**
+ * Drop an entry (or the entire cache when no address given). Call this
+ * after a contract is re-verified, after a proxy upgrade, or from an
+ * admin endpoint that wants to force a re-fetch.
+ */
+export function invalidateAbiCache(address?: string): void {
+  if (address === undefined) {
+    abiCache.clear();
+    return;
+  }
+  abiCache.delete(address.toLowerCase());
+}
+
+/** Internal helper exposed for tests. */
+export function _getAbiCacheSize(): number {
+  return abiCache.size;
+}
 
 // ---------------------------------------------------------------------------
 // BlockScout ABI fetcher
@@ -26,14 +84,13 @@ const BLOCKSCOUT_API =
 /**
  * Fetch the ABI for a verified contract from PulseChain BlockScout.
  * Returns `null` when the contract is not verified or unreachable.
- * Results are cached in memory for the lifetime of the process.
+ * Results are cached in memory with a one-hour TTL.
  */
 export async function fetchAbi(address: string): Promise<Abi | null> {
   const key = address.toLowerCase();
 
-  if (abiCache.has(key)) {
-    return abiCache.get(key)!;
-  }
+  const cached = readCachedAbi(key);
+  if (cached) return cached;
 
   try {
     const url = `${BLOCKSCOUT_API}?module=contract&action=getabi&address=${address}`;
@@ -52,7 +109,7 @@ export async function fetchAbi(address: string): Promise<Abi | null> {
     }
 
     const abi: Abi = JSON.parse(json.result);
-    abiCache.set(key, abi);
+    writeCachedAbi(key, abi);
     return abi;
   } catch {
     return null;

@@ -1,3 +1,27 @@
+// ============================================================================
+// SECURITY WARNING — node:vm is NOT a security boundary
+// ============================================================================
+// Per the official Node.js docs (https://nodejs.org/api/vm.html#vm-executing-
+// javascript), `vm.createContext` and friends provide ISOLATION, NOT SECURITY.
+// Sandboxed code can reach host-realm objects via prototype/constructor chains
+// on any passed-in value. The classic escape:
+//
+//   Buffer.constructor("return process")()   // → host process global
+//
+// works because `Buffer` (and every other host-realm constructor we expose
+// below) carries a `.constructor` that points back at the host's `Function`.
+// From there, `process.binding`, `require("child_process")`, filesystem
+// access, etc. are all reachable. The 30-second timeout on `runInContext`
+// does NOT stop synchronous escape attempts that finish in microseconds.
+//
+// This executor is acceptable for SOLO LOCAL DEVELOPMENT only. Multi-tenant
+// deployments must replace it with a true isolation primitive — `isolated-vm`
+// (native v8 isolate), a `--permission`-locked worker, or `quickjs-emscripten`.
+//
+// Tracked in progress.txt outstanding work. Until that migration ships, a
+// loud startup warning is emitted from `warnUnsafeExecutorOnce()` below.
+// ============================================================================
+
 import vm from "node:vm";
 import { publicClient } from "./rpc.js";
 import {
@@ -7,6 +31,18 @@ import {
   addLog,
 } from "./actionsDb.js";
 import { type Address, type Hex, formatEther } from "viem";
+
+let unsafeWarningEmitted = false;
+function warnUnsafeExecutorOnce(): void {
+  if (unsafeWarningEmitted) return;
+  unsafeWarningEmitted = true;
+  console.warn(
+    "\n[actionExecutor] ⚠  Running user code in node:vm — NOT a security " +
+      "boundary. Sandboxed code can escape to the host realm via " +
+      "`SomeHostObject.constructor(...)`. Suitable for local dev only. " +
+      "See progress.txt for the isolated-vm migration plan.\n",
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -122,6 +158,7 @@ export async function executeAction(
   action: ActionRow,
   triggerEvent: TriggerEvent,
 ): Promise<ExecutionResult> {
+  warnUnsafeExecutorOnce();
   const startTime = Date.now();
   const stdoutLines: string[] = [];
   const stderrLines: string[] = [];

@@ -123,14 +123,18 @@ export class ForkManager {
     // Find an available port
     const port = await this.findAvailablePort();
 
-    // Build anvil args
+    // Build anvil args. Bind to loopback only — exposing forks on 0.0.0.0
+    // means anyone on the local network can hit an authoritative-mode RPC
+    // capable of impersonation via anvil_setBalance / anvil_setStorageAt /
+    // anvil_impersonateAccount. The API process is the only thing that
+    // should reach these forks.
     const args: string[] = [
       "--fork-url",
       RPC_URL,
       "--port",
       String(port),
       "--host",
-      "0.0.0.0",
+      "127.0.0.1",
       "--silent",
     ];
 
