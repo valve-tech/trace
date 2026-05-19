@@ -116,52 +116,65 @@ Five items from `docs/CODEBASE_MAP.md` Gotchas section:
 
 ---
 
-### Outstanding work — explicit consumer queue (refreshed 2026-05-18 end-of-session)
+### Mid-session checkpoint — 2026-05-18 overnight stack
 
-**1. Replace `node:vm` action executor with proper isolation** (the
-   real fix to item #3 above). Three options:
+Four more features landed on top of 0.3.0 (still unpublished — per
+memory `sdk_version_bump_preference.md`, stack at one version). All
+443 SDK tests pass; coverage gate (100/100/100/100) still green.
+
+  - `<SourceViewer>` SDK component (data-agnostic: `source` +
+    `highlightLine`, optional gutter + header). 15 tests.
+  - `parseEvents(frame, signature)` generic by-signature event filter.
+    Accepts either a Solidity event signature string OR a precomputed
+    32-byte topic hash. Returns `MatchedEvent[]` (log + logIndex).
+    First runtime viem import in the SDK (`toEventSelector`). 13 tests.
+  - `TOKEN_SENT_TO_TOKEN_CONTRACT` risk rule + `classifyAddress`
+    option on `AnalyzeRisksOptions`. Self-transfers always flagged;
+    cross-token (tokenA → tokenB's contract) flagged when the
+    classifier returns true. 10 tests.
+  - **Graceful shutdown in `packages/api/src/index.ts`** — orchestrator
+    closes HTTP server → awaits cache writes → ends pg pool → tears
+    down forks, with a 15s hard cap (`setTimeout().unref()`). Plus
+    `forkManager.setExitOnSignal(false)` + public `cleanupAll()` so
+    the API owns the final `process.exit`.
+
+Next bump (still 0.4.0): adds `<StepDebugger>`, `<SwapsPanel>`,
+`<ApprovalsPanel>`, `<SourceViewer>`, `parseEvents`, and
+`tokenSentToTokenContract`. All additive.
+
+---
+
+### Outstanding work — explicit consumer queue (refreshed mid-session)
+
+**1. Replace `node:vm` action executor with proper isolation**
+   (unchanged). Three options:
    - `isolated-vm` (npm, native v8 isolate) — gold standard, adds
      native dep
    - `quickjs-emscripten` (separate JS runtime) — slower, no native dep
    - Child process with `--permission` flags + IPC — more code but
      uses only stdlib
 
-**2. Graceful shutdown handler in `packages/api/src/index.ts`**
-   - SIGTERM/SIGINT handler that:
-     1. Stops accepting new requests
-     2. Calls `awaitPendingCacheWrites()` (already exported from tracer.ts)
-     3. Calls `pool.end()`
-     4. Calls `forkManager.cleanupAll()`
-   - Without this, every API restart drops in-flight cache writes
-     and leaks Anvil processes.
+**2. Bump SDK version + publish** — the stacked surface above (six
+   additive items) is ready for `0.4.0`. Per memory, the user signs
+   off on the bump explicitly; never auto-tag.
 
-**3. Bump SDK version + publish** the three components stacked since
-   0.3.0 (`<StepDebugger>`, `<SwapsPanel>`, `<ApprovalsPanel>`).
-   Additive only; appropriate as `0.4.0` under semver-zero conventions.
-
-**4. `<SourceViewer>` extraction** (deferred from 0.3.0 plan)
-   - Data-agnostic: `source: string` + `highlightLine: number`.
-
-**5. Risk analyzer follow-ups**
-   - `TOKEN_SENT_TO_TOKEN_CONTRACT` — needs
-     `classifyAddress?: (addr) => boolean` in `AnalyzeRisksOptions`.
-
-**6. More parsers**
-   - `parseEvents(frame, eventSig)` — generic by-signature filter.
+**3. More parsers**
    - UniV4 swap decoder (hook-style pool architecture, deferred).
 
-**7. DX**
+**4. DX**
    - Docs site (TypeDoc → static).
    - `npm create @valve-tech/trace-app` CodeSandbox template.
 
-**8. Cosmetics / housekeeping**
+**5. Cosmetics / housekeeping**
    - Rename web's `FindingsPanel.tsx` → `SlitherFindingsPanel.tsx`
-     (collides with SDK's runtime `FindingsPanel`).
+     (collides with SDK's runtime `FindingsPanel`). NOTE: web also
+     has a `SourceViewer.tsx` that now collides with the SDK's new
+     `<SourceViewer>` — same migration shape applies.
    - `.serena/project.yml` still says `pulsechain-dev-platform`.
    - Bump `actions/checkout@v4` / `actions/setup-node@v4` before
      September 2026 Node-20 removal.
 
-**9. Web-side adoption**
+**6. Web-side adoption**
    - `packages/web` uses workspace `*` link, so 0.3.0 surface is live
      locally but has not been refactored to actually consume the new
      primitives (`<StepDebugger>`, parsers, etc.).
@@ -176,10 +189,12 @@ Five items from `docs/CODEBASE_MAP.md` Gotchas section:
 100/100/100/100 statements/branches/functions/lines, enforced by
 `packages/sdk/vitest.config.ts` `coverage.thresholds`.
 
-Session totals: 300 → 406 tests across 22 files. New surface this
-session added: parsers (parseApprovals, parseSwaps × 3 variants),
-risk rule (largeApproval), hook (useOpcodeNavigation + predicates),
-3 visual components.
+Session totals: 300 → 443 tests across 23 files (was 406 / 22 before
+the overnight stack). New surface added: parsers (parseApprovals,
+parseSwaps × 3 variants, parseEvents), risk rules (largeApproval,
+tokenSentToTokenContract), hook (useOpcodeNavigation + predicates),
+4 visual components (StepDebugger, SwapsPanel, ApprovalsPanel,
+SourceViewer).
 
 ---
 
@@ -196,17 +211,26 @@ risk rule (largeApproval), hook (useOpcodeNavigation + predicates),
 
 ### Notes for next session
 
-- After `<StepDebugger>` lands in npm (next bump), the web's 1829-line
-  `StepDebugger.tsx` can shrink dramatically — the SDK component owns
-  pure step navigation; the web wraps with source-map +
-  contract-name hooks.
+- After `<StepDebugger>` + `<SourceViewer>` land in npm (next bump),
+  the web's 1829-line `StepDebugger.tsx` and its in-tree SourceViewer
+  can shrink dramatically — the SDK components own pure presentation;
+  the web wraps with source-map + contract-name hooks.
 - The `node:vm` action executor still ships with a security warning,
   not a fix. Do not deploy this to a multi-tenant environment until
   the isolated-vm migration is done.
-- Three SDK components are stacked unpublished since 0.3.0 — bump
-  to 0.4.0 when ready. Per user preference (memory:
+- Six additive items stacked unpublished since 0.3.0 — bump to 0.4.0
+  when ready. Per user preference (memory:
   `sdk_version_bump_preference.md`), stack and ship together; never
   auto-bump.
+- The SDK now has a runtime viem import for the first time
+  (`toEventSelector` in `parseEvents`). Previously type-only. If the
+  bundle-size budget tightens, `parseEvents` can be the canary —
+  consumers who don't use it tree-shake the dep away.
+- Graceful shutdown owns the final `process.exit`. ForkManager's
+  `setExitOnSignal(false)` is called inside `start()`; the order is
+  HTTP close → cache flush → pool end → forks → exit, with a 15s
+  force-exit fallback. To test locally: send SIGTERM and observe
+  `[shutdown] clean exit` in stdout.
 
 ---
 
