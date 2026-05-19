@@ -1,275 +1,207 @@
 # PulseChain Dev Platform — Progress
 
-## Session: 2026-05-17 — public repo, multi-feature drop, SDK 0.1.1 published
+## Session: 2026-05-18 — SDK 0.3.0 published; new queue underway
 
 ### Headline events
 
-- **`@valve-tech/trace-sdk` 0.1.0 and 0.1.1 published to npm.**
-  - 0.1.0 was a manual `npm publish`; 0.1.1 went through OIDC trusted
-    publishing from `.github/workflows/publish-sdk.yml` (run 25981335444).
-  - Repo is now public to unblock free GitHub Actions minutes.
-- **Monorepo brand rename**: `pulsechain-dev` → `@valve-tech` for all
-  packages; DB credentials `pulsedev` → `valvetech`; JSON-RPC method
-  namespace `pulsedev_*` → `valve_*`.
-- **Five feature buckets shipped from the queue**:
-  1. Pure parsers (`parseTokenDeltas`, `parsePrestateDiff`) — in 0.1.1
-  2. Risk analyzer (`analyzeRisks` + `<FindingsPanel>`) — committed,
-     not yet published (still on 0.1.1 in package.json per user direction)
-  3. Detail components (`<StateDiffPanel>`, `<FrameDetailPanel>`) — committed
-  4. Web-side type cleanup — `as unknown as` cast removed in DebuggerView
-  5. Templates (`<FullDebuggerLayout>`, `<RevertExplainer>`,
-     `<CompactCallSummary>`) on a new `/templates` subpath — committed
+- **`@valve-tech/trace-sdk` 0.3.0 published to npm** via OIDC trusted
+  publishing (run 26011732367). 0.2.0 was never published — bumped and
+  held mid-session, re-bumped to 0.3.0 once two more additive buckets
+  landed. npm version history: `0.1.0 → 0.1.1 → 0.3.0`.
+- **Four feature buckets shipped this session**:
+  1. `parseApprovals` + `LARGE_APPROVAL` risk rule (approvals bucket)
+  2. `/hooks` subpath with `useOpcodeNavigation` (pure step nav)
+  3. `parseSwaps` with `SwapV1 | SwapV2 | SwapV3` discriminated union
+     (Uniswap V1 added mid-session at user's request; V4 deferred)
+  4. Version bump → publish
 
-### Commits this session
+### Commits since 0.1.1 ship
 
 ```
-43250a2 feat(sdk): prepare 0.1.0 for npm publish; rename monorepo to @valve-tech
-e9fc0a7 feat(sdk): add parseTokenDeltas and parsePrestateDiff parsers (0.1.1)
-88ec65d refactor: rename pulsedev → valvetech (DB) and pulsedev_ → valve_ (RPC)
-c857e10 feat(sdk): add analyzeRisks + FindingsPanel (risk-analysis bucket)
-865e556 feat(sdk): add StateDiffPanel component for visualizing state changes
-ec3f427 feat(sdk): add FrameDetailPanel for single-frame metadata views
-633f549 refactor(web): alias CallFrame to SDK RawCallFrame; drop OpcodeViewer cast
-9e2614b chore: refresh progress.txt — 2026-05-17 session checkpoint
-1742645 feat(sdk): add /templates subpath — FullDebuggerLayout, RevertExplainer, CompactCallSummary
+e54566c feat(sdk): add parseApprovals + LARGE_APPROVAL risk rule
+85affc6 chore(sdk): bump to 0.2.0  (never tagged/published)
+d0739af feat(sdk): add /hooks subpath with useOpcodeNavigation
+598dfb5 feat(sdk): add parseSwaps (UniV1, V2, V3)
+728141a chore(sdk): bump to 0.3.0   ← tag sdk-v0.3.0
 ```
 
-All on `main` and pushed to `origin/main`. Tag `sdk-v0.1.1` published.
+All on `main` and pushed. Tag `sdk-v0.3.0` published; npm publish
+workflow ran in ~30s.
 
 ---
 
-### Trace SDK — current state at HEAD
+### Trace SDK — current state at HEAD (0.3.0)
 
-`packages/sdk` is `@valve-tech/trace-sdk`, **version 0.1.1 in package.json**
-(unchanged since publish — four feature commits accumulated on top
-waiting for the next bump: risk analyzer, StateDiffPanel, FrameDetailPanel,
-templates bucket).
+`packages/sdk` is `@valve-tech/trace-sdk`, **version 0.3.0 in package.json**.
 
 #### Public-facing API surface
 
-**Types** (`src/types.ts`)
-- Wire-format: `RawCallFrame` (with `logs?: RawLog[]`), `RawLog`,
-  `RawStructLog`, `RawCallType`, `RawPrestateAccount`, `RawPrestateDiff`
-- Canonical: `TraceFrame` (with `logs?: Log[]`), `Log`, `OpcodeStep`,
-  `StateDiff`, `StorageChange`, `GasProfile`, `GasProfileEntry`,
-  `DecodedParam`, `TraceResult`, `CallType`
-- Parser outputs: `TokenDelta`, `BalanceDelta`
-- Risk types: `RiskFlag`, `RiskSeverity`, `RiskFlagType`,
-  `AnalyzeRisksOptions`
-- Consumer aliases: `CallNode = TraceFrame`
+**Types** (`src/types.ts`) — additions
+- Parser outputs (cumulative): `TokenDelta`, `BalanceDelta`,
+  `TokenApproval` (NEW), `Swap` (NEW) discriminated as
+  `SwapV1 | SwapV2 | SwapV3`.
+- Risk types: `RiskFlag`, `RiskSeverity`, `RiskFlagType` (now includes
+  `"LARGE_APPROVAL"`), `AnalyzeRisksOptions` (now includes
+  `largeApprovalThreshold?: bigint`).
 
-**Loaders** (`src/loaders/`) — unchanged
+**Loaders** — unchanged
 - `loadTraceFromObject`, `loadTraceFromFile`, `loadTraceFromHash`
 - `normalizeCallFrame` / alias `parseCallTrace`, `normalizeStructLogs`
-- `normalizeCallFrame` now passes `logs` through (lowercased addresses,
-  preserved topics/data)
 
-**Traversal** (`src/traversal/`) — unchanged
+**Traversal** — unchanged
 - `walkCallTree`, `flattenCallTree`, `filterByAddress`, `filterBySelector`,
   `findRevertFrame`, `buildGasProfile`
 
-**Parsers** (`src/parsers/`) — NEW in 0.1.1
-- `parseTokenDeltas(frame) → TokenDelta[]` — ERC-20 Transfer extractor.
-  Walks tree, skips reverted subtrees (their logs are rolled back).
-  Disambiguates ERC-20 (3 topics) from ERC-721 (4 topics) by topic count.
-- `parsePrestateDiff(raw) → BalanceDelta[]` — net ETH balance changes
-  from prestateTracer diffMode payload. Three-way semantic for missing
-  post entries (absent address = self-destruct, undefined .balance =
-  unchanged, defined = new value). Sorted by address ascending.
+**Parsers** (`src/parsers/`)
+- `parseTokenDeltas` (0.1.1)
+- `parsePrestateDiff` (0.1.1)
+- `parseApprovals` (NEW in 0.3.0) — ERC-20 Approval decoder, filters
+  ERC-721 by topic count.
+- `parseSwaps` (NEW in 0.3.0) — V1/V2/V3 discriminated union. V1
+  dispatches on 4-topic logs and decodes TokenPurchase/EthPurchase,
+  normalizing into a `direction: "buyToken" | "sellToken"` field.
+  V2 keeps four unsigned amounts; V3 surfaces signed amounts +
+  sqrtPriceX96/liquidity/tick pool state.
 
-**Risks** (`src/risks/`) — NEW (committed, in 0.1.1+, not yet published)
-- `analyzeRisks(frame, options?) → RiskFlag[]` — pure call-tree walker.
-  Walks INTO reverted subtrees and tags findings with `reverted: true`
-  rather than skipping (security audits want "what almost happened").
-  Maintains a reverted-ancestor stack via enter/exit hooks.
-- Built-in rule: `delegatecallUnrecognized` — flags any DELEGATECALL
-  whose target is not in the optional `whitelist` Set.
-- `BUILTIN_RULES` and `RiskRule` type exported for custom rule composition.
-- Rules return `Omit<RiskFlag, "reverted">` — analyzer owns that field.
+**Risks** (`src/risks/`)
+- `analyzeRisks` (0.2.x design, still in 0.3.0)
+- `delegatecallUnrecognized` rule (existing)
+- `largeApproval` rule (NEW in 0.3.0) — flags any Approval whose
+  value ≥ threshold. Default threshold = `2n ** 256n - 1n` (literal
+  unlimited); consumers pass `largeApprovalThreshold` to widen to e.g.
+  `2n ** 128n` for phishing-pattern detection.
+- **BREAKING in 0.3.0:** `RiskRule` now returns
+  `Omit<RiskFlag, "reverted">[]` (array) instead of `... | null` so
+  log-based rules can emit multiple findings per frame. Public
+  `analyzeRisks` output shape unchanged.
 
-**Components** (`src/components/`)
-- `<CallTree>` — interactive call tree (existing)
-- `<GasFlamegraph>` — proportional gas-cost flamegraph (existing)
-- `<OpcodeViewer>` — step-by-step opcode trace (existing)
-- `<FindingsPanel>` — renders `RiskFlag[]` grouped by severity (NEW)
-- `<StateDiffPanel>` — renders `StateDiff[]` with balance/nonce/code/
-  storage changes per address (NEW)
-- `<FrameDetailPanel>` — single-frame metadata view with decoded I/O,
-  error banner, function selector (NEW)
-- Pure helpers also exported: `truncateAddress`, `formatGas`, `formatWei`,
-  `getFunctionSelector`, `classifyOpcode`, `getOpcodeColor`, `isExpensiveOp`,
-  `OPCODE_CATEGORY_COLORS`, `buildFlamegraphLayout`, `adjustBrightness`,
-  `getBarColor`
+**Components** — unchanged this session
+- `<CallTree>`, `<GasFlamegraph>`, `<OpcodeViewer>`, `<FindingsPanel>`,
+  `<StateDiffPanel>`, `<FrameDetailPanel>`, pure helpers exported.
 
-**Templates** (`src/templates/`) — NEW; higher-order compositions
-- `<FullDebuggerLayout trace? opcodes? stateDiffs? risks? />` — tabbed
-  Call Tree / Opcodes / State / Risks view. Each tab independently
-  renders an empty state when its data is missing. Call Tree tab wires
-  `onSelect` to a `<FrameDetailPanel>` rendered inline. Selection
-  resets via useEffect when trace identity changes. Props for
-  defaultTab and hideTabs.
-- `<RevertExplainer frame />` — locates innermost reverting frame,
-  surfaces revertReason in a prominent banner, renders the breadcrumb
-  chain from root to reverter. Success state for non-reverted traces.
-- `<CompactCallSummary frame maxDepth? />` — one-line-per-call summary,
-  indented by depth, with status badge + total-gas chip + call count.
-  maxDepth caps rendering with a "…N deeper frames hidden" footer.
+**Templates** — unchanged this session
+- `<FullDebuggerLayout>`, `<RevertExplainer>`, `<CompactCallSummary>`.
 
-**Util** (`src/util/`)
-- `describeUnknownError(err)` — extracted catch-block helper
+**Hooks** (`src/hooks/`) — NEW subpath in 0.3.0
+- `useOpcodeNavigation(steps, { initialIndex? })` — returns
+  `{ currentIndex, step, totalSteps, canGoForward, canGoBack,
+     goForward, goBack, jumpTo, jumpToNext, nextCall, nextStorage,
+     nextLog }`. Resets to `initialIndex` when `steps` identity
+  changes. No source-map dependencies.
+- Predicates also exported: `isCallOp`, `isStorageOp`, `isLogOp`.
+- Types: `OpcodeNavigation`, `UseOpcodeNavigationOptions`.
 
 **Test infrastructure**
 - vitest + jsdom + @testing-library/react + @vitest/coverage-v8
-- 300 tests pass; coverage gated at **100/100/100/100** via vitest thresholds
+- **362 tests pass**; coverage gated at 100/100/100/100.
 
-**Wiring into web**
-- `packages/web` depends on `@valve-tech/trace-sdk: "*"` (npm workspace link)
-- `DebuggerView.tsx` now uses `normalizeStructLogs` to convert raw opcode
-  steps; the `as unknown as` cast is gone
-- `packages/web/src/api/debugger.ts` aliases `CallFrame` to SDK's
-  `RawCallFrame`; `OpcodeStep` kept local with required stack/memory/storage
-  (loosening to optional would cascade into StepDebugger)
+**Wiring into web** — unchanged (web has not been migrated to consume
+0.3.0 yet; uses workspace `*` link, so any local SDK change is live).
 
 ---
 
-### Subpath exports + provenance
+### Subpath exports
 
 ```jsonc
-"./" → main index
+"./"           → main index
 "./types"      → all types
 "./loaders"    → loaders
 "./traversal"  → traversal helpers
-"./parsers"    → parseTokenDeltas, parsePrestateDiff      (NEW)
-"./risks"      → analyzeRisks, BUILTIN_RULES, RiskRule    (NEW)
+"./parsers"    → parseTokenDeltas, parsePrestateDiff,
+                 parseApprovals (NEW), parseSwaps (NEW)
+"./risks"      → analyzeRisks, BUILTIN_RULES, RiskRule, largeApproval (NEW)
 "./components" → React components (peer dep)
-"./templates"  → FullDebuggerLayout, RevertExplainer,     (NEW)
-                 CompactCallSummary
+"./templates"  → templates
+"./hooks"      → useOpcodeNavigation + predicates  (NEW)
 ```
 
-OIDC trusted publishing configured: GitHub repo `valve-tech/trace`,
-workflow `publish-sdk.yml`, no environment. Tag-push trigger on `sdk-v*`.
+---
+
+### Outstanding work — explicit consumer queue (refreshed 2026-05-18)
+
+**1. `<StepDebugger>` SDK component** (next up)
+   - Visual wrapper around `useOpcodeNavigation`. JSX + keyboard shortcuts.
+   - Reference: web's `StepDebugger.tsx:297-340` (kbd handler block).
+   - No source-map dependencies; consumer wraps with their own enrichment.
+
+**2. `<SwapsPanel>` and `<ApprovalsPanel>` SDK components** (queued)
+   - Visualization for the new parsers.
+   - `<SwapsPanel>` switches on `swap.variant` to render the three shapes.
+   - `<ApprovalsPanel>` flags `value === 2n ** 256n - 1n` as "UNLIMITED".
+
+**3. Platform-side security fixes** (queued, no SDK changes)
+   - `actionExecutor.ts` vm sandbox is escapable.
+   - Anvil forks bind `0.0.0.0` instead of `127.0.0.1`.
+   - `/api/actions` POST + PUT lack Zod validation.
+   - 6 fire-and-forget `void setCachedTrace()` in `tracer.ts`.
+   - ABI cache never invalidates.
+
+**4. `<SourceViewer>` extraction** (deferred from 0.3.0 plan)
+   - Data-agnostic: `source: string` + `highlightLine: number`.
+   - Web wraps with source-map fetcher.
+
+**5. Risk analyzer follow-ups**
+   - `TOKEN_SENT_TO_TOKEN_CONTRACT` — needs
+     `classifyAddress?: (addr) => boolean` in `AnalyzeRisksOptions`.
+
+**6. More parsers**
+   - `parseEvents(frame, eventSig)` — generic by-signature filter
+     (escape hatch for events the SDK doesn't decode natively).
+   - UniV4 swap decoder (hook-style pool architecture, deferred at user's
+     direction during the 0.3.0 ship).
+
+**7. DX**
+   - Docs site (TypeDoc → static).
+   - `npm create @valve-tech/trace-app` CodeSandbox template.
+
+**8. Cosmetics / housekeeping**
+   - Rename web's `FindingsPanel.tsx` → `SlitherFindingsPanel.tsx`
+     (collides with SDK's runtime `FindingsPanel`).
+   - `.serena/project.yml` still says `pulsechain-dev-platform`.
+   - Bump `actions/checkout@v4` / `actions/setup-node@v4` before
+     September 2026 Node-20 removal (CI flagged this on the 0.3.0 publish).
 
 ---
 
 ### Coverage policy (hard gate, enforced)
 
 100/100/100/100 statements/branches/functions/lines, enforced by
-`packages/sdk/vitest.config.ts` `coverage.thresholds`. Caught a dead
-sort-equality branch in `parsePrestateDiff` (refactored to 2-branch
-comparator) and forced the FrameDetailPanel's selector handling to
-treat the `"(fallback)"` sentinel as no selector.
+`packages/sdk/vitest.config.ts` `coverage.thresholds`.
 
----
-
-### Outstanding work — explicit consumer queue
-
-**1. StepDebugger extraction** (1829 lines in web; deferred)
-   - Web's version is deeply intertwined with: useContractSource,
-     useSourceMappings, useContractNames, useSignatures hooks plus
-     analyzeContract, lookupWellKnown calls. Pulling it cleanly into
-     SDK needs a data-agnostic redesign (`steps`, optional source map
-     overlay via props/callback).
-   - Recommended next-session approach: ship a minimal SDK
-     `<StepDebugger>` + `useOpcodeNavigation` hook covering pure
-     step-navigation (forward/back/jumpTo, semantic next-call /
-     next-storage stepping). Web wraps it with the source-map hooks.
-
-**2. SourceViewer extraction**
-   - Should ship as data-agnostic with `source: string` +
-     `highlightLine: number` props; web wraps with source-map fetcher.
-
-**3. Risk analyzer follow-ups**
-   - `TOKEN_SENT_TO_TOKEN_CONTRACT` — needs an address classifier
-     (`eth_getCode` non-empty + `balanceOf(address)` selector). Adds
-     an optional `classifyAddress?: (addr) => boolean` to
-     `AnalyzeRisksOptions`.
-   - `LARGE_APPROVAL` — flag `approve(..., uint256.max)` patterns.
-     Pure rule, no classifier needed.
-
-**4. More parsers (extending /parsers)**
-   - `parseSwaps(frame)` — UniV2 Swap (topic
-     `0xd78ad95f...4022`) + UniV3 Swap (different topic) decoders.
-   - `parseApprovals(frame)` — ERC-20 Approval events; pair with
-     LARGE_APPROVAL rule for full flow.
-   - `parseEvents(frame, eventSig)` — generic by-signature filter.
-
-**5. Platform-side security fixes** (from original audit,
-   `docs/CODEBASE_MAP.md` Gotchas)
-   - vm sandbox in `actionExecutor.ts` is escapable.
-   - Anvil forks bind `0.0.0.0` instead of `127.0.0.1`.
-   - `/api/actions` POST + PUT lack Zod validation.
-   - 6 fire-and-forget `void setCachedTrace()` in tracer.ts.
-   - ABI cache never invalidates.
-
-**6. DX**
-   - Docs site (TypeDoc → static site).
-   - `npm create @valve-tech/trace-app` CodeSandbox template.
-
-**7. Cosmetics / future**
-   - Web's `FindingsPanel.tsx` (Slither static analysis) collides in
-     name with SDK's runtime `FindingsPanel`. Rename to
-     `SlitherFindingsPanel` for clarity.
-   - `.serena/project.yml` still says `pulsechain-dev-platform`.
-   - GitHub Actions Node 20 deprecation warning on `actions/checkout@v4`
-     and `actions/setup-node@v4` — forced to Node 24 in June 2026.
-
----
-
-### How to ship the accumulated commits (next publish)
-
-1. Bump `packages/sdk/package.json` version to `0.2.0` (new
-   subpath exports + new React component = minor under conventional
-   semver, even though no breakages; alternative: stay on patch with
-   `0.1.2`)
-2. `git tag -a sdk-v0.2.0 -m "..."` and `git push --tags`
-3. Workflow fires, OIDC publish via trusted publisher
+This session: 0.3.0 added test coverage for parseApprovals branches
+(topic count/length/data-malformed paths), largeApproval rule (default
+threshold + custom + multi-flag-per-frame + reverted stamping),
+useOpcodeNavigation (every nav method, predicates, reset semantics),
+parseSwaps (V1 buyToken/sellToken + topic-shape failures, V2 happy path
++ short-data, V3 signed amounts + short-data, fallthrough on unknown
+topic[0]).
 
 ---
 
 ### Environment / deployment (unchanged)
 
 - `.env` (gitignored, never tracked in git history — verified)
-  has `PULSECHAIN_RPC_URL` + `DEBUG_RPC_URL` pointing at the user's
-  private RPC. Never commit. See memory `secrets_handling.md`.
+  has `PULSECHAIN_RPC_URL` + `DEBUG_RPC_URL` pointing at private RPC.
 - API port is **10100**. API loads `.env` via `dotenv/config` in
   `packages/api/src/index.ts:1`.
-- Local Postgres: docker-compose env now uses `valvetech` user/pass/db.
-  If a previous `pulsedev`-initialized `pgdata` volume exists locally,
-  either `docker compose down -v` or `ALTER USER … RENAME TO …` inside
-  the running container.
+- Local Postgres: docker-compose env uses `valvetech` user/pass/db.
 
 ---
 
-### Audit context — pre-public secrets scan (passed, repo is public)
+### Notes for next session
 
-Verified before flipping repo public:
-- `.env` never tracked in git history
-- No private keys, JWTs, AWS keys, or third-party RPC URLs in source or history
-- No cert/key files tracked
-- API key system properly hashes; no seed data
-- Dev DB creds (`valvetech:valvetech@localhost`) are localhost-only placeholders
-
----
-
-### Trace SDK — design completion vs original notes
-
-The full design spec from earlier checkpoints remains accurate.
-Implementation status:
-- ✅ Loaders (3 of 3): hash, object, file
-- ✅ Traversal (6 of 6): walk, flatten, filterByAddress, filterBySelector,
-     findRevertFrame, buildGasProfile
-- ✅ Parsers (2 of 2 named): parseTokenDeltas, parsePrestateDiff
-- ✅ Risks (1 of 3 rules): DELEGATECALL_UNRECOGNIZED; remaining
-     TOKEN_SENT_TO_TOKEN_CONTRACT + LARGE_APPROVAL deferred
-- ✅ Components (6 of 6+): CallTree, GasFlamegraph, OpcodeViewer,
-     FindingsPanel, StateDiffPanel, FrameDetailPanel
-- ⏳ Components (2 remaining): StepDebugger, SourceViewer
-- ✅ Templates (3 of 3): FullDebuggerLayout, RevertExplainer, CompactCallSummary
+- The 0.2.0 commit (`85affc6`) is preserved in history but was never
+  tagged or published. If you see references to "0.2.0" anywhere
+  outside `package.json` at that one commit, treat them as stale.
+- After `<StepDebugger>` lands, the web's 1829-line
+  `StepDebugger.tsx` can shrink dramatically — the SDK component
+  owns pure step navigation, the web wraps with source-map +
+  contract-name hooks.
 
 ---
 
 ### Blockers / gotchas (unchanged)
 
-- Public PulseChain RPC slow for complex traces. Use the private RPC in `.env`.
+- Public PulseChain RPC slow for complex traces. Use private RPC in `.env`.
 - Source map recompilation downloads solc on first use (~3s), then caches.
 - Anvil must be installed (Foundry toolchain) for fork-based simulation.
