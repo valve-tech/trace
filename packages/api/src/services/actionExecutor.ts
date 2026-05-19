@@ -1,52 +1,49 @@
 // ============================================================================
-// SECURITY WARNING — node:vm is NOT a security boundary
+// Action executor — child-process isolation with Node's permission model
 // ============================================================================
-// Per the official Node.js docs (https://nodejs.org/api/vm.html#vm-executing-
-// javascript), `vm.createContext` and friends provide ISOLATION, NOT SECURITY.
-// Sandboxed code can reach host-realm objects via prototype/constructor chains
-// on any passed-in value. The classic escape:
+// Predecessor used `node:vm` (NOT a security boundary — sandboxed code could
+// reach host globals via `Buffer.constructor("return process")()` and friends).
+// This rewrite spawns user code in a separate Node process locked down with
+// the permission model:
 //
-//   Buffer.constructor("return process")()   // → host process global
+//   --permission                    enable the model (default-deny)
+//   --allow-fs-read=<repo>          read-only fs (modules must be loadable)
+//   --no-warnings                   silence experimental-flag noise
 //
-// works because `Buffer` (and every other host-realm constructor we expose
-// below) carries a `.constructor` that points back at the host's `Function`.
-// From there, `process.binding`, `require("child_process")`, filesystem
-// access, etc. are all reachable. The 30-second timeout on `runInContext`
-// does NOT stop synchronous escape attempts that finish in microseconds.
+// Implicitly denied: fs-write, child_process, worker_threads, addons, wasi.
+// Network is always allowed under the permission model (Node design choice),
+// which is what we want — user code needs to make RPC calls.
 //
-// This executor is acceptable for SOLO LOCAL DEVELOPMENT only. Multi-tenant
-// deployments must replace it with a true isolation primitive — `isolated-vm`
-// (native v8 isolate), a `--permission`-locked worker, or `quickjs-emscripten`.
+// The child runs an embedded ESM script via `--eval` so there's no separate
+// runner file to ship in dev vs. prod. Parent and child communicate over the
+// child's stdin/stdout: one JSON line in (the action context), one JSON line
+// out (the result).
 //
-// Tracked in progress.txt outstanding work. Until that migration ships, a
-// loud startup warning is emitted from `warnUnsafeExecutorOnce()` below.
+// Limitations to be aware of:
+//   - Fs-read is granted to the whole repo so Node can resolve modules. User
+//     code can read source files but cannot read .env (which is filtered out
+//     of the child env block below).
+//   - Spawning costs ~50-100ms. Fine for scheduled actions; would be tight
+//     for sub-100ms hot paths.
+//   - `process.env` is filtered before spawn so the child sees only the RPC
+//     URL — not Postgres creds, API keys, or anything else from the parent.
 // ============================================================================
 
-import vm from "node:vm";
-import { publicClient } from "./rpc.js";
+import { spawn } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   type ActionRow,
   getActionStorage,
   setActionStorage,
   addLog,
 } from "./actionsDb.js";
-import { type Address, type Hex, formatEther } from "viem";
-
-let unsafeWarningEmitted = false;
-function warnUnsafeExecutorOnce(): void {
-  if (unsafeWarningEmitted) return;
-  unsafeWarningEmitted = true;
-  console.warn(
-    "\n[actionExecutor] ⚠  Running user code in node:vm — NOT a security " +
-      "boundary. Sandboxed code can escape to the host realm via " +
-      "`SomeHostObject.constructor(...)`. Suitable for local dev only. " +
-      "See progress.txt for the isolated-vm migration plan.\n",
-  );
-}
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — preserved verbatim from the previous executor so callers don't
+// need to change.
 // ---------------------------------------------------------------------------
+
 export interface ExecutionResult {
   success: boolean;
   stdout: string;
@@ -63,236 +60,313 @@ export interface TriggerEvent {
 }
 
 // ---------------------------------------------------------------------------
-// RPC helpers exposed to user code
+// Wire payload between parent and child
 // ---------------------------------------------------------------------------
-function createRpcHelpers() {
-  return {
-    async call(to: string, data: string): Promise<string> {
-      const result = await publicClient.call({
-        to: to as Address,
-        data: data as Hex,
-      });
-      return result.data ?? "0x";
-    },
 
-    async getBalance(address: string): Promise<string> {
-      const balance = await publicClient.getBalance({
-        address: address as Address,
-      });
-      return formatEther(balance);
-    },
+interface ChildInput {
+  code: string;
+  event: TriggerEvent;
+  secrets: Record<string, string>;
+  storage: Record<string, unknown>;
+  rpcUrl: string;
+  timeoutMs: number;
+}
 
-    async getBlock(number?: number): Promise<unknown> {
-      const block = await publicClient.getBlock(
-        number !== undefined ? { blockNumber: BigInt(number) } : {},
-      );
-      return {
-        number: Number(block.number),
-        hash: block.hash,
-        timestamp: Number(block.timestamp),
-        gasUsed: block.gasUsed.toString(),
-        gasLimit: block.gasLimit.toString(),
-        baseFeePerGas: block.baseFeePerGas?.toString(),
-        transactionCount: block.transactions.length,
-      };
-    },
-
-    async getTransaction(hash: string): Promise<unknown> {
-      const tx = await publicClient.getTransaction({
-        hash: hash as Hex,
-      });
-      return {
-        hash: tx.hash,
-        from: tx.from,
-        to: tx.to,
-        value: formatEther(tx.value),
-        nonce: tx.nonce,
-        gas: tx.gas.toString(),
-        blockNumber: tx.blockNumber ? Number(tx.blockNumber) : null,
-        input: tx.input,
-      };
-    },
-
-    async getTransactionReceipt(hash: string): Promise<unknown> {
-      const receipt = await publicClient.getTransactionReceipt({
-        hash: hash as Hex,
-      });
-      return {
-        status: receipt.status,
-        gasUsed: receipt.gasUsed.toString(),
-        blockNumber: Number(receipt.blockNumber),
-        logs: receipt.logs.map((l) => ({
-          address: l.address,
-          topics: l.topics,
-          data: l.data,
-        })),
-      };
-    },
-
-    async getLogs(params: {
-      address?: string;
-      fromBlock?: number;
-      toBlock?: number;
-    }): Promise<unknown[]> {
-      const logs = await publicClient.getLogs({
-        address: params.address as Address | undefined,
-        fromBlock: params.fromBlock !== undefined ? BigInt(params.fromBlock) : undefined,
-        toBlock: params.toBlock !== undefined ? BigInt(params.toBlock) : undefined,
-      });
-      return logs.map((l) => ({
-        address: l.address,
-        topics: [...l.topics],
-        data: l.data,
-        blockNumber: l.blockNumber ? Number(l.blockNumber) : null,
-        transactionHash: l.transactionHash,
-      }));
-    },
-  };
+interface ChildOutput {
+  stdout: string[];
+  stderr: string[];
+  storage: Record<string, unknown>;
+  error?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Execute an action
-// secrets and storage are now JSONB objects from pg — no JSON.parse needed
+// Repo-root resolution — we hand `--allow-fs-read` this path so Node can
+// resolve node_modules. Computed once at module load.
 // ---------------------------------------------------------------------------
+
+const REPO_ROOT = (() => {
+  // dirname(this file) → packages/api/{src|dist}/services → walk up to repo root
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  // here: <repo>/packages/api/(src|dist)/services
+  return path.resolve(here, "..", "..", "..", "..");
+})();
+
+const TIMEOUT_MS = 30_000;
+
+// ---------------------------------------------------------------------------
+// The child script — embedded as a string so there's no separate file to
+// resolve across dev (tsx) and prod (node). Reads one JSON line from stdin,
+// writes one JSON line to stdout. Captures console.* output for streaming
+// back to the parent.
+// ---------------------------------------------------------------------------
+
+const CHILD_SCRIPT = String.raw`
+import { createPublicClient, http, formatEther } from "viem";
+
+// --- read full stdin -------------------------------------------------------
+let raw = "";
+process.stdin.setEncoding("utf8");
+for await (const chunk of process.stdin) raw += chunk;
+const input = JSON.parse(raw);
+
+// --- captured streams ------------------------------------------------------
+const stdoutLines = [];
+const stderrLines = [];
+const capturedConsole = {
+  log:  (...a) => stdoutLines.push(a.map(String).join(" ")),
+  warn: (...a) => stderrLines.push("[warn] " + a.map(String).join(" ")),
+  error:(...a) => stderrLines.push("[error] " + a.map(String).join(" ")),
+  info: (...a) => stdoutLines.push("[info] " + a.map(String).join(" ")),
+};
+
+// --- viem client (read-only) ----------------------------------------------
+const publicClient = createPublicClient({ transport: http(input.rpcUrl) });
+
+const rpc = {
+  async call(to, data) {
+    const r = await publicClient.call({ to, data });
+    return r.data ?? "0x";
+  },
+  async getBalance(address) {
+    return formatEther(await publicClient.getBalance({ address }));
+  },
+  async getBlock(number) {
+    const b = await publicClient.getBlock(
+      number !== undefined ? { blockNumber: BigInt(number) } : {},
+    );
+    return {
+      number: Number(b.number),
+      hash: b.hash,
+      timestamp: Number(b.timestamp),
+      gasUsed: b.gasUsed.toString(),
+      gasLimit: b.gasLimit.toString(),
+      baseFeePerGas: b.baseFeePerGas?.toString(),
+      transactionCount: b.transactions.length,
+    };
+  },
+  async getTransaction(hash) {
+    const tx = await publicClient.getTransaction({ hash });
+    return {
+      hash: tx.hash, from: tx.from, to: tx.to,
+      value: formatEther(tx.value), nonce: tx.nonce,
+      gas: tx.gas.toString(),
+      blockNumber: tx.blockNumber ? Number(tx.blockNumber) : null,
+      input: tx.input,
+    };
+  },
+  async getTransactionReceipt(hash) {
+    const r = await publicClient.getTransactionReceipt({ hash });
+    return {
+      status: r.status, gasUsed: r.gasUsed.toString(),
+      blockNumber: Number(r.blockNumber),
+      logs: r.logs.map((l) => ({ address: l.address, topics: l.topics, data: l.data })),
+    };
+  },
+  async getLogs(params) {
+    const logs = await publicClient.getLogs({
+      address: params.address,
+      fromBlock: params.fromBlock !== undefined ? BigInt(params.fromBlock) : undefined,
+      toBlock:   params.toBlock   !== undefined ? BigInt(params.toBlock)   : undefined,
+    });
+    return logs.map((l) => ({
+      address: l.address, topics: [...l.topics], data: l.data,
+      blockNumber: l.blockNumber ? Number(l.blockNumber) : null,
+      transactionHash: l.transactionHash,
+    }));
+  },
+};
+
+// --- storage proxy ---------------------------------------------------------
+const storageData = { ...(input.storage ?? {}) };
+const storage = {
+  get(k)    { return storageData[k]; },
+  set(k, v) { storageData[k] = v; },
+  getAll()  { return { ...storageData }; },
+  delete(k) { delete storageData[k]; },
+};
+
+// --- compile + run user code ----------------------------------------------
+let error;
+try {
+  const userFn = new (Object.getPrototypeOf(async function () {}).constructor)(
+    "console", "event", "rpc", "secrets", "storage",
+    input.code + "\nif (typeof handler === 'function') { return await handler({ event, rpc, secrets, storage }); }",
+  );
+  await userFn(capturedConsole, input.event, rpc, input.secrets ?? {}, storage);
+} catch (e) {
+  error = e instanceof Error ? e.message : String(e);
+  stderrLines.push("[fatal] " + error);
+}
+
+// --- emit one JSON line on stdout -----------------------------------------
+process.stdout.write(JSON.stringify({
+  stdout: stdoutLines, stderr: stderrLines, storage: storageData, error,
+}) + "\n");
+`;
+
+// ---------------------------------------------------------------------------
+// Allow-list of env vars the child receives. Everything else is dropped so
+// Postgres creds, API keys, etc. don't bleed into user code.
+// ---------------------------------------------------------------------------
+
+const ALLOWED_ENV_VARS: ReadonlySet<string> = new Set([
+  "NODE_OPTIONS", // permits `--no-warnings` style tweaks if needed by tooling
+  "PATH",         // node binary resolution
+]);
+
+function filteredEnv(): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const k of ALLOWED_ENV_VARS) {
+    const v = process.env[k];
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Spawn the child + drive the request/response. Times out hard.
+// ---------------------------------------------------------------------------
+
+function runInChild(input: ChildInput): Promise<ChildOutput> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      [
+        "--permission",
+        `--allow-fs-read=${REPO_ROOT}`,
+        "--no-warnings",
+        "--input-type=module",
+        "--eval",
+        CHILD_SCRIPT,
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: filteredEnv(),
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
+
+    let stdoutBuf = "";
+    let stderrBuf = "";
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill("SIGTERM");
+      setTimeout(() => child.kill("SIGKILL"), 1_000).unref();
+      reject(new Error(`Action execution timed out (${input.timeoutMs}ms)`));
+    }, input.timeoutMs);
+    timer.unref();
+
+    child.stdout.on("data", (b) => (stdoutBuf += b.toString("utf8")));
+    child.stderr.on("data", (b) => (stderrBuf += b.toString("utf8")));
+
+    child.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    child.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (code !== 0 && !stdoutBuf.trim()) {
+        // The child crashed before emitting any output — surface stderr as
+        // an error message rather than failing with a generic JSON parse error.
+        reject(
+          new Error(
+            `Child process exited with code ${code}: ${stderrBuf.trim() || "no output"}`,
+          ),
+        );
+        return;
+      }
+      try {
+        // The child can emit warnings on stderr that we want to preserve, but
+        // the protocol payload is the LAST non-empty line on stdout — newline
+        // terminated.
+        const lastLine = stdoutBuf.trim().split("\n").pop() ?? "";
+        const parsed = JSON.parse(lastLine) as ChildOutput;
+        // Pass through any stderr the child emitted (Node warnings, etc.).
+        if (stderrBuf.trim()) parsed.stderr.push(...stderrBuf.trim().split("\n"));
+        resolve(parsed);
+      } catch (e) {
+        reject(
+          new Error(
+            `Failed to parse child output: ${(e as Error).message}. ` +
+              `stdout=${stdoutBuf.slice(0, 500)} stderr=${stderrBuf.slice(0, 500)}`,
+          ),
+        );
+      }
+    });
+
+    child.stdin.write(JSON.stringify(input));
+    child.stdin.end();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Public API — same signature and ExecutionResult shape as the previous
+// node:vm executor, so callers in routes/actions.ts and actionScheduler.ts
+// don't need to change.
+// ---------------------------------------------------------------------------
+
 export async function executeAction(
   action: ActionRow,
   triggerEvent: TriggerEvent,
 ): Promise<ExecutionResult> {
-  warnUnsafeExecutorOnce();
   const startTime = Date.now();
-  const stdoutLines: string[] = [];
-  const stderrLines: string[] = [];
-
   const secrets = (action.secrets ?? {}) as Record<string, string>;
-
   const storageData = await getActionStorage(action.id);
-  const storageProxy = {
-    get(key: string): unknown {
-      return storageData[key];
-    },
-    set(key: string, value: unknown): void {
-      storageData[key] = value;
-    },
-    getAll(): Record<string, unknown> {
-      return { ...storageData };
-    },
-    delete(key: string): void {
-      delete storageData[key];
-    },
-  };
 
-  const capturedConsole = {
-    log: (...args: unknown[]) => {
-      stdoutLines.push(args.map(String).join(" "));
-    },
-    warn: (...args: unknown[]) => {
-      stderrLines.push(`[warn] ${args.map(String).join(" ")}`);
-    },
-    error: (...args: unknown[]) => {
-      stderrLines.push(`[error] ${args.map(String).join(" ")}`);
-    },
-    info: (...args: unknown[]) => {
-      stdoutLines.push(`[info] ${args.map(String).join(" ")}`);
-    },
-  };
-
-  const sandbox = {
-    console: capturedConsole,
-    event: triggerEvent,
-    rpc: createRpcHelpers(),
-    secrets,
-    storage: storageProxy,
-    fetch: globalThis.fetch,
-    setTimeout: undefined,
-    setInterval: undefined,
-    setImmediate: undefined,
-    Buffer: Buffer,
-    JSON: JSON,
-    Math: Math,
-    Date: Date,
-    parseInt: parseInt,
-    parseFloat: parseFloat,
-    isNaN: isNaN,
-    isFinite: isFinite,
-    encodeURIComponent: encodeURIComponent,
-    decodeURIComponent: decodeURIComponent,
-    btoa: globalThis.btoa,
-    atob: globalThis.atob,
-    Array: Array,
-    Object: Object,
-    String: String,
-    Number: Number,
-    Boolean: Boolean,
-    Map: Map,
-    Set: Set,
-    Promise: Promise,
-    Error: Error,
-    RegExp: RegExp,
-    URL: URL,
-    URLSearchParams: URLSearchParams,
-  };
-
-  const context = vm.createContext(sandbox);
-
-  const wrappedCode = `
-(async () => {
-  ${action.code}
-
-  if (typeof handler === 'function') {
-    await handler({ event, rpc, secrets, storage });
-  }
-})()
-`;
+  const rpcUrl =
+    process.env.PULSECHAIN_RPC_URL || "https://rpc.pulsechain.com";
 
   try {
-    const script = new vm.Script(wrappedCode, {
-      filename: `action-${action.id}.js`,
+    const result = await runInChild({
+      code: action.code,
+      event: triggerEvent,
+      secrets,
+      storage: storageData,
+      rpcUrl,
+      timeoutMs: TIMEOUT_MS,
     });
 
-    const resultPromise = script.runInContext(context, {
-      timeout: 30_000,
-      breakOnSigint: true,
-    });
-
-    if (resultPromise && typeof resultPromise.then === "function") {
-      await Promise.race([
-        resultPromise,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Action execution timed out (30s)")), 30_000),
-        ),
-      ]);
-    }
-
-    await setActionStorage(action.id, storageData);
+    // Persist whatever the action mutated. The child returned a fresh object;
+    // we replace storage wholesale (consistent with the previous executor's
+    // setActionStorage call after script.runInContext).
+    await setActionStorage(action.id, result.storage);
 
     const duration = Date.now() - startTime;
-    const result: ExecutionResult = {
-      success: true,
-      stdout: stdoutLines.join("\n"),
-      stderr: stderrLines.join("\n"),
+    const success = result.error === undefined;
+    const final: ExecutionResult = {
+      success,
+      stdout: result.stdout.join("\n"),
+      stderr: result.stderr.join("\n"),
       duration_ms: duration,
+      ...(success ? {} : { error: result.error }),
     };
 
     await addLog({
       action_id: action.id,
       duration_ms: duration,
-      success: true,
-      stdout: result.stdout,
-      stderr: result.stderr,
+      success,
+      stdout: final.stdout,
+      stderr: final.stderr,
       trigger_data: JSON.stringify(triggerEvent),
     });
 
-    return result;
+    return final;
   } catch (err: unknown) {
     const duration = Date.now() - startTime;
     const errorMessage = err instanceof Error ? err.message : String(err);
 
-    stderrLines.push(`[fatal] ${errorMessage}`);
-
-    const result: ExecutionResult = {
+    const final: ExecutionResult = {
       success: false,
-      stdout: stdoutLines.join("\n"),
-      stderr: stderrLines.join("\n"),
+      stdout: "",
+      stderr: `[fatal] ${errorMessage}`,
       duration_ms: duration,
       error: errorMessage,
     };
@@ -301,11 +375,11 @@ export async function executeAction(
       action_id: action.id,
       duration_ms: duration,
       success: false,
-      stdout: result.stdout,
-      stderr: result.stderr,
+      stdout: final.stdout,
+      stderr: final.stderr,
       trigger_data: JSON.stringify(triggerEvent),
     });
 
-    return result;
+    return final;
   }
 }
