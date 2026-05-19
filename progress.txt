@@ -138,25 +138,77 @@ memory `sdk_version_bump_preference.md`, stack at one version). All
     `forkManager.setExitOnSignal(false)` + public `cleanupAll()` so
     the API owns the final `process.exit`.
 
-Next bump (still 0.4.0): adds `<StepDebugger>`, `<SwapsPanel>`,
-`<ApprovalsPanel>`, `<SourceViewer>`, `parseEvents`, and
-`tokenSentToTokenContract`. All additive.
+### Second checkpoint — 2026-05-19 overnight stack
+
+Five more landings, taking the stacked-since-0.3.0 surface from six
+items to eleven. 480 SDK tests (was 443). Coverage gate still 100%.
+
+  - **`<TokenDeltasPanel>` SDK component** — was missing the display
+    primitive for `parseTokenDeltas` output; renders the raw bigint
+    values (no decimal formatting — consumers map through metadata
+    themselves). 11 tests.
+  - **`@valve-tech/trace-sdk/widgets` new subpath** — five drop-in
+    embed primitives that pair a parser/analyzer with the matching
+    visual panel: `RisksWidget`, `SwapsWidget`, `ApprovalsWidget`,
+    `TokenFlowsWidget`, and a composed `EmbedDashboard` with tabs
+    across all four. Each useMemos its decode pass on the `frame`
+    prop. 26 tests.
+  - **`examples/widgets-demo/`** — standalone Vite + React app that
+    renders every widget against a synthetic TraceFrame
+    (Approval/2× Transfer/UniV2 Swap/DELEGATECALL → all four widgets
+    populated). `examples/*` added to root `workspaces` so the demo
+    resolves the local SDK without `npm link`. Run with `cd
+    examples/widgets-demo && npm run dev` → http://localhost:5180.
+  - **Web-side adoption (partial)** —
+    - Renamed collisions: `web/components/debugger/FindingsPanel.tsx`
+      → `SlitherFindingsPanel.tsx` (different data shape from SDK's),
+      and `SourceViewer.tsx` → `SoliditySourceViewer.tsx` (web's has
+      Solidity-aware syntax highlighting).
+    - Swapped web's local `isCallOp`/`isStorageOp`/`isLogOp` for
+      imports from `@valve-tech/trace-sdk/hooks`. The 1800-line
+      `StepDebugger.tsx` shell still owns source-map fetching and
+      keyboard nav — full delegation to SDK's `useOpcodeNavigation` +
+      `<StepDebugger>` is the next leverage move (deferred again).
+  - **node:vm action executor replaced** with a child-process +
+    permission-model executor in `packages/api/src/services/actionExecutor.ts`.
+    Child runs under `node --permission --allow-fs-read=<repo>
+    --no-warnings --input-type=module --eval <embedded script>`.
+    Default-denied: fs-write, child_process, worker_threads.
+    `process.env` is filtered to PATH-only before spawn so
+    `DATABASE_URL` and API keys never reach user code. 30s hard
+    timeout still in place (SIGTERM → SIGKILL). Public API
+    (`executeAction` signature, `ExecutionResult` shape) preserved
+    verbatim — no caller changes. Verified end-to-end on Node 24.15
+    by `packages/api/tests/actionExecutor.smoke.ts`: fs-write attempt
+    → ERR_ACCESS_DENIED, child_process attempt → ERR_ACCESS_DENIED,
+    user-thrown errors surface cleanly. **Multi-tenant deployment is
+    no longer blocked on isolation.**
+  - **Cosmetics** — `.serena/project.yml` renamed
+    `pulsechain-dev-platform` → `valve-tech-trace`. GH workflow
+    `publish-sdk.yml` bumped Node from 20 → 22 ahead of the Sep 2026
+    Node-20 runner removal. `actions/checkout` / `actions/setup-node`
+    already at v4.
+
+Next bump (still 0.4.0) — eleven additive items stacked since 0.3.0:
+  `<StepDebugger>`, `<SwapsPanel>`, `<ApprovalsPanel>`,
+  `<SourceViewer>`, `<TokenDeltasPanel>`, `parseEvents`,
+  `tokenSentToTokenContract`, `RisksWidget`, `SwapsWidget`,
+  `ApprovalsWidget`, `TokenFlowsWidget`, `EmbedDashboard`.
+(Yes that's twelve — `<TokenDeltasPanel>` makes it twelve.)
 
 ---
 
-### Outstanding work — explicit consumer queue (refreshed mid-session)
+### Outstanding work — explicit consumer queue (refreshed)
 
-**1. Replace `node:vm` action executor with proper isolation**
-   (unchanged). Three options:
-   - `isolated-vm` (npm, native v8 isolate) — gold standard, adds
-     native dep
-   - `quickjs-emscripten` (separate JS runtime) — slower, no native dep
-   - Child process with `--permission` flags + IPC — more code but
-     uses only stdlib
+**1. Bump SDK version + publish** — twelve additive items stacked
+   since 0.3.0. Ready for `0.4.0`. Per memory, the user signs off on
+   the bump explicitly; never auto-tag.
 
-**2. Bump SDK version + publish** — the stacked surface above (six
-   additive items) is ready for `0.4.0`. Per memory, the user signs
-   off on the bump explicitly; never auto-tag.
+**2. Full StepDebugger delegation** — web's `StepDebugger.tsx` still
+   owns 1800 lines of step-navigation + source-map UI. Swap the
+   inner navigation block for SDK's `useOpcodeNavigation` +
+   `<StepDebugger>`; keep the source-map/contract-name hooks (those
+   are web-specific). Largest single LOC reduction available.
 
 **3. More parsers**
    - UniV4 swap decoder (hook-style pool architecture, deferred).
@@ -165,22 +217,14 @@ Next bump (still 0.4.0): adds `<StepDebugger>`, `<SwapsPanel>`,
    - Docs site (TypeDoc → static).
    - `npm create @valve-tech/trace-app` CodeSandbox template.
 
-**5. Cosmetics / housekeeping**
-   - Rename web's `FindingsPanel.tsx` → `SlitherFindingsPanel.tsx`
-     (collides with SDK's runtime `FindingsPanel`). NOTE: web also
-     has a `SourceViewer.tsx` that now collides with the SDK's new
-     `<SourceViewer>` — same migration shape applies.
-   - `.serena/project.yml` still says `pulsechain-dev-platform`.
-   - Bump `actions/checkout@v4` / `actions/setup-node@v4` before
-     September 2026 Node-20 removal.
-
-**6. Web-side adoption**
-   - `packages/web` uses workspace `*` link, so 0.3.0 surface is live
-     locally but has not been refactored to actually consume the new
-     primitives (`<StepDebugger>`, parsers, etc.).
-   - Web's 1829-line `StepDebugger.tsx` is the highest-leverage
-     migration target — pull source-map and contract-name logic out
-     into wrapper hooks, delegate step navigation to the SDK.
+**5. Action executor hardening (post-ship)**
+   - The `--permission` model grants fs-read to the whole repo so
+     module resolution works. User code can read source files but
+     not `.env` (filtered out of child env). Tightening this further
+     would require shipping a separate minimal dist + only allowing
+     fs-read to that.
+   - Per-action env-var allow-list (currently the child sees only
+     PATH). Could be opened per-action if a use case appears.
 
 ---
 
@@ -189,12 +233,13 @@ Next bump (still 0.4.0): adds `<StepDebugger>`, `<SwapsPanel>`,
 100/100/100/100 statements/branches/functions/lines, enforced by
 `packages/sdk/vitest.config.ts` `coverage.thresholds`.
 
-Session totals: 300 → 443 tests across 23 files (was 406 / 22 before
-the overnight stack). New surface added: parsers (parseApprovals,
-parseSwaps × 3 variants, parseEvents), risk rules (largeApproval,
+Session totals: 300 → 480 tests across 25 files. New surface added
+across two overnight stacks: parsers (parseApprovals, parseSwaps × 3
+variants, parseEvents), risk rules (largeApproval,
 tokenSentToTokenContract), hook (useOpcodeNavigation + predicates),
-4 visual components (StepDebugger, SwapsPanel, ApprovalsPanel,
-SourceViewer).
+5 visual components (StepDebugger, SwapsPanel, ApprovalsPanel,
+SourceViewer, TokenDeltasPanel), 5 widgets (RisksWidget, SwapsWidget,
+ApprovalsWidget, TokenFlowsWidget, EmbedDashboard).
 
 ---
 
