@@ -92,6 +92,8 @@ export {
   StepDebugger,
   SwapsPanel,
   ApprovalsPanel,
+  SourceViewer,
+  TokenDeltasPanel,
   buildFlamegraphLayout,
   adjustBrightness,
   getBarColor,
@@ -121,6 +123,10 @@ export {
   type SwapsPanelClassNames,
   type ApprovalsPanelProps,
   type ApprovalsPanelClassNames,
+  type SourceViewerProps,
+  type SourceViewerClassNames,
+  type TokenDeltasPanelProps,
+  type TokenDeltasPanelClassNames,
   type OpcodeCategory,
   type FlamegraphBar,
   type LayoutOptions,
@@ -149,3 +155,19 @@ export {
   type OpcodeNavigation,
   type UseOpcodeNavigationOptions,
 } from "./hooks/index.js";
+
+// Widgets (parser + panel embed primitives — React peer dep)
+export {
+  RisksWidget,
+  SwapsWidget,
+  ApprovalsWidget,
+  TokenFlowsWidget,
+  EmbedDashboard,
+  type RisksWidgetProps,
+  type SwapsWidgetProps,
+  type ApprovalsWidgetProps,
+  type TokenFlowsWidgetProps,
+  type EmbedDashboardProps,
+  type EmbedDashboardClassNames,
+  type EmbedDashboardTab,
+} from "./widgets/index.js";

@@ -50,6 +50,11 @@ export {
   type SourceViewerClassNames,
 } from "./SourceViewer.js";
 export {
+  TokenDeltasPanel,
+  type TokenDeltasPanelProps,
+  type TokenDeltasPanelClassNames,
+} from "./TokenDeltasPanel.js";
+export {
   classifyOpcode,
   getOpcodeColor,
   isExpensiveOp,
