@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { isCallOp, isStorageOp, isLogOp } from "@valve-tech/trace-sdk/hooks";
 import type { OpcodeStep, CallFrame } from "../../api/debugger";
 import { analyzeContract, type SourceLocation, type SlitherFinding, type ContractSource } from "../../api/source";
 import type { SignatureMatch } from "../../api/signatures";
@@ -6,8 +7,8 @@ import { useContractSource, useSourceMappings } from "../../hooks/useContractSou
 import { useContractNames } from "../../hooks/useContractNames";
 import { useSignatures } from "../../hooks/useSignatures";
 import { lookupWellKnown } from "../../lib/wellKnownSignatures";
-import SourceViewer from "./SourceViewer";
-import FindingsPanel from "./FindingsPanel";
+import SourceViewer from "./SoliditySourceViewer";
+import FindingsPanel from "./SlitherFindingsPanel";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -41,17 +42,11 @@ function getOpcodeColor(op: string): string {
   return OPCODE_COLORS[op] ?? "#94A3B8";
 }
 
-function isCallOp(op: string): boolean {
-  return ["CALL", "DELEGATECALL", "STATICCALL", "CREATE", "CREATE2", "CALLCODE"].includes(op);
-}
-
-function isStorageOp(op: string): boolean {
-  return ["SLOAD", "SSTORE", "TLOAD", "TSTORE"].includes(op);
-}
-
-function isLogOp(op: string): boolean {
-  return op.startsWith("LOG");
-}
+// `isCallOp`, `isStorageOp`, and `isLogOp` are imported from
+// @valve-tech/trace-sdk/hooks. The local OPCODE_COLORS table above stays
+// because the web's color palette intentionally differs from the SDK's
+// default (`OPCODE_CATEGORY_COLORS`). Swap to the SDK colors if/when a
+// theming refactor is done.
 
 // ---------------------------------------------------------------------------
 // Source-based function name resolution
