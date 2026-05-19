@@ -45,6 +45,11 @@ export {
   type ApprovalsPanelClassNames,
 } from "./ApprovalsPanel.js";
 export {
+  SourceViewer,
+  type SourceViewerProps,
+  type SourceViewerClassNames,
+} from "./SourceViewer.js";
+export {
   classifyOpcode,
   getOpcodeColor,
   isExpensiveOp,
