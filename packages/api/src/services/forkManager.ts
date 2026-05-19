@@ -104,11 +104,43 @@ export class ForkManager {
   private nextPort = 8545;
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private ttlMs: number;
+  private exitOnSignal = true;
 
   constructor(ttlMs: number = DEFAULT_TTL_MS) {
     this.ttlMs = ttlMs;
     this.startAutoCleanup();
     this.registerExitHandlers();
+  }
+
+  /**
+   * Tear down every fork synchronously and clear the auto-cleanup timer.
+   * Safe to call repeatedly; subsequent calls are no-ops once forks are
+   * drained. Returns a promise that resolves once SIGTERM has been issued
+   * to each child — actual process exit is best-effort.
+   *
+   * Intended for use by the API's graceful-shutdown orchestrator; the
+   * SIGINT/SIGTERM handlers registered in the constructor also call this.
+   */
+  cleanupAll(): void {
+    console.log("[forkManager] Cleaning up all anvil processes...");
+    for (const [id] of this.processes) {
+      this.destroyFork(id);
+    }
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
+
+  /**
+   * When true (the default), the ForkManager's own SIGINT/SIGTERM handlers
+   * call `process.exit(0)` after cleanup. The API's graceful-shutdown
+   * orchestrator needs to await cache flushes and the database pool before
+   * exiting — call `setExitOnSignal(false)` early in startup so the
+   * orchestrator owns the final exit.
+   */
+  setExitOnSignal(enabled: boolean): void {
+    this.exitOnSignal = enabled;
   }
 
   // -----------------------------------------------------------------------
@@ -338,24 +370,14 @@ export class ForkManager {
   }
 
   private registerExitHandlers(): void {
-    const cleanup = () => {
-      console.log("[forkManager] Cleaning up all anvil processes...");
-      for (const [id] of this.processes) {
-        this.destroyFork(id);
-      }
-      if (this.cleanupInterval) {
-        clearInterval(this.cleanupInterval);
-      }
-    };
-
-    process.on("exit", cleanup);
+    process.on("exit", () => this.cleanupAll());
     process.on("SIGINT", () => {
-      cleanup();
-      process.exit(0);
+      this.cleanupAll();
+      if (this.exitOnSignal) process.exit(0);
     });
     process.on("SIGTERM", () => {
-      cleanup();
-      process.exit(0);
+      this.cleanupAll();
+      if (this.exitOnSignal) process.exit(0);
     });
   }
 }
