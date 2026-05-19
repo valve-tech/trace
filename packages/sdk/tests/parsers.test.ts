@@ -5,6 +5,7 @@ import {
   parsePrestateDiff,
   parseApprovals,
   parseSwaps,
+  parseEvents,
 } from "../src/parsers/index.js";
 import { normalizeCallFrame } from "../src/loaders/normalize.js";
 import { addrs, makeFrame } from "./fixtures.js";
@@ -1046,5 +1047,153 @@ describe("parseSwaps", () => {
       ],
     };
     expect(parseSwaps(frame)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseEvents
+// ---------------------------------------------------------------------------
+
+describe("parseEvents", () => {
+  const TRANSFER_SIG = "Transfer(address,address,uint256)";
+
+  function logWith(topic: Hex, value: bigint = 1n): Log {
+    return {
+      address: addrs.CONTRACT,
+      topics: [topic, addrTopic(addrs.ALICE), addrTopic(addrs.BOB)],
+      data: uint256Hex(value),
+    };
+  }
+
+  it("returns empty array for a trace with no logs", () => {
+    expect(parseEvents(makeFrame({}), TRANSFER_SIG)).toEqual([]);
+  });
+
+  it("matches logs whose topic[0] equals keccak(signature)", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [logWith(TRANSFER_TOPIC as Hex, 100n)],
+    };
+    const matches = parseEvents(frame, TRANSFER_SIG);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.log.topics[0]).toBe(TRANSFER_TOPIC);
+    expect(matches[0]!.logIndex).toBe(0);
+  });
+
+  it("accepts a precomputed topic hash as the second argument", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [logWith(TRANSFER_TOPIC as Hex, 1n)],
+    };
+    const matches = parseEvents(frame, TRANSFER_TOPIC);
+    expect(matches).toHaveLength(1);
+  });
+
+  it("normalizes a precomputed topic hash to lowercase", () => {
+    const uppercased = TRANSFER_TOPIC.toUpperCase().replace("0X", "0x");
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [logWith(TRANSFER_TOPIC as Hex, 1n)],
+    };
+    expect(parseEvents(frame, uppercased)).toHaveLength(1);
+  });
+
+  it("treats 66-char strings with non-hex chars as a signature, not a topic", () => {
+    // Same length as a topic hash but contains "z" → `isPrecomputedTopic`
+    // returns false (non-hex char) and we hand it to viem as a signature.
+    // viem rejects unparseable signatures by throwing, which is the right
+    // behavior for malformed input.
+    const fakeTopic = "0x" + "z".repeat(64);
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [logWith(TRANSFER_TOPIC as Hex, 1n)],
+    };
+    expect(() => parseEvents(frame, fakeTopic)).toThrow();
+  });
+
+  it("falls through to keccak path when the 0x string is the wrong length", () => {
+    // Starts with 0x but only 10 chars → not a topic; passed to viem as
+    // a (bad) signature, which throws. Exercises the length-check branch.
+    expect(() => parseEvents(makeFrame({}), "0xdeadbeef")).toThrow();
+  });
+
+  it("accepts uppercase hex chars (A-F) inside a precomputed topic", () => {
+    // Uppercase hex (e.g. "0xDDF...") should pass isPrecomputedTopic and
+    // be lowercased before comparison. Exercises the c>=65 && c<=70 branch.
+    const upperA = "0xA" + TRANSFER_TOPIC.slice(3); // swap first nibble to "A"
+    const lowered = upperA.toLowerCase() as Hex;
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        {
+          address: addrs.CONTRACT,
+          topics: [lowered, addrTopic(addrs.ALICE), addrTopic(addrs.BOB)],
+          data: uint256Hex(1n),
+        },
+      ],
+    };
+    expect(parseEvents(frame, upperA)).toHaveLength(1);
+  });
+
+  it("skips logs whose topic[0] differs from the target", () => {
+    const otherTopic =
+      ("0x" + "1".repeat(64)) as Hex;
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [logWith(otherTopic, 1n)],
+    };
+    expect(parseEvents(frame, TRANSFER_SIG)).toEqual([]);
+  });
+
+  it("increments logIndex across both matching and non-matching logs", () => {
+    const otherTopic = ("0x" + "1".repeat(64)) as Hex;
+    const frame: TraceFrame = {
+      ...makeFrame({}),
+      logs: [
+        logWith(otherTopic, 1n), // index 0, skipped
+        logWith(TRANSFER_TOPIC as Hex, 2n), // index 1, matched
+        logWith(otherTopic, 3n), // index 2, skipped
+        logWith(TRANSFER_TOPIC as Hex, 4n), // index 3, matched
+      ],
+    };
+    const matches = parseEvents(frame, TRANSFER_SIG);
+    expect(matches.map((m) => m.logIndex)).toEqual([1, 3]);
+  });
+
+  it("walks into child frames in pre-order", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({
+        children: [
+          { ...makeFrame({ depth: 1 }), logs: [logWith(TRANSFER_TOPIC as Hex, 2n)] },
+        ],
+      }),
+      logs: [logWith(TRANSFER_TOPIC as Hex, 1n)],
+    };
+    const matches = parseEvents(frame, TRANSFER_SIG);
+    expect(matches).toHaveLength(2);
+    expect(matches[0]!.logIndex).toBe(0);
+    expect(matches[1]!.logIndex).toBe(1);
+  });
+
+  it("skips reverted subtrees", () => {
+    const frame: TraceFrame = {
+      ...makeFrame({
+        children: [
+          {
+            ...makeFrame({ depth: 1, error: "execution reverted" }),
+            logs: [logWith(TRANSFER_TOPIC as Hex, 99n)],
+          },
+        ],
+      }),
+      logs: [logWith(TRANSFER_TOPIC as Hex, 1n)],
+    };
+    const matches = parseEvents(frame, TRANSFER_SIG);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.logIndex).toBe(0);
+  });
+
+  it("handles frames without a logs field", () => {
+    const frame: TraceFrame = makeFrame({}); // no logs
+    expect(parseEvents(frame, TRANSFER_SIG)).toEqual([]);
   });
 });

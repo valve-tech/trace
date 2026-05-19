@@ -67,6 +67,8 @@ export {
   parsePrestateDiff,
   parseApprovals,
   parseSwaps,
+  parseEvents,
+  type MatchedEvent,
 } from "./parsers/index.js";
 
 // Risks
@@ -75,6 +77,7 @@ export {
   BUILTIN_RULES,
   delegatecallUnrecognized,
   largeApproval,
+  tokenSentToTokenContract,
   type RiskRule,
 } from "./risks/index.js";
 
