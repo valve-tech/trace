@@ -1,5 +1,15 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import crypto from "node:crypto";
+import {
+  createPublicClient,
+  createTestClient,
+  http,
+  publicActions,
+  type Address,
+  type Hex,
+  type PublicActions,
+  type TestClient,
+} from "viem";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -20,35 +30,20 @@ export interface CreateForkOptions {
   label?: string;
 }
 
-// ---------------------------------------------------------------------------
-// JSON-RPC helper
-// ---------------------------------------------------------------------------
+/**
+ * A viem TestClient (anvil mode) extended with public actions. Anvil-specific
+ * methods (`snapshot`, `revert`, `setBalance`, `setStorageAt`, `mine`,
+ * `increaseTime`) come from `testActions`; `getBlockNumber` and arbitrary
+ * `request({ method, params })` for proxyRpc come from publicActions / the
+ * transport. One client is cached per fork in `ForkManager.clients`.
+ */
+type ForkClient = TestClient<"anvil"> & PublicActions;
 
-async function sendRpc(
-  port: number,
-  method: string,
-  params: unknown[] = [],
-): Promise<unknown> {
-  const res = await fetch(`http://127.0.0.1:${port}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`RPC call ${method} failed: HTTP ${res.status}`);
-  }
-
-  const json = (await res.json()) as {
-    result?: unknown;
-    error?: { message: string; code: number };
-  };
-
-  if (json.error) {
-    throw new Error(`RPC error (${json.error.code}): ${json.error.message}`);
-  }
-
-  return json.result;
+function makeForkClient(port: number): ForkClient {
+  return createTestClient({
+    mode: "anvil",
+    transport: http(`http://127.0.0.1:${port}`),
+  }).extend(publicActions);
 }
 
 // ---------------------------------------------------------------------------
@@ -57,18 +52,14 @@ async function sendRpc(
 
 async function isPortListening(port: number): Promise<boolean> {
   try {
-    const res = await fetch(`http://127.0.0.1:${port}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "web3_clientVersion",
-        params: [],
+    const probe = createPublicClient({
+      transport: http(`http://127.0.0.1:${port}`, {
+        timeout: 1000,
+        retryCount: 0,
       }),
-      signal: AbortSignal.timeout(1000),
     });
-    return res.ok;
+    await probe.getChainId();
+    return true;
   } catch {
     return false;
   }
@@ -101,6 +92,7 @@ const DEFAULT_TTL_MS = 60 * 60 * 1000;
 export class ForkManager {
   private forks = new Map<string, Fork>();
   private processes = new Map<string, ChildProcess>();
+  private clients = new Map<string, ForkClient>();
   private nextPort = 8545;
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private ttlMs: number;
@@ -233,11 +225,13 @@ export class ForkManager {
 
     this.forks.set(id, fork);
     this.processes.set(id, child);
+    this.clients.set(id, makeForkClient(port));
 
     // Handle unexpected exit
     child.on("exit", () => {
       this.forks.delete(id);
       this.processes.delete(id);
+      this.clients.delete(id);
     });
 
     return fork;
@@ -258,6 +252,7 @@ export class ForkManager {
     child.kill("SIGTERM");
     this.forks.delete(id);
     this.processes.delete(id);
+    this.clients.delete(id);
     return true;
   }
 
@@ -265,23 +260,26 @@ export class ForkManager {
   // Fork operations
   // -----------------------------------------------------------------------
 
-  async snapshot(id: string): Promise<string> {
-    const fork = this.requireFork(id);
-    const snapshotId = (await sendRpc(fork.port, "evm_snapshot")) as string;
-    return snapshotId;
+  async snapshot(id: string): Promise<Hex> {
+    const client = this.requireClient(id);
+    return client.snapshot();
   }
 
   async revert(id: string, snapshotId: string): Promise<boolean> {
-    const fork = this.requireFork(id);
-    const success = (await sendRpc(fork.port, "evm_revert", [
-      snapshotId,
-    ])) as boolean;
-    return success;
+    const client = this.requireClient(id);
+    await client.revert({ id: snapshotId as Hex });
+    // viem's revert resolves on success and throws on RPC failure;
+    // anvil's evm_revert returns `true`/`false` but viem doesn't surface
+    // the boolean — treat a non-throwing return as success.
+    return true;
   }
 
   async fund(id: string, address: string, amountWei: string): Promise<void> {
-    const fork = this.requireFork(id);
-    await sendRpc(fork.port, "anvil_setBalance", [address, amountWei]);
+    const client = this.requireClient(id);
+    await client.setBalance({
+      address: address as Address,
+      value: BigInt(amountWei),
+    });
   }
 
   async setStorage(
@@ -290,38 +288,47 @@ export class ForkManager {
     slot: string,
     value: string,
   ): Promise<void> {
-    const fork = this.requireFork(id);
-    await sendRpc(fork.port, "anvil_setStorageAt", [address, slot, value]);
+    const client = this.requireClient(id);
+    await client.setStorageAt({
+      address: address as Address,
+      index: slot as Hex,
+      value: value as Hex,
+    });
   }
 
   async mineBlocks(id: string, count: number): Promise<void> {
-    const fork = this.requireFork(id);
-    // anvil supports mining multiple blocks at once via evm_mine with a parameter
-    for (let i = 0; i < count; i++) {
-      await sendRpc(fork.port, "evm_mine");
-    }
+    const client = this.requireClient(id);
+    // viem's mine() maps to anvil_mine — one round-trip regardless of count,
+    // vs. the previous loop of N evm_mine calls.
+    await client.mine({ blocks: count });
   }
 
   async timeTravel(id: string, seconds: number): Promise<void> {
-    const fork = this.requireFork(id);
-    await sendRpc(fork.port, "evm_increaseTime", [seconds]);
-    await sendRpc(fork.port, "evm_mine");
+    const client = this.requireClient(id);
+    await client.increaseTime({ seconds });
+    await client.mine({ blocks: 1 });
   }
 
   async getBlockNumber(id: string): Promise<number> {
-    const fork = this.requireFork(id);
-    const hex = (await sendRpc(fork.port, "eth_blockNumber")) as string;
-    return parseInt(hex, 16);
+    const client = this.requireClient(id);
+    return Number(await client.getBlockNumber());
   }
 
-  /** Proxy an arbitrary JSON-RPC request to a fork. */
+  /**
+   * Proxy an arbitrary JSON-RPC request to a fork. Uses the viem transport's
+   * `request` so untyped/anvil-only methods still flow through the same
+   * timeout, retry, and error-parsing pipeline as the typed calls above.
+   */
   async proxyRpc(
     id: string,
     method: string,
     params: unknown[] = [],
   ): Promise<unknown> {
-    const fork = this.requireFork(id);
-    return sendRpc(fork.port, method, params);
+    const client = this.requireClient(id);
+    return client.request({
+      method: method as Parameters<ForkClient["request"]>[0]["method"],
+      params: params as Parameters<ForkClient["request"]>[0]["params"],
+    });
   }
 
   // -----------------------------------------------------------------------
@@ -332,6 +339,12 @@ export class ForkManager {
     const fork = this.forks.get(id);
     if (!fork) throw new Error(`Fork not found: ${id}`);
     return fork;
+  }
+
+  private requireClient(id: string): ForkClient {
+    const client = this.clients.get(id);
+    if (!client) throw new Error(`Fork not found: ${id}`);
+    return client;
   }
 
   private async findAvailablePort(): Promise<number> {
