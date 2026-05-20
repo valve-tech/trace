@@ -1,5 +1,4 @@
 import { Router, type Request, type Response } from "express";
-import { z, ZodError } from "zod";
 import {
   createAction,
   getAction,
@@ -8,75 +7,40 @@ import {
   deleteAction,
   getActionLogs,
   getTodayExecutions,
-  type ActionRow,
 } from "../services/actionsDb.js";
-import { executeAction, type TriggerEvent } from "../services/actionExecutor.js";
+import {
+  executeAction,
+  type TriggerEvent,
+} from "../services/actionExecutor.js";
 import {
   registerAction,
   unregisterAction,
 } from "../services/actionScheduler.js";
+import { ApiError, asyncRoute, respond } from "../lib/respond.js";
+import {
+  createActionSchema,
+  idParamSchema,
+  logsQuerySchema,
+  testActionSchema,
+  updateActionSchema,
+} from "./actions/schemas.js";
+import { formatAction } from "./actions/serialize.js";
 
 const router = Router();
 
-// ---------------------------------------------------------------------------
-// Validation schemas
-// ---------------------------------------------------------------------------
-
-const triggerTypeEnum = z.enum(["block", "event", "periodic", "webhook"]);
-
-/**
- * Cap user-controlled action code at 64 KB. The vm executor runs whatever
- * lands here; even with proper isolation a multi-MB script would balloon
- * memory and serialization cost. 64 KB is far more than any reasonable
- * snippet needs.
- */
-const MAX_CODE_LENGTH = 64 * 1024;
-
-/**
- * Per-key cap on secret values. Keeps a hostile or buggy client from
- * trying to dump GB-scale blobs into Postgres via the secrets JSONB column.
- */
-const MAX_SECRET_LENGTH = 4 * 1024;
-
-const secretsSchema = z
-  .record(z.string().max(MAX_SECRET_LENGTH, `Secret value exceeds ${MAX_SECRET_LENGTH} chars`))
-  .refine((obj) => Object.keys(obj).length <= 32, {
-    message: "At most 32 secret keys",
-  });
-
-const createActionSchema = z.object({
-  name: z.string().min(1, "Name is required").max(200),
-  code: z.string().max(MAX_CODE_LENGTH).optional().default(""),
-  triggerType: triggerTypeEnum,
-  triggerConfig: z.record(z.unknown()).optional().default({}),
-  secrets: secretsSchema.optional().default({}),
-});
-
-const updateActionSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
-  code: z.string().max(MAX_CODE_LENGTH).optional(),
-  triggerType: triggerTypeEnum.optional(),
-  triggerConfig: z.record(z.unknown()).optional(),
-  secrets: secretsSchema.optional(),
-  enabled: z.boolean().optional(),
-});
-
-const testActionSchema = z.object({
-  event: z.record(z.unknown()).optional(),
-});
-
-const idParamSchema = z.coerce.number().int().positive("Invalid action ID");
-
-/** Send a 400 with consistent error shape for Zod validation failures. */
-function sendValidationError(res: Response, err: ZodError): void {
-  res.status(400).json({ ok: false, error: "Validation error", details: err.errors });
+async function requireAction(rawId: string | string[] | undefined) {
+  const id = idParamSchema.parse(rawId);
+  const action = await getAction(id);
+  if (!action) throw new ApiError(404, "Action not found");
+  return action;
 }
 
 // ---------------------------------------------------------------------------
 // POST /api/actions — Create action
 // ---------------------------------------------------------------------------
-router.post("/", async (req: Request, res: Response) => {
-  try {
+router.post(
+  "/",
+  asyncRoute(async (req: Request, res: Response) => {
     const parsed = createActionSchema.parse(req.body);
     const action = await createAction({
       name: parsed.name,
@@ -89,24 +53,20 @@ router.post("/", async (req: Request, res: Response) => {
     registerAction(action);
 
     res.status(201).json({ ok: true, action: formatAction(action) });
-  } catch (err: unknown) {
-    if (err instanceof ZodError) return sendValidationError(res, err);
-    console.error("[actions] create error:", err);
-    res.status(500).json({ ok: false, error: "Failed to create action" });
-  }
-});
+  }, "actions"),
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/actions — List all actions
 // ---------------------------------------------------------------------------
-router.get("/", async (_req: Request, res: Response) => {
-  try {
+router.get(
+  "/",
+  asyncRoute(async (_req: Request, res: Response) => {
     const actions = await listActions();
     const todayExecutions = await getTodayExecutions();
     const enabledCount = actions.filter((a) => a.enabled).length;
 
-    res.json({
-      ok: true,
+    respond.ok(res, {
       actions: actions.map(formatAction),
       stats: {
         total: actions.length,
@@ -114,46 +74,30 @@ router.get("/", async (_req: Request, res: Response) => {
         todayExecutions,
       },
     });
-  } catch (err: unknown) {
-    console.error("[actions] list error:", err);
-    res.status(500).json({ ok: false, error: "Failed to list actions" });
-  }
-});
+  }, "actions"),
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/actions/:id — Get action details
 // ---------------------------------------------------------------------------
-router.get("/:id", async (req: Request, res: Response) => {
-  try {
-    const id = idParamSchema.parse(req.params.id);
-    const action = await getAction(id);
-    if (!action) {
-      res.status(404).json({ ok: false, error: "Action not found" });
-      return;
-    }
-    res.json({ ok: true, action: formatAction(action) });
-  } catch (err: unknown) {
-    if (err instanceof ZodError) return sendValidationError(res, err);
-    console.error("[actions] get error:", err);
-    res.status(500).json({ ok: false, error: "Failed to get action" });
-  }
-});
+router.get(
+  "/:id",
+  asyncRoute(async (req: Request, res: Response) => {
+    const action = await requireAction(req.params.id);
+    respond.ok(res, { action: formatAction(action) });
+  }, "actions"),
+);
 
 // ---------------------------------------------------------------------------
 // PUT /api/actions/:id — Update action
 // ---------------------------------------------------------------------------
-router.put("/:id", async (req: Request, res: Response) => {
-  try {
-    const id = idParamSchema.parse(req.params.id);
-    const existing = await getAction(id);
-    if (!existing) {
-      res.status(404).json({ ok: false, error: "Action not found" });
-      return;
-    }
-
+router.put(
+  "/:id",
+  asyncRoute(async (req: Request, res: Response) => {
+    const existing = await requireAction(req.params.id);
     const parsed = updateActionSchema.parse(req.body);
 
-    const updated = await updateAction(id, {
+    const updated = await updateAction(existing.id, {
       name: parsed.name ?? existing.name,
       code: parsed.code ?? existing.code,
       trigger_type: parsed.triggerType ?? existing.trigger_type,
@@ -166,120 +110,73 @@ router.put("/:id", async (req: Request, res: Response) => {
       enabled: parsed.enabled ?? existing.enabled,
     });
 
-    if (!updated) {
-      res.status(404).json({ ok: false, error: "Action not found" });
-      return;
-    }
+    if (!updated) throw new ApiError(404, "Action not found");
 
-    unregisterAction(id);
-    if (updated.enabled) {
-      registerAction(updated);
-    }
+    unregisterAction(existing.id);
+    if (updated.enabled) registerAction(updated);
 
-    res.json({ ok: true, action: formatAction(updated) });
-  } catch (err: unknown) {
-    if (err instanceof ZodError) return sendValidationError(res, err);
-    console.error("[actions] update error:", err);
-    res.status(500).json({ ok: false, error: "Failed to update action" });
-  }
-});
+    respond.ok(res, { action: formatAction(updated) });
+  }, "actions"),
+);
 
 // ---------------------------------------------------------------------------
 // DELETE /api/actions/:id — Delete action
 // ---------------------------------------------------------------------------
-router.delete("/:id", async (req: Request, res: Response) => {
-  try {
+router.delete(
+  "/:id",
+  asyncRoute(async (req: Request, res: Response) => {
     const id = idParamSchema.parse(req.params.id);
     unregisterAction(id);
 
     const deleted = await deleteAction(id);
-    if (!deleted) {
-      res.status(404).json({ ok: false, error: "Action not found" });
-      return;
-    }
-
-    res.json({ ok: true, deleted: true });
-  } catch (err: unknown) {
-    if (err instanceof ZodError) return sendValidationError(res, err);
-    console.error("[actions] delete error:", err);
-    res.status(500).json({ ok: false, error: "Failed to delete action" });
-  }
-});
+    if (!deleted) throw new ApiError(404, "Action not found");
+    respond.ok(res, { deleted: true });
+  }, "actions"),
+);
 
 // ---------------------------------------------------------------------------
 // POST /api/actions/:id/test — Dry-run with sample event data
 // ---------------------------------------------------------------------------
-router.post("/:id/test", async (req: Request, res: Response) => {
-  try {
-    const id = idParamSchema.parse(req.params.id);
-    const action = await getAction(id);
-    if (!action) {
-      res.status(404).json({ ok: false, error: "Action not found" });
-      return;
-    }
-
+router.post(
+  "/:id/test",
+  asyncRoute(async (req: Request, res: Response) => {
+    const action = await requireAction(req.params.id);
     const parsed = testActionSchema.parse(req.body ?? {});
+
     const triggerEvent: TriggerEvent = {
       type: "test",
       ...(parsed.event ?? {}),
     };
 
     const result = await executeAction(action, triggerEvent);
-    res.json({ ok: true, result });
-  } catch (err: unknown) {
-    if (err instanceof ZodError) return sendValidationError(res, err);
-    console.error("[actions] test error:", err);
-    res.status(500).json({ ok: false, error: "Failed to test action" });
-  }
-});
+    respond.ok(res, { result });
+  }, "actions"),
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/actions/:id/logs — Execution logs (paginated)
 // ---------------------------------------------------------------------------
-const logsQuerySchema = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
-});
-
-router.get("/:id/logs", async (req: Request, res: Response) => {
-  try {
-    const id = idParamSchema.parse(req.params.id);
-    const action = await getAction(id);
-    if (!action) {
-      res.status(404).json({ ok: false, error: "Action not found" });
-      return;
-    }
-
+router.get(
+  "/:id/logs",
+  asyncRoute(async (req: Request, res: Response) => {
+    const action = await requireAction(req.params.id);
     const { page, limit } = logsQuerySchema.parse(req.query);
-    const logs = await getActionLogs(id, page, limit);
-    res.json({ ok: true, ...logs });
-  } catch (err: unknown) {
-    if (err instanceof ZodError) return sendValidationError(res, err);
-    console.error("[actions] logs error:", err);
-    res.status(500).json({ ok: false, error: "Failed to get logs" });
-  }
-});
+    const logs = await getActionLogs(action.id, page, limit);
+    respond.ok(res, logs);
+  }, "actions"),
+);
 
 // ---------------------------------------------------------------------------
 // POST /api/webhooks/:actionId — Inbound webhook endpoint
 // ---------------------------------------------------------------------------
-router.post("/webhooks/:actionId", async (req: Request, res: Response) => {
-  try {
-    const actionId = idParamSchema.parse(req.params.actionId);
-    const action = await getAction(actionId);
-    if (!action) {
-      res.status(404).json({ ok: false, error: "Action not found" });
-      return;
-    }
+router.post(
+  "/webhooks/:actionId",
+  asyncRoute(async (req: Request, res: Response) => {
+    const action = await requireAction(req.params.actionId);
 
-    if (!action.enabled) {
-      res.status(403).json({ ok: false, error: "Action is disabled" });
-      return;
-    }
-
+    if (!action.enabled) throw new ApiError(403, "Action is disabled");
     if (action.trigger_type !== "webhook") {
-      res.status(400).json({ ok: false, error: "Action is not a webhook trigger" });
-      return;
+      throw new ApiError(400, "Action is not a webhook trigger");
     }
 
     const triggerEvent: TriggerEvent = {
@@ -293,36 +190,8 @@ router.post("/webhooks/:actionId", async (req: Request, res: Response) => {
     };
 
     const result = await executeAction(action, triggerEvent);
-    res.json({ ok: true, result });
-  } catch (err: unknown) {
-    if (err instanceof ZodError) return sendValidationError(res, err);
-    console.error("[actions] webhook error:", err);
-    res.status(500).json({ ok: false, error: "Failed to execute webhook action" });
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Helper: format an ActionRow for API response
-// JSONB fields are auto-parsed by pg — no JSON.parse needed
-// ---------------------------------------------------------------------------
-function formatAction(action: ActionRow) {
-  const secretKeys = Object.keys(action.secrets);
-
-  return {
-    id: action.id,
-    name: action.name,
-    code: action.code,
-    triggerType: action.trigger_type,
-    triggerConfig: action.trigger_config,
-    secretKeys,
-    enabled: action.enabled,
-    createdAt: action.created_at,
-    updatedAt: action.updated_at,
-    webhookUrl:
-      action.trigger_type === "webhook"
-        ? `/api/actions/webhooks/${action.id}`
-        : undefined,
-  };
-}
+    respond.ok(res, { result });
+  }, "actions"),
+);
 
 export default router;
