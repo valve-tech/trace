@@ -1,15 +1,17 @@
 name: Publish SDK
 
 # Triggers:
-#   - push to main      → publish current version on the `latest` dist-tag.
-#                         If that version is already on npm, npm rejects (403)
-#                         and the workflow fails loudly — by design, as a
-#                         forcing function to remember to bump version.
+#   - push to main      → if the version in packages/sdk/package.json isn't
+#                         already on npm, publish it on the `latest` dist-tag.
+#                         If the version IS already published, skip silently
+#                         (no error). Bumping the version is the only signal
+#                         needed to ship a release.
 #   - push to staging   → publish as `<base>-rc.<run_number>` on the `rc`
 #                         dist-tag. Users opt in with `npm install
 #                         @valve-tech/trace-sdk@rc`. Stable users are not
-#                         affected.
+#                         affected. Each push gets a unique RC number.
 #   - sdk-v* tag push   → escape hatch for re-publishing a specific commit.
+#                         Same skip-if-already-published behavior as main.
 #   - workflow_dispatch → manual escape hatch.
 on:
   push:
@@ -57,6 +59,23 @@ jobs:
       - name: Build
         run: npm run build
 
+      # For main and sdk-v* tag pushes: only publish if the version isn't
+      # already on npm. `npm view <pkg>@<v> version` outputs the version
+      # string when published, empty when not.
+      - name: Check if version already published (stable)
+        id: check_published
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/sdk-v')
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view "@valve-tech/trace-sdk@${VERSION}" version 2>/dev/null || true)
+          if [ -n "$PUBLISHED" ]; then
+            echo "Version ${VERSION} is already on npm — skipping publish"
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version ${VERSION} is not on npm yet — will publish"
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       # Strip any existing prerelease suffix off the package.json version, then
       # append `-rc.<run_number>`. Keeps RC versions monotonic per workflow
       # run and prevents `0.3.0-rc.5-rc.42` if staging's package.json is mid
@@ -68,11 +87,11 @@ jobs:
         run: |
           BASE_VERSION=$(node -p "require('./package.json').version.split('-')[0]")
           RC_VERSION="${BASE_VERSION}-rc.${RUN_NUMBER}"
-          echo "Publishing as $RC_VERSION"
+          echo "Publishing as ${RC_VERSION}"
           npm version "$RC_VERSION" --no-git-tag-version
 
       - name: Publish to npm (stable — main / tag)
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/sdk-v')
+        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/sdk-v')) && steps.check_published.outputs.should_publish == 'true'
         run: npm publish --provenance --access public
         # No NPM_TOKEN env var — auth comes from the OIDC id-token above,
         # exchanged with the trusted-publisher rule configured on npmjs.com.
