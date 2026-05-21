@@ -1,7 +1,6 @@
 import type { CallFrame } from "../../../api/debugger";
 import type { SignatureMatch } from "../../../api/signatures";
 import { lookupWellKnown } from "../../../lib/wellKnownSignatures";
-import { OPCODE_COLORS } from "./theme";
 
 /** Detail panel shown beneath the call tree when a frame is selected. */
 export function FrameDetailPanel({
@@ -27,7 +26,7 @@ export function FrameDetailPanel({
       <div className="flex gap-4">
         <div>
           <span style={{ color: "var(--color-text-muted)" }}>type </span>
-          <span style={{ color: OPCODE_COLORS[frame.type] ?? "var(--color-text-primary)" }}>{frame.type}</span>
+          <span style={{ color: "var(--color-danger)" }}>{frame.type}</span>
         </div>
         <div>
           <span style={{ color: "var(--color-text-muted)" }}>gas </span>

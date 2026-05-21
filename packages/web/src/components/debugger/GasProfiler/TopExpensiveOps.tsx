@@ -1,5 +1,6 @@
 import type { OpcodeProfile } from "../../../api/debugger";
-import { formatGas, getOpcodeColor } from "./colors";
+import { getOpcodeColor } from "@valve-tech/trace-sdk";
+import { formatGas } from "./colors";
 
 export function TopExpensiveOps({
   ops,

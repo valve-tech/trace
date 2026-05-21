@@ -3,9 +3,9 @@ import {
   AddressLink,
   InfoRow,
   SectionCard,
-  StatusBadge,
   type NavTarget,
 } from "./primitives";
+import { StatusBadge } from "../../primitives/StatusBadge";
 import { formatGwei, formatPLS, formatTimestamp } from "./format";
 
 export function OverviewSection({
@@ -32,7 +32,7 @@ export function OverviewSection({
           </span>
         </InfoRow>
         <InfoRow label="Status">
-          <StatusBadge status={tx.status} />
+          <StatusBadge success={tx.status === "success"} />
         </InfoRow>
         <InfoRow label="Block">
           <button

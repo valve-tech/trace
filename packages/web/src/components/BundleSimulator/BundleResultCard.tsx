@@ -1,5 +1,5 @@
 import type { SimulationResult } from "../../types";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge } from "../primitives/StatusBadge";
 
 export function BundleResultCard({
   result,
@@ -36,7 +36,7 @@ export function BundleResultCard({
           </span>
           Transaction #{index + 1}
         </h4>
-        <StatusBadge success={result.success} />
+        <StatusBadge success={result.success} size="sm" />
       </div>
 
       <div className="space-y-2 text-sm">

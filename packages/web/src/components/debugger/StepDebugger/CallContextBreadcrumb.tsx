@@ -1,6 +1,6 @@
 import type { OpcodeStep } from "../../../api/debugger";
 import type { SourceLocation } from "../../../api/source";
-import { getOpcodeColor } from "./theme";
+import { getOpcodeColor } from "@valve-tech/trace-sdk";
 
 /** Compact one-line summary above the main panes:
  *    Depth: 1 | PC: 42 | PUSH1 | Gas: 90,000 (-3) | Vault.sol:142 */

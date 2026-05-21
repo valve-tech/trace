@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { OpcodeStep } from "../../../api/debugger";
 import { CollapsiblePanel } from "./CollapsiblePanel";
-import { getOpcodeColor } from "./theme";
+import { getOpcodeColor } from "@valve-tech/trace-sdk";
 
 const VISIBLE_ROWS = 30;
 const ROW_HEIGHT = 28;

@@ -27,17 +27,6 @@ export function getCallTypeColor(type: string): string {
   return CALL_TYPE_COLORS[type] ?? "#8b949e";
 }
 
-export function getOpcodeColor(op: string): string {
-  if (["SLOAD", "SSTORE"].includes(op)) return "#f97316";
-  if (["MLOAD", "MSTORE", "MSTORE8"].includes(op)) return "#22c55e";
-  if (
-    ["CALL", "STATICCALL", "DELEGATECALL", "CREATE", "CREATE2"].includes(op)
-  )
-    return "#ef4444";
-  if (["LOG0", "LOG1", "LOG2", "LOG3", "LOG4"].includes(op)) return "#eab308";
-  return "var(--color-text-primary)";
-}
-
 export function truncateAddress(addr: string): string {
   if (!addr || addr.length < 12) return addr;
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;

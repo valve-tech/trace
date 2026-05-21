@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { CallFrame } from "../../../api/debugger";
 import type { SignatureMatch } from "../../../api/signatures";
 import { lookupWellKnown } from "../../../lib/wellKnownSignatures";
-import { OPCODE_COLORS, CALL_TYPE_BG, CALL_TYPE_BORDER } from "./theme";
+import { CALL_TYPE_BG, CALL_TYPE_BORDER } from "./theme";
 import type { InternalCall } from "./types";
 
 /**
@@ -155,7 +155,7 @@ export function CallFrameRow({
               transform: "translateY(-50%)",
             }}
           >
-            <div style={{ color: OPCODE_COLORS[frame.type] ?? "#94A3B8" }}>{frame.type}</div>
+            <div style={{ color: "var(--color-danger)" }}>{frame.type}</div>
             {resolvedSig && <div>{resolvedSig}</div>}
             {frame.to && <div style={{ color: "var(--color-text-muted)" }}>{frame.to}</div>}
             <div style={{ color: "var(--color-text-muted)" }}>gas: {frame.gasUsed}</div>
