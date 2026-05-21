@@ -51,3 +51,12 @@ npm run test --workspace=packages/web
 ```
 
 API tests use Node's `node:test` against a live server. SDK and web tests use Vitest + Testing Library.
+
+## Conventions
+
+- **Per-responsibility splits.** Components and services over ~200 LOC live in a sibling directory: `Foo.tsx` (orchestrator) next to `Foo/` (split pieces). See `packages/web/src/components/debugger/StepDebugger/` for a fully-developed example (22 sub-files). When extracting, prefer one file per primitive over grouped helpers.
+- **Backend** — Routes Zod-validate at the boundary (`routes/<name>/schemas.ts`), then call into services. `ApiError` + `respond` / `asyncRoute` from `packages/api/src/lib/respond.ts` standardize error envelopes; BigInts are serialized to strings before JSON responses; imports use `.js` extensions per ESM resolution.
+- **SDK** — ESM-only, `.js` extensions in TS sources, 100% coverage threshold enforced (CI fails on any uncovered branch — extract genuinely-untestable paths into a pure helper, e.g. `src/util/errors.ts`).
+- **Frontend** — TanStack Query for server state (persisted to IndexedDB, `staleTime: Infinity`); local `useState` for UI; CSS custom properties in `index.css` `@theme`; dark theme only; `void handler()` on async event handlers.
+
+For task-specific guidance ("how do I add an alert type / RPC method / SDK component"), see the **Navigation Guide** in [`docs/CODEBASE_MAP.md`](docs/CODEBASE_MAP.md).
