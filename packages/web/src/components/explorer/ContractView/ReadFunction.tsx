@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { Icon } from "@iconify/react";
 import type { AbiItem } from "./types";
 import { callReadFunction } from "./callReadFunction";
 
@@ -57,23 +58,14 @@ export function ReadFunction({
               ` -> (${outputs.map((o) => o.type).join(", ")})`}
           </span>
         </div>
-        <svg
+        <Icon
+          icon="heroicons:chevron-down"
           className="w-3.5 h-3.5 transition-transform"
           style={{
             color: "var(--color-text-muted)",
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
           }}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        />
       </button>
 
       {expanded && (

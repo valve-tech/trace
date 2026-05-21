@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Icon } from "@iconify/react";
 import type { StateOverride } from "../types";
 
 interface StateOverridesProps {
@@ -90,9 +91,7 @@ function StorageSlotEditor({
             className="p-1 rounded hover:opacity-80"
             style={{ color: "var(--color-danger)" }}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <Icon icon="heroicons:x-mark" className="w-4 h-4" />
           </button>
         </div>
       ))}
@@ -233,15 +232,10 @@ function SingleOverride({
           className="text-xs flex items-center gap-1"
           style={{ color: "var(--color-accent)" }}
         >
-          <svg
+          <Icon
+            icon="heroicons:chevron-right"
             className={`w-3 h-3 transition-transform ${showStorage ? "rotate-90" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+          />
           Storage Overrides
         </button>
         {showStorage && (
@@ -293,15 +287,10 @@ export default function StateOverrides({ overrides, onChange }: StateOverridesPr
         }}
       >
         <span className="flex items-center gap-2">
-          <svg
+          <Icon
+            icon="heroicons:chevron-right"
             className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+          />
           State Overrides
         </span>
         {overrides.length > 0 && (

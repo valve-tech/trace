@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Icon } from "@iconify/react";
 import { truncateAddr } from "./format";
 
 export type NavTarget = { type: "address" | "block"; value: string };
@@ -91,23 +92,14 @@ export function SectionCard({
             </span>
           )}
         </div>
-        <svg
+        <Icon
+          icon="heroicons:chevron-down"
           className="w-4 h-4 transition-transform"
           style={{
             color: "var(--color-text-muted)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
           }}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        />
       </button>
       {open && (
         <div

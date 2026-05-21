@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Icon } from "@iconify/react";
 import { listForks, getFork, type ForkInfo } from "../../api/testnets";
 import CreateForkDialog from "./CreateForkDialog";
 import ForkControls from "./ForkControls";
@@ -127,19 +128,7 @@ export default function TestNetDashboard() {
             className="text-4xl mb-3"
             style={{ color: "var(--color-text-muted)" }}
           >
-            <svg
-              viewBox="0 0 24 24"
-              className="w-12 h-12 mx-auto"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"
-              />
-            </svg>
+            <Icon icon="heroicons:server-stack" className="w-12 h-12 mx-auto" />
           </div>
           <p
             className="text-sm font-medium"
@@ -247,9 +236,8 @@ export default function TestNetDashboard() {
                       >
                         Active
                       </span>
-                      <svg
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
+                      <Icon
+                        icon="heroicons:chevron-down-20-solid"
                         className="w-4 h-4 transition-transform"
                         style={{
                           color: "var(--color-text-muted)",
@@ -257,13 +245,7 @@ export default function TestNetDashboard() {
                             ? "rotate(180deg)"
                             : "rotate(0deg)",
                         }}
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                      />
                     </div>
                   </div>
                 </button>

@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Icon } from "@iconify/react";
 import TxSearch, { type SearchTarget } from "./TxSearch";
 import TxDetail from "./TxDetail";
 import AddressView from "./AddressView";
@@ -92,19 +93,7 @@ export default function ExplorerPanel() {
                 border: "1px solid var(--color-border-default)",
               }}
             >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
+              <Icon icon="heroicons:chevron-left" className="w-3.5 h-3.5" />
               Back
             </button>
           )}
@@ -145,20 +134,11 @@ export default function ExplorerPanel() {
             borderColor: "var(--color-border-default)",
           }}
         >
-          <svg
+          <Icon
+            icon="heroicons:magnifying-glass"
             className="w-16 h-16 mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1}
             style={{ color: "var(--color-border-default)" }}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          />
           <h3
             className="text-sm font-medium mb-1"
             style={{ color: "var(--color-text-secondary)" }}

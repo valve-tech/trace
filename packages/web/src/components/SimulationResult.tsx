@@ -1,3 +1,4 @@
+import { Icon } from "@iconify/react";
 import type { SimulationResult } from "../types";
 import { StatusBadge } from "./primitives/StatusBadge";
 
@@ -46,20 +47,11 @@ function EmptyState() {
         borderColor: "var(--color-border-default)",
       }}
     >
-      <svg
+      <Icon
+        icon="heroicons:document-chart-bar"
         className="w-16 h-16 mb-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={1}
         style={{ color: "var(--color-border-default)" }}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-        />
-      </svg>
+      />
       <h3 className="text-sm font-medium mb-1" style={{ color: "var(--color-text-secondary)" }}>
         No Simulation Results
       </h3>
@@ -100,20 +92,11 @@ function ErrorState({ message }: { message: string }) {
       }}
     >
       <div className="flex items-start gap-3">
-        <svg
+        <Icon
+          icon="heroicons:exclamation-circle"
           className="w-5 h-5 mt-0.5 shrink-0"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
           style={{ color: "var(--color-danger)" }}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
+        />
         <div>
           <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--color-danger)" }}>
             Simulation Error
