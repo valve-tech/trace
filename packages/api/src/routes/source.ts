@@ -8,6 +8,7 @@ import {
 import { compileForSourceMap } from "../services/solcCompiler.js";
 import { analyzeContract } from "../services/slither.js";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
+import { mapPcsSchema, analyzeSchema } from "./source/schemas.js";
 
 const router = Router();
 
@@ -83,13 +84,7 @@ router.post(
   asyncRoute(async (req: Request, res: Response) => {
     const address = requireAddress(req.params.address);
 
-    const { pcs } = req.body as { pcs?: number[] };
-    if (!Array.isArray(pcs) || pcs.length === 0) {
-      throw new ApiError(400, "pcs must be a non-empty array of numbers");
-    }
-    if (pcs.length > 100_000) {
-      throw new ApiError(400, "Too many PCs (max 100,000)");
-    }
+    const { pcs } = mapPcsSchema.parse(req.body);
 
     const source = await getVerifiedSource(address);
     if (!source) throw new ApiError(404, "Verified source not found");
@@ -168,7 +163,7 @@ router.post(
   asyncRoute(async (req: Request, res: Response) => {
     const address = requireAddress(req.params.address);
 
-    const { skipCache } = req.body as { skipCache?: boolean };
+    const { skipCache } = analyzeSchema.parse(req.body);
 
     const result = await analyzeContract(address, {
       skipCache: skipCache === true,
