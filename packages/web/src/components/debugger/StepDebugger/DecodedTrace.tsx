@@ -1,0 +1,187 @@
+import { useMemo } from "react";
+import { isCallOp } from "@valve-tech/trace-sdk/hooks";
+import type { OpcodeStep, CallFrame } from "../../../api/debugger";
+import type { SourceLocation } from "../../../api/source";
+import type { SignatureMatch } from "../../../api/signatures";
+import { lookupWellKnown } from "../../../lib/wellKnownSignatures";
+import { PanelHeader } from "./PanelHeader";
+import { CALL_TYPE_BG, CALL_TYPE_BORDER } from "./theme";
+import { bestMatchSignature, extractSelector, flattenCallTree } from "./callTreeHelpers";
+
+interface DecodedEntry {
+  step: number;
+  depth: number;
+  callType: string;
+  selector?: string;
+  targetAddress?: string;
+  decodedName?: string;
+  sourceLocation?: SourceLocation;
+  isInternal: boolean;
+}
+
+/**
+ * Human-readable function call list:
+ *   WPLS(0xA107...).deposit{value: 1.0}()
+ *
+ * Folds external calls (CALL/STATIC/DELEGATE/CREATE) and source-map-confirmed
+ * internal JUMPs into one chronological list, with the active row highlighted.
+ */
+export function DecodedTrace({
+  steps,
+  currentStep,
+  signatureMap,
+  sourceMappings,
+  callTrace,
+  contractNames,
+  onJumpTo,
+}: {
+  steps: OpcodeStep[];
+  currentStep: number;
+  signatureMap: Record<string, SignatureMatch[]>;
+  sourceMappings: Record<number, SourceLocation | null>;
+  callTrace?: CallFrame | null;
+  contractNames: Record<string, string | null>;
+  onJumpTo: (step: number, funcName?: string) => void;
+}) {
+  const flatCalls = useMemo(
+    () => callTrace ? flattenCallTree(callTrace) : [],
+    [callTrace],
+  );
+
+  const entries = useMemo(() => {
+    const result: DecodedEntry[] = [];
+
+    let extCallIdx = 0;
+    for (let i = 0; i < steps.length; i++) {
+      const s = steps[i]!;
+
+      if (isCallOp(s.op)) {
+        const callInfo = flatCalls[extCallIdx];
+        const selector = callInfo?.selector ?? extractSelector(s);
+        const targetAddress = callInfo?.to ?? undefined;
+        const calldata = callInfo?.input ?? "";
+        extCallIdx++;
+        // Priority: well-known signatures → 4byte API with disambiguation
+        const wellKnown = selector ? lookupWellKnown(selector) : undefined;
+        const candidates = selector ? signatureMap[selector.toLowerCase()] ?? [] : [];
+        const resolved = wellKnown?.signature ?? bestMatchSignature(candidates, calldata);
+
+        result.push({
+          step: i,
+          depth: s.depth,
+          callType: s.op,
+          selector,
+          targetAddress,
+          decodedName: resolved,
+          sourceLocation: sourceMappings[s.pc] ?? undefined,
+          isInternal: false,
+        });
+      } else if (s.op === "JUMP") {
+        const mapping = sourceMappings[s.pc];
+        if (mapping?.jumpType === "i") {
+          result.push({
+            step: i,
+            depth: s.depth,
+            callType: "internal",
+            sourceLocation: mapping,
+            decodedName: mapping.sourceSnippet.trim().split("(")[0]?.split(" ").pop(),
+            isInternal: true,
+          });
+        }
+      }
+    }
+    return result;
+  }, [steps, signatureMap, sourceMappings, flatCalls]);
+
+  return (
+    <div
+      className="card overflow-hidden"
+      style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
+    >
+      <PanelHeader title="Decoded Trace" count={entries.length} suffix="calls" />
+      <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>
+        {entries.length === 0 ? (
+          <div className="px-3 py-6 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+            No function calls detected in this trace
+          </div>
+        ) : (
+          entries.map((entry, i) => {
+            const isActive = currentStep >= entry.step && (
+              i + 1 >= entries.length || currentStep < entries[i + 1]!.step
+            );
+
+            const bgColor = entry.isInternal
+              ? "rgba(148, 163, 184, 0.04)"
+              : CALL_TYPE_BG[entry.callType] ?? "transparent";
+            const borderColor = isActive
+              ? "var(--color-accent)"
+              : entry.isInternal
+                ? "rgba(148, 163, 184, 0.2)"
+                : CALL_TYPE_BORDER[entry.callType] ?? "transparent";
+
+            // Build human-readable: Contract(0xAddr).functionName(args)
+            const funcSig = entry.decodedName
+              ? entry.decodedName
+              : entry.selector
+                ? `${entry.selector}()`
+                : "???()";
+            const funcNameOnly = funcSig.split("(")[0]!;
+            const funcArgs = funcSig.includes("(") ? `(${funcSig.split("(").slice(1).join("(")}` : "()";
+            const addrShort = entry.targetAddress
+              ? `${entry.targetAddress.slice(0, 6)}...${entry.targetAddress.slice(-4)}`
+              : "";
+
+            return (
+              <div
+                key={i}
+                onClick={() => onJumpTo(entry.step)}
+                className="flex items-center gap-1 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
+                title={entry.decodedName ? `${entry.targetAddress ?? ""}.${funcSig}` : entry.selector}
+                style={{
+                  paddingLeft: `${12 + (entry.depth - 1) * 16}px`,
+                  backgroundColor: isActive ? "rgba(139, 92, 246, 0.12)" : bgColor,
+                  borderLeft: `3px solid ${borderColor}`,
+                  fontFamily: "var(--font-mono)",
+                  opacity: entry.isInternal ? 0.6 : 1,
+                }}
+              >
+                {entry.targetAddress && (() => {
+                  const contractName = contractNames[entry.targetAddress.toLowerCase()];
+                  const interfaceName = entry.selector ? lookupWellKnown(entry.selector)?.interface : undefined;
+                  const displayLabel = contractName ?? interfaceName;
+                  return (
+                    <>
+                      {displayLabel ? (
+                        <span style={{ color: contractName ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
+                          {displayLabel}
+                        </span>
+                      ) : null}
+                      <span style={{ color: "var(--color-text-muted)" }} title={entry.targetAddress}>
+                        ({addrShort})
+                      </span>
+                      <span style={{ color: "var(--color-text-muted)" }}>.</span>
+                    </>
+                  );
+                })()}
+                <span style={{ color: "var(--color-text-primary)", fontWeight: isActive ? 600 : 400 }}>
+                  {funcNameOnly}
+                </span>
+                <span style={{ color: "var(--color-text-muted)" }}>
+                  {funcArgs}
+                </span>
+                {entry.sourceLocation && (
+                  <span className="ml-2" style={{ color: "var(--color-text-muted)" }}>
+                    {entry.sourceLocation.file}:{entry.sourceLocation.line}
+                  </span>
+                )}
+                <span className="ml-auto flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                  {entry.step}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
