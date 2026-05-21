@@ -1,6 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { runMigrations } from "./services/migrate.js";
 import { checkHealth, pool } from "./services/pool.js";
@@ -69,6 +72,36 @@ app.use("/api/source", sourceRouter);
 app.use("/api/signatures", signaturesRouter);
 app.use("/api/keys", apiKeysRouter);
 app.use("/api/diff", diffRouter);
+
+// ---------------------------------------------------------------------------
+// Static frontend — when packages/web/dist exists (production / Docker build),
+// serve it from the root path. Browser refreshes inside the SPA's React Router
+// routes (e.g. /debugger/0xabc) are caught by the fallback below.
+// In dev (no dist directory), this is a no-op and the Vite dev server handles
+// the web on its own port (11800).
+// ---------------------------------------------------------------------------
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const webDistPath = path.join(__dirname, "..", "..", "web", "dist");
+
+if (existsSync(webDistPath)) {
+  app.use(express.static(webDistPath));
+
+  // SPA fallback. Excludes API/RPC/health/ws paths so genuine API 404s are
+  // returned as JSON instead of being masked by index.html.
+  app.get("*", (req, res, next) => {
+    if (
+      req.path.startsWith("/api/") ||
+      req.path.startsWith("/rpc") ||
+      req.path === "/health" ||
+      req.path.startsWith("/ws")
+    ) {
+      return next();
+    }
+    res.sendFile(path.join(webDistPath, "index.html"));
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Global error handler
