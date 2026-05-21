@@ -4,13 +4,14 @@
 
 A Tenderly-equivalent developer toolchain for PulseChain (chain ID 369). Seven features — transaction simulation, block explorer, monitoring/alerting, virtual testnets (Anvil forks), smart contract debugger, enhanced JSON-RPC proxy, and serverless Web3 Actions — delivered as a TypeScript monorepo.
 
-**Stack:** React 19 + Vite + Tailwind v4 (frontend), Express 4 + viem + Postgres (`pg`) (backend), Zod (validation), Anvil/Foundry (forks)
+**Stack:** React 19 + React Router 7 + Vite + Tailwind v4 + TanStack Query 5 (frontend), Express 4 + viem + Postgres (`pg`) (backend), Zod (validation), Anvil/Foundry (forks)
 
 **Structure:**
-- `packages/api/` — Express backend (port 10100), routes + services architecture
-- `packages/web/` — React SPA, tab-based navigation, dark theme
-- `shared/` — PulseChain network constants
-- `docs/` — Product spec and per-feature specs
+- `packages/api/` — Express backend (port 10100), routes + services architecture (most services split into per-responsibility subdirectories)
+- `packages/sdk/` — `@valve-tech/trace-sdk` published npm package (React components, hooks, parsers, risks); ESM-only, 100% coverage gate
+- `packages/web/` — React SPA (router-based, 12 routes), dark theme, TanStack Query persisted to IndexedDB
+- `shared/` — PulseChain network constants (no build step)
+- `docs/` — Product spec, per-feature specs, and [CODEBASE_MAP.md](docs/CODEBASE_MAP.md)
 
 For detailed architecture, service dependencies, data flows, and gotchas, see [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md).
 
@@ -39,8 +40,14 @@ Local `.env` is auto-loaded by `dotenv/config` in `packages/api/src/index.ts`. `
 ## Testing
 
 ```bash
-# Requires live server on :10100
+# API integration tests — require live server on :10100 + live PulseChain RPC
 npm run test --workspace=packages/api
+
+# SDK unit tests — vitest, 100% coverage gate
+npm run test --workspace=packages/sdk
+
+# Web unit tests — vitest + jsdom
+npm run test --workspace=packages/web
 ```
 
-Tests use Node.js built-in test runner (`node:test`) with real PulseChain data.
+API tests use Node's `node:test` against a live server. SDK and web tests use Vitest + Testing Library.
