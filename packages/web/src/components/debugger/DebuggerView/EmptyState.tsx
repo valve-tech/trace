@@ -11,7 +11,7 @@ export function EmptyState() {
       }}
     >
       <Icon
-        icon="heroicons:academic-cap"
+        icon="heroicons:bug-ant"
         className="w-16 h-16 mb-4"
         style={{ color: "var(--color-border-default)" }}
       />
