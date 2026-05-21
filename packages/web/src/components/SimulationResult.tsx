@@ -1,31 +1,10 @@
 import type { SimulationResult } from "../types";
+import { StatusBadge } from "./primitives/StatusBadge";
 
 interface SimulationResultPanelProps {
   result: SimulationResult | null;
   loading: boolean;
   error: string | null;
-}
-
-function StatusBadge({ success }: { success: boolean }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold"
-      style={{
-        backgroundColor: success
-          ? "var(--color-success-muted)"
-          : "var(--color-danger-muted)",
-        color: success ? "var(--color-success)" : "var(--color-danger)",
-      }}
-    >
-      <span
-        className="w-2 h-2 rounded-full"
-        style={{
-          backgroundColor: success ? "var(--color-success)" : "var(--color-danger)",
-        }}
-      />
-      {success ? "Success" : "Reverted"}
-    </span>
-  );
 }
 
 function DataRow({
@@ -180,7 +159,7 @@ export default function SimulationResultPanel({
           >
             Simulation Result
           </h2>
-          <StatusBadge success={result.success} />
+          <StatusBadge success={result.success} size="lg" />
         </div>
 
         <div>

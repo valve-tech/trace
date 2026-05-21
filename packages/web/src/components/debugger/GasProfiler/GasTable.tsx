@@ -1,0 +1,91 @@
+import type { FlatGasEntry } from "../../../api/debugger";
+import { formatGas, getCallTypeColor, truncateAddress } from "./colors";
+
+const HEADERS: Array<{ label: string; align: "left" | "right" }> = [
+  { label: "Depth", align: "left" },
+  { label: "Function", align: "left" },
+  { label: "Address", align: "left" },
+  { label: "Type", align: "left" },
+  { label: "Gas Used", align: "right" },
+  { label: "%", align: "right" },
+];
+
+export function GasTable({ flat }: { flat: FlatGasEntry[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead>
+          <tr
+            className="border-b"
+            style={{ borderColor: "var(--color-border-default)" }}
+          >
+            {HEADERS.map((h) => (
+              <th
+                key={h.label}
+                className={`py-2 px-3 font-medium text-${h.align}`}
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {h.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {flat.map((entry, i) => (
+            <tr
+              key={i}
+              className="border-b"
+              style={{ borderColor: "var(--color-border-muted)" }}
+            >
+              <td
+                className="py-2 px-3 font-mono"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                {entry.depth}
+              </td>
+              <td
+                className="py-2 px-3 font-mono"
+                style={{
+                  color: "var(--color-text-primary)",
+                  paddingLeft: `${entry.depth * 12 + 12}px`,
+                }}
+              >
+                {entry.function}
+              </td>
+              <td
+                className="py-2 px-3 font-mono"
+                style={{ color: "var(--color-accent)" }}
+                title={entry.address}
+              >
+                {truncateAddress(entry.address)}
+              </td>
+              <td className="py-2 px-3">
+                <span
+                  className="text-xs font-mono font-semibold px-1.5 py-0.5 rounded"
+                  style={{
+                    backgroundColor: `${getCallTypeColor(entry.callType)}20`,
+                    color: getCallTypeColor(entry.callType),
+                  }}
+                >
+                  {entry.callType}
+                </span>
+              </td>
+              <td
+                className="py-2 px-3 text-right font-mono"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                {formatGas(entry.gasUsed)}
+              </td>
+              <td
+                className="py-2 px-3 text-right font-mono"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {entry.percentage.toFixed(1)}%
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

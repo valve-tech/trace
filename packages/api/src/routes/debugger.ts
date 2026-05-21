@@ -12,6 +12,7 @@ import {
 } from "../services/tracer.js";
 import { profileGas, profileOpcodes } from "../services/gasProfiler.js";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
+import { traceCallSchema } from "./debugger/schemas.js";
 
 const router = Router();
 
@@ -138,13 +139,7 @@ router.get(
 router.post(
   "/trace",
   asyncRoute(async (req: Request, res: Response) => {
-    const { from, to, value, data, gas } = req.body as {
-      from?: string;
-      to?: string;
-      value?: string;
-      data?: string;
-      gas?: string;
-    };
+    const { from, to, value, data, gas } = traceCallSchema.parse(req.body);
 
     if (!to && !data) {
       throw new ApiError(400, "At least 'to' or 'data' must be provided.");

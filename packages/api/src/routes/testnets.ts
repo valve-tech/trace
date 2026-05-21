@@ -2,6 +2,14 @@ import { Router, type Request, type Response } from "express";
 import { forkManager } from "../services/forkManager.js";
 import { parseEther } from "viem";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
+import {
+  createForkSchema,
+  revertSchema,
+  fundSchema,
+  mineSchema,
+  timeTravelSchema,
+  proxyRpcSchema,
+} from "./testnets/schemas.js";
 
 const router = Router();
 
@@ -18,11 +26,7 @@ function paramStr(val: string | string[] | undefined): string {
 router.post(
   "/",
   asyncRoute(async (req: Request, res: Response) => {
-    const { blockNumber, label } = req.body as {
-      blockNumber?: number;
-      label?: string;
-    };
-
+    const { blockNumber, label } = createForkSchema.parse(req.body);
     const fork = await forkManager.createFork({ blockNumber, label });
 
     respond.ok(res, {
@@ -121,10 +125,7 @@ router.post(
 router.post(
   "/:id/revert",
   asyncRoute(async (req: Request, res: Response) => {
-    const { snapshotId } = req.body as { snapshotId: string };
-    if (!snapshotId) {
-      throw new ApiError(400, "snapshotId is required");
-    }
+    const { snapshotId } = revertSchema.parse(req.body);
 
     const success = await forkManager.revert(
       paramStr(req.params.id),
@@ -141,13 +142,7 @@ router.post(
 router.post(
   "/:id/fund",
   asyncRoute(async (req: Request, res: Response) => {
-    const { address, amount } = req.body as {
-      address: string;
-      amount: string;
-    };
-
-    if (!address) throw new ApiError(400, "address is required");
-    if (!amount) throw new ApiError(400, "amount is required");
+    const { address, amount } = fundSchema.parse(req.body);
 
     // Convert PLS amount to wei hex string
     const amountWei = "0x" + parseEther(amount).toString(16);
@@ -164,11 +159,7 @@ router.post(
 router.post(
   "/:id/mine",
   asyncRoute(async (req: Request, res: Response) => {
-    const { count } = req.body as { count: number };
-    if (!count || count < 1) {
-      throw new ApiError(400, "count must be a positive integer");
-    }
-
+    const { count } = mineSchema.parse(req.body);
     const mined = Math.min(count, 1000);
     await forkManager.mineBlocks(paramStr(req.params.id), mined);
     respond.ok(res, { mined });
@@ -182,10 +173,7 @@ router.post(
 router.post(
   "/:id/time-travel",
   asyncRoute(async (req: Request, res: Response) => {
-    const { seconds } = req.body as { seconds: number };
-    if (!seconds || seconds < 1) {
-      throw new ApiError(400, "seconds must be a positive integer");
-    }
+    const { seconds } = timeTravelSchema.parse(req.body);
 
     await forkManager.timeTravel(paramStr(req.params.id), seconds);
     respond.ok(res, { seconds });
@@ -199,19 +187,14 @@ router.post(
 router.post(
   "/:id/rpc",
   asyncRoute(async (req: Request, res: Response) => {
-    const { method, params } = req.body as {
-      method: string;
-      params?: unknown[];
-    };
-
-    if (!method) throw new ApiError(400, "method is required");
+    const { method, params, id } = proxyRpcSchema.parse(req.body);
 
     const result = await forkManager.proxyRpc(
       paramStr(req.params.id),
       method,
       params ?? [],
     );
-    res.json({ jsonrpc: "2.0", id: req.body.id ?? 1, result });
+    res.json({ jsonrpc: "2.0", id: id ?? 1, result });
   }, "testnets"),
 );
 
