@@ -41,8 +41,10 @@ const NAV_GROUPS = [
  */
 const AUTO_COLLAPSE_PATHS = ["/debugger", "/explorer", "/storage"];
 
-const COLLAPSED_STORAGE_KEY = "valvetech-shell-sidebar-collapsed";
+const SIDEBAR_INTENT_KEY = "valvetech-shell-sidebar-intent";
 const AUTO_COLLAPSE_ENABLED_KEY = "valvetech-shell-auto-collapse";
+
+type SidebarIntent = "auto" | "collapsed" | "expanded";
 
 function loadBool(key: string, fallback: boolean): boolean {
   try {
@@ -53,12 +55,20 @@ function loadBool(key: string, fallback: boolean): boolean {
   }
 }
 
+function loadIntent(): SidebarIntent {
+  try {
+    const v = localStorage.getItem(SIDEBAR_INTENT_KEY);
+    if (v === "collapsed" || v === "expanded" || v === "auto") return v;
+  } catch {
+    /* ignore */
+  }
+  return "auto";
+}
+
 export default function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [userCollapsed, setUserCollapsed] = useState(() =>
-    loadBool(COLLAPSED_STORAGE_KEY, false),
-  );
+  const [intent, setIntent] = useState<SidebarIntent>(loadIntent);
   const autoCollapseEnabled = loadBool(AUTO_COLLAPSE_ENABLED_KEY, true);
 
   const autoCollapsed = useMemo(
@@ -67,15 +77,24 @@ export default function AppShell({ children }: { children: ReactNode }) {
       AUTO_COLLAPSE_PATHS.some((p) => location.pathname.startsWith(p)),
     [autoCollapseEnabled, location.pathname],
   );
-  const collapsed = userCollapsed || autoCollapsed;
+
+  // Intent always wins. "auto" defers to the route's auto-collapse rule.
+  // Click on the toggle promotes the *current* display to a sticky intent,
+  // so the user can always escape an auto-collapsed route.
+  const collapsed =
+    intent === "collapsed" || (intent === "auto" && autoCollapsed);
+
+  const onToggleCollapse = () => {
+    setIntent(collapsed ? "expanded" : "collapsed");
+  };
 
   useEffect(() => {
     try {
-      localStorage.setItem(COLLAPSED_STORAGE_KEY, String(userCollapsed));
+      localStorage.setItem(SIDEBAR_INTENT_KEY, intent);
     } catch {
       /* ignore */
     }
-  }, [userCollapsed]);
+  }, [intent]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -94,9 +113,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="h-full flex" style={{ backgroundColor: "var(--color-bg-primary)" }}>
       <Sidebar
         collapsed={collapsed}
-        userCollapsed={userCollapsed}
         autoCollapsed={autoCollapsed}
-        onToggleCollapse={() => setUserCollapsed((c) => !c)}
+        intent={intent}
+        onToggleCollapse={onToggleCollapse}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -111,15 +130,21 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
 function Sidebar({
   collapsed,
-  userCollapsed,
   autoCollapsed,
+  intent,
   onToggleCollapse,
 }: {
   collapsed: boolean;
-  userCollapsed: boolean;
   autoCollapsed: boolean;
+  intent: SidebarIntent;
   onToggleCollapse: () => void;
 }) {
+  const toggleTitle =
+    intent === "auto" && autoCollapsed
+      ? "Auto-collapsed for this route — expand"
+      : collapsed
+        ? "Expand sidebar"
+        : "Collapse sidebar";
   return (
     <aside
       className="flex flex-col transition-[width] duration-150 shrink-0"
@@ -130,24 +155,29 @@ function Sidebar({
       }}
     >
       <div
-        className="px-3 py-3 flex items-center justify-end"
-        style={{ boxShadow: "inset 0 -1px 0 0 var(--color-border-muted)" }}
+        className="py-3 flex items-center"
+        style={{
+          boxShadow: "inset 0 -1px 0 0 var(--color-border-muted)",
+          paddingLeft: collapsed ? 0 : 12,
+          paddingRight: collapsed ? 0 : 12,
+          justifyContent: collapsed ? "center" : "flex-end",
+        }}
       >
         <button
           onClick={onToggleCollapse}
-          title={
-            autoCollapsed && !userCollapsed
-              ? "Auto-collapsed for this route — click to keep it collapsed"
-              : userCollapsed
-                ? "Expand sidebar"
-                : "Collapse sidebar"
-          }
-          className="p-1"
-          style={{ color: "var(--color-text-muted)" }}
+          title={toggleTitle}
+          aria-label={toggleTitle}
+          className="flex items-center justify-center transition-colors"
+          style={{
+            width: 40,
+            height: 40,
+            color: "var(--color-text-muted)",
+            backgroundColor: "transparent",
+          }}
         >
           <Icon
             icon={collapsed ? "heroicons:bars-3" : "heroicons:chevron-double-left"}
-            className="w-4 h-4"
+            className="w-5 h-5"
           />
         </button>
       </div>
@@ -182,21 +212,46 @@ function Sidebar({
                 key={item.to}
                 to={item.to}
                 title={collapsed ? item.label : undefined}
-                className="w-full flex items-center gap-2.5 py-1.5 text-sm transition-colors text-left"
-                style={({ isActive }) => ({
-                  paddingLeft: collapsed ? 0 : 16,
-                  paddingRight: collapsed ? 0 : 16,
-                  justifyContent: collapsed ? "center" : "flex-start",
-                  backgroundColor: isActive ? "var(--color-accent-muted)" : "transparent",
-                  color: isActive ? "var(--color-accent)" : "var(--color-text-secondary)",
-                  boxShadow: isActive
-                    ? "inset 2px 0 0 0 var(--color-accent)"
-                    : "inset 2px 0 0 0 transparent",
-                  textDecoration: "none",
-                })}
+                className="flex items-center transition-colors"
+                style={({ isActive }) =>
+                  collapsed
+                    ? {
+                        width: 40,
+                        height: 40,
+                        marginLeft: "auto",
+                        marginRight: "auto",
+                        marginBottom: 4,
+                        justifyContent: "center",
+                        backgroundColor: isActive
+                          ? "var(--color-accent-muted)"
+                          : "transparent",
+                        color: isActive
+                          ? "var(--color-accent)"
+                          : "var(--color-text-secondary)",
+                        textDecoration: "none",
+                      }
+                    : {
+                        width: "100%",
+                        gap: 10,
+                        paddingLeft: 16,
+                        paddingRight: 16,
+                        paddingTop: 8,
+                        paddingBottom: 8,
+                        backgroundColor: isActive
+                          ? "var(--color-accent-muted)"
+                          : "transparent",
+                        color: isActive
+                          ? "var(--color-accent)"
+                          : "var(--color-text-secondary)",
+                        boxShadow: isActive
+                          ? "inset 2px 0 0 0 var(--color-accent)"
+                          : "inset 2px 0 0 0 transparent",
+                        textDecoration: "none",
+                      }
+                }
               >
-                <Icon icon={item.icon} className="w-4 h-4 shrink-0" />
-                {!collapsed && item.label}
+                <Icon icon={item.icon} className="w-5 h-5 shrink-0" />
+                {!collapsed && <span className="text-sm">{item.label}</span>}
               </NavLink>
             ))}
           </div>
@@ -204,22 +259,43 @@ function Sidebar({
       </nav>
 
       <div
-        className="px-3 py-2 flex items-center gap-2"
+        className="py-2 flex items-center"
         style={{
           boxShadow: "inset 0 1px 0 0 var(--color-border-muted)",
           color: "var(--color-text-muted)",
+          paddingLeft: collapsed ? 0 : 12,
+          paddingRight: collapsed ? 0 : 12,
+          gap: collapsed ? 0 : 8,
+          justifyContent: collapsed ? "center" : "flex-start",
         }}
       >
         <NavLink
           to="/settings"
           title={collapsed ? "Settings" : undefined}
-          className="flex items-center gap-2 flex-1 text-xs"
-          style={({ isActive }) => ({
-            color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
-            textDecoration: "none",
-          })}
+          className="flex items-center transition-colors"
+          style={({ isActive }) =>
+            collapsed
+              ? {
+                  width: 40,
+                  height: 40,
+                  justifyContent: "center",
+                  color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
+                  textDecoration: "none",
+                }
+              : {
+                  flex: 1,
+                  gap: 8,
+                  paddingLeft: 8,
+                  paddingRight: 8,
+                  paddingTop: 6,
+                  paddingBottom: 6,
+                  fontSize: 12,
+                  color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
+                  textDecoration: "none",
+                }
+          }
         >
-          <Icon icon="heroicons:cog-6-tooth" className="w-4 h-4 shrink-0" />
+          <Icon icon="heroicons:cog-6-tooth" className="w-5 h-5 shrink-0" />
           {!collapsed && <span>Settings</span>}
         </NavLink>
         {!collapsed && (

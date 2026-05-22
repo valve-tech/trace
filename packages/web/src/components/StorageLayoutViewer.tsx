@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { isAddress, keccak256, encodePacked, pad, toHex } from "viem";
 
@@ -56,12 +57,23 @@ function computeArraySlot(baseSlot: string, index: number, elementSize: number):
 // ---------------------------------------------------------------------------
 
 export default function StorageLayoutViewer() {
-  const [contractAddress, setContractAddress] = useState("");
+  const [searchParams] = useSearchParams();
+  const [contractAddress, setContractAddress] = useState(
+    () => searchParams.get("address") ?? "",
+  );
   const [lookupKey, setLookupKey] = useState("");
   const [selectedEntry, setSelectedEntry] = useState<StorageEntry | null>(null);
   const [computedSlot, setComputedSlot] = useState<string | null>(null);
   const [slotValue, setSlotValue] = useState<string | null>(null);
   const [loadingValue, setLoadingValue] = useState(false);
+
+  // ?address= lets the ⌘K palette deep-link to a pre-filled storage view.
+  // Watches changes so a second palette paste also takes effect.
+  useEffect(() => {
+    const fromUrl = searchParams.get("address");
+    if (fromUrl && fromUrl !== contractAddress) setContractAddress(fromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const validAddress = isAddress(contractAddress);
 

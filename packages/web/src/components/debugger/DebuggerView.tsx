@@ -32,7 +32,9 @@ export default function DebuggerView() {
   const navigate = useNavigate();
   const [txHash, setTxHash] = useState(urlHash ?? "");
   const [activeTab, setActiveTab] = useState<DebugTab>("debugger");
-  const initialLoadDone = useRef(false);
+  // Tracks the last hash we kicked off a trace for, so a URL change to a *new*
+  // hash (e.g. via the ⌘K palette) re-fires, but the same hash doesn't double-fire.
+  const lastFetchedRef = useRef<string | null>(null);
 
   const [callTrace, setCallTrace] = useState<CallFrame | null>(null);
   const [gasProfile, setGasProfile] = useState<GasProfile | null>(null);
@@ -58,8 +60,8 @@ export default function DebuggerView() {
     [opcodeSteps],
   );
 
-  const handleTrace = useCallback(async () => {
-    if (!isValidHash) return;
+  const handleTrace = useCallback(async (hash: string) => {
+    if (!isValidTxHash(hash)) return;
 
     setLoading(true);
     setError(null);
@@ -74,9 +76,9 @@ export default function DebuggerView() {
     try {
       // Fetch all three traces in parallel — no explorer dependency
       const [traceRes, gasRes, opcodeRes] = await Promise.all([
-        fetchTrace(txHash),
-        fetchGasProfile(txHash),
-        fetchOpcodes(txHash, 50000),
+        fetchTrace(hash),
+        fetchGasProfile(hash),
+        fetchOpcodes(hash, 50000),
       ]);
 
       if (traceRes.ok && traceRes.trace) {
@@ -107,20 +109,23 @@ export default function DebuggerView() {
     } finally {
       setLoading(false);
     }
-  }, [txHash, isValidHash]);
+  }, []);
 
-  // Auto-trace when URL contains a tx hash
+  // Auto-trace whenever the URL hash arrives or changes (e.g. palette navigation).
+  // `lastFetchedRef` dedupes against the same hash firing twice.
   useEffect(() => {
-    if (urlHash && isValidTxHash(urlHash) && !initialLoadDone.current) {
-      initialLoadDone.current = true;
-      void handleTrace();
+    if (urlHash && isValidTxHash(urlHash) && urlHash !== lastFetchedRef.current) {
+      lastFetchedRef.current = urlHash;
+      setTxHash(urlHash);
+      void handleTrace(urlHash);
     }
   }, [urlHash, handleTrace]);
 
   const handleSubmitTrace = useCallback(() => {
     if (!isValidHash || loading) return;
+    lastFetchedRef.current = txHash;
     navigate(`/debugger/${txHash}`, { replace: true });
-    void handleTrace();
+    void handleTrace(txHash);
   }, [isValidHash, loading, txHash, navigate, handleTrace]);
 
   return (
