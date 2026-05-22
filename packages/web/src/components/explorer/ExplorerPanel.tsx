@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import TxSearch, { type SearchTarget } from "./TxSearch";
 import TxDetail from "./TxDetail";
@@ -17,6 +18,7 @@ export default function ExplorerPanel() {
   const [view, setView] = useState<ExplorerView>({ type: "none" });
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<ExplorerView[]>([]);
+  const [searchParams] = useSearchParams();
 
   const navigateTo = useCallback(
     (newView: ExplorerView) => {
@@ -27,6 +29,18 @@ export default function ExplorerPanel() {
     },
     [view],
   );
+
+  // URL → view: lets the ⌘K palette (and any future deep link) drop a user
+  // straight into the right explorer view. Re-runs when search params change.
+  useEffect(() => {
+    const tx = searchParams.get("tx");
+    const address = searchParams.get("address");
+    const block = searchParams.get("block");
+    if (tx) setView({ type: "tx", hash: tx });
+    else if (address) setView({ type: "address", address });
+    else if (block) setView({ type: "block", numberOrHash: block });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const goBack = useCallback(() => {
     if (history.length === 0) {

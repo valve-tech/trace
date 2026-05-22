@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Routes, Route, NavLink, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useAlertWebSocket, type AlertEvent } from "./hooks/useAlertWebSocket";
 import AlertToast from "./components/AlertToast";
+import AppShell from "./components/AppShell";
 import SimulationPage from "./pages/SimulationPage";
 import BundleSimulator from "./components/BundleSimulator";
 import AlertDashboard from "./components/monitoring/AlertDashboard";
@@ -14,21 +15,8 @@ import ForkSimulator from "./components/ForkSimulator";
 import TransactionBuilder from "./components/TransactionBuilder";
 import ContractDiff from "./components/ContractDiff";
 import StorageLayoutViewer from "./components/StorageLayoutViewer";
-
-const NAV_ITEMS = [
-  { to: "/simulate", label: "Simulate" },
-  { to: "/fork", label: "Fork Sim" },
-  { to: "/build", label: "Build Tx" },
-  { to: "/bundle", label: "Bundle" },
-  { to: "/monitoring", label: "Monitoring" },
-  { to: "/testnets", label: "TestNets" },
-  { to: "/rpc", label: "RPC" },
-  { to: "/explorer", label: "Explorer" },
-  { to: "/debugger", label: "Debugger" },
-  { to: "/actions", label: "Actions" },
-  { to: "/storage", label: "Storage" },
-  { to: "/diff", label: "Diff" },
-] as const;
+import DraftsIndex from "./components/drafts/DraftsIndex";
+import SettingsPanel from "./components/drafts/SettingsPanel";
 
 function PulseLogo() {
   return (
@@ -51,7 +39,6 @@ function PulseLogo() {
 export default function App() {
   const [apiStatus, setApiStatus] = useState<"connected" | "disconnected" | "checking">("checking");
 
-  // Global alert WebSocket — toasts show on any page
   const { lastAlert } = useAlertWebSocket();
   const [appToast, setAppToast] = useState<AlertEvent | null>(null);
   const appToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -99,25 +86,24 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--color-bg-primary)" }}>
-      {/* Global alert toast overlay */}
+    <div
+      className="h-screen flex flex-col"
+      style={{ backgroundColor: "var(--color-bg-primary)" }}
+    >
       {appToast !== null && (
-        <AlertToast
-          alert={appToast.data.alert}
-          match={appToast.data.match}
-        />
+        <AlertToast alert={appToast.data.alert} match={appToast.data.match} />
       )}
-      {/* Header */}
+
       <header
-        className="border-b px-6 py-4 flex items-center justify-between"
+        className="px-6 py-3 flex items-center justify-between shrink-0"
         style={{
           backgroundColor: "var(--color-bg-secondary)",
-          borderColor: "var(--color-border-default)",
+          boxShadow: "inset 0 -1px 0 0 var(--color-border-default)",
         }}
       >
         <div className="flex items-center gap-3">
           <PulseLogo />
-          <h1 className="text-xl font-semibold" style={{ color: "var(--color-text-primary)" }}>
+          <h1 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
             PulseChain Dev Platform
           </h1>
           <span
@@ -144,52 +130,27 @@ export default function App() {
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div
-        className="border-b px-6"
-        style={{
-          backgroundColor: "var(--color-bg-secondary)",
-          borderColor: "var(--color-border-default)",
-        }}
-      >
-        <nav className="flex gap-0">
-          {NAV_ITEMS.map(({ to, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-              style={({ isActive }) => ({
-                borderColor: isActive ? "var(--color-accent)" : "transparent",
-                color: isActive
-                  ? "var(--color-text-primary)"
-                  : "var(--color-text-secondary)",
-                backgroundColor: "transparent",
-              })}
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      </div>
-
-      {/* Content */}
-      <main className="px-0 py-0">
-        <Routes>
-          <Route path="/" element={<Navigate to="/simulate" replace />} />
-          <Route path="/simulate" element={<SimulationPage />} />
-          <Route path="/fork" element={<ForkSimulator />} />
-          <Route path="/build" element={<TransactionBuilder />} />
-          <Route path="/bundle" element={<BundleSimulator />} />
-          <Route path="/monitoring" element={<AlertDashboard />} />
-          <Route path="/testnets" element={<TestNetDashboard />} />
-          <Route path="/rpc" element={<RpcPage />} />
-          <Route path="/explorer/*" element={<ExplorerPanel />} />
-          <Route path="/debugger" element={<DebuggerView />} />
-          <Route path="/debugger/:txHash" element={<DebuggerView />} />
-          <Route path="/actions" element={<ActionsDashboard />} />
-          <Route path="/storage" element={<StorageLayoutViewer />} />
-          <Route path="/diff" element={<ContractDiff />} />
-        </Routes>
+      <main className="flex-1 min-h-0">
+        <AppShell>
+          <Routes>
+            <Route path="/" element={<Navigate to="/simulate" replace />} />
+            <Route path="/simulate" element={<SimulationPage />} />
+            <Route path="/fork" element={<ForkSimulator />} />
+            <Route path="/build" element={<TransactionBuilder />} />
+            <Route path="/bundle" element={<BundleSimulator />} />
+            <Route path="/monitoring" element={<AlertDashboard />} />
+            <Route path="/testnets" element={<TestNetDashboard />} />
+            <Route path="/rpc" element={<RpcPage />} />
+            <Route path="/explorer/*" element={<ExplorerPanel />} />
+            <Route path="/debugger" element={<DebuggerView />} />
+            <Route path="/debugger/:txHash" element={<DebuggerView />} />
+            <Route path="/actions" element={<ActionsDashboard />} />
+            <Route path="/storage" element={<StorageLayoutViewer />} />
+            <Route path="/diff" element={<ContractDiff />} />
+            <Route path="/settings" element={<SettingsPanel />} />
+            <Route path="/drafts/*" element={<DraftsIndex />} />
+          </Routes>
+        </AppShell>
       </main>
     </div>
   );
