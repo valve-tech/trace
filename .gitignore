@@ -8,3 +8,9 @@ coverage/
 *.tsbuildinfo
 *.log
 data/
+
+# Working-session screenshots + Playwright MCP scratch dir
+.playwright-mcp/
+/draft-*.png
+/palette-*.png
+/prod-*.png

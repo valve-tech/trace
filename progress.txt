@@ -1,5 +1,179 @@
 # PulseChain Dev Platform — Progress
 
+## Session: 2026-05-22 — UI reimagining: sidebar shell + drafts + ⌘K palette
+
+### Headline events
+
+- **App.tsx top tab nav removed.** Replaced by `<AppShell>` — a sidebar
+  with three intent groups (**Inspect / Simulate / Automate**) + a top
+  command bar that opens a real ⌘K palette.
+- **⌘K palette parses and routes.** Tx hash → `/debugger/<hash>`,
+  address → `/explorer?address=<a>`, block → `/explorer?block=<n>`,
+  4byte selector → `/explorer?selector=<s>` (stub destination).
+  Padding rule observed everywhere (`px-4 py-3` minimum on rows).
+- **`/drafts/*` design surface** — three layout direction explorations
+  mounted as a non-destructive route at the picker `/drafts`:
+  - `/drafts/shell` — sidebar shell (now redundant with production)
+  - `/drafts/journey` — tx-centric canvas with adaptive `nextStepsFor()`
+    rail that differs by outcome (revert vs success)
+  - `/drafts/workspace` — address-centric workspace mounting real
+    `SourceTab` + `StorageLayoutViewer` in sub-tabs (proves the shape
+    composes existing features without rewrites)
+- **Settings panel surface created** at `/settings`. Currently exposes
+  one toggle (auto-collapse on panel-heavy routes); user explicitly
+  stated more settings will land here over time.
+- **ExplorerPanel patched** to read `?tx= / ?address= / ?block=`
+  search params on mount (also fixes a latent dead-link in
+  `ForkSimulator.tsx` that navigated to `/explorer?address=...`).
+
+### Files added / modified
+
+```
+A  packages/web/src/components/AppShell.tsx           (~395 LOC)
+A  packages/web/src/components/drafts/DraftsIndex.tsx
+A  packages/web/src/components/drafts/ShellDraft.tsx
+A  packages/web/src/components/drafts/JourneyDraft.tsx
+A  packages/web/src/components/drafts/WorkspaceDraft.tsx
+A  packages/web/src/components/drafts/SettingsPanel.tsx
+M  packages/web/src/App.tsx                            (NAV_ITEMS gone,
+                                                       Routes wrapped
+                                                       in AppShell,
+                                                       /settings route)
+M  packages/web/src/components/explorer/ExplorerPanel.tsx
+                                                      (useSearchParams)
+```
+
+Uncommitted. The session also produced ~22 screenshots in the repo
+root (`draft-*.png`, `palette-*.png`, `prod-*.png`) and a
+`.playwright-mcp/` directory — those should be `.gitignore`'d, not
+committed.
+
+### Decisions locked in (user explicit)
+
+- **Groups:** Inspect / Simulate / Automate (renamed from
+  Investigate/Experiment/Operate per user pick).
+- **Sidebar behavior:** manual collapse toggle + auto-collapse on
+  panel-heavy routes (`/debugger`, `/explorer`, `/storage`). OR logic:
+  `collapsed = userCollapsed || autoCollapsed`. Both persist to
+  localStorage (`valvetech-shell-sidebar-collapsed`,
+  `valvetech-shell-auto-collapse`).
+- **Auto-collapse config:** lives in the Settings panel surface
+  (user noted "we will need the settings panel ... there will be more
+  to add to there").
+- **Padding rule (user-stated):** "use padding wherever the layout
+  calls for it ... you end up with your letters smashed up against a
+  border." All palette rows / sidebar items / kbd badges sized to
+  honor this. NEW CODE must keep doing this.
+- **CSS borders:** user wants outset `box-shadow: 0 0 0 1px <color>`
+  (NOT inset). My new code in this session used `inset` patterns
+  throughout, which is WRONG. Tracked as task #4 — needs a dedicated
+  pass before any "polish" work is meaningful.
+- **Sidebar nav items condensed:** Storage Layout + Diff stay as
+  top-level for now but should eventually fold into an Address
+  Workspace (currently absent from production).
+
+### Decisions deferred
+
+- Address Workspace as a production route — drafted in
+  `/drafts/workspace` only.
+- Tx Journey as a production route — drafted in `/drafts/journey` only.
+- "Recent" + "Suggested next" widgets on the new home view are still
+  mock data; need a localStorage write hook from each route on visit.
+
+### Tracked tasks (TaskCreate)
+
+- **#4 [pending]** — CSS borders → outset box-shadow unification.
+  Audit `index.css` `.card` (currently inset) and all
+  `border-b / border-r / border-t / border-l` Tailwind usages.
+  Decide per-edge between outset shadow + negative-margin overlap, or
+  keep inset where outset doesn't fit. Standalone focused pass.
+
+### Open follow-ups (NOT tracked as tasks — small but worth knowing)
+
+- **`/storage?address=...`** — palette navigates here but
+  `StorageLayoutViewer` doesn't read the param yet. ~5 line patch
+  mirroring what ExplorerPanel does.
+- **`DebuggerView` auto-debug** — reads the URL hash into its input
+  but doesn't auto-fire Debug. User pastes via palette → still has to
+  click "Debug". Tiny UX delta.
+- **`/drafts/shell` inception** — that draft route now renders the
+  draft shell *inside* the production shell. Safe to delete since
+  the production shell IS the result.
+- **Command palette stubs** — selector route goes to
+  `/explorer?selector=` which the Explorer doesn't handle yet.
+  Contract-name search ("unrecognized" state) needs
+  `useContractNames` integration.
+
+### What's running / state
+
+- Dev server `npm run dev:web` running in background (vite on 11800).
+  Started fresh after my edits triggered Vite reload failures.
+  Background task ID `bk4ru346s` (may have been cleared since).
+- API NOT running. Header status indicator shows "Disconnected".
+  `/monitoring` will show "Unknown error" without the API up. To
+  start: `docker compose up -d postgres && npm run dev:api`.
+
+### Marketplace clone — side-quest
+
+User ran `/plugin` "Add Marketplace" for `wshobson/agents` and it
+failed because:
+1. Their ssh-agent was unresponsive ("communication with agent
+   failed" for all 9 keys).
+2. Global git config rewrote every `https://github.com/` → `git@github.com:`
+   so even HTTPS clones tried SSH.
+
+Resolution applied this session:
+- Cloned to `/Users/michaelmclaughlin/.claude/plugins/marketplaces/wshobson-agents`
+  using an embedded `gh auth token` in the URL (bypasses insteadOf).
+- Reset remote URL to clean `https://github.com/wshobson/agents.git`.
+- Added local-config insteadOf with longer prefix that no-ops, so
+  future pulls won't rewrite.
+- Added local `gh auth git-credential` credential helper.
+
+User then ran `/plugin` again — 75/76 plugins installed. The
+remaining `qa-orchestra` failed for unknown reason. After session
+they ran `/reload-plugins` to activate them.
+
+The ssh-agent problem itself is unfixed — separate issue, not blocking
+anything in this repo.
+
+### Next-session pickup options (user can choose)
+
+1. **CSS box-shadow unification (task #4)** — needs to happen before
+   any "polish" work is honest. Probably 30-60 min audit + pass.
+2. **Storage param + DebuggerView auto-debug** — two small patches
+   that complete the ⌘K → feature handoff for ~all routes.
+3. **Address Workspace as production** — collapses `/storage` +
+   `/diff` out of top-level nav. Promotes `/drafts/workspace` to
+   `/contract/:address` or similar. Bigger but well-scoped.
+4. **Recent / Suggested-next widgets actually persist** — add a
+   `useRouteHistory` hook keyed in localStorage; each route on mount
+   pushes its current subject (tx hash, address, fork name).
+5. **Contract-name palette search** — wire `useContractNames` into
+   the parser's "unrecognized" branch so freeform text finds known
+   contracts.
+
+### Notes for next session
+
+- The user said "all three, deeper drafts" originally — Shell got
+  promoted to production, Journey and Workspace are still draft-only.
+  They explicitly want the design surface to keep existing for
+  iteration; do not delete `/drafts` even though the Shell route
+  there is now redundant.
+- The user has clear instincts about CSS and UX patterns (caught my
+  inset-vs-outset shadow misunderstanding, flagged the padding
+  smashing risk preemptively). Don't pre-explain general CSS — they
+  know it. Lead with specific code/decisions, follow with rationale
+  if asked.
+- "Pre-launch, no users yet" — when designing UX, default to
+  capability-first / information-theory reasoning rather than usage
+  data. The journey rail order is an example; we picked an
+  "adaptive per outcome" model rather than guessing one fixed order.
+- 12 routes → 11 top-level sidebar items + drafts + settings.
+  Eventually 10 (Storage + Diff folding into Address Workspace).
+
+---
+
 ## Session: 2026-05-18 — SDK 0.3.0 published + visual components + platform hardening
 
 ### Headline events
