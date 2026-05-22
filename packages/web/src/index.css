@@ -87,34 +87,41 @@ select:focus {
 }
 
 /*
- * 1px outset box-shadow border utilities. Use these instead of CSS borders
- * (which take 1px of layout) or inset shadows (which eat 1px of content).
- * Adjacent siblings using directional variants need 1px gap/margin to keep
- * shadows from being occluded by the next element's background.
+ * 1px outset box-shadow border utilities.
+ *
+ * Each helper pairs a 1px outset box-shadow with a 1px margin on the same
+ * edge. Without the margin, the shadow paints in the same pixels as the
+ * next sibling's background and gets occluded — adjacent elements look
+ * "melded". The margin is what guarantees the shadow is always visible.
+ *
+ * Tailwind margin utilities (m-0, mt-4, etc.) override these as expected.
  */
-.bs        { box-shadow: 0 0 0 1px var(--color-border-default); }
-.bs-muted  { box-shadow: 0 0 0 1px var(--color-border-muted); }
-.bs-b      { box-shadow: 0 1px 0 0 var(--color-border-default); }
-.bs-b-muted { box-shadow: 0 1px 0 0 var(--color-border-muted); }
-.bs-t      { box-shadow: 0 -1px 0 0 var(--color-border-default); }
-.bs-t-muted { box-shadow: 0 -1px 0 0 var(--color-border-muted); }
-.bs-l      { box-shadow: -1px 0 0 0 var(--color-border-default); }
-.bs-l-muted { box-shadow: -1px 0 0 0 var(--color-border-muted); }
-.bs-r      { box-shadow: 1px 0 0 0 var(--color-border-default); }
-.bs-r-muted { box-shadow: 1px 0 0 0 var(--color-border-muted); }
+.bs         { box-shadow: 0 0 0 1px var(--color-border-default); margin: 1px; }
+.bs-muted   { box-shadow: 0 0 0 1px var(--color-border-muted);   margin: 1px; }
+.bs-b       { box-shadow: 0 1px 0 0 var(--color-border-default); margin-bottom: 1px; }
+.bs-b-muted { box-shadow: 0 1px 0 0 var(--color-border-muted);   margin-bottom: 1px; }
+.bs-t       { box-shadow: 0 -1px 0 0 var(--color-border-default); margin-top: 1px; }
+.bs-t-muted { box-shadow: 0 -1px 0 0 var(--color-border-muted);   margin-top: 1px; }
+.bs-l       { box-shadow: -1px 0 0 0 var(--color-border-default); margin-left: 1px; }
+.bs-l-muted { box-shadow: -1px 0 0 0 var(--color-border-muted);   margin-left: 1px; }
+.bs-r       { box-shadow: 1px 0 0 0 var(--color-border-default); margin-right: 1px; }
+.bs-r-muted { box-shadow: 1px 0 0 0 var(--color-border-muted);   margin-right: 1px; }
 
 /* Active-state left rail used on nav items */
 .bs-l-accent { box-shadow: -2px 0 0 0 var(--color-accent); }
 
 /*
  * Card/panel component — outset perimeter outline plus card background.
+ * The 1px margin keeps adjacent cards from occluding each other's outlines.
  * Compose with other utilities; do not pair with the Tailwind `border` class.
  */
 .card {
   background-color: var(--color-bg-card);
   box-shadow: 0 0 0 1px var(--color-border-default);
+  margin: 1px;
 }
 
 .card-divider {
   box-shadow: 0 1px 0 0 var(--color-border-default);
+  margin-bottom: 1px;
 }

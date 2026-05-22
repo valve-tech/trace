@@ -318,7 +318,7 @@ function Sidebar({
 function CommandBar({ onOpen }: { onOpen: () => void }) {
   return (
     <div
-      className="px-6 py-3 flex items-center gap-3 shrink-0"
+      className="px-6 flex items-stretch gap-3 shrink-0 h-12"
       style={{
         backgroundColor: "var(--color-bg-secondary)",
         boxShadow: "0 1px 0 0 var(--color-border-default)",
@@ -326,14 +326,18 @@ function CommandBar({ onOpen }: { onOpen: () => void }) {
     >
       <button
         onClick={onOpen}
-        className="flex-1 max-w-2xl flex items-center gap-3 px-3 py-2 text-sm text-left"
+        className="flex-1 max-w-2xl flex items-center gap-2 px-3 text-sm text-left"
         style={{
           backgroundColor: "var(--color-bg-input)",
           color: "var(--color-text-muted)",
           boxShadow: "0 0 0 1px var(--color-border-default)",
         }}
       >
-        <Icon icon="heroicons:magnifying-glass" className="w-4 h-4" />
+        <Icon
+          icon="heroicons:magnifying-glass"
+          className="w-4 h-4 shrink-0"
+          style={{ color: "var(--color-text-muted)" }}
+        />
         <span className="flex-1">Paste a tx hash, address, block, or function selector…</span>
         <span
           className="text-[10px] px-1.5 py-0.5 font-mono"
