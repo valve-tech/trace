@@ -61,10 +61,9 @@ export default function ContractView({
   if (loading) {
     return (
       <div
-        className="rounded-lg border p-8 flex flex-col items-center justify-center min-h-[300px]"
+        className="rounded-lg bs p-8 flex flex-col items-center justify-center min-h-[300px]"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
         }}
       >
         <div
@@ -87,7 +86,7 @@ export default function ContractView({
   if (error) {
     return (
       <div
-        className="rounded-lg border p-6"
+        className="rounded-lg p-6"
         style={{
           backgroundColor: "var(--color-bg-card)",
           borderColor: "var(--color-danger)",
@@ -166,10 +165,9 @@ function FunctionList({
   if (functions.length === 0) {
     return (
       <div
-        className="rounded-lg border p-6 text-center text-sm"
+        className="rounded-lg bs p-6 text-center text-sm"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
           color: "var(--color-text-muted)",
         }}
       >

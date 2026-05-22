@@ -83,9 +83,8 @@ export default function AlertBuilder({
         </h2>
         <button
           onClick={onCancel}
-          className="text-sm px-3 py-1.5 rounded-md border"
+          className="text-sm px-3 py-1.5 rounded-md bs"
           style={{
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-secondary)",
             backgroundColor: "transparent",
           }}
@@ -96,7 +95,7 @@ export default function AlertBuilder({
 
       {error && (
         <div
-          className="rounded-lg border px-4 py-3 text-sm"
+          className="rounded-lg px-4 py-3 text-sm"
           style={{
             backgroundColor: "var(--color-danger-muted)",
             borderColor: "var(--color-danger)",

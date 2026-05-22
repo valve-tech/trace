@@ -48,10 +48,10 @@ export default function AlertToast({ alert, match }: AlertToastProps) {
     minWidth: "16rem",
     maxWidth: "22rem",
     backgroundColor: "var(--color-bg-card)",
-    border: "1px solid var(--color-border-default)",
+    boxShadow:
+      "0 0 0 1px var(--color-border-default), 0 4px 16px rgba(0,0,0,0.4)",
     borderRadius: "0.5rem",
     padding: "0.75rem 1rem",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
     transform: visible ? "translateX(0)" : "translateX(calc(100% + 1.5rem))",
     opacity: visible ? 1 : 0,
     transition: "transform 0.3s ease, opacity 0.3s ease",

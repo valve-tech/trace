@@ -38,10 +38,9 @@ export function InputCard({
 }: Props) {
   return (
     <div
-      className="rounded-lg border p-6"
+      className="rounded-lg bs p-6"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <h2
@@ -78,10 +77,9 @@ export function InputCard({
             value={txHash}
             onChange={(e) => setTxHash(e.target.value.trim())}
             onKeyDown={(e) => e.key === "Enter" && canSubmit && onSimulate()}
-            className="w-full px-4 py-2.5 rounded-lg border text-sm"
+            className="w-full px-4 py-2.5 rounded-lg bs text-sm"
             style={{
               backgroundColor: "var(--color-bg-input)",
-              borderColor: "var(--color-border-default)",
               color: "var(--color-text-primary)",
               fontFamily: "var(--font-mono)",
             }}

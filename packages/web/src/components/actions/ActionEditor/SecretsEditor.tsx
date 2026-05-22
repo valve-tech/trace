@@ -17,9 +17,8 @@ export function SecretsEditor({ secrets, setSecrets }: Props) {
         </label>
         <button
           onClick={() => setSecrets([...secrets, { key: "", value: "" }])}
-          className="text-xs px-2 py-1 rounded border transition-colors"
+          className="text-xs px-2 py-1 rounded bs transition-colors"
           style={{
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-secondary)",
             backgroundColor: "transparent",
           }}
@@ -51,10 +50,9 @@ export function SecretsEditor({ secrets, setSecrets }: Props) {
                 setSecrets(updated);
               }}
               placeholder="KEY"
-              className="w-40 px-2 py-1.5 rounded border text-xs font-mono"
+              className="w-40 px-2 py-1.5 rounded bs text-xs font-mono"
               style={{
                 backgroundColor: "var(--color-bg-input)",
-                borderColor: "var(--color-border-default)",
                 color: "var(--color-text-primary)",
               }}
             />
@@ -67,18 +65,16 @@ export function SecretsEditor({ secrets, setSecrets }: Props) {
                 setSecrets(updated);
               }}
               placeholder="value"
-              className="flex-1 px-2 py-1.5 rounded border text-xs font-mono"
+              className="flex-1 px-2 py-1.5 rounded bs text-xs font-mono"
               style={{
                 backgroundColor: "var(--color-bg-input)",
-                borderColor: "var(--color-border-default)",
                 color: "var(--color-text-primary)",
               }}
             />
             <button
               onClick={() => setSecrets(secrets.filter((_, j) => j !== i))}
-              className="text-xs px-2 py-1.5 rounded border transition-colors"
+              className="text-xs px-2 py-1.5 rounded bs transition-colors"
               style={{
-                borderColor: "var(--color-border-default)",
                 color: "var(--color-danger)",
                 backgroundColor: "transparent",
               }}

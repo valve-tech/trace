@@ -21,7 +21,7 @@ export function TriggerTypePicker({ triggerType, onChange }: Props) {
             <button
               key={t}
               onClick={() => onChange(t)}
-              className="px-3 py-1.5 text-sm rounded-md border transition-colors capitalize"
+              className="px-3 py-1.5 text-sm rounded-md transition-colors capitalize"
               style={{
                 borderColor: active
                   ? "var(--color-accent)"

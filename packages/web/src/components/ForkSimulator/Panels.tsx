@@ -1,10 +1,9 @@
 export function LoadingPanel() {
   return (
     <div
-      className="rounded-lg border p-8 flex flex-col items-center"
+      className="rounded-lg bs p-8 flex flex-col items-center"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div className="spinner mb-3" />
@@ -27,7 +26,7 @@ export function LoadingPanel() {
 export function ErrorPanel({ message }: { message: string }) {
   return (
     <div
-      className="rounded-lg border p-4"
+      className="rounded-lg p-4"
       style={{
         backgroundColor: "var(--color-danger-muted)",
         borderColor: "var(--color-danger)",
@@ -52,7 +51,7 @@ export function ErrorPanel({ message }: { message: string }) {
 export function RevertReasonBlock({ reason }: { reason: string }) {
   return (
     <div
-      className="rounded-lg border p-3"
+      className="rounded-lg p-3"
       style={{
         backgroundColor: "var(--color-danger-muted)",
         borderColor: "var(--color-danger)",
@@ -80,10 +79,9 @@ export function RevertReasonBlock({ reason }: { reason: string }) {
 export function NoStateChangesPanel() {
   return (
     <div
-      className="rounded-lg border p-6 text-center"
+      className="rounded-lg bs p-6 text-center"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>

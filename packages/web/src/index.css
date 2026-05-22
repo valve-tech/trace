@@ -87,14 +87,34 @@ select:focus {
 }
 
 /*
- * Card/panel component: use box-shadow instead of border.
- * Apply this class instead of "border" on stacking cards.
+ * 1px outset box-shadow border utilities. Use these instead of CSS borders
+ * (which take 1px of layout) or inset shadows (which eat 1px of content).
+ * Adjacent siblings using directional variants need 1px gap/margin to keep
+ * shadows from being occluded by the next element's background.
+ */
+.bs        { box-shadow: 0 0 0 1px var(--color-border-default); }
+.bs-muted  { box-shadow: 0 0 0 1px var(--color-border-muted); }
+.bs-b      { box-shadow: 0 1px 0 0 var(--color-border-default); }
+.bs-b-muted { box-shadow: 0 1px 0 0 var(--color-border-muted); }
+.bs-t      { box-shadow: 0 -1px 0 0 var(--color-border-default); }
+.bs-t-muted { box-shadow: 0 -1px 0 0 var(--color-border-muted); }
+.bs-l      { box-shadow: -1px 0 0 0 var(--color-border-default); }
+.bs-l-muted { box-shadow: -1px 0 0 0 var(--color-border-muted); }
+.bs-r      { box-shadow: 1px 0 0 0 var(--color-border-default); }
+.bs-r-muted { box-shadow: 1px 0 0 0 var(--color-border-muted); }
+
+/* Active-state left rail used on nav items */
+.bs-l-accent { box-shadow: -2px 0 0 0 var(--color-accent); }
+
+/*
+ * Card/panel component — outset perimeter outline plus card background.
+ * Compose with other utilities; do not pair with the Tailwind `border` class.
  */
 .card {
   background-color: var(--color-bg-card);
-  box-shadow: inset 0 0 0 1px var(--color-border-default);
+  box-shadow: 0 0 0 1px var(--color-border-default);
 }
 
 .card-divider {
-  box-shadow: inset 0 -1px 0 0 var(--color-border-default);
+  box-shadow: 0 1px 0 0 var(--color-border-default);
 }

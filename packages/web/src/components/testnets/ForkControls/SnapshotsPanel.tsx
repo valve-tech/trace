@@ -53,7 +53,7 @@ export function SnapshotsPanel({ forkId, onReverted }: Props) {
   };
 
   return (
-    <div className="rounded-md border p-3" style={sectionStyle}>
+    <div className="rounded-md p-3" style={sectionStyle}>
       <div className="flex items-center justify-between mb-1.5">
         <label
           className="text-xs font-medium"
@@ -81,10 +81,9 @@ export function SnapshotsPanel({ forkId, onReverted }: Props) {
           {snapshots.map((snap) => (
             <div
               key={snap.id}
-              className="flex items-center justify-between text-xs px-2 py-1.5 rounded border"
+              className="flex items-center justify-between text-xs px-2 py-1.5 rounded bs"
               style={{
                 backgroundColor: "var(--color-bg-input)",
-                borderColor: "var(--color-border-default)",
               }}
             >
               <span style={{ color: "var(--color-text-secondary)" }}>

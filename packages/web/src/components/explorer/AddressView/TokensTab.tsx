@@ -11,10 +11,9 @@ export function TokensTab({
 }) {
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="rounded-lg bs overflow-hidden"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       {tokens.length === 0 ? (
@@ -43,8 +42,8 @@ export function TokensTab({
             {tokens.map((token, i) => (
               <tr
                 key={i}
-                className="border-t hover:opacity-80"
-                style={{ borderColor: "var(--color-border-muted)" }}
+                className="bs-t-muted hover:opacity-80"
+                style={{}}
               >
                 <td
                   className="px-3 py-2"

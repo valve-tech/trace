@@ -46,10 +46,9 @@ export default function CreateForkDialog({
       }}
     >
       <div
-        className="rounded-lg border p-6 w-full max-w-md"
+        className="rounded-lg bs p-6 w-full max-w-md"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
         }}
       >
         <h2
@@ -73,10 +72,9 @@ export default function CreateForkDialog({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="My TestNet"
-              className="w-full px-3 py-2 rounded-md border text-sm"
+              className="w-full px-3 py-2 rounded-md bs text-sm"
               style={{
                 backgroundColor: "var(--color-bg-input)",
-                borderColor: "var(--color-border-default)",
                 color: "var(--color-text-primary)",
               }}
             />
@@ -102,10 +100,9 @@ export default function CreateForkDialog({
               onChange={(e) => setBlockNumber(e.target.value)}
               placeholder="latest"
               min={0}
-              className="w-full px-3 py-2 rounded-md border text-sm"
+              className="w-full px-3 py-2 rounded-md bs text-sm"
               style={{
                 backgroundColor: "var(--color-bg-input)",
-                borderColor: "var(--color-border-default)",
                 color: "var(--color-text-primary)",
               }}
             />
@@ -130,9 +127,8 @@ export default function CreateForkDialog({
               type="button"
               onClick={onCancel}
               disabled={loading}
-              className="px-4 py-2 rounded-md text-sm border"
+              className="px-4 py-2 rounded-md text-sm bs"
               style={{
-                borderColor: "var(--color-border-default)",
                 color: "var(--color-text-secondary)",
                 backgroundColor: "transparent",
               }}

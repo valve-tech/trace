@@ -75,10 +75,9 @@ export default function AddressView({
   if (loading) {
     return (
       <div
-        className="rounded-lg border p-8 flex flex-col items-center justify-center min-h-[300px]"
+        className="rounded-lg bs p-8 flex flex-col items-center justify-center min-h-[300px]"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
         }}
       >
         <div
@@ -101,7 +100,7 @@ export default function AddressView({
   if (error) {
     return (
       <div
-        className="rounded-lg border p-6"
+        className="rounded-lg p-6"
         style={{
           backgroundColor: "var(--color-bg-card)",
           borderColor: "var(--color-danger)",

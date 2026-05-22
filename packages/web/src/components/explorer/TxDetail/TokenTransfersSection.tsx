@@ -16,8 +16,8 @@ export function TokenTransfersSection({
     >
       <div className="pt-3">
         <div
-          className="rounded-md border overflow-x-auto"
-          style={{ borderColor: "var(--color-border-muted)" }}
+          className="rounded-md bs-muted overflow-x-auto"
+          style={{}}
         >
           <table className="w-full text-sm">
             <thead>
@@ -52,8 +52,8 @@ export function TokenTransfersSection({
               {tokenTransfers.map((tt, i) => (
                 <tr
                   key={i}
-                  className="border-t hover:opacity-80"
-                  style={{ borderColor: "var(--color-border-muted)" }}
+                  className="bs-t-muted hover:opacity-80"
+                  style={{}}
                 >
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1.5">

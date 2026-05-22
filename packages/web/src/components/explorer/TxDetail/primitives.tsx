@@ -35,8 +35,8 @@ export function InfoRow({
 }) {
   return (
     <div
-      className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2.5 border-b last:border-b-0"
-      style={{ borderColor: "var(--color-border-muted)" }}
+      className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2.5 bs-b-muted last:shadow-none"
+      style={{}}
     >
       <span
         className="text-xs font-medium shrink-0 sm:w-40"
@@ -63,10 +63,9 @@ export function SectionCard({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div
-      className="rounded-lg border"
+      className="rounded-lg bs"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <button
@@ -103,8 +102,8 @@ export function SectionCard({
       </button>
       {open && (
         <div
-          className="px-4 pb-4 border-t"
-          style={{ borderColor: "var(--color-border-muted)" }}
+          className="px-4 pb-4 bs-t-muted"
+          style={{}}
         >
           {children}
         </div>

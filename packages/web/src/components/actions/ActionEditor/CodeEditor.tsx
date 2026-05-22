@@ -50,9 +50,8 @@ export function CodeEditor({ code, setCode }: Props) {
         Code
       </label>
       <div
-        className="rounded-lg border overflow-hidden flex"
+        className="rounded-lg bs overflow-hidden flex"
         style={{
-          borderColor: "var(--color-border-default)",
           backgroundColor: "var(--color-bg-primary)",
         }}
       >
@@ -66,7 +65,7 @@ export function CodeEditor({ code, setCode }: Props) {
             lineHeight: "1.5",
             width: "3.5rem",
             backgroundColor: "var(--color-bg-secondary)",
-            borderRight: "1px solid var(--color-border-muted)",
+            boxShadow: "1px 0 0 0 var(--color-border-muted)",
           }}
         >
           {lineNumbers.map((n) => (

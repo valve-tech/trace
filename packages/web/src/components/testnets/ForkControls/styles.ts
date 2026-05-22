@@ -1,11 +1,11 @@
 export const sectionStyle = {
   backgroundColor: "var(--color-bg-tertiary)",
-  borderColor: "var(--color-border-muted)",
+  boxShadow: "0 0 0 1px var(--color-border-muted)",
 };
 
 export const inputStyle = {
   backgroundColor: "var(--color-bg-input)",
-  borderColor: "var(--color-border-default)",
+  boxShadow: "0 0 0 1px var(--color-border-default)",
   color: "var(--color-text-primary)",
 };
 

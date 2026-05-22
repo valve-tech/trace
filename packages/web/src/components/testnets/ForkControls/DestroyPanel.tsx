@@ -22,15 +22,15 @@ export function DestroyPanel({ forkId, onDestroyed }: Props) {
 
   return (
     <div
-      className="pt-2 border-t"
-      style={{ borderColor: "var(--color-border-muted)" }}
+      className="pt-2"
+      style={{ boxShadow: "0 -1px 0 0 var(--color-border-muted)" }}
     >
       {!confirm ? (
         <button
           onClick={() => setConfirm(true)}
-          className="px-3 py-1.5 text-xs rounded border"
+          className="px-3 py-1.5 text-xs rounded"
           style={{
-            borderColor: "var(--color-danger)",
+            boxShadow: "0 0 0 1px var(--color-danger)",
             color: "var(--color-danger)",
             backgroundColor: "transparent",
           }}
@@ -58,9 +58,9 @@ export function DestroyPanel({ forkId, onDestroyed }: Props) {
           </button>
           <button
             onClick={() => setConfirm(false)}
-            className="px-3 py-1.5 text-xs rounded border"
+            className="px-3 py-1.5 text-xs rounded"
             style={{
-              borderColor: "var(--color-border-default)",
+              boxShadow: "0 0 0 1px var(--color-border-default)",
               color: "var(--color-text-secondary)",
               backgroundColor: "transparent",
             }}

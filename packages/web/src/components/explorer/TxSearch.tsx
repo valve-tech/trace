@@ -71,10 +71,9 @@ export default function TxSearch({ onSearch, loading }: TxSearchProps) {
 
   return (
     <div
-      className="rounded-lg border p-4"
+      className="rounded-lg bs p-4"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <form onSubmit={handleSubmit}>
@@ -88,7 +87,7 @@ export default function TxSearch({ onSearch, loading }: TxSearchProps) {
                 setError(null);
               }}
               placeholder="Search by tx hash, address, or block number..."
-              className="w-full px-4 py-2.5 rounded-lg border text-sm"
+              className="w-full px-4 py-2.5 rounded-lg text-sm"
               style={{
                 fontFamily: "var(--font-mono)",
                 backgroundColor: "var(--color-bg-input)",

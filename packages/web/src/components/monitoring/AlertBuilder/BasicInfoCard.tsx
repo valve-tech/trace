@@ -24,12 +24,11 @@ export function BasicInfoCard({
   setEnabled,
 }: Props) {
   return (
-    <div className="rounded-lg border p-4 space-y-4" style={cardStyle}>
+    <div className="rounded-lg p-4 space-y-4" style={cardStyle}>
       <h3
-        className="text-sm font-semibold pb-3 border-b"
+        className="text-sm font-semibold pb-3 bs-b-muted"
         style={{
           color: "var(--color-text-primary)",
-          borderColor: "var(--color-border-muted)",
         }}
       >
         Basic Info
@@ -47,7 +46,7 @@ export function BasicInfoCard({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., Large Transfer Monitor"
-          className="w-full px-3 py-2 rounded-md border text-sm"
+          className="w-full px-3 py-2 rounded-md text-sm"
           style={inputStyle}
         />
       </div>
@@ -63,7 +62,7 @@ export function BasicInfoCard({
           <select
             value={type}
             onChange={(e) => onTypeChange(e.target.value as AlertType)}
-            className="w-full px-3 py-2 rounded-md border text-sm"
+            className="w-full px-3 py-2 rounded-md text-sm"
             style={inputStyle}
           >
             {ALERT_TYPES.map((t) => (
@@ -87,7 +86,7 @@ export function BasicInfoCard({
             onChange={(e) => setCooldown(e.target.value)}
             placeholder="60"
             min={0}
-            className="w-full px-3 py-2 rounded-md border text-sm"
+            className="w-full px-3 py-2 rounded-md text-sm"
             style={inputStyle}
           />
         </div>

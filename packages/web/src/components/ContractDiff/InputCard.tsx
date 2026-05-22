@@ -3,7 +3,7 @@ import { ADDRESS_RE } from "./api";
 const inputStyle: React.CSSProperties = {
   width: "100%",
   background: "var(--color-bg-input)",
-  border: "1px solid var(--color-border-default)",
+  boxShadow: "0 0 0 1px var(--color-border-default)",
   color: "var(--color-text-primary)",
   padding: "8px 12px",
   fontSize: "13px",

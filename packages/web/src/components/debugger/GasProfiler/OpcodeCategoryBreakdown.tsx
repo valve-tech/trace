@@ -41,7 +41,7 @@ export function OpcodeCategoryBreakdown({
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs"
               style={{
                 backgroundColor: `${color}20`,
-                border: `1px solid ${color}40`,
+                boxShadow: `0 0 0 1px ${color}40`,
               }}
             >
               <span

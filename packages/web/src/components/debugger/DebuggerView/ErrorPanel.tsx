@@ -12,7 +12,7 @@ export function ErrorPanel({
 }) {
   return (
     <div
-      className="rounded-lg border p-6"
+      className="rounded-lg p-6"
       style={{
         backgroundColor: "var(--color-danger-muted)",
         borderColor: "var(--color-danger)",

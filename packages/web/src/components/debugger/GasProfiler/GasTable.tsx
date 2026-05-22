@@ -16,8 +16,7 @@ export function GasTable({ flat }: { flat: FlatGasEntry[] }) {
       <table className="w-full text-xs">
         <thead>
           <tr
-            className="border-b"
-            style={{ borderColor: "var(--color-border-default)" }}
+            style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
           >
             {HEADERS.map((h) => (
               <th
@@ -34,8 +33,7 @@ export function GasTable({ flat }: { flat: FlatGasEntry[] }) {
           {flat.map((entry, i) => (
             <tr
               key={i}
-              className="border-b"
-              style={{ borderColor: "var(--color-border-muted)" }}
+              style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
             >
               <td
                 className="py-2 px-3 font-mono"

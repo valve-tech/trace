@@ -96,7 +96,7 @@ export function DecodedTrace({
   return (
     <div
       className="card overflow-hidden"
-      style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
+      style={{ backgroundColor: "var(--color-bg-card)", boxShadow: "0 0 0 1px var(--color-border-default)" }}
     >
       <PanelHeader title="Decoded Trace" count={entries.length} suffix="calls" />
       <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>

@@ -88,7 +88,7 @@ export default function RpcDashboard() {
 
   const cardStyle = {
     backgroundColor: "var(--color-bg-card)",
-    borderColor: "var(--color-border-default)",
+    boxShadow: "0 0 0 1px var(--color-border-default)",
   };
 
   const labelStyle = { color: "var(--color-text-secondary)" };
@@ -98,7 +98,7 @@ export default function RpcDashboard() {
     <div className="space-y-6">
       {/* RPC Endpoint URL */}
       <div
-        className="rounded-lg border p-4 flex items-center justify-between gap-4"
+        className="rounded-lg p-4 flex items-center justify-between gap-4"
         style={cardStyle}
       >
         <div className="min-w-0 flex-1">
@@ -131,9 +131,8 @@ export default function RpcDashboard() {
           {/* Copy button */}
           <button
             onClick={handleCopy}
-            className="px-3 py-1.5 rounded-md border text-xs font-medium transition-colors"
+            className="px-3 py-1.5 rounded-md bs text-xs font-medium transition-colors"
             style={{
-              borderColor: "var(--color-border-default)",
               color: copied ? "var(--color-success)" : "var(--color-text-secondary)",
               backgroundColor: "var(--color-bg-secondary)",
             }}
@@ -145,7 +144,7 @@ export default function RpcDashboard() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-lg border p-4" style={cardStyle}>
+        <div className="rounded-lg p-4" style={cardStyle}>
           <div className="text-xs font-medium mb-1" style={labelStyle}>
             Total Requests
           </div>
@@ -154,7 +153,7 @@ export default function RpcDashboard() {
           </div>
         </div>
 
-        <div className="rounded-lg border p-4" style={cardStyle}>
+        <div className="rounded-lg p-4" style={cardStyle}>
           <div className="text-xs font-medium mb-1" style={labelStyle}>
             Avg Latency
           </div>
@@ -163,7 +162,7 @@ export default function RpcDashboard() {
           </div>
         </div>
 
-        <div className="rounded-lg border p-4" style={cardStyle}>
+        <div className="rounded-lg p-4" style={cardStyle}>
           <div className="text-xs font-medium mb-1" style={labelStyle}>
             Error Rate
           </div>
@@ -182,12 +181,11 @@ export default function RpcDashboard() {
       </div>
 
       {/* Method breakdown table */}
-      <div className="rounded-lg border overflow-hidden" style={cardStyle}>
+      <div className="rounded-lg overflow-hidden" style={cardStyle}>
         <div
-          className="px-4 py-3 border-b text-sm font-semibold"
+          className="px-4 py-3 bs-b text-sm font-semibold"
           style={{
             color: "var(--color-text-primary)",
-            borderColor: "var(--color-border-default)",
           }}
         >
           Method Breakdown
@@ -201,8 +199,8 @@ export default function RpcDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr
-                  className="border-b"
-                  style={{ borderColor: "var(--color-border-default)" }}
+                  className="bs-b"
+                  style={{}}
                 >
                   <th className="text-left px-4 py-2 font-medium" style={labelStyle}>
                     Method
@@ -225,8 +223,8 @@ export default function RpcDashboard() {
                 {methodEntries.map(([method, s]) => (
                   <tr
                     key={method}
-                    className="border-b last:border-b-0 hover:opacity-80 transition-opacity"
-                    style={{ borderColor: "var(--color-border-default)" }}
+                    className="bs-b last:shadow-none hover:opacity-80 transition-opacity"
+                    style={{}}
                   >
                     <td className="px-4 py-2.5 font-mono text-xs" style={valueStyle}>
                       {method}

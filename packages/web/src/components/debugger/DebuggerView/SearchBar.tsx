@@ -14,10 +14,9 @@ export function SearchBar({
 }) {
   return (
     <div
-      className="rounded-lg border p-6"
+      className="rounded-lg bs p-6"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <h2
@@ -40,10 +39,9 @@ export function SearchBar({
           value={txHash}
           onChange={(e) => setTxHash(e.target.value.trim())}
           onKeyDown={(e) => { if (e.key === "Enter") onSubmit(); }}
-          className="flex-1 px-4 py-2.5 rounded-lg border text-sm"
+          className="flex-1 px-4 py-2.5 rounded-lg bs text-sm"
           style={{
             backgroundColor: "var(--color-bg-input)",
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-primary)",
             fontFamily: "var(--font-mono)",
           }}

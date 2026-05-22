@@ -80,7 +80,7 @@ function DiffTable({ lines }: { lines: FileDiff["lines"] }) {
   return (
     <div
       style={{
-        borderTop: "1px solid var(--color-border-default)",
+        boxShadow: "0 -1px 0 0 var(--color-border-default)",
         overflowX: "auto",
       }}
     >
@@ -163,7 +163,7 @@ function LineNumberCell({ value }: { value: number | null }) {
         textAlign: "right",
         color: "var(--color-text-muted)",
         userSelect: "none",
-        borderRight: "1px solid var(--color-border-muted)",
+        boxShadow: "1px 0 0 0 var(--color-border-muted)",
         whiteSpace: "nowrap",
         lineHeight: "1.6",
       }}

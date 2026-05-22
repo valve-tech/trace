@@ -20,8 +20,8 @@ export function DecodedInputSection({ decoded }: { decoded: DecodedInput }) {
         </div>
         {decoded.args.length > 0 && (
           <div
-            className="rounded-md border overflow-hidden"
-            style={{ borderColor: "var(--color-border-muted)" }}
+            className="rounded-md bs-muted overflow-hidden"
+            style={{}}
           >
             <table className="w-full text-sm">
               <thead>
@@ -56,8 +56,8 @@ export function DecodedInputSection({ decoded }: { decoded: DecodedInput }) {
                 {decoded.args.map((arg, i) => (
                   <tr
                     key={i}
-                    className="border-t hover:opacity-80"
-                    style={{ borderColor: "var(--color-border-muted)" }}
+                    className="bs-t-muted hover:opacity-80"
+                    style={{}}
                   >
                     <td
                       className="px-3 py-2"

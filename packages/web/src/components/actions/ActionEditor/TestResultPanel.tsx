@@ -3,7 +3,7 @@ import type { ExecutionResult } from "../../../api/actions";
 export function TestResultPanel({ result }: { result: ExecutionResult }) {
   return (
     <div
-      className="rounded-lg border p-4"
+      className="rounded-lg p-4"
       style={{
         borderColor: result.success
           ? "var(--color-success)"

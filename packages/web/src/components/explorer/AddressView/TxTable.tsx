@@ -56,8 +56,8 @@ function TxRow({
 
   return (
     <tr
-      className="border-t hover:opacity-80"
-      style={{ borderColor: "var(--color-border-muted)" }}
+      className="bs-t-muted hover:opacity-80"
+      style={{}}
     >
       <td className="px-3 py-2">
         <LinkButton

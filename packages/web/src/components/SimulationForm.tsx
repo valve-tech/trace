@@ -71,7 +71,7 @@ export default function SimulationForm({
   const inputStyle = {
     fontFamily: "var(--font-mono)",
     backgroundColor: "var(--color-bg-input)",
-    borderColor: "var(--color-border-default)",
+    boxShadow: "0 0 0 1px var(--color-border-default)",
     color: "var(--color-text-primary)",
   };
 
@@ -83,17 +83,15 @@ export default function SimulationForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Main fields card */}
       <div
-        className="rounded-lg border p-4 space-y-4"
+        className="rounded-lg bs p-4 space-y-4"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
         }}
       >
         <h2
-          className="text-sm font-semibold pb-3 border-b"
+          className="text-sm font-semibold pb-3 bs-b-muted"
           style={{
             color: "var(--color-text-primary)",
-            borderColor: "var(--color-border-muted)",
           }}
         >
           Transaction Parameters
@@ -118,10 +116,10 @@ export default function SimulationForm({
             value={from}
             onChange={(e) => setFrom(e.target.value)}
             placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f..."
-            className="w-full px-3 py-2 rounded-md border text-sm"
+            className="w-full px-3 py-2 rounded-md text-sm"
             style={{
               ...inputStyle,
-              borderColor: !fromValid ? "var(--color-danger)" : inputStyle.borderColor,
+              boxShadow: !fromValid ? "0 0 0 1px var(--color-danger)" : inputStyle.boxShadow,
             }}
           />
           {!fromValid && (
@@ -141,10 +139,10 @@ export default function SimulationForm({
             value={to}
             onChange={(e) => setTo(e.target.value)}
             placeholder="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
-            className="w-full px-3 py-2 rounded-md border text-sm"
+            className="w-full px-3 py-2 rounded-md text-sm"
             style={{
               ...inputStyle,
-              borderColor: !toValid ? "var(--color-danger)" : inputStyle.borderColor,
+              boxShadow: !toValid ? "0 0 0 1px var(--color-danger)" : inputStyle.boxShadow,
             }}
           />
           {!toValid && (
@@ -165,7 +163,7 @@ export default function SimulationForm({
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="0.0"
-              className="w-full px-3 py-2 rounded-md border text-sm pr-14"
+              className="w-full px-3 py-2 rounded-md text-sm pr-14"
               style={inputStyle}
             />
             <span
@@ -192,7 +190,7 @@ export default function SimulationForm({
             onChange={(e) => setCalldata(e.target.value)}
             placeholder="0xa9059cbb000000000000000000000000..."
             rows={3}
-            className="w-full px-3 py-2 rounded-md border text-sm resize-y"
+            className="w-full px-3 py-2 rounded-md text-sm resize-y"
             style={inputStyle}
           />
         </div>
@@ -208,7 +206,7 @@ export default function SimulationForm({
               value={gasLimit}
               onChange={(e) => setGasLimit(e.target.value)}
               placeholder="8000000"
-              className="w-full px-3 py-2 rounded-md border text-sm"
+              className="w-full px-3 py-2 rounded-md text-sm"
               style={inputStyle}
             />
           </div>
@@ -221,7 +219,7 @@ export default function SimulationForm({
               value={blockNumber}
               onChange={(e) => setBlockNumber(e.target.value)}
               placeholder="latest"
-              className="w-full px-3 py-2 rounded-md border text-sm"
+              className="w-full px-3 py-2 rounded-md text-sm"
               style={inputStyle}
             />
           </div>

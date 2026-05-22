@@ -205,10 +205,9 @@ function StatCard({
 }) {
   return (
     <div
-      className="rounded-lg border p-4"
+      className="rounded-lg bs p-4"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div
@@ -233,10 +232,9 @@ function StatCard({
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div
-      className="rounded-lg border p-12 text-center"
+      className="rounded-lg bs p-12 text-center"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div
@@ -296,10 +294,9 @@ function ActionCard({
 
   return (
     <div
-      className="rounded-lg border p-4 transition-colors"
+      className="rounded-lg bs p-4 transition-colors"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
         opacity: action.enabled ? 1 : 0.6,
       }}
     >
@@ -365,9 +362,8 @@ function ActionCard({
 
           <button
             onClick={onViewLogs}
-            className="px-2.5 py-1 text-xs rounded border transition-colors"
+            className="px-2.5 py-1 text-xs rounded bs transition-colors"
             style={{
-              borderColor: "var(--color-border-default)",
               color: "var(--color-text-secondary)",
               backgroundColor: "transparent",
             }}
@@ -383,9 +379,8 @@ function ActionCard({
 
           <button
             onClick={onEdit}
-            className="px-2.5 py-1 text-xs rounded border transition-colors"
+            className="px-2.5 py-1 text-xs rounded bs transition-colors"
             style={{
-              borderColor: "var(--color-border-default)",
               color: "var(--color-text-secondary)",
               backgroundColor: "transparent",
             }}
@@ -401,9 +396,8 @@ function ActionCard({
 
           <button
             onClick={onDelete}
-            className="px-2.5 py-1 text-xs rounded border transition-colors"
+            className="px-2.5 py-1 text-xs rounded bs transition-colors"
             style={{
-              borderColor: "var(--color-border-default)",
               color: "var(--color-danger)",
               backgroundColor: "transparent",
             }}

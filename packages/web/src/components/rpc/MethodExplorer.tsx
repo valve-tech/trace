@@ -50,7 +50,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
 
   const cardStyle = {
     backgroundColor: "var(--color-bg-card)",
-    borderColor: "var(--color-border-default)",
+    boxShadow: "0 0 0 1px var(--color-border-default)",
   };
 
   const labelStyle = { color: "var(--color-text-secondary)" };
@@ -74,11 +74,11 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
   return (
     <div className="space-y-6">
       {namespaces.map((ns) => (
-        <div key={ns} className="rounded-lg border overflow-hidden" style={cardStyle}>
+        <div key={ns} className="rounded-lg overflow-hidden" style={cardStyle}>
           {/* Namespace header */}
           <div
-            className="px-4 py-3 border-b flex items-center gap-2"
-            style={{ borderColor: "var(--color-border-default)" }}
+            className="px-4 py-3 bs-b flex items-center gap-2"
+            style={{}}
           >
             <span
               className="text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
@@ -119,8 +119,8 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
               return (
                 <div
                   key={method.name}
-                  className="border-b last:border-b-0"
-                  style={{ borderColor: "var(--color-border-default)" }}
+                  className="bs-b last:shadow-none"
+                  style={{}}
                 >
                   {/* Accordion header */}
                   <button

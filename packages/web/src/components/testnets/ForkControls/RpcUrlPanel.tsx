@@ -20,7 +20,7 @@ export function RpcUrlPanel({ rpcUrl }: { rpcUrl: string }) {
   };
 
   return (
-    <div className="rounded-md border p-3" style={sectionStyle}>
+    <div className="rounded-md p-3" style={sectionStyle}>
       <label
         className="block text-xs font-medium mb-1.5"
         style={{ color: "var(--color-text-secondary)" }}
@@ -29,10 +29,9 @@ export function RpcUrlPanel({ rpcUrl }: { rpcUrl: string }) {
       </label>
       <div className="flex items-center gap-2">
         <code
-          className="flex-1 text-sm px-2 py-1.5 rounded border overflow-x-auto"
+          className="flex-1 text-sm px-2 py-1.5 rounded bs overflow-x-auto"
           style={{
             backgroundColor: "var(--color-bg-input)",
-            borderColor: "var(--color-border-default)",
             color: "var(--color-accent)",
             fontFamily: "var(--font-mono)",
           }}
@@ -41,9 +40,8 @@ export function RpcUrlPanel({ rpcUrl }: { rpcUrl: string }) {
         </code>
         <button
           onClick={handleCopy}
-          className="px-3 py-1.5 text-xs rounded border whitespace-nowrap"
+          className="px-3 py-1.5 text-xs rounded bs whitespace-nowrap"
           style={{
-            borderColor: "var(--color-border-default)",
             color: copied
               ? "var(--color-success)"
               : "var(--color-text-secondary)",

@@ -125,9 +125,8 @@ export default function ActionEditor({
         </h2>
         <button
           onClick={onCancel}
-          className="px-3 py-1.5 text-sm rounded-md border transition-colors"
+          className="px-3 py-1.5 text-sm rounded-md bs transition-colors"
           style={{
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-secondary)",
             backgroundColor: "transparent",
           }}
@@ -154,10 +153,9 @@ export default function ActionEditor({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="My Action"
-          className="w-full px-3 py-2 rounded-md border text-sm"
+          className="w-full px-3 py-2 rounded-md bs text-sm"
           style={{
             backgroundColor: "var(--color-bg-input)",
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-primary)",
           }}
         />

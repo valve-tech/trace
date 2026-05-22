@@ -26,10 +26,10 @@ export function NotificationChannelsCard({
     );
 
   return (
-    <div className="rounded-lg border p-4 space-y-4" style={cardStyle}>
+    <div className="rounded-lg p-4 space-y-4" style={cardStyle}>
       <div
-        className="flex items-center justify-between pb-3 border-b"
-        style={{ borderColor: "var(--color-border-muted)" }}
+        className="flex items-center justify-between pb-3 bs-b-muted"
+        style={{}}
       >
         <h3
           className="text-sm font-semibold"
@@ -83,10 +83,9 @@ function ChannelEditor({
 }) {
   return (
     <div
-      className="rounded-md border p-3 space-y-3"
+      className="rounded-md bs-muted p-3 space-y-3"
       style={{
         backgroundColor: "var(--color-bg-primary)",
-        borderColor: "var(--color-border-muted)",
       }}
     >
       <div className="flex items-center justify-between">
@@ -101,7 +100,7 @@ function ChannelEditor({
               chatId: "",
             })
           }
-          className="px-2 py-1 rounded-md border text-xs"
+          className="px-2 py-1 rounded-md text-xs"
           style={inputStyle}
         >
           {CHANNEL_TYPES.map((ct) => (
@@ -166,7 +165,7 @@ function WebhookField({
           })
         }
         placeholder="https://..."
-        className="w-full px-3 py-2 rounded-md border text-xs"
+        className="w-full px-3 py-2 rounded-md text-xs"
         style={inputStyle}
       />
     </div>
@@ -194,7 +193,7 @@ function TelegramFields({
           value={channel.botToken ?? ""}
           onChange={(e) => onUpdate({ botToken: e.target.value })}
           placeholder="123456789:ABCdefGHIjklMNOpqrstUVWxyz"
-          className="w-full px-3 py-2 rounded-md border text-xs"
+          className="w-full px-3 py-2 rounded-md text-xs"
           style={inputStyle}
         />
       </div>
@@ -210,7 +209,7 @@ function TelegramFields({
           value={channel.chatId ?? ""}
           onChange={(e) => onUpdate({ chatId: e.target.value })}
           placeholder="-1001234567890"
-          className="w-full px-3 py-2 rounded-md border text-xs"
+          className="w-full px-3 py-2 rounded-md text-xs"
           style={inputStyle}
         />
       </div>

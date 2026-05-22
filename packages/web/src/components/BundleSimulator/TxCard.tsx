@@ -4,7 +4,7 @@ import type { BundleTxEntry } from "../../types";
 const inputStyle = {
   fontFamily: "var(--font-mono)",
   backgroundColor: "var(--color-bg-input)",
-  borderColor: "var(--color-border-default)",
+  boxShadow: "0 0 0 1px var(--color-border-default)",
   color: "var(--color-text-primary)",
 };
 
@@ -24,10 +24,9 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
 
   return (
     <div
-      className="rounded-lg border p-4 space-y-3"
+      className="rounded-lg bs p-4 space-y-3"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div className="flex items-center justify-between">
@@ -83,12 +82,12 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
             value={tx.from}
             onChange={(e) => onChange(tx.id, "from", e.target.value)}
             placeholder="0x..."
-            className="w-full px-2 py-1.5 rounded border text-sm"
+            className="w-full px-2 py-1.5 rounded text-sm"
             style={{
               ...inputStyle,
-              borderColor: !fromValid
-                ? "var(--color-danger)"
-                : inputStyle.borderColor,
+              boxShadow: !fromValid
+                ? "0 0 0 1px var(--color-danger)"
+                : inputStyle.boxShadow,
             }}
           />
         </div>
@@ -104,12 +103,12 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
             value={tx.to}
             onChange={(e) => onChange(tx.id, "to", e.target.value)}
             placeholder="0x..."
-            className="w-full px-2 py-1.5 rounded border text-sm"
+            className="w-full px-2 py-1.5 rounded text-sm"
             style={{
               ...inputStyle,
-              borderColor: !toValid
-                ? "var(--color-danger)"
-                : inputStyle.borderColor,
+              boxShadow: !toValid
+                ? "0 0 0 1px var(--color-danger)"
+                : inputStyle.boxShadow,
             }}
           />
         </div>
@@ -128,7 +127,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
             value={tx.value}
             onChange={(e) => onChange(tx.id, "value", e.target.value)}
             placeholder="0.0"
-            className="w-full px-2 py-1.5 rounded border text-sm"
+            className="w-full px-2 py-1.5 rounded text-sm"
             style={inputStyle}
           />
         </div>
@@ -144,7 +143,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
             value={tx.gasLimit}
             onChange={(e) => onChange(tx.id, "gasLimit", e.target.value)}
             placeholder="8000000"
-            className="w-full px-2 py-1.5 rounded border text-sm"
+            className="w-full px-2 py-1.5 rounded text-sm"
             style={inputStyle}
           />
         </div>
@@ -163,7 +162,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
           onChange={(e) => onChange(tx.id, "data", e.target.value)}
           placeholder="0x..."
           rows={2}
-          className="w-full px-2 py-1.5 rounded border text-sm resize-y"
+          className="w-full px-2 py-1.5 rounded text-sm resize-y"
           style={inputStyle}
         />
       </div>

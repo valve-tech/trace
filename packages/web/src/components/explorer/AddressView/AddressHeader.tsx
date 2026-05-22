@@ -12,10 +12,9 @@ export function AddressHeader({
 }) {
   return (
     <div
-      className="rounded-lg border p-4"
+      className="rounded-lg bs p-4"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -63,8 +62,8 @@ export function AddressHeader({
       </div>
       {info?.isContract && (
         <div
-          className="mt-3 pt-3 border-t"
-          style={{ borderColor: "var(--color-border-muted)" }}
+          className="mt-3 pt-3 bs-t-muted"
+          style={{}}
         >
           <button
             onClick={onViewContract}

@@ -58,17 +58,15 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
 
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="rounded-lg bs overflow-hidden"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       {/* Header with severity pills */}
       <div
-        className="flex items-center justify-between px-3 py-2 border-b"
+        className="flex items-center justify-between px-3 py-2 bs-b"
         style={{
-          borderColor: "var(--color-border-default)",
           backgroundColor: "var(--color-bg-secondary)",
         }}
       >
@@ -124,8 +122,8 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
             return (
               <div
                 key={i}
-                className="border-b last:border-b-0"
-                style={{ borderColor: "var(--color-border-default)" }}
+                className="bs-b last:shadow-none"
+                style={{}}
               >
                 {/* Finding header */}
                 <button

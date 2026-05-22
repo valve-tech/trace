@@ -47,9 +47,8 @@ function SectionHeader({
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between px-3 py-2 border-b text-left hover:opacity-80"
+      className="w-full flex items-center justify-between px-3 py-2 bs-b text-left hover:opacity-80"
       style={{
-        borderColor: "var(--color-border-default)",
         backgroundColor: "var(--color-bg-secondary)",
       }}
     >
@@ -79,8 +78,8 @@ function TableHeader({ cols }: { cols: string[] }) {
   return (
     <thead>
       <tr
-        className="border-b"
-        style={{ borderColor: "var(--color-border-muted)" }}
+        className="bs-b-muted"
+        style={{}}
       >
         {cols.map((col) => (
           <th
@@ -126,8 +125,8 @@ function BalanceChangesSection({ changes }: { changes: BalanceChange[] }) {
                 return (
                   <tr
                     key={i}
-                    className="border-b last:border-b-0"
-                    style={{ borderColor: "var(--color-border-muted)" }}
+                    className="bs-b-muted last:shadow-none"
+                    style={{}}
                   >
                     <td
                       className="px-3 py-2"
@@ -193,8 +192,8 @@ function StorageGroup({
 
   return (
     <div
-      className="border-b last:border-b-0"
-      style={{ borderColor: "var(--color-border-muted)" }}
+      className="bs-b-muted last:shadow-none"
+      style={{}}
     >
       <button
         onClick={() => setExpanded((v) => !v)}
@@ -234,8 +233,8 @@ function StorageGroup({
               {rows.map((row, i) => (
                 <tr
                   key={i}
-                  className="border-b last:border-b-0"
-                  style={{ borderColor: "var(--color-border-muted)" }}
+                  className="bs-b-muted last:shadow-none"
+                  style={{}}
                 >
                   <td
                     className="px-3 py-2"
@@ -351,8 +350,8 @@ function NonceChangesSection({ changes }: { changes: NonceChange[] }) {
               {changes.map((change, i) => (
                 <tr
                   key={i}
-                  className="border-b last:border-b-0"
-                  style={{ borderColor: "var(--color-border-muted)" }}
+                  className="bs-b-muted last:shadow-none"
+                  style={{}}
                 >
                   <td
                     className="px-3 py-2"
@@ -402,10 +401,9 @@ export default function StateDiffPanel({ stateDiff }: StateDiffPanelProps) {
   if (!hasAnyChanges) {
     return (
       <div
-        className="rounded-lg border p-6 text-center text-xs"
+        className="rounded-lg bs p-6 text-center text-xs"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
           color: "var(--color-text-muted)",
         }}
       >
@@ -416,10 +414,9 @@ export default function StateDiffPanel({ stateDiff }: StateDiffPanelProps) {
 
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="rounded-lg bs overflow-hidden"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       {balanceChanges.length > 0 && (
@@ -427,18 +424,22 @@ export default function StateDiffPanel({ stateDiff }: StateDiffPanelProps) {
       )}
       {storageChanges.length > 0 && (
         <div
-          className={balanceChanges.length > 0 ? "border-t" : ""}
-          style={{ borderColor: "var(--color-border-default)" }}
+          style={
+            balanceChanges.length > 0
+              ? { boxShadow: "0 -1px 0 0 var(--color-border-default)" }
+              : undefined
+          }
         >
           <StorageChangesSection changes={storageChanges} />
         </div>
       )}
       {nonceChanges.length > 0 && (
         <div
-          className={
-            balanceChanges.length > 0 || storageChanges.length > 0 ? "border-t" : ""
+          style={
+            balanceChanges.length > 0 || storageChanges.length > 0
+              ? { boxShadow: "0 -1px 0 0 var(--color-border-default)" }
+              : undefined
           }
-          style={{ borderColor: "var(--color-border-default)" }}
         >
           <NonceChangesSection changes={nonceChanges} />
         </div>

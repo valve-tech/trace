@@ -23,10 +23,9 @@ export function TransactionsTab({
 }: Props) {
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="rounded-lg bs overflow-hidden"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       {txs.length === 0 ? (
@@ -67,8 +66,8 @@ function Pagination({
 }) {
   return (
     <div
-      className="flex items-center justify-between px-3 py-2.5 border-t"
-      style={{ borderColor: "var(--color-border-muted)" }}
+      className="flex items-center justify-between px-3 py-2.5 bs-t-muted"
+      style={{}}
     >
       <PageButton
         enabled={page > 1}

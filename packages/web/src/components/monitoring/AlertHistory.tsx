@@ -48,7 +48,7 @@ export default function AlertHistory({
 
   const cardStyle = {
     backgroundColor: "var(--color-bg-card)",
-    borderColor: "var(--color-border-default)",
+    boxShadow: "0 0 0 1px var(--color-border-default)",
   };
 
   const formatDate = (dateStr: string) => {
@@ -67,9 +67,8 @@ export default function AlertHistory({
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="text-sm px-3 py-1.5 rounded-md border"
+          className="text-sm px-3 py-1.5 rounded-md bs"
           style={{
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-secondary)",
             backgroundColor: "transparent",
           }}
@@ -87,7 +86,7 @@ export default function AlertHistory({
       {/* Error */}
       {error && (
         <div
-          className="rounded-lg border px-4 py-3 text-sm"
+          className="rounded-lg px-4 py-3 text-sm"
           style={{
             backgroundColor: "var(--color-danger-muted)",
             borderColor: "var(--color-danger)",
@@ -108,7 +107,7 @@ export default function AlertHistory({
       {/* Table */}
       {!loading && history.length === 0 && (
         <div
-          className="rounded-lg border p-8 text-center"
+          className="rounded-lg p-8 text-center"
           style={cardStyle}
         >
           <p style={{ color: "var(--color-text-muted)" }}>
@@ -118,13 +117,13 @@ export default function AlertHistory({
       )}
 
       {!loading && history.length > 0 && (
-        <div className="rounded-lg border overflow-hidden" style={cardStyle}>
+        <div className="rounded-lg overflow-hidden" style={cardStyle}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr
-                  className="border-b"
-                  style={{ borderColor: "var(--color-border-muted)" }}
+                  className="bs-b-muted"
+                  style={{}}
                 >
                   <th
                     className="text-left px-4 py-3 text-xs font-medium"
@@ -156,8 +155,8 @@ export default function AlertHistory({
                 {history.map((entry) => (
                   <tr
                     key={entry.id}
-                    className="border-b last:border-b-0"
-                    style={{ borderColor: "var(--color-border-muted)" }}
+                    className="bs-b-muted last:shadow-none"
+                    style={{}}
                   >
                     <td
                       className="px-4 py-3 whitespace-nowrap"
@@ -212,8 +211,8 @@ export default function AlertHistory({
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
             <div
-              className="flex items-center justify-between px-4 py-3 border-t"
-              style={{ borderColor: "var(--color-border-muted)" }}
+              className="flex items-center justify-between px-4 py-3 bs-t-muted"
+              style={{}}
             >
               <span
                 className="text-xs"
@@ -226,9 +225,8 @@ export default function AlertHistory({
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="px-3 py-1 text-xs rounded-md border"
+                  className="px-3 py-1 text-xs rounded-md bs"
                   style={{
-                    borderColor: "var(--color-border-default)",
                     color:
                       page <= 1
                         ? "var(--color-text-muted)"
@@ -245,9 +243,8 @@ export default function AlertHistory({
                     setPage((p) => Math.min(pagination.totalPages, p + 1))
                   }
                   disabled={page >= pagination.totalPages}
-                  className="px-3 py-1 text-xs rounded-md border"
+                  className="px-3 py-1 text-xs rounded-md bs"
                   style={{
-                    borderColor: "var(--color-border-default)",
                     color:
                       page >= pagination.totalPages
                         ? "var(--color-text-muted)"

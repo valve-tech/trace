@@ -13,7 +13,7 @@ interface GasProfilerProps {
 
 const cardStyle = {
   backgroundColor: "var(--color-bg-card)",
-  borderColor: "var(--color-border-default)",
+  boxShadow: "0 0 0 1px var(--color-border-default)",
 };
 
 function Card({
@@ -26,7 +26,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border p-4" style={cardStyle}>
+    <div className="rounded-lg p-4" style={cardStyle}>
       <div className="flex items-center justify-between mb-3">
         <h3
           className="text-sm font-semibold"

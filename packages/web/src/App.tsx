@@ -98,7 +98,7 @@ export default function App() {
         className="px-6 py-3 flex items-center justify-between shrink-0"
         style={{
           backgroundColor: "var(--color-bg-secondary)",
-          boxShadow: "inset 0 -1px 0 0 var(--color-border-default)",
+          boxShadow: "0 1px 0 0 var(--color-border-default)",
         }}
       >
         <div className="flex items-center gap-3">

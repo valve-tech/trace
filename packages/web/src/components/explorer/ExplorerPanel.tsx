@@ -104,7 +104,7 @@ export default function ExplorerPanel() {
               style={{
                 backgroundColor: "var(--color-bg-card)",
                 color: "var(--color-text-secondary)",
-                border: "1px solid var(--color-border-default)",
+                boxShadow: "0 0 0 1px var(--color-border-default)",
               }}
             >
               <Icon icon="heroicons:chevron-left" className="w-3.5 h-3.5" />
@@ -142,10 +142,9 @@ export default function ExplorerPanel() {
       {/* Detail view */}
       {view.type === "none" && (
         <div
-          className="rounded-lg border p-8 flex flex-col items-center justify-center min-h-[400px] text-center"
+          className="rounded-lg bs p-8 flex flex-col items-center justify-center min-h-[400px] text-center"
           style={{
             backgroundColor: "var(--color-bg-card)",
-            borderColor: "var(--color-border-default)",
           }}
         >
           <Icon

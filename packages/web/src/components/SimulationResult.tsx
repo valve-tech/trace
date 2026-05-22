@@ -19,8 +19,8 @@ function DataRow({
 }) {
   return (
     <div
-      className="flex flex-col gap-1 py-2.5 border-b last:border-b-0"
-      style={{ borderColor: "var(--color-border-muted)" }}
+      className="flex flex-col gap-1 py-2.5 bs-b-muted last:shadow-none"
+      style={{}}
     >
       <span className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
         {label}
@@ -41,10 +41,9 @@ function DataRow({
 function EmptyState() {
   return (
     <div
-      className="rounded-lg border p-8 flex flex-col items-center justify-center text-center min-h-[400px]"
+      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center min-h-[400px]"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <Icon
@@ -65,10 +64,9 @@ function EmptyState() {
 function LoadingState() {
   return (
     <div
-      className="rounded-lg border p-8 flex flex-col items-center justify-center text-center min-h-[400px]"
+      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center min-h-[400px]"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div className="spinner mb-4" />
@@ -85,7 +83,7 @@ function LoadingState() {
 function ErrorState({ message }: { message: string }) {
   return (
     <div
-      className="rounded-lg border p-6"
+      className="rounded-lg p-6"
       style={{
         backgroundColor: "var(--color-bg-card)",
         borderColor: "var(--color-danger)",
@@ -129,10 +127,9 @@ export default function SimulationResultPanel({
     <div className="space-y-4">
       {/* Status card */}
       <div
-        className="rounded-lg border p-4"
+        className="rounded-lg bs p-4"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
         }}
       >
         <div className="flex items-center justify-between mb-4">
@@ -180,17 +177,15 @@ export default function SimulationResultPanel({
       {/* Decoded function call */}
       {result.decodedCall && (
         <div
-          className="rounded-lg border p-4"
+          className="rounded-lg bs p-4"
           style={{
             backgroundColor: "var(--color-bg-card)",
-            borderColor: "var(--color-border-default)",
           }}
         >
           <h3
-            className="text-sm font-semibold mb-3 pb-2 border-b"
+            className="text-sm font-semibold mb-3 pb-2 bs-b-muted"
             style={{
               color: "var(--color-text-primary)",
-              borderColor: "var(--color-border-muted)",
             }}
           >
             Decoded Function Call
@@ -239,17 +234,15 @@ export default function SimulationResultPanel({
       {/* Decoded return value */}
       {result.decodedReturn && result.decodedReturn.values.length > 0 && (
         <div
-          className="rounded-lg border p-4"
+          className="rounded-lg bs p-4"
           style={{
             backgroundColor: "var(--color-bg-card)",
-            borderColor: "var(--color-border-default)",
           }}
         >
           <h3
-            className="text-sm font-semibold mb-3 pb-2 border-b"
+            className="text-sm font-semibold mb-3 pb-2 bs-b-muted"
             style={{
               color: "var(--color-text-primary)",
-              borderColor: "var(--color-border-muted)",
             }}
           >
             Decoded Return Value
@@ -284,17 +277,15 @@ export default function SimulationResultPanel({
       {/* Event logs */}
       {result.logs && result.logs.length > 0 && (
         <div
-          className="rounded-lg border p-4"
+          className="rounded-lg bs p-4"
           style={{
             backgroundColor: "var(--color-bg-card)",
-            borderColor: "var(--color-border-default)",
           }}
         >
           <h3
-            className="text-sm font-semibold mb-3 pb-2 border-b"
+            className="text-sm font-semibold mb-3 pb-2 bs-b-muted"
             style={{
               color: "var(--color-text-primary)",
-              borderColor: "var(--color-border-muted)",
             }}
           >
             Event Logs ({result.logs.length})
@@ -303,10 +294,9 @@ export default function SimulationResultPanel({
             {result.logs.map((log, i) => (
               <div
                 key={i}
-                className="rounded-md border p-3"
+                className="rounded-md bs-muted p-3"
                 style={{
                   backgroundColor: "var(--color-bg-tertiary)",
-                  borderColor: "var(--color-border-muted)",
                 }}
               >
                 {log.decoded ? (

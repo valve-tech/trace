@@ -33,7 +33,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 rounded-md border text-sm"
+        className="w-full px-3 py-2 rounded-md text-sm"
         style={inputStyle}
       />
       {hint && (
@@ -53,12 +53,11 @@ export function ConditionsCard({ type, conditions, setConditions }: Props) {
     setConditions({ ...conditions, ...updates });
 
   return (
-    <div className="rounded-lg border p-4 space-y-4" style={cardStyle}>
+    <div className="rounded-lg p-4 space-y-4" style={cardStyle}>
       <h3
-        className="text-sm font-semibold pb-3 border-b"
+        className="text-sm font-semibold pb-3 bs-b-muted"
         style={{
           color: "var(--color-text-primary)",
-          borderColor: "var(--color-border-muted)",
         }}
       >
         Conditions
@@ -138,7 +137,7 @@ export function ConditionsCard({ type, conditions, setConditions }: Props) {
                     direction: e.target.value as "above" | "below",
                   })
                 }
-                className="w-full px-3 py-2 rounded-md border text-sm"
+                className="w-full px-3 py-2 rounded-md text-sm"
                 style={inputStyle}
               >
                 <option value="above">Above</option>

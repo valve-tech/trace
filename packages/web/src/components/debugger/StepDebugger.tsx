@@ -341,14 +341,17 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col gap-0">
-          <div className="flex border-b" style={{ borderColor: "var(--color-border-default)" }}>
+          <div className="flex" style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}>
             {(["trace", "opcodes", "source"] as const).map((view) => (
               <button
                 key={view}
                 onClick={() => setContentView(view)}
-                className="px-4 py-2 text-xs font-medium border-b-2 transition-colors"
+                className="px-4 py-2 text-xs font-medium transition-colors"
                 style={{
-                  borderColor: contentView === view ? "var(--color-accent)" : "transparent",
+                  boxShadow:
+                    contentView === view
+                      ? "0 2px 0 0 var(--color-accent)"
+                      : "0 2px 0 0 transparent",
                   color: contentView === view ? "var(--color-text-primary)" : "var(--color-text-muted)",
                   backgroundColor: "transparent",
                 }}

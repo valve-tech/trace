@@ -96,7 +96,7 @@ export default function TestNetDashboard() {
       {/* Error State */}
       {error && (
         <div
-          className="p-4 rounded-lg border mb-4"
+          className="p-4 rounded-lg mb-4"
           style={{
             backgroundColor: "var(--color-danger-muted)",
             borderColor: "var(--color-danger)",
@@ -118,10 +118,9 @@ export default function TestNetDashboard() {
       {/* Empty State */}
       {!loading && forks.length === 0 && !error && (
         <div
-          className="text-center py-16 rounded-lg border"
+          className="text-center py-16 rounded-lg bs"
           style={{
             backgroundColor: "var(--color-bg-card)",
-            borderColor: "var(--color-border-default)",
           }}
         >
           <div
@@ -161,7 +160,7 @@ export default function TestNetDashboard() {
             return (
               <div
                 key={fork.id}
-                className="rounded-lg border transition-colors"
+                className="rounded-lg transition-colors"
                 style={{
                   backgroundColor: "var(--color-bg-card)",
                   borderColor: isExpanded
@@ -253,8 +252,8 @@ export default function TestNetDashboard() {
                 {/* Expanded Controls */}
                 {isExpanded && (
                   <div
-                    className="px-4 pb-4 border-t"
-                    style={{ borderColor: "var(--color-border-muted)" }}
+                    className="px-4 pb-4 bs-t-muted"
+                    style={{}}
                   >
                     <ForkControls
                       fork={fork}

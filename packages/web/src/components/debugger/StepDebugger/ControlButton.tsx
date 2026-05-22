@@ -27,7 +27,7 @@ export function ControlButton({
         color: accent
           ? "var(--color-accent)"
           : "var(--color-text-primary)",
-        border: "1px solid var(--color-border-default)",
+        boxShadow: "0 0 0 1px var(--color-border-default)",
       }}
     >
       {label}

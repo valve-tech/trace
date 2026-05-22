@@ -31,7 +31,7 @@ export function MineBlocksPanel({ forkId, onMined }: Props) {
   };
 
   return (
-    <div className="rounded-md border p-3" style={sectionStyle}>
+    <div className="rounded-md p-3" style={sectionStyle}>
       <label
         className="block text-xs font-medium mb-1.5"
         style={{ color: "var(--color-text-secondary)" }}
@@ -46,7 +46,7 @@ export function MineBlocksPanel({ forkId, onMined }: Props) {
           placeholder="Count"
           min={1}
           max={1000}
-          className="flex-1 px-2 py-1.5 rounded border text-sm"
+          className="flex-1 px-2 py-1.5 rounded text-sm"
           style={inputStyle}
         />
         <button

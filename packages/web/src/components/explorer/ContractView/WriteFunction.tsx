@@ -8,10 +8,9 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
 
   return (
     <div
-      className="rounded-md border"
+      className="rounded-md bs-muted"
       style={{
         backgroundColor: "var(--color-bg-secondary)",
-        borderColor: "var(--color-border-muted)",
       }}
     >
       <button
@@ -55,8 +54,8 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
 
       {expanded && (
         <div
-          className="px-3 pb-3 border-t pt-3"
-          style={{ borderColor: "var(--color-border-muted)" }}
+          className="px-3 pb-3 bs-t-muted pt-3"
+          style={{}}
         >
           {inputs.length > 0 && (
             <div className="space-y-2 mb-3">
@@ -75,11 +74,10 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
                     type="text"
                     placeholder={inp.type}
                     disabled
-                    className="w-full px-2.5 py-1.5 rounded border text-xs"
+                    className="w-full px-2.5 py-1.5 rounded bs text-xs"
                     style={{
                       fontFamily: "var(--font-mono)",
                       backgroundColor: "var(--color-bg-input)",
-                      borderColor: "var(--color-border-default)",
                       color: "var(--color-text-muted)",
                       opacity: 0.6,
                     }}

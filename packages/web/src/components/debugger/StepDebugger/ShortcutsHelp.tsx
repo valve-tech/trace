@@ -7,7 +7,7 @@ export function ShortcutsHelp() {
       className="flex flex-wrap gap-4 px-4 py-2 card text-xs"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
+        boxShadow: "0 0 0 1px var(--color-border-default)",
         color: "var(--color-text-muted)",
       }}
     >

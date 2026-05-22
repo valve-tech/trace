@@ -9,10 +9,9 @@ interface Props {
 export function StatusSummary({ result, onViewContract, onDebug }: Props) {
   return (
     <div
-      className="rounded-lg border p-4 flex items-center justify-between"
+      className="rounded-lg bs p-4 flex items-center justify-between"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div className="flex items-center gap-3">

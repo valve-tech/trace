@@ -19,8 +19,7 @@ export function TopExpensiveOps({
         <table className="w-full text-xs">
           <thead>
             <tr
-              className="border-b"
-              style={{ borderColor: "var(--color-border-default)" }}
+              style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
             >
               {["Step", "PC", "Opcode", "Gas Cost"].map((h, i) => (
                 <th
@@ -39,8 +38,7 @@ export function TopExpensiveOps({
             {ops.map((op, i) => (
               <tr
                 key={i}
-                className="border-b"
-                style={{ borderColor: "var(--color-border-muted)" }}
+                style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
               >
                 <td
                   className="py-1.5 px-2 font-mono"

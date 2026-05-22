@@ -44,7 +44,7 @@ export function TimeTravelPanel({ forkId, onAdvanced }: Props) {
   const previewText = isNaN(parsed) ? seconds : formatSeconds(parsed);
 
   return (
-    <div className="rounded-md border p-3" style={sectionStyle}>
+    <div className="rounded-md p-3" style={sectionStyle}>
       <label
         className="block text-xs font-medium mb-1.5"
         style={{ color: "var(--color-text-secondary)" }}
@@ -58,7 +58,7 @@ export function TimeTravelPanel({ forkId, onAdvanced }: Props) {
           onChange={(e) => setSeconds(e.target.value)}
           placeholder="Seconds"
           min={1}
-          className="flex-1 px-2 py-1.5 rounded border text-sm"
+          className="flex-1 px-2 py-1.5 rounded text-sm"
           style={inputStyle}
         />
         <button

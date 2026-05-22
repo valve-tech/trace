@@ -179,7 +179,7 @@ export default function AlertDashboard() {
 
   const cardStyle = {
     backgroundColor: "var(--color-bg-card)",
-    borderColor: "var(--color-border-default)",
+    boxShadow: "0 0 0 1px var(--color-border-default)",
   };
 
   // -----------------------------------------------------------------------
@@ -216,7 +216,7 @@ export default function AlertDashboard() {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg border p-4" style={cardStyle}>
+        <div className="rounded-lg p-4" style={cardStyle}>
           <p
             className="text-xs font-medium mb-1"
             style={{ color: "var(--color-text-secondary)" }}
@@ -230,7 +230,7 @@ export default function AlertDashboard() {
             {stats.total}
           </p>
         </div>
-        <div className="rounded-lg border p-4" style={cardStyle}>
+        <div className="rounded-lg p-4" style={cardStyle}>
           <p
             className="text-xs font-medium mb-1"
             style={{ color: "var(--color-text-secondary)" }}
@@ -244,7 +244,7 @@ export default function AlertDashboard() {
             {stats.active}
           </p>
         </div>
-        <div className="rounded-lg border p-4" style={cardStyle}>
+        <div className="rounded-lg p-4" style={cardStyle}>
           <p
             className="text-xs font-medium mb-1"
             style={{ color: "var(--color-text-secondary)" }}
@@ -304,7 +304,7 @@ export default function AlertDashboard() {
       {/* Error */}
       {error && (
         <div
-          className="rounded-lg border px-4 py-3 text-sm"
+          className="rounded-lg px-4 py-3 text-sm"
           style={{
             backgroundColor: "var(--color-danger-muted)",
             borderColor: "var(--color-danger)",
@@ -324,7 +324,7 @@ export default function AlertDashboard() {
 
       {/* Empty state */}
       {!loading && alerts.length === 0 && (
-        <div className="rounded-lg border p-8 text-center" style={cardStyle}>
+        <div className="rounded-lg p-8 text-center" style={cardStyle}>
           <p
             className="text-sm mb-2"
             style={{ color: "var(--color-text-muted)" }}
@@ -357,7 +357,7 @@ export default function AlertDashboard() {
           return (
             <div
               key={a.id}
-              className="rounded-lg border p-4"
+              className="rounded-lg p-4"
               style={{
                 ...cardStyle,
                 opacity: a.enabled ? 1 : 0.6,
@@ -434,9 +434,8 @@ export default function AlertDashboard() {
                         alertName: a.name,
                       })
                     }
-                    className="text-xs px-2.5 py-1 rounded-md border"
+                    className="text-xs px-2.5 py-1 rounded-md bs"
                     style={{
-                      borderColor: "var(--color-border-default)",
                       color: "var(--color-text-secondary)",
                       backgroundColor: "transparent",
                     }}
@@ -459,9 +458,8 @@ export default function AlertDashboard() {
                   {/* Edit */}
                   <button
                     onClick={() => setView({ type: "edit", alert: a })}
-                    className="text-xs px-2.5 py-1 rounded-md border"
+                    className="text-xs px-2.5 py-1 rounded-md bs"
                     style={{
-                      borderColor: "var(--color-border-default)",
                       color: "var(--color-text-secondary)",
                       backgroundColor: "transparent",
                     }}

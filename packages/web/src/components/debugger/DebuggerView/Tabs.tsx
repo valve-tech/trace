@@ -30,17 +30,19 @@ export function Tabs({
 
   return (
     <div
-      className="border-b flex"
-      style={{ borderColor: "var(--color-border-default)" }}
+      className="bs-b flex"
+      style={{}}
     >
       {tabs.map(({ key, label, count }) => (
         <button
           key={key}
           onClick={() => setActiveTab(key)}
-          className="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+          className="px-4 py-3 text-sm font-medium transition-colors"
           style={{
-            borderColor:
-              activeTab === key ? "var(--color-accent)" : "transparent",
+            boxShadow:
+              activeTab === key
+                ? "0 2px 0 0 var(--color-accent)"
+                : "0 2px 0 0 transparent",
             color:
               activeTab === key
                 ? "var(--color-text-primary)"

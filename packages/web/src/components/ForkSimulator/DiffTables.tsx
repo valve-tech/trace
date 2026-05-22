@@ -24,8 +24,7 @@ export function BalanceChangesTable({
           {changes.map((bc, i) => (
             <tr
               key={i}
-              className="border-t"
-              style={{ borderColor: "var(--color-border-default)" }}
+              style={{ boxShadow: "0 -1px 0 0 var(--color-border-default)" }}
             >
               <td
                 className="py-1.5 px-2"
@@ -90,8 +89,7 @@ export function StorageChangesTable({
           {changes.map((sc, i) => (
             <tr
               key={i}
-              className="border-t"
-              style={{ borderColor: "var(--color-border-default)" }}
+              style={{ boxShadow: "0 -1px 0 0 var(--color-border-default)" }}
             >
               <td
                 className="py-1.5 px-2"

@@ -4,10 +4,9 @@ import type { SimulationResult } from "../../types";
 export function LoadingPanel({ count }: { count: number }) {
   return (
     <div
-      className="rounded-lg border p-8 flex flex-col items-center justify-center text-center"
+      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div className="spinner mb-4" />
@@ -21,7 +20,7 @@ export function LoadingPanel({ count }: { count: number }) {
 export function ErrorPanel({ message }: { message: string }) {
   return (
     <div
-      className="rounded-lg border p-4"
+      className="rounded-lg p-4"
       style={{
         backgroundColor: "var(--color-bg-card)",
         borderColor: "var(--color-danger)",
@@ -58,10 +57,9 @@ export function ErrorPanel({ message }: { message: string }) {
 export function EmptyPanel() {
   return (
     <div
-      className="rounded-lg border p-8 flex flex-col items-center justify-center text-center min-h-[300px]"
+      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center min-h-[300px]"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <Icon
@@ -89,10 +87,9 @@ export function SummaryBar({ results }: { results: SimulationResult[] }) {
 
   return (
     <div
-      className="rounded-lg border p-3 flex items-center justify-between"
+      className="rounded-lg bs p-3 flex items-center justify-between"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div className="flex items-center gap-4 text-xs">

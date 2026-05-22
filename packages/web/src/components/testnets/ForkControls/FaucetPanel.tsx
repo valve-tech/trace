@@ -24,7 +24,7 @@ export function FaucetPanel({ forkId }: { forkId: string }) {
   };
 
   return (
-    <div className="rounded-md border p-3" style={sectionStyle}>
+    <div className="rounded-md p-3" style={sectionStyle}>
       <label
         className="block text-xs font-medium mb-1.5"
         style={{ color: "var(--color-text-secondary)" }}
@@ -37,7 +37,7 @@ export function FaucetPanel({ forkId }: { forkId: string }) {
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="0x... address"
-          className="flex-1 px-2 py-1.5 rounded border text-sm"
+          className="flex-1 px-2 py-1.5 rounded text-sm"
           style={{ ...inputStyle, fontFamily: "var(--font-mono)" }}
         />
         <input
@@ -45,7 +45,7 @@ export function FaucetPanel({ forkId }: { forkId: string }) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="Amount (PLS)"
-          className="w-32 px-2 py-1.5 rounded border text-sm"
+          className="w-32 px-2 py-1.5 rounded text-sm"
           style={inputStyle}
         />
         <button

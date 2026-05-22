@@ -19,7 +19,7 @@ export function CallTypeBreakdown({
             className="flex items-center gap-2 px-3 py-2 rounded-lg"
             style={{
               backgroundColor: `${color}15`,
-              border: `1px solid ${color}30`,
+              boxShadow: `0 0 0 1px ${color}30`,
             }}
           >
             <span

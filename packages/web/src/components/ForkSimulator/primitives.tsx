@@ -16,7 +16,7 @@ export function ModeButton({
           ? "var(--color-accent)"
           : "var(--color-bg-secondary)",
         color: active ? "#fff" : "var(--color-text-secondary)",
-        border: `1px solid ${
+        boxShadow: `0 0 0 1px ${
           active ? "var(--color-accent)" : "var(--color-border-default)"
         }`,
       }}
@@ -43,7 +43,7 @@ export function FormField({
 }) {
   const style = {
     backgroundColor: "var(--color-bg-input)",
-    borderColor: "var(--color-border-default)",
+    boxShadow: "0 0 0 1px var(--color-border-default)",
     color: "var(--color-text-primary)",
     fontFamily: mono ? "var(--font-mono)" : undefined,
   };
@@ -62,7 +62,7 @@ export function FormField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           rows={3}
-          className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
+          className="w-full px-3 py-2 rounded-lg text-sm resize-none"
           style={style}
         />
       ) : (
@@ -71,7 +71,7 @@ export function FormField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-2 rounded-lg border text-sm"
+          className="w-full px-3 py-2 rounded-lg text-sm"
           style={style}
         />
       )}
@@ -90,16 +90,14 @@ export function DiffSection({
 }) {
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="rounded-lg bs overflow-hidden"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <div
-        className="flex items-center justify-between px-3 py-2 border-b"
+        className="flex items-center justify-between px-3 py-2 bs-b"
         style={{
-          borderColor: "var(--color-border-default)",
           backgroundColor: "var(--color-bg-secondary)",
         }}
       >

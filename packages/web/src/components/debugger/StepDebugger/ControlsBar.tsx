@@ -48,7 +48,7 @@ export function ControlsBar({
       className="flex items-center gap-3 px-4 py-2 card"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
+        boxShadow: "0 0 0 1px var(--color-border-default)",
       }}
     >
       <div className="flex items-center gap-1">
@@ -73,10 +73,10 @@ export function ControlsBar({
         placeholder="Filter..."
         value={opcodeFilter}
         onChange={(e) => setOpcodeFilter(e.target.value)}
-        className="w-24 px-2 py-1 rounded text-xs border"
+        className="w-24 px-2 py-1 rounded text-xs"
         style={{
           backgroundColor: "var(--color-bg-input)",
-          borderColor: "var(--color-border-default)",
+          boxShadow: "0 0 0 1px var(--color-border-default)",
           color: "var(--color-text-primary)",
           fontFamily: "var(--font-mono)",
         }}
@@ -111,7 +111,7 @@ export function ControlsBar({
                 ? "var(--color-danger)"
                 : "var(--color-bg-secondary)",
               color: showFindings ? "#fff" : "var(--color-text-primary)",
-              border: "1px solid var(--color-border-default)",
+              boxShadow: "0 0 0 1px var(--color-border-default)",
               opacity: slitherLoading ? 0.5 : 1,
             }}
           >

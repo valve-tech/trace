@@ -186,7 +186,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
 
   const cardStyle = {
     backgroundColor: "var(--color-bg-card)",
-    borderColor: "var(--color-border-default)",
+    boxShadow: "0 0 0 1px var(--color-border-default)",
   };
 
   const labelStyle = { color: "var(--color-text-secondary)" };
@@ -205,7 +205,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
   return (
     <div className="space-y-4">
       {/* Template selector */}
-      <div className="rounded-lg border p-4" style={cardStyle}>
+      <div className="rounded-lg bs p-4" style={cardStyle}>
         <div className="text-xs font-medium mb-2" style={labelStyle}>
           Templates
         </div>
@@ -214,9 +214,8 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
             <button
               key={t.label}
               onClick={() => handleTemplateSelect(t)}
-              className="px-2.5 py-1 rounded-md border text-xs font-medium transition-colors hover:opacity-80"
+              className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80"
               style={{
-                borderColor: "var(--color-border-default)",
                 color: t.label.startsWith("valve_")
                   ? "var(--color-accent)"
                   : "var(--color-text-secondary)",
@@ -230,10 +229,10 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
       </div>
 
       {/* Request editor */}
-      <div className="rounded-lg border overflow-hidden" style={cardStyle}>
+      <div className="rounded-lg overflow-hidden" style={cardStyle}>
         <div
-          className="px-4 py-2.5 border-b flex items-center justify-between"
-          style={{ borderColor: "var(--color-border-default)" }}
+          className="px-4 py-2.5 bs-b flex items-center justify-between"
+          style={{}}
         >
           <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
             Request
@@ -256,8 +255,8 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
           }}
         />
         <div
-          className="px-4 py-3 border-t flex items-center gap-3"
-          style={{ borderColor: "var(--color-border-default)" }}
+          className="px-4 py-3 bs-t flex items-center gap-3"
+          style={{}}
         >
           <button
             onClick={handleSend}
@@ -285,7 +284,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
       {/* Error */}
       {error && (
         <div
-          className="rounded-lg border p-4 text-sm"
+          className="rounded-lg p-4 text-sm"
           style={{
             borderColor: "var(--color-danger)",
             color: "var(--color-danger)",
@@ -298,10 +297,10 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
 
       {/* Response */}
       {responseText && (
-        <div className="rounded-lg border overflow-hidden" style={cardStyle}>
+        <div className="rounded-lg overflow-hidden" style={cardStyle}>
           <div
-            className="px-4 py-2.5 border-b flex items-center justify-between"
-            style={{ borderColor: "var(--color-border-default)" }}
+            className="px-4 py-2.5 bs-b flex items-center justify-between"
+            style={{}}
           >
             <span
               className="text-sm font-semibold"

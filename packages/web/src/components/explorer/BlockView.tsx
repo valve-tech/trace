@@ -38,8 +38,8 @@ function InfoRow({
 }) {
   return (
     <div
-      className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2.5 border-b last:border-b-0"
-      style={{ borderColor: "var(--color-border-muted)" }}
+      className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2.5 bs-b-muted last:shadow-none"
+      style={{}}
     >
       <span
         className="text-xs font-medium shrink-0 sm:w-40"
@@ -85,10 +85,9 @@ export default function BlockView({
   if (loading) {
     return (
       <div
-        className="rounded-lg border p-8 flex flex-col items-center justify-center min-h-[300px]"
+        className="rounded-lg bs p-8 flex flex-col items-center justify-center min-h-[300px]"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
         }}
       >
         <div
@@ -105,7 +104,7 @@ export default function BlockView({
   if (error) {
     return (
       <div
-        className="rounded-lg border p-6"
+        className="rounded-lg p-6"
         style={{
           backgroundColor: "var(--color-bg-card)",
           borderColor: "var(--color-danger)",
@@ -134,13 +133,12 @@ export default function BlockView({
     <div className="space-y-4">
       {/* Block Info */}
       <div
-        className="rounded-lg border p-4"
+        className="rounded-lg bs p-4"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
         }}
       >
-        <div className="flex items-center gap-3 mb-3 pb-3 border-b" style={{ borderColor: "var(--color-border-muted)" }}>
+        <div className="flex items-center gap-3 mb-3 pb-3 bs-b-muted" style={{}}>
           <h2
             className="text-sm font-semibold"
             style={{ color: "var(--color-text-primary)" }}
@@ -273,15 +271,14 @@ export default function BlockView({
 
       {/* Transactions */}
       <div
-        className="rounded-lg border overflow-hidden"
+        className="rounded-lg bs overflow-hidden"
         style={{
           backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-border-default)",
         }}
       >
         <div
-          className="px-4 py-3 border-b"
-          style={{ borderColor: "var(--color-border-muted)" }}
+          className="px-4 py-3 bs-b-muted"
+          style={{}}
         >
           <h3
             className="text-sm font-semibold"
@@ -352,9 +349,8 @@ export default function BlockView({
                 {block.transactions.map((tx, i) => (
                   <tr
                     key={i}
-                    className="border-t hover:opacity-80"
+                    className="bs-t-muted hover:opacity-80"
                     style={{
-                      borderColor: "var(--color-border-muted)",
                     }}
                   >
                     <td className="px-3 py-2">

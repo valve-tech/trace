@@ -59,7 +59,7 @@ export default function ContractDiff() {
           style={{
             padding: "12px 16px",
             background: "var(--color-danger-muted)",
-            border: "1px solid var(--color-danger)",
+            boxShadow: "0 0 0 1px var(--color-danger)",
             color: "var(--color-danger)",
             fontSize: "13px",
             marginBottom: "20px",

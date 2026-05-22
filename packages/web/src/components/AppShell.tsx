@@ -151,13 +151,13 @@ function Sidebar({
       style={{
         width: collapsed ? 56 : 240,
         backgroundColor: "var(--color-bg-secondary)",
-        boxShadow: "inset -1px 0 0 0 var(--color-border-default)",
+        boxShadow: "1px 0 0 0 var(--color-border-default)",
       }}
     >
       <div
         className="py-3 flex items-center"
         style={{
-          boxShadow: "inset 0 -1px 0 0 var(--color-border-muted)",
+          boxShadow: "0 1px 0 0 var(--color-border-muted)",
           paddingLeft: collapsed ? 0 : 12,
           paddingRight: collapsed ? 0 : 12,
           justifyContent: collapsed ? "center" : "flex-end",
@@ -261,7 +261,7 @@ function Sidebar({
       <div
         className="py-2 flex items-center"
         style={{
-          boxShadow: "inset 0 1px 0 0 var(--color-border-muted)",
+          boxShadow: "0 -1px 0 0 var(--color-border-muted)",
           color: "var(--color-text-muted)",
           paddingLeft: collapsed ? 0 : 12,
           paddingRight: collapsed ? 0 : 12,
@@ -321,7 +321,7 @@ function CommandBar({ onOpen }: { onOpen: () => void }) {
       className="px-6 py-3 flex items-center gap-3 shrink-0"
       style={{
         backgroundColor: "var(--color-bg-secondary)",
-        boxShadow: "inset 0 -1px 0 0 var(--color-border-default)",
+        boxShadow: "0 1px 0 0 var(--color-border-default)",
       }}
     >
       <button
@@ -330,7 +330,7 @@ function CommandBar({ onOpen }: { onOpen: () => void }) {
         style={{
           backgroundColor: "var(--color-bg-input)",
           color: "var(--color-text-muted)",
-          boxShadow: "inset 0 0 0 1px var(--color-border-default)",
+          boxShadow: "0 0 0 1px var(--color-border-default)",
         }}
       >
         <Icon icon="heroicons:magnifying-glass" className="w-4 h-4" />
@@ -489,7 +489,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
         {/* Input row */}
         <div
           className="flex items-center gap-3 px-4 py-3"
-          style={{ boxShadow: "inset 0 -1px 0 0 var(--color-border-default)" }}
+          style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
         >
           <Icon
             icon="heroicons:magnifying-glass"

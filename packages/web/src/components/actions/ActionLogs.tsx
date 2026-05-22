@@ -45,9 +45,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={onBack}
-          className="px-3 py-1.5 text-sm rounded-md border transition-colors"
+          className="px-3 py-1.5 text-sm rounded-md bs transition-colors"
           style={{
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-secondary)",
             backgroundColor: "transparent",
           }}
@@ -68,9 +67,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
         </span>
         <button
           onClick={() => void fetchLogs()}
-          className="ml-auto px-3 py-1.5 text-sm rounded-md border transition-colors"
+          className="ml-auto px-3 py-1.5 text-sm rounded-md bs transition-colors"
           style={{
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-secondary)",
             backgroundColor: "transparent",
           }}
@@ -87,9 +85,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
 
       {/* Table */}
       <div
-        className="rounded-lg border overflow-hidden"
+        className="rounded-lg bs overflow-hidden"
         style={{
-          borderColor: "var(--color-border-default)",
           backgroundColor: "var(--color-bg-card)",
         }}
       >
@@ -98,7 +95,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
             <tr
               style={{
                 backgroundColor: "var(--color-bg-tertiary)",
-                borderBottom: "1px solid var(--color-border-default)",
+                boxShadow: "0 1px 0 0 var(--color-border-default)",
               }}
             >
               <th
@@ -221,7 +218,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                         <div
                           className="px-4 pb-3 space-y-2"
                           style={{
-                            borderBottom: "1px solid var(--color-border-muted)",
+                            boxShadow: "0 1px 0 0 var(--color-border-muted)",
                           }}
                         >
                           {log.stdout && (
@@ -238,7 +235,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                                   backgroundColor: "var(--color-bg-primary)",
                                   color: "var(--color-success)",
                                   fontFamily: "var(--font-mono)",
-                                  border: "1px solid var(--color-border-muted)",
+                                  boxShadow: "0 0 0 1px var(--color-border-muted)",
                                 }}
                               >
                                 {log.stdout}
@@ -259,7 +256,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                                   backgroundColor: "var(--color-bg-primary)",
                                   color: "var(--color-danger)",
                                   fontFamily: "var(--font-mono)",
-                                  border: "1px solid var(--color-border-muted)",
+                                  boxShadow: "0 0 0 1px var(--color-border-muted)",
                                 }}
                               >
                                 {log.stderr}
@@ -280,7 +277,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                                   backgroundColor: "var(--color-bg-primary)",
                                   color: "var(--color-text-secondary)",
                                   fontFamily: "var(--font-mono)",
-                                  border: "1px solid var(--color-border-muted)",
+                                  boxShadow: "0 0 0 1px var(--color-border-muted)",
                                 }}
                               >
                                 {JSON.stringify(JSON.parse(log.trigger_data), null, 2)}
@@ -308,9 +305,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="px-3 py-1.5 text-sm rounded-md border transition-colors disabled:opacity-40"
+              className="px-3 py-1.5 text-sm rounded-md bs transition-colors disabled:opacity-40"
               style={{
-                borderColor: "var(--color-border-default)",
                 color: "var(--color-text-secondary)",
                 backgroundColor: "transparent",
               }}
@@ -320,9 +316,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="px-3 py-1.5 text-sm rounded-md border transition-colors disabled:opacity-40"
+              className="px-3 py-1.5 text-sm rounded-md bs transition-colors disabled:opacity-40"
               style={{
-                borderColor: "var(--color-border-default)",
                 color: "var(--color-text-secondary)",
                 backgroundColor: "transparent",
               }}

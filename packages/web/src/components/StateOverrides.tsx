@@ -63,11 +63,10 @@ function StorageSlotEditor({
             value={key}
             onChange={(e) => updateSlot(key, e.target.value, val)}
             placeholder="0x0 (slot)"
-            className="flex-1 px-2 py-1.5 rounded border text-xs"
+            className="flex-1 px-2 py-1.5 rounded bs text-xs"
             style={{
               fontFamily: "var(--font-mono)",
               backgroundColor: "var(--color-bg-input)",
-              borderColor: "var(--color-border-default)",
               color: "var(--color-text-primary)",
             }}
           />
@@ -77,11 +76,10 @@ function StorageSlotEditor({
             value={val}
             onChange={(e) => updateSlot(key, key, e.target.value)}
             placeholder="0x... (value)"
-            className="flex-1 px-2 py-1.5 rounded border text-xs"
+            className="flex-1 px-2 py-1.5 rounded bs text-xs"
             style={{
               fontFamily: "var(--font-mono)",
               backgroundColor: "var(--color-bg-input)",
-              borderColor: "var(--color-border-default)",
               color: "var(--color-text-primary)",
             }}
           />
@@ -120,10 +118,9 @@ function SingleOverride({
 
   return (
     <div
-      className="rounded-md border p-3 space-y-3"
+      className="rounded-md bs-muted p-3 space-y-3"
       style={{
         backgroundColor: "var(--color-bg-tertiary)",
-        borderColor: "var(--color-border-muted)",
       }}
     >
       <div className="flex items-center justify-between">
@@ -152,11 +149,10 @@ function SingleOverride({
           value={override.address}
           onChange={(e) => update("address", e.target.value)}
           placeholder="0x..."
-          className="w-full px-2 py-1.5 rounded border text-sm"
+          className="w-full px-2 py-1.5 rounded bs text-sm"
           style={{
             fontFamily: "var(--font-mono)",
             backgroundColor: "var(--color-bg-input)",
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-primary)",
           }}
         />
@@ -172,11 +168,10 @@ function SingleOverride({
             value={override.balance ?? ""}
             onChange={(e) => update("balance", e.target.value)}
             placeholder="0x..."
-            className="w-full px-2 py-1.5 rounded border text-sm"
+            className="w-full px-2 py-1.5 rounded bs text-sm"
             style={{
               fontFamily: "var(--font-mono)",
               backgroundColor: "var(--color-bg-input)",
-              borderColor: "var(--color-border-default)",
               color: "var(--color-text-primary)",
             }}
           />
@@ -190,11 +185,10 @@ function SingleOverride({
             value={override.nonce ?? ""}
             onChange={(e) => update("nonce", e.target.value)}
             placeholder="0x0"
-            className="w-full px-2 py-1.5 rounded border text-sm"
+            className="w-full px-2 py-1.5 rounded bs text-sm"
             style={{
               fontFamily: "var(--font-mono)",
               backgroundColor: "var(--color-bg-input)",
-              borderColor: "var(--color-border-default)",
               color: "var(--color-text-primary)",
             }}
           />
@@ -210,11 +204,10 @@ function SingleOverride({
           value={override.code ?? ""}
           onChange={(e) => update("code", e.target.value)}
           placeholder="0x608060..."
-          className="w-full px-2 py-1.5 rounded border text-sm"
+          className="w-full px-2 py-1.5 rounded bs text-sm"
           style={{
             fontFamily: "var(--font-mono)",
             backgroundColor: "var(--color-bg-input)",
-            borderColor: "var(--color-border-default)",
             color: "var(--color-text-primary)",
           }}
         />
@@ -271,10 +264,9 @@ export default function StateOverrides({ overrides, onChange }: StateOverridesPr
 
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="rounded-lg bs overflow-hidden"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <button
@@ -308,8 +300,8 @@ export default function StateOverrides({ overrides, onChange }: StateOverridesPr
 
       {expanded && (
         <div
-          className="px-4 pb-4 border-t space-y-3"
-          style={{ borderColor: "var(--color-border-muted)" }}
+          className="px-4 pb-4 bs-t-muted space-y-3"
+          style={{}}
         >
           <div className="pt-3">
             {overrides.map((o, i) => (
@@ -326,9 +318,8 @@ export default function StateOverrides({ overrides, onChange }: StateOverridesPr
           <button
             type="button"
             onClick={addOverride}
-            className="w-full py-2 rounded-md border border-dashed text-sm transition-colors hover:opacity-80"
+            className="w-full py-2 rounded-md bs border-dashed text-sm transition-colors hover:opacity-80"
             style={{
-              borderColor: "var(--color-border-default)",
               color: "var(--color-text-secondary)",
               backgroundColor: "transparent",
             }}

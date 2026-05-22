@@ -20,7 +20,7 @@ export function CollapsiblePanel({
   return (
     <div
       className="card overflow-hidden"
-      style={{ backgroundColor: "var(--color-bg-card)", borderColor: "var(--color-border-default)" }}
+      style={{ backgroundColor: "var(--color-bg-card)", boxShadow: "0 0 0 1px var(--color-border-default)" }}
     >
       <button
         onClick={() => setOpen(!open)}

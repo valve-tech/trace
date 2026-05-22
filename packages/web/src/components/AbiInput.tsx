@@ -33,10 +33,9 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
 
   return (
     <div
-      className="rounded-lg border overflow-hidden"
+      className="rounded-lg bs overflow-hidden"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <button
@@ -83,8 +82,8 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
 
       {expanded && (
         <div
-          className="px-4 pb-4 border-t"
-          style={{ borderColor: "var(--color-border-muted)" }}
+          className="px-4 pb-4 bs-t-muted"
+          style={{}}
         >
           <div className="flex items-center gap-3 py-3">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -113,7 +112,7 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
                 onChange={(e) => onChange(e.target.value)}
                 placeholder='[{"type":"function","name":"transfer","inputs":[...]}]'
                 rows={6}
-                className="w-full px-3 py-2 rounded-md border text-sm resize-y"
+                className="w-full px-3 py-2 rounded-md text-sm resize-y"
                 style={{
                   fontFamily: "var(--font-mono)",
                   backgroundColor: "var(--color-bg-input)",

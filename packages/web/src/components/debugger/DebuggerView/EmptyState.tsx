@@ -4,10 +4,9 @@ import { Icon } from "@iconify/react";
 export function EmptyState() {
   return (
     <div
-      className="rounded-lg border p-12 flex flex-col items-center justify-center text-center"
+      className="rounded-lg bs p-12 flex flex-col items-center justify-center text-center"
       style={{
         backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-border-default)",
       }}
     >
       <Icon
