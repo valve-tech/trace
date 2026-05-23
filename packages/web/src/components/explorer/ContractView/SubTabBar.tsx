@@ -1,19 +1,29 @@
 import type { SubTab } from "./types";
 
-const TABS: SubTab[] = ["read", "write", "abi", "source"];
+const BASE_TABS: SubTab[] = ["read", "write", "abi", "source"];
 
 interface Props {
   active: SubTab;
   onSelect: (tab: SubTab) => void;
   readCount: number;
   writeCount: number;
+  /** Show the chart tab — only for token contracts. */
+  showChart?: boolean;
 }
 
-export function SubTabBar({ active, onSelect, readCount, writeCount }: Props) {
+export function SubTabBar({
+  active,
+  onSelect,
+  readCount,
+  writeCount,
+  showChart = false,
+}: Props) {
+  const tabs = showChart ? [...BASE_TABS, "chart" as SubTab] : BASE_TABS;
   const label = (tab: SubTab): string => {
     if (tab === "read") return `Read (${readCount})`;
     if (tab === "write") return `Write (${writeCount})`;
     if (tab === "source") return "Source";
+    if (tab === "chart") return "Chart";
     return "ABI";
   };
 
@@ -22,7 +32,7 @@ export function SubTabBar({ active, onSelect, readCount, writeCount }: Props) {
       className="flex gap-0"
       style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
     >
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <button
           key={tab}
           onClick={() => onSelect(tab)}

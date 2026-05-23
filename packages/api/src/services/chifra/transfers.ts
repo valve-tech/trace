@@ -30,7 +30,32 @@ const TRANSFER_TOPIC =
 /** Cap on records pulled from chifra per window. Bounds latency + memory. */
 const MAX_RECORDS = 10_000;
 
-const client = createTrueblocksClient({ baseUrl: CHIFRA_BASE });
+/**
+ * chifra cold-cache walks (especially for high-record tokens like HEX) can
+ * take 10s+, and `/when` occasionally returns a transient 500. Bound each
+ * request at 30s and retry transient failures so one flake doesn't fail the
+ * whole window. The SDK has no built-in timeout, so we inject one via fetch.
+ */
+const CHIFRA_TIMEOUT_MS = 30_000;
+
+const client = createTrueblocksClient({
+  baseUrl: CHIFRA_BASE,
+  fetch: (input, init) =>
+    fetch(input, { ...init, signal: AbortSignal.timeout(CHIFRA_TIMEOUT_MS) }),
+});
+
+/** Retry a chifra call up to `attempts` times on any failure (transient 5xx). */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 2): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
+}
 
 export interface TransferRecord {
   blockNumber: number;
@@ -74,13 +99,17 @@ function blockNumberOf(entry: unknown): number | null {
 
 /** Resolve a unix timestamp (seconds) to the block mined at/just before it. */
 async function blockAtTimestamp(unixSeconds: number): Promise<number | null> {
-  const res = await client.when({ blocks: [String(unixSeconds)], chain: CHAIN });
+  const res = await withRetry(() =>
+    client.when({ blocks: [String(unixSeconds)], chain: CHAIN }),
+  );
   return blockNumberOf(res.data?.[0]);
 }
 
 /** Current chain head block number. */
 async function headBlock(): Promise<number | null> {
-  const res = await client.when({ blocks: ["latest"], chain: CHAIN });
+  const res = await withRetry(() =>
+    client.when({ blocks: ["latest"], chain: CHAIN }),
+  );
   return blockNumberOf(res.data?.[0]);
 }
 

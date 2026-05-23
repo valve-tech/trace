@@ -29,6 +29,27 @@ Non-goals for v1:
 
 ## 2. Architecture
 
+> **IMPLEMENTED (2026-05-23):** The live chart path is **client-side
+> `eth_getLogs` via the `/rpc` proxy**, NOT chifra. Reth answers
+> block-ranged log queries in milliseconds; chifra's appearance index is
+> genesis-forward ordered and times out (>90s) on recent slices of
+> high-activity tokens like HEX. The chifra API service
+> (`services/chifra/`, `routes/chifra.ts`) is built and works for
+> low/mid-activity tokens — it's **reserved for a future "all-time from
+> genesis" view**, not the recent-window chart. See §8–9.
+>
+> Implemented flow:
+> ```
+> browser: useTokenTransfers(token)
+>   → getHeadBlock() + grid-aligned 2000-block batches over last 3 days
+>   → for each batch: IndexedDB hit, else eth_getLogs(token,[Transfer]) via /rpc
+>   → sealed batches cached; head batch always re-fetched
+>   → flat() → client-side bucket by block → SVG bars
+>   → "Load more" extends the window backward, reuses cached cells
+> ```
+
+The original chifra-proxy design (below) is retained for the all-time view.
+
 ```
 ┌─────────────────┐    HTTPS   ┌──────────────────┐    HTTPS   ┌────────────────────┐
 │  web (browser)  │  ────────► │  api (Express)   │  ────────► │ chifra.valve.city  │

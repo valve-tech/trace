@@ -5,12 +5,14 @@ import {
   type SubTab,
   isReadFunction,
   isWriteFunction,
+  isTokenAbi,
 } from "./ContractView/types";
 import { ReadFunction } from "./ContractView/ReadFunction";
 import { WriteFunction } from "./ContractView/WriteFunction";
 import { ContractHeader } from "./ContractView/ContractHeader";
 import { SubTabBar } from "./ContractView/SubTabBar";
 import { AbiTab, SourceTab } from "./ContractView/SourceCodeTab";
+import { TransferChart } from "./ContractView/TransferChart";
 
 interface ContractViewProps {
   address: string;
@@ -113,6 +115,7 @@ export default function ContractView({
   const abiItems = (info.abi || []) as AbiItem[];
   const readFunctions = abiItems.filter(isReadFunction);
   const writeFunctions = abiItems.filter(isWriteFunction);
+  const isToken = isTokenAbi(abiItems);
 
   return (
     <div className="space-y-stack">
@@ -127,6 +130,7 @@ export default function ContractView({
         onSelect={setSubTab}
         readCount={readFunctions.length}
         writeCount={writeFunctions.length}
+        showChart={isToken}
       />
 
       {subTab === "read" && (
@@ -149,6 +153,7 @@ export default function ContractView({
 
       {subTab === "abi" && <AbiTab abi={info.abi} />}
       {subTab === "source" && <SourceTab sourceCode={info.sourceCode} />}
+      {subTab === "chart" && isToken && <TransferChart address={address} />}
     </div>
   );
 }
