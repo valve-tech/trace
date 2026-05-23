@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { isCallOp, isStorageOp, isLogOp } from "@valve-tech/trace-sdk/hooks";
+import {
+  isCallOp,
+  isStorageOp,
+  isLogOp,
+  useOpcodeNavigation,
+} from "@valve-tech/trace-sdk/hooks";
 import type { OpcodeStep, CallFrame } from "../../api/debugger";
 import { analyzeContract, type SlitherFinding } from "../../api/source";
 import { useContractSource, useSourceMappings } from "../../hooks/useContractSource";
@@ -26,7 +31,9 @@ interface StepDebuggerProps {
 }
 
 export default function StepDebugger({ steps, contractAddress, callTrace }: StepDebuggerProps) {
-  const [currentStep, setCurrentStep] = useState(0);
+  const nav = useOpcodeNavigation(steps);
+  const { currentIndex: currentStep, totalSteps } = nav;
+
   const [opcodeFilter, setOpcodeFilter] = useState("");
   const [contentView, setContentView] = useState<"trace" | "opcodes" | "source">("source");
   const [slitherFindings, setSlitherFindings] = useState<SlitherFinding[]>([]);
@@ -35,8 +42,6 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const [overrideLine, setOverrideLine] = useState<number | null>(null);
   const [pendingFuncSearch, setPendingFuncSearch] = useState<string | null>(null);
   const [scrollKey, setScrollKey] = useState(0);
-
-  const totalSteps = steps.length;
 
   const maxDepth = useMemo(() => {
     let max = 1;
@@ -54,9 +59,10 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     return indices;
   }, [opcodeFilter, steps]);
 
-  // Reset on new trace
+  // Reset on new trace. The opcode-cursor reset is handled inside
+  // useOpcodeNavigation (it watches `steps` identity); this effect only owns
+  // the web-specific state that doesn't belong to the SDK hook.
   useEffect(() => {
-    setCurrentStep(0);
     setOpcodeFilter("");
     setSlitherFindings([]);
     setShowFindings(false);
@@ -104,13 +110,13 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const uniquePcs = useMemo(() => [...new Set(steps.map((s) => s.pc))], [steps]);
 
   // ---- Navigation ----
-  const goTo = useCallback(
-    (step: number) => setCurrentStep(Math.max(0, Math.min(step, totalSteps - 1))),
-    [totalSteps],
-  );
+  // useOpcodeNavigation owns the cursor + traversal primitives. These wrappers
+  // add the web-specific side effect of clearing `overrideLine` (manual
+  // source-line override from func-search) on every navigation event.
+  const goTo = nav.jumpTo;
 
-  const stepForward = useCallback(() => { setOverrideLine(null); goTo(currentStep + 1); }, [currentStep, goTo]);
-  const stepBackward = useCallback(() => { setOverrideLine(null); goTo(currentStep - 1); }, [currentStep, goTo]);
+  const stepForward = useCallback(() => { setOverrideLine(null); nav.goForward(); }, [nav]);
+  const stepBackward = useCallback(() => { setOverrideLine(null); nav.goBack(); }, [nav]);
 
   // Jump to a step, switch to Source, and try to scroll to the function
   // definition. `funcName` lets the call tree pass the resolved name directly.
@@ -127,11 +133,9 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const jumpToNext = useCallback(
     (predicate: (op: string) => boolean): void => {
       setOverrideLine(null);
-      for (let i = currentStep + 1; i < totalSteps; i++) {
-        if (predicate(steps[i]!.op)) { goTo(i); return; }
-      }
+      nav.jumpToNext(predicate);
     },
-    [currentStep, totalSteps, steps, goTo],
+    [nav],
   );
 
   // Keyboard shortcuts
@@ -182,8 +186,8 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
   const storageDiff = useMemo<StorageDiff[]>(() => {
     if (!step) return [];
-    const curr = step.storage;
-    const prev = prevStep?.storage ?? {};
+    const curr: Record<string, string> = step.storage;
+    const prev: Record<string, string> = prevStep?.storage ?? {};
     const diffs: StorageDiff[] = [];
     for (const [slot, value] of Object.entries(curr)) {
       if (prev[slot] !== value) {

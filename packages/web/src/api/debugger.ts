@@ -2,7 +2,7 @@
  * API client for the debugger endpoints.
  */
 
-import type { RawCallFrame } from "@valve-tech/trace-sdk";
+import type { OpcodeStep as SdkOpcodeStep, RawCallFrame } from "@valve-tech/trace-sdk";
 
 const API_BASE = "/api/debug";
 
@@ -13,24 +13,13 @@ const API_BASE = "/api/debug";
 // (via SDK `normalizeCallFrame`) at the render boundary before passing to
 // SDK components.
 //
-// OpcodeStep is kept as a local type with stack/memory/storage REQUIRED —
-// the API server always populates them. The SDK's `RawStructLog` has these
-// as optional to match the broader JSON-RPC spec; web's stricter version
-// is assignable to it, so `normalizeStructLogs` accepts our shape unchanged.
+// OpcodeStep is re-exported from the SDK so web's hooks (`useOpcodeNavigation`)
+// see the same type identity. The API server always populates stack/memory/
+// storage, which matches the SDK's post-normalize shape.
 // ---------------------------------------------------------------------------
 
 export type CallFrame = RawCallFrame;
-
-export interface OpcodeStep {
-  pc: number;
-  op: string;
-  gas: number;
-  gasCost: number;
-  depth: number;
-  stack: string[];
-  memory: string[];
-  storage: Record<string, string>;
-}
+export type OpcodeStep = SdkOpcodeStep;
 
 export interface GasEntry {
   function: string;
