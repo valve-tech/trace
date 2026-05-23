@@ -490,15 +490,17 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div className="card w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-        {/* Input row — icon sits adjacent to the placeholder so they read as
-            one label; row height matches the chrome CommandBar (h-12). */}
+        {/* Input row — the row is the input visually; the actual <input>
+            stretches edge-to-edge inside, the magnifying glass overlays its
+            leading edge, and focus is signaled by the row's accent rail
+            (palette-row :focus-within in index.css). */}
         <div
-          className="flex items-center gap-2 px-4 h-12"
+          className="palette-row relative flex items-center px-4 h-12"
           style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
         >
           <Icon
             icon="heroicons:magnifying-glass"
-            className="w-4 h-4 shrink-0"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
             style={{ color: "var(--color-text-muted)" }}
           />
           <input
@@ -507,7 +509,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Paste a tx hash, address, block number, or 4byte selector"
-            className="flex-1 h-full bg-transparent text-sm outline-none font-mono"
+            className="bare-input flex-1 h-full pl-7 bg-transparent text-sm outline-none font-mono"
             style={{ color: "var(--color-text-primary)" }}
           />
           {parsed.kind !== "unknown" && (

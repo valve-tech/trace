@@ -86,6 +86,27 @@ select:focus {
   box-shadow: 0 0 0 3px var(--color-accent-muted);
 }
 
+/* Default placeholder color for all inputs/textareas — unstyled inputs were
+ * rendering near-invisible on the dark theme. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+/* Inputs that are visually *part of a row container* should not draw their
+ * own focus glow — the row signals focus instead via :focus-within. */
+.bare-input:focus {
+  box-shadow: none !important;
+}
+
+/* ⌘K palette input row: accent inset rail across the bottom when the
+ * embedded input is focused. Replaces the default 3px purple-muted halo
+ * with something themed and contained. */
+.palette-row:focus-within {
+  box-shadow: inset 0 -1px 0 0 var(--color-accent) !important;
+}
+
 /*
  * 1px outset box-shadow border utilities.
  *
