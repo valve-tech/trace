@@ -90,7 +90,10 @@ export interface OtsBlockDetails {
     baseFeePerGas: `0x${string}` | null;
     size: `0x${string}`;
   };
-  transactionCount: number;
+  /** Per Reth's `BlockDetails` wire format, this is hex-encoded like every
+   *  other uint on the JSON-RPC surface. Don't try `Number(value)` directly —
+   *  it'd return NaN for `0x…`. */
+  transactionCount: `0x${string}`;
   totalFees: `0x${string}`;
   issuance?: {
     blockReward: `0x${string}`;

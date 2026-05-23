@@ -42,7 +42,7 @@ function fromOts(details: OtsBlockDetails): BlockHeader {
     hash: b.hash,
     timestamp: Number(BigInt(b.timestamp)),
     miner: b.miner,
-    transactionCount: Number(details.transactionCount),
+    transactionCount: Number(BigInt(details.transactionCount)),
     gasUsed: BigInt(b.gasUsed).toString(10),
     gasLimit: BigInt(b.gasLimit).toString(10),
     baseFeePerGas: b.baseFeePerGas ? BigInt(b.baseFeePerGas).toString(10) : null,
