@@ -1,5 +1,117 @@
 # PulseChain Dev Platform — Progress
 
+## Session: 2026-05-23 — Gap tokens, StepDebugger delegation, SDK 0.4, charting scope
+
+### Headline events
+
+- **Semantic spacing tokens landed.** Five `--spacing-*` tokens added to
+  `index.css` `@theme` block: `tight (4px) / inline (8px) / row (12px) /
+  stack (16px) / section (24px)`. Codemod swept 74 files (gap-1 → tight,
+  gap-2 → inline, gap-3 → row, space-y-4 → stack, space-y-6 → section).
+  Four outliers fixed manually (gap-5 / space-y-5 / space-y-8 — drafts +
+  ActionEditor + RpcPage). `npm run lint:spacing` grep ban now chains
+  into the root `lint` script. The split that matters: intra-element
+  (inline) vs sibling-row (row). Commit `f457827`.
+- **AppShell group hints moved behind info-icons.** The italic descriptive
+  line under each Inspect/Simulate/Automate label is now a small outlined
+  info-circle button that exposes the hint via `title=` and `aria-label=`.
+  Saves ~22px vertical per group. Same commit as above.
+- **`/drafts/shell` deleted.** Production shell IS the result, per
+  progress note line 99. Its two sub-routes that wrapped DebuggerView and
+  SettingsPanel went too. `/drafts/journey` and `/drafts/workspace` stay
+  as design surfaces. Same commit as above.
+- **StepDebugger navigation cursor delegated to SDK.** Web's
+  `StepDebugger.tsx` swapped its `useState(0)` + clamping + reset effect
+  for `useOpcodeNavigation(steps)` from `@valve-tech/trace-sdk/hooks`.
+  Wrappers preserve the `setOverrideLine(null)` side effect on every nav
+  event. OpcodeStep type now re-exported from SDK so both sides share
+  identity. Commit `658666a`. Net LOC delta was small (+4) — the win is
+  architecture, not lines.
+- **SDK 0.4.0 version bumped.** `packages/sdk/package.json: 0.3.0 →
+  0.4.0` + lockfile refresh, committed as `d5da73c`. Ships 12 stacked
+  items since 0.3.0 (5 components, 1 parser, 1 risk rule, 5 widgets).
+  486 tests pass at 100/100/100/100 coverage. **NOT YET PUSHED — the
+  publish-sdk workflow triggers on `push to main` when package.json
+  version is new on npm. User needs to `git push origin main` to ship.**
+
+### Token charting feature — scoped, blocked on path decision
+
+User requested charting backed by chifra + IndexedDB, with up to 80%
+of user storage. Scoping artifact landed at `docs/CHARTING.md` along
+with foundational `packages/api/src/services/chifra/{client,cache}.ts`.
+Commit `d9064cc`.
+
+**Critical pre-build discovery — chifra.valve.city is minimally
+configured for PulseChain:**
+
+```
+GET /monitors?chain=pulsechain&list=true
+→ 2 monitored addresses:
+   - HEX (0x2b591e99…)  — fully indexed, 237MB, 29.6M records
+   - 0xa420…             — basically empty, 9 records
+```
+
+Every other PulseChain token returns 0 records on chifra `/export`
+because chifra has never walked their address. Adding a monitor is a
+server-side admin op (`chifra monitor --addrs <X>`) requiring chifra
+access, time (walks back to genesis), and disk space.
+
+Also confirmed during probe: chifra `/export` has NO block-range param
+— `first_block`/`last_block`/`start_block`/`since`/`block` etc. all
+rejected as `Invalid key`. The only position-aware param is
+`appearances`, a mutually-exclusive mode flag (not a range filter).
+
+**Three forward paths in `docs/CHARTING.md` §9 — pick one before build
+resumes:**
+
+A. Chifra-only with explicit gating (only-HEX-works UX)
+B. Chifra + monitor-on-demand backend (job-tracked indexing requests)
+C. Pivot v1 data source to BlockScout `tokentx` (works for every
+   token day 1; chifra layered in later for HEX-quality depth)
+
+Doc recommends Path C — the IDB cache, chart UI, and storage release
+pattern are reusable across data sources. Awaiting user direction.
+
+### Commits this session
+
+```
+f457827 refactor(web): semantic spacing tokens + sidebar info-icon + remove ShellDraft
+658666a refactor(web): delegate StepDebugger navigation cursor to SDK hook
+d5da73c chore(sdk): bump to 0.4.0
+d9064cc docs+api: scope token charting feature; flag chifra monitoring limitation
+```
+
+Local branch is 4 commits ahead of origin/main, not pushed.
+
+### Next-session pickup options
+
+1. **Push origin main** → publishes SDK 0.4.0 to npm via OIDC. Verify
+   on https://www.npmjs.com/package/@valve-tech/trace-sdk afterward.
+2. **Pick a charting path** (A / B / C from `docs/CHARTING.md` §9)
+   and resume build. Path C is the recommendation; the doc has the
+   build sequence.
+3. **Remaining items from the 2026-05-22 pickup list** — still open:
+   - DebuggerView auto-debug (URL hash → fires Debug automatically;
+     ~10-line patch). Storage param fix already shipped during this
+     session via the codemod's incidental edits — re-verify.
+   - Address Workspace as production (promote `/drafts/workspace`).
+   - Recent/Suggested-next persistence.
+   - Contract-name palette search.
+
+### Notes for next session
+
+- The gap-spacing token rule is enforced via grep in `npm run
+  lint:spacing`. Adding a new gap-N value requires updating that regex
+  *and* the `@theme` block — keep both in sync.
+- The SDK v0.4 commit is on main but unpublished. If you bump again
+  before publishing, the publish workflow will pick up the latest
+  version (it diff-checks against npm, not against the last tag).
+- The chifra finding deserves to live in `docs/CHARTING.md` not
+  memory — it's project state, not a user preference. If the deploy
+  changes (more monitored addresses), the doc should update too.
+
+---
+
 ## Session: 2026-05-22 — UI reimagining: sidebar shell + drafts + ⌘K palette
 
 ### Headline events
