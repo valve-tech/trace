@@ -13,8 +13,14 @@
 
 import { formatEther } from "viem";
 import { publicClient } from "../rpc.js";
-import { otsGetBlockDetails, type OtsBlockDetails } from "./ots.js";
 import { lookupSelectors } from "../signatures.js";
+
+// NB: spec §4a calls for `ots_getBlockDetails` here, but PulseChain's
+// public RPC currently returns -32601 for it. The wrapper in
+// `./ots.ts` still exists for later bundles (Bundle 2 needs
+// `ots_getBlockTransactions`). For Bundle 1 we just use the standard
+// `eth_getBlockByNumber` path — costs us logsBloom + the issuance
+// fields, neither of which the home view actually displays.
 
 const SUMMARY_TTL_MS = 3_000;
 const RECENT_TXS_TTL_MS = 3_000;
@@ -34,32 +40,14 @@ export interface BlockHeader {
   baseFeePerGas: string | null;
 }
 
-/** Convert an `ots_getBlockDetails` payload to our wire shape. */
-function fromOts(details: OtsBlockDetails): BlockHeader {
-  const b = details.block;
-  return {
-    number: BigInt(b.number).toString(10),
-    hash: b.hash,
-    timestamp: Number(BigInt(b.timestamp)),
-    miner: b.miner,
-    transactionCount: Number(BigInt(details.transactionCount)),
-    gasUsed: BigInt(b.gasUsed).toString(10),
-    gasLimit: BigInt(b.gasLimit).toString(10),
-    baseFeePerGas: b.baseFeePerGas ? BigInt(b.baseFeePerGas).toString(10) : null,
-  };
-}
-
 /**
- * Fetch a single block header — `ots_getBlockDetails` if available, else
- * viem's `getBlock({ includeTransactions: false })`. The fallback path is
- * slightly heavier (logsBloom comes back full) but never blocks shipping.
+ * Fetch a single block header via `eth_getBlockByNumber` with
+ * `includeTransactions: false`. The result's `transactions` field is a
+ * list of hashes, so `.length` is the tx count.
  */
 async function getBlockHeader(
   tagOrNumber: "latest" | "finalized" | "safe" | bigint,
 ): Promise<BlockHeader> {
-  const ots = await otsGetBlockDetails(tagOrNumber);
-  if (ots) return fromOts(ots);
-
   const block =
     typeof tagOrNumber === "bigint"
       ? await publicClient.getBlock({
