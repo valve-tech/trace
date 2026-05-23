@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
-import TxSearch, { type SearchTarget } from "./TxSearch";
 import TxDetail from "./TxDetail";
 import AddressView from "./AddressView";
 import BlockView from "./BlockView";
@@ -17,7 +16,6 @@ type ExplorerView =
 
 export default function ExplorerPanel() {
   const [view, setView] = useState<ExplorerView>({ type: "none" });
-  const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<ExplorerView[]>([]);
   const [searchParams] = useSearchParams();
 
@@ -53,23 +51,6 @@ export default function ExplorerPanel() {
     setView(prev);
   }, [history]);
 
-  const handleSearch = (target: SearchTarget) => {
-    setLoading(true);
-    switch (target.type) {
-      case "tx":
-        navigateTo({ type: "tx", hash: target.value });
-        break;
-      case "address":
-        navigateTo({ type: "address", address: target.value });
-        break;
-      case "block":
-        navigateTo({ type: "block", numberOrHash: target.value });
-        break;
-    }
-    // Loading is managed by child components
-    setTimeout(() => setLoading(false), 100);
-  };
-
   const handleNavigate = (target: {
     type: "tx" | "address" | "block" | "contract";
     value: string;
@@ -92,9 +73,6 @@ export default function ExplorerPanel() {
 
   return (
     <div className="space-y-4">
-      {/* Search bar */}
-      <TxSearch onSearch={handleSearch} loading={loading} />
-
       {/* Back button */}
       {view.type !== "none" && (
         <div className="flex items-center gap-3">
