@@ -248,92 +248,103 @@ Each step ships as its own commit. Step 1 + 2 land first, can be smoke-tested vi
 
 ## 8. Findings from API probing (2026-05-23)
 
-Spent ~30 min probing `chifra.valve.city` to verify the assumptions in this
-doc before building. Two findings change the design materially:
+Spent time probing `chifra.valve.city` to verify the assumptions before
+building. **One finding** changes the design materially — and an earlier
+version of this section misdiagnosed it. Corrected below.
 
-### Finding 1 — `/export` has no block-range param.
+### Finding — the REST API caps responses at 250 records, no pagination.
 
-All of these were rejected as `Invalid key` by chifra's REST surface:
-`first_block`, `last_block`, `start_block`, `end_block`, `from_block`,
-`to_block`, `blockRange`, `block_range`, `since`, `until`, `block`,
-`first`, `last`, `after`, `before`, `blocks`, `transactions`, `txs`.
+Every chifra response (`/list`, `/export`, regardless of mode flags) is
+hard-capped at 250 records, and no parameter is accepted that would
+paginate past the cap or constrain to a block range. The cap applies
+identically to:
 
-The only block-position-aware key the route accepts is `appearances`,
-but it's a **mode flag** (mutually exclusive with `logs=true`), not a
-filter — and it accepts a value list of `block.txid` tuples, not ranges.
+- Monitored addresses like HEX (~30M records exist in the underlying
+  index; we see the first 250, which is December 2019 activity).
+- Unmonitored addresses like wPLS (chifra walks chunks live on cold
+  cache — takes ~20s but returns 250 records starting from the address's
+  earliest activity).
 
-**Implication:** time-windowed charts must either (a) pull the full token
-history and slice in the API proxy, or (b) build a two-step pipeline:
-`/list` → filter appearances by `blockNumber` → `/export` with those
-specific appearances → hydrated logs. Path (b) is correct but costlier.
+Probed and rejected as `Invalid key`:
 
-### Finding 2 — chifra only indexes monitored addresses, and PulseChain has only 2.
+| Family | Rejected keys |
+|---|---|
+| Page-based | `page`, `per_page`, `limit`, `offset`, `max_records`, `n_records`, `first_record` |
+| Range-based | `first_block`, `last_block`, `start_block`, `end_block`, `from_block`, `to_block`, `since`, `until`, `block`, `first`, `last`, `after`, `before`, `blocks` |
+| Sort/dir | `reverse`, `sort` |
+| Other | `freshen`, `no_header`, `transactions`, `txs`, `tx_ids` |
 
-```bash
-GET /monitors?chain=pulsechain&list=true
-→ data: [
-    { address: 0x2b591e99afe9f32eaa6214f7b7629768c40eeb39,  # HEX
-      fileSize: 237_250_336, nRecords: 29_656_291 },
-    { address: 0xa420d10592e85c40008719a4a750a47f4d13dad0,  # ~empty
-      fileSize: 80,          nRecords: 9 },
-  ]
-```
+The only block-position-aware key that's accepted on `/export` is
+`appearances`, but it's a **mode flag** (mutually exclusive with
+`logs=true` and the other modes) that takes a value list of specific
+`block.txid` tuples — not a range.
 
-Only **HEX** is fully indexed. Every other token (WPLS, PLSX, INC, IPSE,
-all the long-tail) returns 0 records on `/export?addrs=<token>&logs=true`
-because chifra has never walked their address.
+The underlying chifra/trueblocks CLI **does support** all these flags
+(`chifra list --first_block N --last_block M`, `--page`, `--page_size`,
+etc.). The REST proxy at `chifra.valve.city` simply doesn't whitelist
+them. Filed at `docs/chifra-monitoring-issue.md` for the maintainer.
 
-**This is a deployment-scope problem, not a code problem.** Adding a new
-monitored address requires `chifra monitor --addrs <X>` on the server —
-which is slow (must walk the index from genesis, ~hours for high-activity
-tokens), takes disk space (HEX alone is 237MB), and isn't exposed
-through the public REST surface.
+### What was previously claimed in this section, and why it was wrong
+
+An earlier version of this doc claimed chifra was gating on monitor
+membership ("only 2 addresses monitored, every other token returns 0
+records"). That was a misread of two signals:
+
+1. The `/monitors` endpoint returns the *monitor cache*, not an
+   access-control list. Monitor cache is an optimization for hot
+   addresses; chunks contain all chain data.
+2. Initial probes against unmonitored tokens timed out at 30s, and I
+   treated empty timed-out responses as "0 records". Retrying with a
+   180s timeout proved chifra serves any address — just slowly on
+   cold cache.
+
+Acknowledging the mistake here so the doc stays load-bearing.
 
 ---
 
-## 9. Three forward paths
+## 9. Three forward paths (revised)
 
-Pick ONE before continuing the build.
+The constraint is the 250-record-of-oldest-data ceiling, not monitor
+gating. That changes the option space.
 
-### Path A — chifra-only, gated to monitored tokens
+### Path A — chifra v0 over the 250-oldest window
 
-Ship the feature with a hard restriction: charts only work for tokens
-chifra is currently monitoring. For any other token, the chart tab shows
-*"Not indexed yet — request indexing in #valve-ops"* (or equivalent).
+Ship the feature against whatever chifra returns today (the first 250
+appearances of any token, regardless of recency). Useful as a tech demo
+of the pipeline, but the chart shows ancient data — HEX's December
+2019, WPLS's deployment week, etc. Not useful as a user feature.
 
-- **Pros:** Honest about the dependency. Cheapest to build. The architecture
-  in this doc still applies as written.
-- **Cons:** Useless for almost every token until ops triages each
-  manually. UX is "click button → never works."
+- **Pros:** Lets us build + commit the API service, IDB cache, chart UI
+  against a real data source without waiting on the maintainer.
+- **Cons:** The chart is misleading. Users will think it's broken.
 
-### Path B — chifra + monitor-on-demand backend
+### Path B — wait for the maintainer to add pagination/range
 
-Build a server-side endpoint that adds a monitor request on first access
-to an unmonitored token, then polls until the monitor is ready (or
-returns a job ID for async pickup). Token shows
-*"Indexing... ~5 min for low-activity, hours for high"* placeholder.
+The fix is small for them (whitelisting existing CLI flags as REST query
+params). Once shipped, every token works, recent or historical. Build
+in the meantime against a mock or stand still.
 
-- **Pros:** Self-serve. Eventually works for every token.
-- **Cons:** Need server-side write access to chifra config. Job tracking.
-  Index disk cost grows with monitored set (HEX = 237MB; PulseX would be
-  GBs). Cold-start UX is bad.
+- **Pros:** Correct end state, no rework.
+- **Cons:** Blocked on external timeline.
 
-### Path C — pivot data source to BlockScout, keep chifra for HEX
+### Path C — pivot v0 data source to BlockScout, keep the chifra layer for the future
 
-BlockScout already serves `tokentx` per-address with cursor pagination —
-no monitoring requirement, works for every contract. The IDB cache
-layer in this doc applies unchanged; only the API service swaps.
+BlockScout already serves `/api?module=account&action=tokentx&address=`
+with cursor pagination and **no monitor requirement**. The IDB cache,
+chart UI, storage release pattern, and useTokenTransfers hook design
+all stay the same — only the API service swaps.
 
-- **Pros:** Works for every token on day 1. BlockScout is already a
-  configured dependency (`BLOCKSCOUT_API_URL` env var).
-- **Cons:** BlockScout's `tokentx` paginates poorly past page ~50 — high
-  activity charts may run out of history. No articulated swap data
-  (just raw transfers). Falls back gracefully to "best effort" though.
+- **Pros:** Works for every token on day 1, recent data, no maintainer
+  dependency. BlockScout is already a configured dependency
+  (`BLOCKSCOUT_API_URL` env var, used elsewhere in `services/explorer/`).
+- **Cons:** BlockScout's `tokentx` paginates unreliably past page ~50 on
+  large addresses. No articulated swap data. Fine for v0 chart use,
+  worse than chifra for deep address-history pages.
 
-**Recommendation:** Path C (BlockScout) for v1, layer chifra back in
-later for HEX-quality depth on tokens worth monitoring. The IDB cache,
-the chart UI, and the storage release pattern are all reusable across
-data sources.
+**Recommendation: Path C for v0 + Path B for v1.** The BlockScout slice
+ships in hours and works for everything; switching the API layer
+implementation to chifra once the maintainer ships pagination is a
+single-file swap. Everything above the API service is reusable.
 
 ---
 
