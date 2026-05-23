@@ -258,22 +258,29 @@ Each step ships as its own commit. Step 1 + 2 land first, can be smoke-tested vi
 
 ## 8. Findings from API probing (2026-05-23)
 
-Spent time probing `chifra.valve.city` to verify the assumptions before
-building. **One finding** changes the design materially — and an earlier
-version of this section misdiagnosed it. Corrected below.
+Spent time probing `chifra.valve.city` to verify assumptions before
+building. **Net result: chifra does everything the feature needs** —
+block-range filtering, reverse ordering, and arbitrary record counts
+for any token, monitored or not. Two earlier misdiagnoses in this
+section (since corrected) are documented at the end so the doc stays
+honest.
 
-### Finding — the REST API caps responses at 250 records, no pagination.
+### Finding — chifra is fully capable; params are camelCase.
 
-Every chifra response (`/list`, `/export`, regardless of mode flags) is
-hard-capped at 250 records, and no parameter is accepted that would
-paginate past the cap or constrain to a block range. The cap applies
-identically to:
+Verified live against HEX (`0x2b59...`):
 
-- Monitored addresses like HEX (~30M records exist in the underlying
-  index; we see the first 250, which is December 2019 activity).
-- Unmonitored addresses like wPLS (chifra walks chunks live on cold
-  cache — takes ~20s but returns 250 records starting from the address's
-  earliest activity).
+```http
+GET /list?chain=pulsechain&addrs=<token>&firstBlock=26000000&lastBlock=26010000
+  → records within that range (recent, May 2026)
+
+GET /list?chain=pulsechain&addrs=<token>&reversed=true&maxRecords=2000
+  → the 2000 most-recent records (blocks 26603641..26604944)
+```
+
+The default page size is 250; `maxRecords` overrides it. Unmonitored
+addresses work too — chifra walks chunks live (~20s cold) and returns
+the same range/reverse/count controls. No monitor membership required,
+no maintainer dependency, no data-source pivot.
 
 **Accepted (camelCase) keys** — verified live 2026-05-23:
 
@@ -306,7 +313,7 @@ records"). That was a misread of two signals:
 
 1. The `/monitors` endpoint returns the *monitor cache*, not an
    access-control list. Monitor cache is an optimization for hot
-   addresses; chunks contain all chain data.
+   addresses; chunks contain all chain data, queryable for any address.
 2. Initial probes against unmonitored tokens timed out at 30s, and I
    treated empty timed-out responses as "0 records". Retrying with a
    180s timeout proved chifra serves any address — just slowly on
@@ -314,57 +321,40 @@ records"). That was a misread of two signals:
 3. Block-range and pagination params were probed in snake_case
    (`first_block`, `last_block`, `max_records`, `reverse`), which the
    route parser rejects. The accepted keys are camelCase
-   (`firstBlock`, `lastBlock`, `maxRecords`, `reversed`) — see
-   `chifra-pagination-issue.md` for the verified resolution. The
-   REST proxy was never the problem; the keys were always available.
+   (`firstBlock`, `lastBlock`, `maxRecords`, `reversed`). The REST
+   proxy was never the problem; the keys were always available — I was
+   sending the wrong case.
 
-Acknowledging the mistake here so the doc stays load-bearing.
+No maintainer fix is needed and there is no BlockScout fallback. The
+feature builds directly on chifra as originally designed.
+
+Acknowledging the mistakes here so the doc stays load-bearing.
 
 ---
 
-## 9. Three forward paths (revised)
+## 9. Build plan — chifra, recent-first
 
-The constraint is the 250-record-of-oldest-data ceiling, not monitor
-gating. That changes the option space.
+No forward-path decision needed; chifra is the source. The query
+pattern for charting buckets:
 
-### Path A — chifra v0 over the 250-oldest window
+```http
+GET /api/chifra/transfers?token=<addr>&window=24h
+  → API translates window to a block range, calls chifra:
+    /list?chain=pulsechain&addrs=<addr>&firstBlock=<N>&lastBlock=<head>
+          &reversed=true&maxRecords=<cap>
+  → normalizes to TransferRecord[] (§4), returns to web
+```
 
-Ship the feature against whatever chifra returns today (the first 250
-appearances of any token, regardless of recency). Useful as a tech demo
-of the pipeline, but the chart shows ancient data — HEX's December
-2019, WPLS's deployment week, etc. Not useful as a user feature.
+Window → block-range translation lives in the API service: PulseChain
+is ~10s/block, so `24h ≈ 8,640 blocks`, `7d ≈ 60,480`, `30d ≈ 259,200`.
+Compute `firstBlock = head - windowBlocks`, fetch head from the existing
+viem client.
 
-- **Pros:** Lets us build + commit the API service, IDB cache, chart UI
-  against a real data source without waiting on the maintainer.
-- **Cons:** The chart is misleading. Users will think it's broken.
-
-### Path B — wait for the maintainer to add pagination/range
-
-The fix is small for them (whitelisting existing CLI flags as REST query
-params). Once shipped, every token works, recent or historical. Build
-in the meantime against a mock or stand still.
-
-- **Pros:** Correct end state, no rework.
-- **Cons:** Blocked on external timeline.
-
-### Path C — pivot v0 data source to BlockScout, keep the chifra layer for the future
-
-BlockScout already serves `/api?module=account&action=tokentx&address=`
-with cursor pagination and **no monitor requirement**. The IDB cache,
-chart UI, storage release pattern, and useTokenTransfers hook design
-all stay the same — only the API service swaps.
-
-- **Pros:** Works for every token on day 1, recent data, no maintainer
-  dependency. BlockScout is already a configured dependency
-  (`BLOCKSCOUT_API_URL` env var, used elsewhere in `services/explorer/`).
-- **Cons:** BlockScout's `tokentx` paginates unreliably past page ~50 on
-  large addresses. No articulated swap data. Fine for v0 chart use,
-  worse than chifra for deep address-history pages.
-
-**Recommendation: Path C for v0 + Path B for v1.** The BlockScout slice
-ships in hours and works for everything; switching the API layer
-implementation to chifra once the maintainer ships pagination is a
-single-file swap. Everything above the API service is reusable.
+`maxRecords` caps the pull. For high-activity tokens a single window
+may exceed it; the API can detect `records.length === maxRecords`
+(likely truncated) and surface a `truncated: true` flag the chart shows
+as a "showing most recent N" note. Deeper history within a window uses
+`firstRecord` to paginate — deferred until a real token needs it.
 
 ---
 
