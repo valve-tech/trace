@@ -6,6 +6,7 @@ import TxDetail from "./TxDetail";
 import AddressView from "./AddressView";
 import BlockView from "./BlockView";
 import ContractView from "./ContractView";
+import ExplorerHome from "./ExplorerHome";
 
 type ExplorerView =
   | { type: "none" }
@@ -139,34 +140,8 @@ export default function ExplorerPanel() {
         </div>
       )}
 
-      {/* Detail view */}
-      {view.type === "none" && (
-        <div
-          className="rounded-lg bs p-8 flex flex-col items-center justify-center min-h-[400px] text-center"
-          style={{
-            backgroundColor: "var(--color-bg-card)",
-          }}
-        >
-          <Icon
-            icon="heroicons:magnifying-glass"
-            className="w-16 h-16 mb-4"
-            style={{ color: "var(--color-border-default)" }}
-          />
-          <h3
-            className="text-sm font-medium mb-1"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
-            Transaction Explorer
-          </h3>
-          <p
-            className="text-xs max-w-sm"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            Search by transaction hash, address, or block number to explore
-            PulseChain data with full decoding.
-          </p>
-        </div>
-      )}
+      {/* Home view — latest summary, recent blocks, recent txs */}
+      {view.type === "none" && <ExplorerHome onNavigate={handleNavigate} />}
 
       {view.type === "tx" && (
         <TxDetail hash={view.hash} onNavigate={handleNavigate} />
