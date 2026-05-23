@@ -155,11 +155,11 @@ function Sidebar({
       }}
     >
       <div
-        className="py-3 flex items-center"
+        className="flex items-center"
         style={{
           boxShadow: "0 1px 0 0 var(--color-border-muted)",
-          paddingLeft: collapsed ? 0 : 12,
-          paddingRight: collapsed ? 0 : 12,
+          paddingLeft: collapsed ? 0 : 8,
+          paddingRight: collapsed ? 0 : 8,
           justifyContent: collapsed ? "center" : "flex-end",
         }}
       >
@@ -490,9 +490,10 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div className="card w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-        {/* Input row */}
+        {/* Input row — icon sits adjacent to the placeholder so they read as
+            one label; row height matches the chrome CommandBar (h-12). */}
         <div
-          className="flex items-center gap-3 px-4 py-3"
+          className="flex items-center gap-2 px-4 h-12"
           style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
         >
           <Icon
@@ -506,7 +507,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Paste a tx hash, address, block number, or 4byte selector"
-            className="flex-1 bg-transparent text-sm outline-none font-mono"
+            className="flex-1 h-full bg-transparent text-sm outline-none font-mono"
             style={{ color: "var(--color-text-primary)" }}
           />
           {parsed.kind !== "unknown" && (
