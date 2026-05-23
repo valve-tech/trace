@@ -2,8 +2,9 @@ import type { AddressTransaction } from "../../../api/explorer";
 import { formatPLS, truncateAddr } from "../format";
 import { formatRelativeTimestamp } from "./formatRelative";
 import type { AddressNavTarget } from "./TransactionsTab";
+import TxRowActions from "../TxRowActions";
 
-const HEADERS = ["Tx Hash", "Block", "Age", "From", "To", "Value", "Status"];
+const HEADERS = ["Tx Hash", "Block", "Age", "From", "To", "Value", "Status", ""];
 
 interface Props {
   txs: AddressTransaction[];
@@ -127,6 +128,13 @@ function TxRow({
                 : "var(--color-danger)",
           }}
           title={tx.isError === "0" ? "Success" : "Error"}
+        />
+      </td>
+      <td className="px-3 py-2 text-right relative">
+        <TxRowActions
+          hash={tx.hash}
+          contractAddress={isContractCreation ? null : tx.to}
+          compact
         />
       </td>
     </tr>

@@ -21,6 +21,7 @@ import {
   type BlockHeader,
   type RecentTx,
 } from "../../api/latest";
+import TxRowActions from "./TxRowActions";
 
 const REFETCH_MS = 5_000;
 
@@ -262,7 +263,7 @@ function TxsCard({
           {txs.map((t) => (
             <li
               key={t.hash}
-              className="bs-b-muted flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer hover:opacity-80 transition-opacity"
+              className="bs-b-muted flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer hover:opacity-80 transition-opacity relative"
               onClick={() => onNavigate({ type: "tx", value: t.hash })}
             >
               <div className="min-w-0 flex-1">
@@ -291,6 +292,7 @@ function TxsCard({
                   {ago(t.timestamp)}
                 </div>
               </div>
+              <TxRowActions hash={t.hash} contractAddress={t.to} compact />
             </li>
           ))}
         </ul>

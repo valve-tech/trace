@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchBlock, type BlockDetails } from "../../api/explorer";
+import TxRowActions from "./TxRowActions";
 
 interface BlockViewProps {
   numberOrHash: string;
@@ -343,6 +344,7 @@ export default function BlockView({
                   >
                     Value
                   </th>
+                  <th className="px-3 py-2.5" />
                 </tr>
               </thead>
               <tbody>
@@ -444,6 +446,13 @@ export default function BlockView({
                       style={{ color: "var(--color-text-primary)" }}
                     >
                       {formatPLS(tx.valuePLS)}
+                    </td>
+                    <td className="px-3 py-2 text-right relative">
+                      <TxRowActions
+                        hash={tx.hash}
+                        contractAddress={tx.to ?? null}
+                        compact
+                      />
                     </td>
                   </tr>
                 ))}
