@@ -1,5 +1,72 @@
 # Issue: chifra.valve.city REST API has no pagination — capped at 250 records per response
 
+> **RESOLVED 2026-05-23 — feature was always there, key naming was wrong.**
+>
+> The chifra REST proxy accepts pagination + block-range params in
+> **camelCase**, not snake_case. The original probes used `first_block`,
+> `last_block`, `max_records`, `reverse` — all of which hit the
+> "Invalid key" fall-through. The actually-accepted keys are:
+>
+> | param            | type   | purpose                                       |
+> |------------------|--------|-----------------------------------------------|
+> | `firstBlock`     | uint64 | First block to include (inclusive)            |
+> | `lastBlock`      | uint64 | Last block to include (inclusive)             |
+> | `firstRecord`    | uint64 | Skip this many records (offset)               |
+> | `maxRecords`     | uint64 | Cap result count (default 250, no upper limit)|
+> | `reversed`       | bool   | Return newest-first instead of oldest-first   |
+>
+> All five work on **both** `/list` and `/export`, on monitored *and*
+> unmonitored addresses (the chunk-walking path threads them through too).
+> See `chifra/internal/{list,export}/options.go` `*FinishParseInternal` in
+> trueblocks-core for the source-of-truth list.
+>
+> ### Working examples (verified against chifra.valve.city 2026-05-23)
+>
+> ```bash
+> # Latest 50 HEX appearances, newest first
+> curl -sS "https://chifra.valve.city/list?chain=pulsechain\
+> &addrs=0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39\
+> &reversed=true&maxRecords=50"
+>
+> # Activity for any unmonitored token before block 18,000,000, 100 newest first
+> curl -sS "https://chifra.valve.city/list?chain=pulsechain\
+> &addrs=0xA1077a294dDE1B09bB078844df40758a5D0f9a27\
+> &lastBlock=18000000&reversed=true&maxRecords=100"
+>
+> # Latest 5 transfer logs for HEX with articulation
+> curl -sS "https://chifra.valve.city/export?chain=pulsechain\
+> &addrs=0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39\
+> &logs=true&articulate=true&reversed=true&maxRecords=5"
+> ```
+>
+> ### Pagination recipe (block-range as cursor)
+>
+> For chronological feeds, the cleanest cursor is the last block-number
+> seen — no opaque tokens needed:
+>
+> 1. **First page (newest)**: `?reversed=true&maxRecords=N`
+> 2. **Next page**: take `data[N-1].blockNumber` from the prior response,
+>    request `?reversed=true&maxRecords=N&lastBlock=<that_block - 1>`
+> 3. Repeat until the response is short of `N`
+>
+> `firstRecord`-based offset pagination also works but is more fragile
+> across new appearances arriving at tip — block-range is recommended.
+>
+> ### Block-time bucketing for charting
+>
+> For `docs/CHARTING.md` time-series, convert your wall-clock range to a
+> block-number range (use chifra `/when?timestamps=...` or any block-time
+> lookup), then loop `firstBlock`/`lastBlock` per bucket. Each bucket
+> stays under 250 records for high-activity tokens by using `maxRecords`
+> as a sanity ceiling.
+>
+> ---
+>
+> *(Original issue text retained below for context. The "Suggested next
+> steps" section is no longer applicable — the keys were always there.)*
+
+
+
 ## Summary
 
 The chifra REST instance at `https://chifra.valve.city` (PulseChain

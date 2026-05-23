@@ -95,15 +95,25 @@ Filter server-side to standard transfer topics:
 
 ### Time-range scoping
 
-Chifra's `/export` accepts block ranges via reserved param names that we
-need to **verify against the deployed version** before relying on:
-`last_block`, `first_block` were rejected at probe time (2026-05-23).
-The route may need `--start_block` / `--end_block` or another convention;
-to be confirmed during implementation.
+Chifra's `/export` and `/list` accept block ranges as **camelCase**
+query params: `firstBlock`, `lastBlock`, `firstRecord`, `maxRecords`,
+`reversed` (verified against the live endpoint 2026-05-23). The
+earlier "rejected" findings used snake_case; that's why every probe
+hit "Invalid key" — the trueblocks-core route parser only knows the
+camelCase forms. Source of truth:
+`chifra/internal/{list,export}/options.go` `*FinishParseInternal`.
 
-Fallback if no block-range filter works: fetch the entire export,
-slice client-side. Acceptable for moderate-activity tokens, untenable
-for high-frequency contracts (PulseX Router will choke).
+Working pattern for charting buckets:
+
+```http
+GET /export?chain=pulsechain&addrs=<token>&logs=true
+           &firstBlock=<bucket_start>&lastBlock=<bucket_end>
+           &reversed=true&maxRecords=10000
+```
+
+Pick `maxRecords` large enough that no single bucket overflows it
+(PulseX Router will need either small buckets or `firstRecord`-based
+follow-up pagination within a bucket).
 
 ### What chifra does NOT give us
 
@@ -265,24 +275,28 @@ identically to:
   cache — takes ~20s but returns 250 records starting from the address's
   earliest activity).
 
-Probed and rejected as `Invalid key`:
+**Accepted (camelCase) keys** — verified live 2026-05-23:
 
-| Family | Rejected keys |
+| Family | Accepted keys |
+|---|---|
+| Pagination | `firstRecord`, `maxRecords` |
+| Range | `firstBlock`, `lastBlock` |
+| Sort | `reversed` (boolean) |
+
+**Rejected (snake_case) keys** — these all hit "Invalid key" because
+the route parser only knows the camelCase forms above:
+
+| Family | Rejected keys (do NOT use) |
 |---|---|
 | Page-based | `page`, `per_page`, `limit`, `offset`, `max_records`, `n_records`, `first_record` |
 | Range-based | `first_block`, `last_block`, `start_block`, `end_block`, `from_block`, `to_block`, `since`, `until`, `block`, `first`, `last`, `after`, `before`, `blocks` |
 | Sort/dir | `reverse`, `sort` |
 | Other | `freshen`, `no_header`, `transactions`, `txs`, `tx_ids` |
 
-The only block-position-aware key that's accepted on `/export` is
-`appearances`, but it's a **mode flag** (mutually exclusive with
-`logs=true` and the other modes) that takes a value list of specific
-`block.txid` tuples — not a range.
-
-The underlying chifra/trueblocks CLI **does support** all these flags
-(`chifra list --first_block N --last_block M`, `--page`, `--page_size`,
-etc.). The REST proxy at `chifra.valve.city` simply doesn't whitelist
-them. Filed at `docs/chifra-monitoring-issue.md` for the maintainer.
+The `appearances` key on `/export` is a **mode flag** (mutually
+exclusive with `logs=true`), taking a value list of `block.txid`
+tuples — useful when you already know the exact appearances to fetch,
+not a substitute for `firstBlock`/`lastBlock`.
 
 ### What was previously claimed in this section, and why it was wrong
 
@@ -297,6 +311,12 @@ records"). That was a misread of two signals:
    treated empty timed-out responses as "0 records". Retrying with a
    180s timeout proved chifra serves any address — just slowly on
    cold cache.
+3. Block-range and pagination params were probed in snake_case
+   (`first_block`, `last_block`, `max_records`, `reverse`), which the
+   route parser rejects. The accepted keys are camelCase
+   (`firstBlock`, `lastBlock`, `maxRecords`, `reversed`) — see
+   `chifra-pagination-issue.md` for the verified resolution. The
+   REST proxy was never the problem; the keys were always available.
 
 Acknowledging the mistake here so the doc stays load-bearing.
 
