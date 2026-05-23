@@ -148,7 +148,7 @@ export default function WorkspaceDraft() {
         <div className="p-5 card-divider">
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div className="min-w-0">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-row mb-2">
                 <h1 className="text-2xl font-semibold" style={{ color: "var(--color-text-primary)" }}>
                   {ADDR.name}
                 </h1>
@@ -168,7 +168,7 @@ export default function WorkspaceDraft() {
                 {ADDR.address}
               </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-inline flex-wrap">
               <button
                 className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5"
                 style={{
@@ -239,7 +239,7 @@ export default function WorkspaceDraft() {
       </div>
 
       {/* Body: tab content + context rail */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-stack">
         <div className="card p-5 min-h-[400px]">
           {tab === "activity" && (
             <>
@@ -340,7 +340,7 @@ export default function WorkspaceDraft() {
         </div>
 
         {/* Context rail — "what should I know about this thing?" */}
-        <aside className="space-y-4">
+        <aside className="space-y-stack">
           {CONTEXT_BLOCKS.map((b) => (
             <div key={b.title} className="card p-4">
               <div

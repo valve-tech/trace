@@ -57,7 +57,7 @@ function StorageSlotEditor({
         </button>
       </div>
       {entries.map(([key, val], idx) => (
-        <div key={idx} className="flex gap-2 items-center">
+        <div key={idx} className="flex gap-inline items-center">
           <input
             type="text"
             value={key}
@@ -158,7 +158,7 @@ function SingleOverride({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-row">
         <div>
           <label className="text-xs mb-1 block" style={{ color: "var(--color-text-secondary)" }}>
             Balance (wei)
@@ -222,7 +222,7 @@ function SingleOverride({
               update("storage", {});
             }
           }}
-          className="text-xs flex items-center gap-1"
+          className="text-xs flex items-center gap-tight"
           style={{ color: "var(--color-accent)" }}
         >
           <Icon
@@ -278,7 +278,7 @@ export default function StateOverrides({ overrides, onChange }: StateOverridesPr
           backgroundColor: "transparent",
         }}
       >
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-inline">
           <Icon
             icon="heroicons:chevron-right"
             className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""}`}

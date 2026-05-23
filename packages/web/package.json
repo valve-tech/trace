@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint:spacing": "if grep -rnE '\\b(gap-[1235]|space-y-[4-8])\\b' src --include='*.tsx' --include='*.ts'; then echo '\\nBanned Tailwind spacing class found above. Use semantic tokens: gap-tight | gap-inline | gap-row | space-y-stack | space-y-section. Defined in src/index.css.'; exit 1; fi"
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",

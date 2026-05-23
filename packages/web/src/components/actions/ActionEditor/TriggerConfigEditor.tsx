@@ -138,7 +138,7 @@ export function TriggerConfigEditor({
             Webhook URL (auto-generated after saving)
           </label>
           {webhookUrl ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-inline">
               <input
                 type="text"
                 readOnly

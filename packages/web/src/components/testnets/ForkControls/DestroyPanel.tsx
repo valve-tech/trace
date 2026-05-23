@@ -38,7 +38,7 @@ export function DestroyPanel({ forkId, onDestroyed }: Props) {
           Destroy TestNet
         </button>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-inline">
           <span
             className="text-xs"
             style={{ color: "var(--color-danger)" }}

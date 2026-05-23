@@ -12,7 +12,7 @@ export default function RpcPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-section">
       <RpcDashboard />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>

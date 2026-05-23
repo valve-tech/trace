@@ -55,7 +55,7 @@ export default function ExplorerHome({ onNavigate }: Props) {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       <StatsRow summary={summary.data} loading={summary.isPending} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -86,7 +86,7 @@ function StatsRow({
   loading: boolean;
 }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-row">
       <StatTile
         label="Latest block"
         value={summary ? `#${formatBlockNum(summary.latestBlock.number)}` : "—"}
@@ -263,7 +263,7 @@ function TxsCard({
           {txs.map((t) => (
             <li
               key={t.hash}
-              className="bs-b-muted flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer hover:opacity-80 transition-opacity relative"
+              className="bs-b-muted flex items-center justify-between gap-row px-4 py-2.5 cursor-pointer hover:opacity-80 transition-opacity relative"
               onClick={() => onNavigate({ type: "tx", value: t.hash })}
             >
               <div className="min-w-0 flex-1">
@@ -308,7 +308,7 @@ function TxsCard({
 function CardHeader({ title, icon }: { title: string; icon: string }) {
   return (
     <div
-      className="bs-b-muted flex items-center gap-2 px-4 py-2.5"
+      className="bs-b-muted flex items-center gap-inline px-4 py-2.5"
       style={{ color: "var(--color-text-secondary)" }}
     >
       <Icon icon={icon} className="w-4 h-4" />

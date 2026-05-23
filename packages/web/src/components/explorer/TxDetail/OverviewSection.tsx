@@ -55,7 +55,7 @@ export function OverviewSection({
         </InfoRow>
         <InfoRow label="To">
           {tx.to ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-inline">
               <AddressLink address={tx.to} onNavigate={onNavigate} />
               {tx.contractAddress && (
                 <span

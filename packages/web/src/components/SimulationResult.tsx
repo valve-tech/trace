@@ -19,7 +19,7 @@ function DataRow({
 }) {
   return (
     <div
-      className="flex flex-col gap-1 py-2.5 bs-b-muted last:shadow-none"
+      className="flex flex-col gap-tight py-2.5 bs-b-muted last:shadow-none"
       style={{}}
     >
       <span className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
@@ -89,7 +89,7 @@ function ErrorState({ message }: { message: string }) {
         borderColor: "var(--color-danger)",
       }}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-row">
         <Icon
           icon="heroicons:exclamation-circle"
           className="w-5 h-5 mt-0.5 shrink-0"
@@ -124,7 +124,7 @@ export default function SimulationResultPanel({
   if (!result) return <EmptyState />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       {/* Status card */}
       <div
         className="rounded-lg bs p-4"
@@ -205,7 +205,7 @@ export default function SimulationResultPanel({
             {result.decodedCall.params.map((param, i) => (
               <div
                 key={i}
-                className="flex items-start gap-3 py-1.5 text-sm"
+                className="flex items-start gap-row py-1.5 text-sm"
               >
                 <span
                   className="shrink-0 font-medium"
@@ -249,7 +249,7 @@ export default function SimulationResultPanel({
           </h3>
           <div className="space-y-1">
             {result.decodedReturn.values.map((val, i) => (
-              <div key={i} className="flex items-start gap-3 py-1.5 text-sm">
+              <div key={i} className="flex items-start gap-row py-1.5 text-sm">
                 <span
                   className="shrink-0 font-medium"
                   style={{ color: "var(--color-success)" }}
@@ -309,7 +309,7 @@ export default function SimulationResultPanel({
                     </span>
                     <div className="mt-1 space-y-0.5">
                       {log.decoded.params.map((p, j) => (
-                        <div key={j} className="text-xs flex gap-2">
+                        <div key={j} className="text-xs flex gap-inline">
                           <span style={{ color: "var(--color-text-secondary)" }}>
                             {p.name}:
                           </span>

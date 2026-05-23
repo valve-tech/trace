@@ -72,10 +72,10 @@ export default function ExplorerPanel() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       {/* Back button */}
       {view.type !== "none" && (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-row">
           {history.length > 0 && (
             <button
               onClick={goBack}

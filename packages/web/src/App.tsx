@@ -101,7 +101,7 @@ export default function App() {
           boxShadow: "0 1px 0 0 var(--color-border-default)",
         }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-row">
           <PulseLogo />
           <h1 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
             PulseChain Dev Platform
@@ -116,7 +116,7 @@ export default function App() {
             Devnet
           </span>
         </div>
-        <div className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+        <div className="flex items-center gap-inline text-sm" style={{ color: "var(--color-text-secondary)" }}>
           <div
             className="w-2 h-2 rounded-full"
             style={{

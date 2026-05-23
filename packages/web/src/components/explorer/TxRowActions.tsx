@@ -32,7 +32,7 @@ export default function TxRowActions({
 
   return (
     <div
-      className="inline-flex items-center gap-1"
+      className="inline-flex items-center gap-tight"
       onClick={(e) => e.stopPropagation()}
     >
       <ActionIcon
@@ -185,7 +185,7 @@ function ActionMenu({
                 if (it.enabled) it.onClick();
               }}
               disabled={!it.enabled}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors"
+              className="w-full flex items-center gap-inline px-3 py-2 text-xs text-left transition-colors"
               style={{
                 color: it.enabled
                   ? "var(--color-text-primary)"

@@ -177,7 +177,7 @@ export default function TestNetDashboard() {
                   style={{ backgroundColor: "transparent" }}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-row">
                       {/* Status dot */}
                       <div
                         className="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -191,7 +191,7 @@ export default function TestNetDashboard() {
                           {fork.label}
                         </h3>
                         <div
-                          className="flex items-center gap-3 text-xs mt-0.5"
+                          className="flex items-center gap-row text-xs mt-0.5"
                           style={{ color: "var(--color-text-secondary)" }}
                         >
                           <span>
@@ -225,7 +225,7 @@ export default function TestNetDashboard() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-inline">
                       <span
                         className="text-xs px-2 py-0.5 rounded-full"
                         style={{

@@ -294,7 +294,7 @@ export default function StorageLayoutViewer() {
                     <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>
                       Mapping Key <span style={{ color: "var(--color-text-muted)" }}>(address or uint)</span>
                     </label>
-                    <div className="flex gap-1">
+                    <div className="flex gap-tight">
                       <input
                         type="text"
                         value={lookupKey}
@@ -327,7 +327,7 @@ export default function StorageLayoutViewer() {
                     <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>
                       Array Index
                     </label>
-                    <div className="flex gap-1">
+                    <div className="flex gap-tight">
                       <input
                         type="text"
                         value={lookupKey}

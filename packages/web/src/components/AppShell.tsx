@@ -186,20 +186,20 @@ function Sidebar({
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="mb-5">
             {!collapsed && (
-              <>
-                <div
-                  className="px-4 mb-1 text-[10px] uppercase tracking-widest font-semibold"
-                  style={{ color: "var(--color-text-muted)" }}
+              <div
+                className="px-4 mb-2 flex items-center gap-tight text-[10px] uppercase tracking-widest font-semibold"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                <span>{group.label}</span>
+                <button
+                  type="button"
+                  title={group.hint}
+                  aria-label={`${group.label}: ${group.hint}`}
+                  className="opacity-50 hover:opacity-100 transition-opacity"
                 >
-                  {group.label}
-                </div>
-                <div
-                  className="px-4 mb-2 text-[11px] italic"
-                  style={{ color: "var(--color-text-muted)", opacity: 0.7 }}
-                >
-                  {group.hint}
-                </div>
-              </>
+                  <Icon icon="heroicons:information-circle" className="w-3 h-3" />
+                </button>
+              </div>
             )}
             {collapsed && (
               <div
@@ -318,7 +318,7 @@ function Sidebar({
 function CommandBar({ onOpen }: { onOpen: () => void }) {
   return (
     <div
-      className="px-6 flex items-stretch gap-3 shrink-0 h-12"
+      className="px-6 flex items-stretch gap-row shrink-0 h-12"
       style={{
         backgroundColor: "var(--color-bg-secondary)",
         boxShadow: "0 1px 0 0 var(--color-border-default)",
@@ -326,7 +326,7 @@ function CommandBar({ onOpen }: { onOpen: () => void }) {
     >
       <button
         onClick={onOpen}
-        className="flex-1 max-w-2xl flex items-center gap-2 px-3 text-sm text-left"
+        className="flex-1 max-w-2xl flex items-center gap-inline px-3 text-sm text-left"
         style={{
           backgroundColor: "var(--color-bg-input)",
           color: "var(--color-text-muted)",
@@ -543,7 +543,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                 <button
                   key={a.to}
                   onClick={() => go(a.to)}
-                  className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors"
+                  className="w-full flex items-start gap-row px-4 py-3 text-left transition-colors"
                   style={{
                     backgroundColor: isPrimary ? "var(--color-bg-tertiary)" : "transparent",
                   }}

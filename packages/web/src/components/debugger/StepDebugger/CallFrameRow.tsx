@@ -78,7 +78,7 @@ export function CallFrameRow({
   return (
     <div>
       <div
-        className="flex items-center gap-1 px-2 py-1.5 cursor-pointer text-xs relative whitespace-nowrap"
+        className="flex items-center gap-tight px-2 py-1.5 cursor-pointer text-xs relative whitespace-nowrap"
         onClick={() => { onJumpTo(stepIndex, funcName !== "???" ? funcName : undefined); onSelect?.(frame); }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -181,7 +181,7 @@ export function CallFrameRow({
       {expanded && internalCallsByFrame.get(frame)?.map((ic, i) => (
         <div
           key={`internal-${i}`}
-          className="flex items-center gap-1 px-2 py-1 cursor-pointer text-xs whitespace-nowrap"
+          className="flex items-center gap-tight px-2 py-1 cursor-pointer text-xs whitespace-nowrap"
           onClick={() => onJumpTo(ic.stepIndex, ic.funcName)}
           style={{
             paddingLeft: `${8 + (depth + 1) * 14}px`,

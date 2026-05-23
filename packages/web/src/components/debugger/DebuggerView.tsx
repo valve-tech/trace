@@ -129,7 +129,7 @@ export default function DebuggerView() {
   }, [isValidHash, loading, txHash, navigate, handleTrace]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-section">
       <SearchBar
         txHash={txHash}
         setTxHash={setTxHash}
@@ -176,7 +176,7 @@ export default function DebuggerView() {
             )}
 
             {activeTab === "gas" && (
-              <div className="space-y-4">
+              <div className="space-y-stack">
                 {normalizedTrace && (
                   <GasFlamegraph
                     frame={normalizedTrace}

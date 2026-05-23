@@ -204,11 +204,11 @@ function lensesFor(o: Outcome): Lens[] {
         icon: "heroicons:exclamation-triangle",
         body: (
           <div className="space-y-2">
-            <div className="flex items-start gap-2 text-xs">
+            <div className="flex items-start gap-inline text-xs">
               <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold" style={{ backgroundColor: "var(--color-warning-muted)", color: "var(--color-warning)" }}>warning</span>
               <span style={{ color: "var(--color-text-secondary)" }}>Slippage tolerance is 0 — any price move reverts.</span>
             </div>
-            <div className="flex items-start gap-2 text-xs">
+            <div className="flex items-start gap-inline text-xs">
               <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold" style={{ backgroundColor: "var(--color-danger-muted)", color: "var(--color-danger)" }}>danger</span>
               <span style={{ color: "var(--color-text-secondary)" }}>Missing token approval — sender allowance is 0 for WPLS → Router.</span>
             </div>
@@ -265,7 +265,7 @@ function lensesFor(o: Outcome): Lens[] {
       title: "Risks",
       icon: "heroicons:shield-check",
       body: (
-        <div className="flex items-start gap-2 text-xs">
+        <div className="flex items-start gap-inline text-xs">
           <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold" style={{ backgroundColor: "var(--color-success-muted)", color: "var(--color-success)" }}>clear</span>
           <span style={{ color: "var(--color-text-secondary)" }}>No findings. Slippage realised was within healthy bounds.</span>
         </div>
@@ -353,7 +353,7 @@ export default function JourneyDraft() {
               <span>Gas {tx.gas}</span>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end gap-inline">
             <StatusBadge success={!isRevert} size="lg" />
             {isRevert && (
               <div
@@ -380,11 +380,11 @@ export default function JourneyDraft() {
         <div className="text-[10px] uppercase tracking-widest mb-3" style={{ color: "var(--color-text-muted)" }}>
           Investigation
         </div>
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-tight flex-wrap">
           {stages.map((s, i) => (
-            <div key={s.key} className="flex items-center gap-1">
+            <div key={s.key} className="flex items-center gap-tight">
               <div
-                className="flex items-center gap-2 px-3 py-1.5 text-xs"
+                className="flex items-center gap-inline px-3 py-1.5 text-xs"
                 style={{
                   backgroundColor:
                     s.done && !s.current ? "var(--color-bg-tertiary)"
@@ -414,7 +414,7 @@ export default function JourneyDraft() {
       </div>
 
       {/* Lenses + rail */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-stack">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {lenses.map((l) => {
             const isExpanded = activeLens === l.key;
@@ -426,7 +426,7 @@ export default function JourneyDraft() {
                 style={{ gridColumn: isExpanded ? "1 / -1" : undefined }}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+                  <div className="flex items-center gap-inline text-xs uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
                     <Icon icon={l.icon} className="w-3.5 h-3.5" />
                     {l.title}
                   </div>

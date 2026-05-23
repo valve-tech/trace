@@ -27,7 +27,7 @@ export function CollapsiblePanel({
         className="w-full flex items-center justify-between px-3 py-2 card-divider cursor-pointer"
         style={{ backgroundColor: "var(--color-bg-secondary)" }}
       >
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-inline">
           <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
             {open ? "▼" : "▶"}
           </span>

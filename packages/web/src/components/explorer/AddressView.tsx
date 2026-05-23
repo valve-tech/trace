@@ -123,7 +123,7 @@ export default function AddressView({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       <AddressHeader
         address={address}
         info={info}

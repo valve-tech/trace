@@ -135,7 +135,7 @@ export function DecodedTrace({
               <div
                 key={i}
                 onClick={() => onJumpTo(entry.step)}
-                className="flex items-center gap-1 px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
+                className="flex items-center gap-tight px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
                 title={entry.decodedName ? `${entry.targetAddress ?? ""}.${funcSig}` : entry.selector}
                 style={{
                   paddingLeft: `${12 + (entry.depth - 1) * 16}px`,

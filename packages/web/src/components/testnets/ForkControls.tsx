@@ -18,12 +18,12 @@ export default function ForkControls({
   onRefresh,
 }: ForkControlsProps) {
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-stack mt-4">
       <RpcUrlPanel rpcUrl={fork.rpcUrl} />
       <FaucetPanel forkId={fork.id} />
       <SnapshotsPanel forkId={fork.id} onReverted={onRefresh} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-row">
         <TimeTravelPanel forkId={fork.id} onAdvanced={onRefresh} />
         <MineBlocksPanel forkId={fork.id} onMined={onRefresh} />
       </div>

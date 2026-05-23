@@ -56,7 +56,7 @@ export function InputCard({
         Re-execute a transaction on a forked chain to see exact state changes.
       </p>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-inline mb-4">
         <ModeButton
           active={mode === "hash"}
           onClick={() => setMode("hash")}
@@ -87,7 +87,7 @@ export function InputCard({
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-row">
             <FormField
               label="From"
               value={manual.from}
@@ -103,7 +103,7 @@ export function InputCard({
               mono
             />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-row">
             <FormField
               label="Value (PLS)"
               value={manual.value}

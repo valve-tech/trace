@@ -51,7 +51,7 @@ export function TimeTravelPanel({ forkId, onAdvanced }: Props) {
       >
         Time Travel
       </label>
-      <div className="flex gap-2">
+      <div className="flex gap-inline">
         <input
           type="number"
           value={seconds}

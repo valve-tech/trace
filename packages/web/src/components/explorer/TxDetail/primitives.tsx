@@ -35,7 +35,7 @@ export function InfoRow({
 }) {
   return (
     <div
-      className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2.5 bs-b-muted last:shadow-none"
+      className="flex flex-col sm:flex-row sm:items-start gap-tight sm:gap-4 py-2.5 bs-b-muted last:shadow-none"
       style={{}}
     >
       <span
@@ -72,7 +72,7 @@ export function SectionCard({
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-4 text-left cursor-pointer"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-inline">
           <h3
             className="text-sm font-semibold"
             style={{ color: "var(--color-text-primary)" }}

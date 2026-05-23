@@ -72,12 +72,12 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-section">
       {namespaces.map((ns) => (
         <div key={ns} className="rounded-lg overflow-hidden" style={cardStyle}>
           {/* Namespace header */}
           <div
-            className="px-4 py-3 bs-b flex items-center gap-2"
+            className="px-4 py-3 bs-b flex items-center gap-inline"
             style={{}}
           >
             <span
@@ -127,7 +127,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
                     onClick={() =>
                       setExpandedMethod(isExpanded ? null : method.name)
                     }
-                    className="w-full text-left px-4 py-3 flex items-center gap-3 hover:opacity-80 transition-opacity"
+                    className="w-full text-left px-4 py-3 flex items-center gap-row hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: "transparent" }}
                   >
                     <span

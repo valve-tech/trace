@@ -147,7 +147,7 @@ function Section({
   return (
     <div className="mb-4 card p-5">
       <div
-        className="flex items-center gap-2 mb-4 text-xs uppercase tracking-widest"
+        className="flex items-center gap-inline mb-4 text-xs uppercase tracking-widest"
         style={{ color: "var(--color-text-muted)" }}
       >
         <Icon icon={icon} className="w-3.5 h-3.5" />

@@ -46,7 +46,7 @@ export default function GasProfiler({
   opcodeProfile,
 }: GasProfilerProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       <Card
         title="Gas Profile"
         trailing={

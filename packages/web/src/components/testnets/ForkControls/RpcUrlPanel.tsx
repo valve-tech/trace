@@ -27,7 +27,7 @@ export function RpcUrlPanel({ rpcUrl }: { rpcUrl: string }) {
       >
         RPC Endpoint
       </label>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-inline">
         <code
           className="flex-1 text-sm px-2 py-1.5 rounded bs overflow-x-auto"
           style={{

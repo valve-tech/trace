@@ -29,21 +29,21 @@ export function StoragePanel({
           <div className="px-3 py-1 space-y-2">
             {diffs.map((d, i) => (
               <div key={i} className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-tight">
                   <span style={{ color: "var(--color-text-muted)" }}>slot:</span>
                   <span className="truncate" title={formatWord(d.slot)} style={{ color: "var(--color-warning)" }}>
                     {truncateWord(d.slot)}
                   </span>
                 </div>
                 {d.oldValue !== null && (
-                  <div className="flex items-center gap-1 pl-4">
+                  <div className="flex items-center gap-tight pl-4">
                     <span style={{ color: "var(--color-danger)" }}>-</span>
                     <span className="truncate" title={formatWord(d.oldValue)} style={{ color: "var(--color-text-secondary)" }}>
                       {truncateWord(d.oldValue)}
                     </span>
                   </div>
                 )}
-                <div className="flex items-center gap-1 pl-4">
+                <div className="flex items-center gap-tight pl-4">
                   <span style={{ color: "var(--color-success)" }}>+</span>
                   <span className="truncate" title={formatWord(d.newValue)} style={{ color: "var(--color-accent)" }}>
                     {truncateWord(d.newValue)}

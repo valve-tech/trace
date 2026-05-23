@@ -45,13 +45,13 @@ export function ControlsBar({
 }) {
   return (
     <div
-      className="flex items-center gap-3 px-4 py-2 card"
+      className="flex items-center gap-row px-4 py-2 card"
       style={{
         backgroundColor: "var(--color-bg-card)",
         boxShadow: "0 0 0 1px var(--color-border-default)",
       }}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-tight">
         <ControlButton label="|<" title="Jump to start (Home)" onClick={() => goTo(0)} />
         <ControlButton label="<" title="Step back (Left arrow)" onClick={stepBackward} />
         <ControlButton label=">" title="Step forward (Right arrow / Space)" onClick={stepForward} />
@@ -60,7 +60,7 @@ export function ControlsBar({
 
       <Divider />
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-tight">
         <ControlButton label="CALL" title="Next CALL (C)" onClick={() => jumpToNext(isCallOp)} small accent />
         <ControlButton label="SSTORE" title="Next SSTORE (S)" onClick={() => jumpToNext(isStorageOp)} small accent />
         <ControlButton label="LOG" title="Next LOG (L)" onClick={() => jumpToNext(isLogOp)} small accent />

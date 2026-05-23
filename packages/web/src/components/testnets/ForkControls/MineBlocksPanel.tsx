@@ -38,7 +38,7 @@ export function MineBlocksPanel({ forkId, onMined }: Props) {
       >
         Mine Blocks
       </label>
-      <div className="flex gap-2">
+      <div className="flex gap-inline">
         <input
           type="number"
           value={count}

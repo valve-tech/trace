@@ -42,7 +42,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-row mb-4">
         <button
           onClick={onBack}
           className="px-3 py-1.5 text-sm rounded-md bs transition-colors"
@@ -301,7 +301,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
           <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
             Page {page} of {totalPages}
           </span>
-          <div className="flex gap-2">
+          <div className="flex gap-inline">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}

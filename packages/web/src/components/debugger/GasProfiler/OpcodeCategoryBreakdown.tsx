@@ -32,7 +32,7 @@ export function OpcodeCategoryBreakdown({
         })}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-inline">
         {categories.map((cat) => {
           const color = getCategoryColor(cat.category);
           return (

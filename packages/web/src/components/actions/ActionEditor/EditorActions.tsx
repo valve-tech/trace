@@ -14,7 +14,7 @@ export function EditorActions({
   onTest,
 }: Props) {
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-row">
       <button
         onClick={onSave}
         disabled={saving}

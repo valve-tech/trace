@@ -32,7 +32,7 @@ export function SearchBar({
         Paste a transaction hash to inspect its execution trace, call tree, and gas usage.
       </p>
 
-      <div className="flex gap-3">
+      <div className="flex gap-row">
         <input
           type="text"
           placeholder="0x... transaction hash"

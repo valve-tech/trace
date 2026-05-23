@@ -95,7 +95,7 @@ export default function RpcDashboard() {
   const valueStyle = { color: "var(--color-text-primary)" };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-section">
       {/* RPC Endpoint URL */}
       <div
         className="rounded-lg p-4 flex items-center justify-between gap-4"
@@ -112,7 +112,7 @@ export default function RpcDashboard() {
             {rpcUrl}
           </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-row shrink-0">
           {/* Connection status */}
           <div className="flex items-center gap-1.5 text-xs" style={labelStyle}>
             <div

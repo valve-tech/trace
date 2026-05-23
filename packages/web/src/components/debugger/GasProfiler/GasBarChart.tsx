@@ -24,7 +24,7 @@ export function GasBarChart({ entries }: { entries: GasEntry[] }) {
         return (
           <div
             key={`${item.address}-${item.function}-${i}`}
-            className="flex items-center gap-3"
+            className="flex items-center gap-row"
           >
             <div
               className="w-28 flex-shrink-0 text-xs truncate text-right font-mono"

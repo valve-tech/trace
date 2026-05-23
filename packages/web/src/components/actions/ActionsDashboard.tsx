@@ -167,7 +167,7 @@ export default function ActionsDashboard() {
       ) : actions.length === 0 ? (
         <EmptyState onCreate={() => setView({ type: "create" })} />
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-row">
           {actions.map((action) => (
             <ActionCard
               key={action.id}
@@ -303,7 +303,7 @@ function ActionCard({
       <div className="flex items-start justify-between">
         {/* Left: name + badges */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-inline mb-1">
             <h3
               className="text-sm font-medium truncate"
               style={{ color: "var(--color-text-primary)" }}
@@ -340,7 +340,7 @@ function ActionCard({
         </div>
 
         {/* Right: actions */}
-        <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+        <div className="flex items-center gap-inline ml-4 flex-shrink-0">
           {/* Enabled toggle */}
           <button
             onClick={onToggle}

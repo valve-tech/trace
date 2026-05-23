@@ -210,7 +210,7 @@ function StorageGroup({
         >
           {label}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-inline">
           <span
             className="text-xs px-1.5 py-0.5 rounded"
             style={{

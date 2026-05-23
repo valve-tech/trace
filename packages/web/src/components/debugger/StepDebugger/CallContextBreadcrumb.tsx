@@ -13,7 +13,7 @@ export function CallContextBreadcrumb({
 }) {
   return (
     <div
-      className="px-4 py-2 card text-xs flex items-center gap-1 overflow-x-auto"
+      className="px-4 py-2 card text-xs flex items-center gap-tight overflow-x-auto"
       style={{
         backgroundColor: "var(--color-bg-card)",
         boxShadow: "0 0 0 1px var(--color-border-default)",

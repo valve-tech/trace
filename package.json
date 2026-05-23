@@ -13,7 +13,7 @@
     "dev:web": "npm run dev --workspace=packages/web",
     "build": "npm run build --workspace=packages/api && npm run build --workspace=packages/web && npm run build --workspace=packages/sdk",
     "typecheck": "tsc --noEmit --project packages/api/tsconfig.json && tsc --noEmit --project packages/web/tsconfig.json && tsc --noEmit --project packages/sdk/tsconfig.json",
-    "lint": "eslint packages/*/src/ shared/src/",
+    "lint": "eslint packages/*/src/ shared/src/ && npm run lint:spacing --workspace=packages/web",
     "lint:fix": "eslint packages/*/src/ shared/src/ --fix",
     "test": "npm run test --workspace=packages/api",
     "test:web": "npm run test --workspace=packages/web",

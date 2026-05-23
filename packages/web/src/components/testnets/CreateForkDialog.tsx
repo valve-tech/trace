@@ -58,7 +58,7 @@ export default function CreateForkDialog({
           Create Virtual TestNet
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-stack">
           {/* Label */}
           <div>
             <label
@@ -122,7 +122,7 @@ export default function CreateForkDialog({
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 justify-end pt-2">
+          <div className="flex gap-row justify-end pt-2">
             <button
               type="button"
               onClick={onCancel}
@@ -147,7 +147,7 @@ export default function CreateForkDialog({
               }}
             >
               {loading ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-inline">
                   <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
                   Creating...
                 </span>

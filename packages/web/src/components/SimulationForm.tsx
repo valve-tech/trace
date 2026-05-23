@@ -80,10 +80,10 @@ export default function SimulationForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-stack">
       {/* Main fields card */}
       <div
-        className="rounded-lg bs p-4 space-y-4"
+        className="rounded-lg bs p-4 space-y-stack"
         style={{
           backgroundColor: "var(--color-bg-card)",
         }}
@@ -99,7 +99,7 @@ export default function SimulationForm({
 
         {/* From */}
         <div>
-          <label className="flex items-center gap-2 text-xs font-medium mb-1.5" style={labelStyle}>
+          <label className="flex items-center gap-inline text-xs font-medium mb-1.5" style={labelStyle}>
             From
             <span
               className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"

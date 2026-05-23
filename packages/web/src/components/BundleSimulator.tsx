@@ -74,7 +74,7 @@ export default function BundleSimulator() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="space-y-4">
+      <div className="space-y-stack">
         <div className="flex items-center justify-between">
           <h2
             className="text-sm font-semibold"
@@ -136,7 +136,7 @@ export default function BundleSimulator() {
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-stack">
         <h2
           className="text-sm font-semibold"
           style={{ color: "var(--color-text-primary)" }}

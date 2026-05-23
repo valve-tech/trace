@@ -1,20 +1,9 @@
 import { Link, Routes, Route } from "react-router-dom";
 import { Icon } from "@iconify/react";
-import ShellDraft from "./ShellDraft";
 import JourneyDraft from "./JourneyDraft";
 import WorkspaceDraft from "./WorkspaceDraft";
-import DebuggerView from "../debugger/DebuggerView";
-import SettingsPanel from "./SettingsPanel";
 
 const DRAFTS = [
-  {
-    slug: "shell",
-    title: "Shell — intent-based navigation",
-    summary:
-      "12 flat tabs → 3 intent groups (Investigate / Experiment / Operate) with a persistent ⌘K command bar that accepts any input.",
-    pivot: "Tools → Intents",
-    icon: "heroicons:squares-2x2",
-  },
   {
     slug: "journey",
     title: "Tx Journey canvas",
@@ -118,7 +107,7 @@ function Index() {
         style={{ color: "var(--color-text-secondary)" }}
       >
         <div
-          className="font-semibold mb-2 flex items-center gap-2"
+          className="font-semibold mb-2 flex items-center gap-inline"
           style={{ color: "var(--color-text-primary)" }}
         >
           <Icon icon="heroicons:light-bulb" className="w-4 h-4" />
@@ -140,15 +129,6 @@ export default function DraftsIndex() {
   return (
     <Routes>
       <Route index element={<Index />} />
-      <Route path="shell" element={<ShellDraft />} />
-      <Route
-        path="shell/debugger"
-        element={<ShellDraft activeKey="debugger" content={<DebuggerView />} />}
-      />
-      <Route
-        path="shell/settings"
-        element={<ShellDraft activeKey="" content={<SettingsPanel />} />}
-      />
       <Route path="journey" element={<JourneyDraft />} />
       <Route path="workspace" element={<WorkspaceDraft />} />
     </Routes>

@@ -40,7 +40,7 @@ export function SecretsEditor({ secrets, setSecrets }: Props) {
       )}
       <div className="space-y-2">
         {secrets.map((s, i) => (
-          <div key={i} className="flex gap-2 items-center">
+          <div key={i} className="flex gap-inline items-center">
             <input
               type="text"
               value={s.key}

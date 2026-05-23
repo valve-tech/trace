@@ -26,7 +26,7 @@ export function EventsSection({
                 backgroundColor: "var(--color-bg-secondary)",
               }}
             >
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-inline mb-2">
                 <span
                   className="text-[10px] font-mono px-1.5 py-0.5 rounded"
                   style={{
@@ -54,7 +54,7 @@ export function EventsSection({
                   {decoded.args.map((arg, j) => (
                     <div
                       key={j}
-                      className="flex items-start gap-2 text-xs"
+                      className="flex items-start gap-inline text-xs"
                     >
                       <span
                         className="font-medium shrink-0"

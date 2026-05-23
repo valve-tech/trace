@@ -14,7 +14,7 @@ export function TriggerTypePicker({ triggerType, onChange }: Props) {
       >
         Trigger Type
       </label>
-      <div className="flex gap-2">
+      <div className="flex gap-inline">
         {TRIGGER_TYPES.map((t) => {
           const active = triggerType === t;
           return (

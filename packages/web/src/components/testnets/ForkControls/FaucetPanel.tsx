@@ -31,7 +31,7 @@ export function FaucetPanel({ forkId }: { forkId: string }) {
       >
         Faucet
       </label>
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col sm:flex-row gap-inline">
         <input
           type="text"
           value={address}

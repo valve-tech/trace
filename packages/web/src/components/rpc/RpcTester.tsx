@@ -203,13 +203,13 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
     : false;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       {/* Template selector */}
       <div className="rounded-lg bs p-4" style={cardStyle}>
         <div className="text-xs font-medium mb-2" style={labelStyle}>
           Templates
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-inline">
           {TEMPLATES.map((t) => (
             <button
               key={t.label}
@@ -255,7 +255,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
           }}
         />
         <div
-          className="px-4 py-3 bs-t flex items-center gap-3"
+          className="px-4 py-3 bs-t flex items-center gap-row"
           style={{}}
         >
           <button
@@ -308,7 +308,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
             >
               Response
             </span>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-row">
               {hasError ? (
                 <span
                   className="text-xs px-2 py-0.5 rounded-full font-medium"

@@ -26,7 +26,7 @@ export function ErrorPanel({ message }: { message: string }) {
         borderColor: "var(--color-danger)",
       }}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-row">
         <Icon
           icon="heroicons:exclamation-circle"
           className="w-5 h-5 mt-0.5 shrink-0"

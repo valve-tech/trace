@@ -16,9 +16,9 @@ export function ContractHeader({
         backgroundColor: "var(--color-bg-card)",
       }}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-row justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-inline mb-1">
             <h2
               className="text-sm font-semibold"
               style={{ color: "var(--color-text-primary)" }}

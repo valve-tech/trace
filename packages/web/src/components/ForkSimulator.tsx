@@ -84,7 +84,7 @@ export default function ForkSimulator() {
     result.logs.length === 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-section">
       <InputCard
         mode={mode}
         setMode={setMode}
@@ -111,7 +111,7 @@ export default function ForkSimulator() {
       {!loading && error && <ErrorPanel message={error} />}
 
       {!loading && result && (
-        <div className="space-y-4">
+        <div className="space-y-stack">
           <StatusSummary
             result={result}
             onViewContract={(address) =>

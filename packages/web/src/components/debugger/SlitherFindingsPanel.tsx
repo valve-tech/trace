@@ -76,7 +76,7 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
         >
           Slither Findings
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-tight">
           <button
             onClick={() => setFilterSeverity(null)}
             className="text-xs px-2 py-0.5 rounded"
@@ -128,14 +128,14 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
                 {/* Finding header */}
                 <button
                   onClick={() => setExpandedIndex(isExpanded ? null : i)}
-                  className="w-full flex items-start gap-2 px-3 py-2 text-left hover:opacity-80"
+                  className="w-full flex items-start gap-inline px-3 py-2 text-left hover:opacity-80"
                 >
                   <span
                     className="w-2 h-2 rounded-full mt-1 flex-shrink-0"
                     style={{ backgroundColor: SEVERITY_COLORS[finding.impact] }}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-inline">
                       <span
                         className="text-xs font-semibold"
                         style={{ color: "var(--color-text-primary)" }}
@@ -197,7 +197,7 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
                         >
                           Affected:
                         </span>
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="flex flex-wrap gap-tight mt-1">
                           {finding.elements.map((el, j) => (
                             <span
                               key={j}
@@ -223,7 +223,7 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
 
                     {/* Source lines */}
                     {lines.length > 0 && onJumpToLine && (
-                      <div className="flex items-center gap-1 flex-wrap">
+                      <div className="flex items-center gap-tight flex-wrap">
                         <span
                           className="text-xs"
                           style={{ color: "var(--color-text-muted)" }}

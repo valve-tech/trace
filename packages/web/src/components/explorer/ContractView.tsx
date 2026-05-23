@@ -115,7 +115,7 @@ export default function ContractView({
   const writeFunctions = abiItems.filter(isWriteFunction);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       <ContractHeader
         address={address}
         info={info}

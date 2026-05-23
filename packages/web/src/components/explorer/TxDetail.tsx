@@ -75,7 +75,7 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
           borderColor: "var(--color-danger)",
         }}
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-row">
           <Icon
             icon="heroicons:exclamation-circle"
             className="w-5 h-5 mt-0.5 shrink-0"
@@ -106,7 +106,7 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
   if (!tx) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       <OverviewSection tx={tx} onNavigate={onNavigate} />
       {tx.decodedInput && <DecodedInputSection decoded={tx.decodedInput} />}
       {(tx.decodedLogs.length > 0 || tx.rawLogs.length > 0) && (

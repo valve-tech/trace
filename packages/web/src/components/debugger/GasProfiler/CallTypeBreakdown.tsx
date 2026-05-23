@@ -9,14 +9,14 @@ export function CallTypeBreakdown({
   const total = entries.reduce((sum, [, v]) => sum + v, 0);
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-inline">
       {entries.map(([type, gas]) => {
         const pct = total > 0 ? (gas / total) * 100 : 0;
         const color = getCallTypeColor(type);
         return (
           <div
             key={type}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg"
+            className="flex items-center gap-inline px-3 py-2 rounded-lg"
             style={{
               backgroundColor: `${color}15`,
               boxShadow: `0 0 0 1px ${color}30`,

@@ -213,7 +213,7 @@ export default function AlertDashboard() {
   // Main list view
   // -----------------------------------------------------------------------
   return (
-    <div className="space-y-6">
+    <div className="space-y-section">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg p-4" style={cardStyle}>
@@ -262,7 +262,7 @@ export default function AlertDashboard() {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-row">
           <h2
             className="text-lg font-semibold"
             style={{ color: "var(--color-text-primary)" }}
@@ -366,7 +366,7 @@ export default function AlertDashboard() {
               <div className="flex items-start justify-between gap-4">
                 {/* Left side */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-inline mb-2">
                     <h3
                       className="text-sm font-semibold truncate"
                       style={{ color: "var(--color-text-primary)" }}
@@ -404,7 +404,7 @@ export default function AlertDashboard() {
                 </div>
 
                 {/* Right side - actions */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-inline shrink-0">
                   {/* Toggle */}
                   <button
                     type="button"

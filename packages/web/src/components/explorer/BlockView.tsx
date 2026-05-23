@@ -39,7 +39,7 @@ function InfoRow({
 }) {
   return (
     <div
-      className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-2.5 bs-b-muted last:shadow-none"
+      className="flex flex-col sm:flex-row sm:items-start gap-tight sm:gap-4 py-2.5 bs-b-muted last:shadow-none"
       style={{}}
     >
       <span
@@ -131,7 +131,7 @@ export default function BlockView({
     : "0";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       {/* Block Info */}
       <div
         className="rounded-lg bs p-4"
@@ -139,7 +139,7 @@ export default function BlockView({
           backgroundColor: "var(--color-bg-card)",
         }}
       >
-        <div className="flex items-center gap-3 mb-3 pb-3 bs-b-muted" style={{}}>
+        <div className="flex items-center gap-row mb-3 pb-3 bs-b-muted" style={{}}>
           <h2
             className="text-sm font-semibold"
             style={{ color: "var(--color-text-primary)" }}
@@ -153,7 +153,7 @@ export default function BlockView({
             #{Number(block.number).toLocaleString()}
           </span>
           {/* Block nav */}
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="flex items-center gap-tight ml-auto">
             <button
               onClick={() => {
                 const prevNum = Number(block.number) - 1;

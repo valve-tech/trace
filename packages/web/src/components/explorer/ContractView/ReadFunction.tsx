@@ -41,7 +41,7 @@ export function ReadFunction({
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between p-3 text-left cursor-pointer"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-inline">
           <span
             className="text-sm font-medium"
             style={{ color: "var(--color-accent)" }}

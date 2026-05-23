@@ -24,7 +24,7 @@ export function BasicInfoCard({
   setEnabled,
 }: Props) {
   return (
-    <div className="rounded-lg p-4 space-y-4" style={cardStyle}>
+    <div className="rounded-lg p-4 space-y-stack" style={cardStyle}>
       <h3
         className="text-sm font-semibold pb-3 bs-b-muted"
         style={{
@@ -92,7 +92,7 @@ export function BasicInfoCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-inline">
         <button
           type="button"
           onClick={() => setEnabled(!enabled)}

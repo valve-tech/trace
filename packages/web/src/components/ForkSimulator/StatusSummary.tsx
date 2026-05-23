@@ -14,7 +14,7 @@ export function StatusSummary({ result, onViewContract, onDebug }: Props) {
         backgroundColor: "var(--color-bg-card)",
       }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-row">
         <span
           className="px-2 py-1 rounded text-xs font-semibold"
           style={{
@@ -46,7 +46,7 @@ export function StatusSummary({ result, onViewContract, onDebug }: Props) {
           </span>
         )}
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-inline">
         {result.contractAddress && (
           <button
             onClick={() => onViewContract(result.contractAddress!)}

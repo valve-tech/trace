@@ -62,9 +62,9 @@ export default function AlertHistory({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-row">
         <button
           onClick={onBack}
           className="text-sm px-3 py-1.5 rounded-md bs"
@@ -221,7 +221,7 @@ export default function AlertHistory({
                 Page {pagination.page} of {pagination.totalPages} ({pagination.total}{" "}
                 entries)
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-inline">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}

@@ -158,7 +158,7 @@ export default function TransactionBuilder() {
           Transaction Builder
         </h2>
 
-        <div className="flex gap-3 mb-3">
+        <div className="flex gap-row mb-3">
           <div className="flex-1">
             <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>
               Contract Address
@@ -374,7 +374,7 @@ export default function TransactionBuilder() {
                 {/* Result */}
                 {result?.ok && result.result && (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-inline">
                       <span
                         className="text-xs px-2 py-0.5 font-semibold"
                         style={{

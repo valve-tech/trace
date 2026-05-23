@@ -73,7 +73,7 @@ export default function AlertBuilder({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-stack">
       <div className="flex items-center justify-between">
         <h2
           className="text-lg font-semibold"

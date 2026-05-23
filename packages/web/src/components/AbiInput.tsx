@@ -47,7 +47,7 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
           backgroundColor: "transparent",
         }}
       >
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-inline">
           <Icon
             icon="heroicons:chevron-right"
             className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""}`}
@@ -85,8 +85,8 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
           className="px-4 pb-4 bs-t-muted"
           style={{}}
         >
-          <div className="flex items-center gap-3 py-3">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className="flex items-center gap-row py-3">
+            <label className="flex items-center gap-inline cursor-pointer">
               <input
                 type="checkbox"
                 checked={autoFetch}
