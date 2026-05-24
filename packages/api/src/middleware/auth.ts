@@ -26,7 +26,18 @@ interface RateLimitBucket {
 }
 
 const WINDOW_MS = 60_000; // 60-second sliding window
-const UNAUTHENTICATED_LIMIT = 30;
+
+/**
+ * Per-IP cap for unauthenticated `/api` requests, per 60s.
+ *
+ * Defaults to 0 = DISABLED. This is an internal-only app, and the hot read
+ * endpoints (latest/summary, blocks, txs/recent, gas, mempool) are served
+ * from server-side caches — not upstream passthroughs — so throttling our
+ * own dashboard polling protects nothing. A public deployment can re-enable
+ * a conservative cap with e.g. `API_UNAUTH_RATE_LIMIT=30`. Authenticated
+ * requests are always limited per their own key's `rateLimit`, regardless.
+ */
+const UNAUTHENTICATED_LIMIT = Number(process.env.API_UNAUTH_RATE_LIMIT ?? 0);
 
 const rateLimitMap = new Map<string, RateLimitBucket>();
 
@@ -101,7 +112,13 @@ export async function authMiddleware(
     return;
   }
 
-  // Unauthenticated — apply a conservative per-IP limit
+  // Unauthenticated — apply a conservative per-IP limit, unless disabled
+  // (API_UNAUTH_RATE_LIMIT <= 0) for internal deployments.
+  if (UNAUTHENTICATED_LIMIT <= 0) {
+    next();
+    return;
+  }
+
   const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
   const bucketKey = `ip:${ip}`;
 
