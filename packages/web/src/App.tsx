@@ -4,6 +4,7 @@ import { useAlertWebSocket, type AlertEvent } from "./hooks/useAlertWebSocket";
 import AlertToast from "./components/AlertToast";
 import AppShell from "./components/AppShell";
 import Landing from "./components/Landing";
+import ComponentGallery from "./components/gallery/ComponentGallery";
 import SimulationPage from "./pages/SimulationPage";
 import BundleSimulator from "./components/BundleSimulator";
 import AlertDashboard from "./components/monitoring/AlertDashboard";
@@ -96,6 +97,7 @@ export default function App() {
           <Route path="/storage" element={<StorageLayoutViewer />} />
           <Route path="/diff" element={<ContractDiff />} />
           <Route path="/settings" element={<SettingsPanel />} />
+          <Route path="/ui" element={<ComponentGallery />} />
           <Route path="/drafts/*" element={<DraftsIndex />} />
         </Routes>
       </AppShell>

@@ -413,16 +413,28 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
           {!collapsed && <span>Settings</span>}
         </NavLink>
         {!collapsed && (
-          <NavLink
-            to="/drafts"
-            className="text-[10px] uppercase tracking-widest"
-            style={({ isActive }) => ({
-              color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
-              textDecoration: "none",
-            })}
-          >
-            Drafts ✶
-          </NavLink>
+          <>
+            <NavLink
+              to="/ui"
+              className="text-[10px] uppercase tracking-widest"
+              style={({ isActive }) => ({
+                color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
+                textDecoration: "none",
+              })}
+            >
+              UI ✶
+            </NavLink>
+            <NavLink
+              to="/drafts"
+              className="text-[10px] uppercase tracking-widest"
+              style={({ isActive }) => ({
+                color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
+                textDecoration: "none",
+              })}
+            >
+              Drafts ✶
+            </NavLink>
+          </>
         )}
       </div>
     </aside>
