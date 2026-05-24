@@ -39,7 +39,8 @@
   --spacing-tight:   0.25rem;  /*  4px */
   --spacing-inline:  0.5rem;   /*  8px */
   --spacing-row:     0.75rem;  /* 12px */
-  --spacing-stack:   1rem;     /* 16px */
+  --spacing-stack:   0.75rem;  /* 12px — between cards; tightened to match the
+                                  reduced content padding (was 16px) */
   --spacing-section: 1.5rem;   /* 24px */
 }
 

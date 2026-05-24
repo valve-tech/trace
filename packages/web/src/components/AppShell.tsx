@@ -356,7 +356,7 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
                 key={item.to}
                 to={item.to}
                 title={collapsed ? item.label : undefined}
-                className="flex items-center transition-colors"
+                className="flex items-center transition-colors overflow-hidden"
                 style={({ isActive }) =>
                   collapsed
                     ? {
@@ -394,7 +394,9 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
                 }
               >
                 <Icon icon={item.icon} className="w-5 h-5 shrink-0" />
-                {!collapsed && <span className="text-sm">{item.label}</span>}
+                {!collapsed && (
+                  <span className="text-sm whitespace-nowrap">{item.label}</span>
+                )}
               </NavLink>
             ))}
           </div>
