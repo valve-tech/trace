@@ -19,24 +19,6 @@ import StorageLayoutViewer from "./components/StorageLayoutViewer";
 import DraftsIndex from "./components/drafts/DraftsIndex";
 import SettingsPanel from "./components/drafts/SettingsPanel";
 
-function PulseLogo() {
-  return (
-    <div className="relative pulse-icon flex items-center justify-center w-8 h-8">
-      <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none">
-        <circle cx="16" cy="16" r="14" fill="#8B5CF6" />
-        <path
-          d="M8 18 L12 10 L16 20 L20 8 L24 18"
-          stroke="white"
-          strokeWidth="2.5"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
-  );
-}
-
 export default function App() {
   const [apiStatus, setApiStatus] = useState<"connected" | "disconnected" | "checking">("checking");
 
@@ -95,65 +77,27 @@ export default function App() {
         <AlertToast alert={appToast.data.alert} match={appToast.data.match} />
       )}
 
-      <header
-        className="px-6 py-3 flex items-center justify-between shrink-0"
-        style={{
-          backgroundColor: "var(--color-bg-secondary)",
-          boxShadow: "0 1px 0 0 var(--color-border-default)",
-        }}
-      >
-        <div className="flex items-center gap-row">
-          <PulseLogo />
-          <h1 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
-            PulseChain Dev Platform
-          </h1>
-          <span
-            className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{
-              backgroundColor: "var(--color-accent-muted)",
-              color: "var(--color-accent)",
-            }}
-          >
-            Devnet
-          </span>
-        </div>
-        <div className="flex items-center gap-inline text-sm" style={{ color: "var(--color-text-secondary)" }}>
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{
-              backgroundColor:
-                apiStatus === "connected" ? "var(--color-success)"
-                : apiStatus === "disconnected" ? "var(--color-danger)"
-                : "var(--color-warning)",
-            }}
-          />
-          {apiStatus === "connected" ? "Connected" : apiStatus === "disconnected" ? "Disconnected" : "Checking..."}
-        </div>
-      </header>
-
-      <main className="flex-1 min-h-0">
-        <AppShell>
-          <Routes>
-            <Route path="/" element={<Navigate to="/simulate" replace />} />
-            <Route path="/simulate" element={<SimulationPage />} />
-            <Route path="/fork" element={<ForkSimulator />} />
-            <Route path="/build" element={<TransactionBuilder />} />
-            <Route path="/bundle" element={<BundleSimulator />} />
-            <Route path="/monitoring" element={<AlertDashboard />} />
-            <Route path="/testnets" element={<TestNetDashboard />} />
-            <Route path="/rpc" element={<RpcPage />} />
-            <Route path="/explorer/*" element={<ExplorerPanel />} />
-            <Route path="/mempool" element={<MempoolView />} />
-            <Route path="/debugger" element={<DebuggerView />} />
-            <Route path="/debugger/:txHash" element={<DebuggerView />} />
-            <Route path="/actions" element={<ActionsDashboard />} />
-            <Route path="/storage" element={<StorageLayoutViewer />} />
-            <Route path="/diff" element={<ContractDiff />} />
-            <Route path="/settings" element={<SettingsPanel />} />
-            <Route path="/drafts/*" element={<DraftsIndex />} />
-          </Routes>
-        </AppShell>
-      </main>
+      <AppShell apiStatus={apiStatus}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/simulate" replace />} />
+          <Route path="/simulate" element={<SimulationPage />} />
+          <Route path="/fork" element={<ForkSimulator />} />
+          <Route path="/build" element={<TransactionBuilder />} />
+          <Route path="/bundle" element={<BundleSimulator />} />
+          <Route path="/monitoring" element={<AlertDashboard />} />
+          <Route path="/testnets" element={<TestNetDashboard />} />
+          <Route path="/rpc" element={<RpcPage />} />
+          <Route path="/explorer/*" element={<ExplorerPanel />} />
+          <Route path="/mempool" element={<MempoolView />} />
+          <Route path="/debugger" element={<DebuggerView />} />
+          <Route path="/debugger/:txHash" element={<DebuggerView />} />
+          <Route path="/actions" element={<ActionsDashboard />} />
+          <Route path="/storage" element={<StorageLayoutViewer />} />
+          <Route path="/diff" element={<ContractDiff />} />
+          <Route path="/settings" element={<SettingsPanel />} />
+          <Route path="/drafts/*" element={<DraftsIndex />} />
+        </Routes>
+      </AppShell>
     </div>
   );
 }

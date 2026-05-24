@@ -68,7 +68,33 @@ function loadIntent(): SidebarIntent {
   return "auto";
 }
 
-export default function AppShell({ children }: { children: ReactNode }) {
+type ApiStatus = "connected" | "disconnected" | "checking";
+
+function PulseLogo() {
+  return (
+    <div className="relative pulse-icon flex items-center justify-center w-7 h-7">
+      <svg viewBox="0 0 32 32" className="w-7 h-7" fill="none">
+        <circle cx="16" cy="16" r="14" fill="#8B5CF6" />
+        <path
+          d="M8 18 L12 10 L16 20 L20 8 L24 18"
+          stroke="white"
+          strokeWidth="2.5"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+export default function AppShell({
+  apiStatus,
+  children,
+}: {
+  apiStatus: ApiStatus;
+  children: ReactNode;
+}) {
   const location = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [intent, setIntent] = useState<SidebarIntent>(loadIntent);
@@ -113,17 +139,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="h-full flex" style={{ backgroundColor: "var(--color-bg-primary)" }}>
-      <Sidebar
+    <div
+      className="h-full flex flex-col min-h-0"
+      style={{ backgroundColor: "var(--color-bg-primary)" }}
+    >
+      <TopBar
         collapsed={collapsed}
         autoCollapsed={autoCollapsed}
         intent={intent}
         onToggleCollapse={onToggleCollapse}
+        apiStatus={apiStatus}
+        onOpenPalette={() => setPaletteOpen(true)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <CommandBar onOpen={() => setPaletteOpen(true)} />
-        <div className="flex-1 overflow-auto">{children}</div>
+      <div className="flex-1 flex min-h-0">
+        <Sidebar collapsed={collapsed} />
+        <div className="flex-1 overflow-auto min-w-0 p-4 md:p-6">{children}</div>
       </div>
 
       {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
@@ -131,23 +162,150 @@ export default function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function Sidebar({
+/* ------------------------------------------------------------------ */
+/* Top bar — one row: controls · brand · ⌘K · status                  */
+/* ------------------------------------------------------------------ */
+
+function TopBar({
   collapsed,
   autoCollapsed,
   intent,
   onToggleCollapse,
+  apiStatus,
+  onOpenPalette,
 }: {
   collapsed: boolean;
   autoCollapsed: boolean;
   intent: SidebarIntent;
   onToggleCollapse: () => void;
+  apiStatus: ApiStatus;
+  onOpenPalette: () => void;
 }) {
+  const navigate = useNavigate();
+  // Subscribe to location so the back button's disabled state stays fresh.
+  useLocation();
+  const canGoBack =
+    ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0;
+
   const toggleTitle =
     intent === "auto" && autoCollapsed
       ? "Auto-collapsed for this route — expand"
       : collapsed
         ? "Expand sidebar"
         : "Collapse sidebar";
+
+  const statusColor =
+    apiStatus === "connected"
+      ? "var(--color-success)"
+      : apiStatus === "disconnected"
+        ? "var(--color-danger)"
+        : "var(--color-warning)";
+  const statusText =
+    apiStatus === "connected"
+      ? "Connected"
+      : apiStatus === "disconnected"
+        ? "Disconnected"
+        : "Checking…";
+
+  // Square controls (w == bar height) pinned to the far left, independent of
+  // the sidebar width animation since the bar spans the full window.
+  const control =
+    "flex items-center justify-center shrink-0 w-12 h-12 transition-opacity";
+  const controlBorder = "1px 0 0 0 var(--color-border-muted)";
+
+  return (
+    <div
+      className="flex items-stretch h-12 shrink-0"
+      style={{
+        backgroundColor: "var(--color-bg-secondary)",
+        boxShadow: "0 1px 0 0 var(--color-border-default)",
+      }}
+    >
+      <button
+        onClick={onToggleCollapse}
+        title={toggleTitle}
+        aria-label={toggleTitle}
+        className={`${control} hover:opacity-80`}
+        style={{ color: "var(--color-text-secondary)", backgroundColor: "transparent", boxShadow: controlBorder }}
+      >
+        <Icon
+          icon={collapsed ? "heroicons:bars-3" : "heroicons:chevron-double-left"}
+          className="w-5 h-5"
+        />
+      </button>
+
+      <button
+        onClick={() => navigate(-1)}
+        disabled={!canGoBack}
+        title="Back"
+        aria-label="Go back"
+        className={`${control} enabled:hover:opacity-80 disabled:opacity-30 disabled:cursor-default`}
+        style={{ color: "var(--color-text-secondary)", backgroundColor: "transparent", boxShadow: controlBorder }}
+      >
+        <Icon icon="heroicons:arrow-left" className="w-4 h-4" />
+      </button>
+
+      <div className="flex items-center gap-inline px-4 shrink-0">
+        <PulseLogo />
+        <h1
+          className="text-sm font-semibold hidden md:block"
+          style={{ color: "var(--color-text-primary)" }}
+        >
+          PulseChain Dev Platform
+        </h1>
+        <span
+          className="text-[10px] uppercase tracking-wider px-2 py-0.5 font-semibold"
+          style={{
+            backgroundColor: "var(--color-accent-muted)",
+            color: "var(--color-accent)",
+          }}
+        >
+          Devnet
+        </span>
+      </div>
+
+      <div className="flex-1 flex items-center px-3 min-w-0">
+        <button
+          onClick={onOpenPalette}
+          className="w-full max-w-2xl flex items-center gap-inline px-3 h-8 text-sm text-left"
+          style={{
+            backgroundColor: "var(--color-bg-input)",
+            color: "var(--color-text-muted)",
+            boxShadow: "0 0 0 1px var(--color-border-default)",
+          }}
+        >
+          <Icon
+            icon="heroicons:magnifying-glass"
+            className="w-4 h-4 shrink-0"
+            style={{ color: "var(--color-text-muted)" }}
+          />
+          <span className="flex-1 truncate">
+            Paste a tx hash, address, block, or function selector…
+          </span>
+          <span
+            className="text-[10px] px-1.5 py-0.5 font-mono shrink-0"
+            style={{
+              backgroundColor: "var(--color-bg-tertiary)",
+              color: "var(--color-text-secondary)",
+            }}
+          >
+            ⌘K
+          </span>
+        </button>
+      </div>
+
+      <div
+        className="flex items-center gap-inline px-4 shrink-0 text-sm"
+        style={{ color: "var(--color-text-secondary)" }}
+      >
+        <span className="w-2 h-2" style={{ backgroundColor: statusColor }} />
+        <span className="hidden sm:inline">{statusText}</span>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ collapsed }: { collapsed: boolean }) {
   return (
     <aside
       className="flex flex-col transition-[width] duration-150 shrink-0"
@@ -157,34 +315,6 @@ function Sidebar({
         boxShadow: "1px 0 0 0 var(--color-border-default)",
       }}
     >
-      <div
-        className="flex items-center"
-        style={{
-          boxShadow: "0 1px 0 0 var(--color-border-muted)",
-          paddingLeft: collapsed ? 0 : 8,
-          paddingRight: collapsed ? 0 : 8,
-          justifyContent: collapsed ? "center" : "flex-end",
-        }}
-      >
-        <button
-          onClick={onToggleCollapse}
-          title={toggleTitle}
-          aria-label={toggleTitle}
-          className="flex items-center justify-center transition-colors"
-          style={{
-            width: 40,
-            height: 40,
-            color: "var(--color-text-muted)",
-            backgroundColor: "transparent",
-          }}
-        >
-          <Icon
-            icon={collapsed ? "heroicons:bars-3" : "heroicons:chevron-double-left"}
-            className="w-5 h-5"
-          />
-        </button>
-      </div>
-
       <nav className="flex-1 overflow-y-auto py-4">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="mb-5">
@@ -231,10 +361,9 @@ function Sidebar({
                   collapsed
                     ? {
                         width: 40,
-                        height: 40,
+                        height: 36,
                         marginLeft: "auto",
                         marginRight: "auto",
-                        marginBottom: 4,
                         justifyContent: "center",
                         backgroundColor: isActive
                           ? "var(--color-accent-muted)"
@@ -326,66 +455,6 @@ function Sidebar({
         )}
       </div>
     </aside>
-  );
-}
-
-function CommandBar({ onOpen }: { onOpen: () => void }) {
-  const navigate = useNavigate();
-  // Subscribe to location so the disabled state stays fresh as routes change.
-  useLocation();
-  // React Router stores a monotonic history index; idx === 0 is the first
-  // in-app entry, so anything above it means we have somewhere to go back to.
-  const canGoBack =
-    ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0;
-
-  return (
-    <div
-      className="px-6 flex items-stretch gap-row shrink-0 h-12"
-      style={{
-        backgroundColor: "var(--color-bg-secondary)",
-        boxShadow: "0 1px 0 0 var(--color-border-default)",
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        disabled={!canGoBack}
-        title="Back"
-        aria-label="Go back"
-        className="flex items-center justify-center px-2 shrink-0 transition-opacity enabled:hover:opacity-80 disabled:opacity-30 disabled:cursor-default"
-        style={{
-          color: "var(--color-text-secondary)",
-          boxShadow: "0 0 0 1px var(--color-border-default)",
-        }}
-      >
-        <Icon icon="heroicons:arrow-left" className="w-4 h-4" />
-      </button>
-      <button
-        onClick={onOpen}
-        className="flex-1 max-w-2xl flex items-center gap-inline px-3 text-sm text-left"
-        style={{
-          backgroundColor: "var(--color-bg-input)",
-          color: "var(--color-text-muted)",
-          boxShadow: "0 0 0 1px var(--color-border-default)",
-        }}
-      >
-        <Icon
-          icon="heroicons:magnifying-glass"
-          className="w-4 h-4 shrink-0"
-          style={{ color: "var(--color-text-muted)" }}
-        />
-        <span className="flex-1">Paste a tx hash, address, block, or function selector…</span>
-        <span
-          className="text-[10px] px-1.5 py-0.5 font-mono"
-          style={{
-            backgroundColor: "var(--color-bg-tertiary)",
-            color: "var(--color-text-secondary)",
-          }}
-        >
-          ⌘K
-        </span>
-      </button>
-    </div>
   );
 }
 
