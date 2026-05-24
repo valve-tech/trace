@@ -133,7 +133,7 @@ function tokenizeLine(line: string, inBlockComment: boolean): { tokens: Token[];
       continue;
     }
 
-    if (/[{}()\[\];,.]/.test(line[i]!)) {
+    if (/[{}()[\];,.]/.test(line[i]!)) {
       tokens.push({ type: "punctuation", value: line[i]! });
       i++;
       continue;

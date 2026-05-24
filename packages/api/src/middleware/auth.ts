@@ -6,6 +6,9 @@ import { validateApiKey, type ApiKeyValidateResult } from "../services/apiKeys.j
 // ---------------------------------------------------------------------------
 
 declare global {
+  // Express type augmentation requires the namespace form — there is no
+  // ES-module equivalent for merging into the global Express.Request.
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       apiKeyData?: ApiKeyValidateResult;
