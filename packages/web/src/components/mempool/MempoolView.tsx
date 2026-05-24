@@ -4,9 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { fetchPending, type PendingTx } from "../../api/mempool";
 import { ExplorerLink } from "../explorer/ExplorerLink";
-import { TxGasInfo } from "../explorer/TxGasInfo";
 import { truncateAddr } from "../explorer/format";
+import { Badge } from "../primitives/Badge";
 import { EmptyState } from "../primitives/EmptyState";
+import { TrackedTxPanel } from "./TrackedTxPanel";
+import { useTrackedTxs } from "../../hooks/useTrackedTxs";
+import { toggleTrack } from "../../lib/trackedTxs";
 
 type SortKey = "rank" | "tip" | "cap" | "nonce";
 
@@ -31,6 +34,18 @@ function bigintOf(wei: string | null): bigint {
     return BigInt(wei);
   } catch {
     return 0n;
+  }
+}
+
+/** wei decimal string → trimmed gwei, or null for null/non-numeric input. */
+function gweiDisp(wei: string | null): string | null {
+  if (wei == null) return null;
+  try {
+    const g = Number(BigInt(wei)) / 1e9;
+    if (!isFinite(g)) return null;
+    return g.toLocaleString(undefined, { maximumFractionDigits: 3 });
+  } catch {
+    return null;
   }
 }
 
@@ -107,8 +122,26 @@ export default function MempoolView() {
     });
   };
 
+  // Tracked-tx wiring: a lookup for the pin toggle state, plus the live pending
+  // set + completeness flag the tracker uses to tell pending from dropped.
+  const tracked = useTrackedTxs();
+  const trackedSet = useMemo(
+    () => new Set(tracked.map((t) => t.hash.toLowerCase())),
+    [tracked],
+  );
+  const pendingHashes = useMemo(
+    () => new Set((data?.transactions ?? []).map((t) => t.hash.toLowerCase())),
+    [data],
+  );
+
   return (
     <div className="space-y-stack">
+      <TrackedTxPanel
+        pendingHashes={pendingHashes}
+        mempoolComplete={data ? !data.truncated : false}
+        onNavigate={onNavigate}
+      />
+
       {/* Header */}
       <div className="card p-4 flex items-center justify-between">
         <div className="flex items-center gap-inline">
@@ -186,20 +219,28 @@ export default function MempoolView() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
-                {["#", "Tx Hash", "From", "Nonce", "Gas / Type"].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left px-3 py-2.5 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
-                  >
-                    {h}
-                  </th>
-                ))}
+                {["", "#", "Tx Hash", "From", "Nonce", "Type", "Gas (tip / cap)"].map(
+                  (h, idx) => (
+                    <th
+                      key={h || `col-${idx}`}
+                      className="text-left px-3 py-2.5 text-xs font-medium"
+                      style={{ color: "var(--color-text-secondary)" }}
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
               {filtered.map((tx, i) => (
                 <tr key={tx.hash} className="bs-t-muted hover:opacity-80">
+                  <td className="pl-3 pr-0 py-2 w-7">
+                    <PinButton
+                      hash={tx.hash}
+                      tracked={trackedSet.has(tx.hash.toLowerCase())}
+                    />
+                  </td>
                   <td
                     className="px-3 py-2 text-xs font-mono tabular-nums"
                     style={{ color: "var(--color-text-muted)" }}
@@ -234,13 +275,13 @@ export default function MempoolView() {
                   >
                     {tx.nonce.toLocaleString()}
                   </td>
+                  <td className="px-3 py-2">
+                    <Badge variant={tx.type === "eip1559" ? "info" : "neutral"}>
+                      {TYPE_LABEL[tx.type] ?? tx.type}
+                    </Badge>
+                  </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <TxGasInfo
-                      type={tx.type}
-                      gasPrice={tx.gasPrice}
-                      maxFeePerGas={tx.maxFeePerGas}
-                      maxPriorityFeePerGas={tx.maxPriorityFeePerGas}
-                    />
+                    <GasCell tx={tx} />
                   </td>
                 </tr>
               ))}
@@ -255,6 +296,57 @@ export default function MempoolView() {
 /* ------------------------------------------------------------------ */
 /* Toolbar                                                            */
 /* ------------------------------------------------------------------ */
+
+/** Pin/unpin a tx for lifecycle tracking. Filled icon when tracked. */
+function PinButton({ hash, tracked }: { hash: string; tracked: boolean }) {
+  return (
+    <button
+      onClick={() => toggleTrack(hash)}
+      title={tracked ? "Stop tracking" : "Track this transaction"}
+      aria-label={tracked ? "Stop tracking" : "Track this transaction"}
+      aria-pressed={tracked}
+      className="flex items-center justify-center w-6 h-6 transition-opacity hover:opacity-100"
+      style={{
+        color: tracked ? "var(--color-accent)" : "var(--color-text-muted)",
+        opacity: tracked ? 1 : 0.6,
+        backgroundColor: "transparent",
+      }}
+    >
+      <Icon
+        icon={tracked ? "heroicons:map-pin-solid" : "heroicons:map-pin"}
+        className="w-3.5 h-3.5"
+      />
+    </button>
+  );
+}
+
+/** Gas readout split out from the type column: tip / cap, or legacy price. */
+function GasCell({ tx }: { tx: PendingTx }) {
+  const tip = gweiDisp(tx.maxPriorityFeePerGas);
+  const cap = gweiDisp(tx.maxFeePerGas);
+  const legacy = gweiDisp(tx.gasPrice);
+
+  if (tip != null || cap != null) {
+    return (
+      <span className="font-mono text-xs tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
+        <span style={{ color: "var(--color-text-muted)" }}>tip </span>
+        {tip ?? "—"}
+        <span style={{ color: "var(--color-text-muted)" }}> / cap </span>
+        {cap ?? "—"}
+        <span style={{ color: "var(--color-text-muted)" }}> gwei</span>
+      </span>
+    );
+  }
+  if (legacy != null) {
+    return (
+      <span className="font-mono text-xs tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
+        {legacy}
+        <span style={{ color: "var(--color-text-muted)" }}> gwei</span>
+      </span>
+    );
+  }
+  return <span style={{ color: "var(--color-text-muted)" }}>—</span>;
+}
 
 function Toolbar({
   search,
