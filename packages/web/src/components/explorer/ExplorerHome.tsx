@@ -24,6 +24,7 @@ import {
 import TxRowActions from "./TxRowActions";
 import { ExplorerLink } from "./ExplorerLink";
 import { TxGasInfo } from "./TxGasInfo";
+import { GasOracleWidget } from "./GasOracleWidget";
 import { subscriptSmall } from "./format";
 
 const REFETCH_MS = 5_000;
@@ -60,6 +61,8 @@ export default function ExplorerHome({ onNavigate }: Props) {
   return (
     <div className="space-y-stack">
       <StatsRow summary={summary.data} loading={summary.isPending} />
+
+      <GasOracleWidget />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <BlocksCard

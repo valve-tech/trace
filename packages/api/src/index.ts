@@ -23,6 +23,7 @@ import forkSimulateRouter from "./routes/forkSimulate.js";
 import signaturesRouter from "./routes/signatures.js";
 import apiKeysRouter from "./routes/apiKeys.js";
 import diffRouter from "./routes/diff.js";
+import gasRouter from "./routes/gas.js";
 import chifraRouter from "./routes/chifra.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { startMonitor } from "./services/monitor.js";
@@ -76,6 +77,7 @@ app.use("/api/signatures", signaturesRouter);
 app.use("/api/keys", apiKeysRouter);
 app.use("/api/diff", diffRouter);
 app.use("/api", chifraRouter);
+app.use("/api/gas", gasRouter);
 
 // ---------------------------------------------------------------------------
 // Static frontend — when packages/web/dist exists (production / Docker build),
