@@ -316,6 +316,14 @@ function Sidebar({
 }
 
 function CommandBar({ onOpen }: { onOpen: () => void }) {
+  const navigate = useNavigate();
+  // Subscribe to location so the disabled state stays fresh as routes change.
+  useLocation();
+  // React Router stores a monotonic history index; idx === 0 is the first
+  // in-app entry, so anything above it means we have somewhere to go back to.
+  const canGoBack =
+    ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0;
+
   return (
     <div
       className="px-6 flex items-stretch gap-row shrink-0 h-12"
@@ -324,6 +332,20 @@ function CommandBar({ onOpen }: { onOpen: () => void }) {
         boxShadow: "0 1px 0 0 var(--color-border-default)",
       }}
     >
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        disabled={!canGoBack}
+        title="Back"
+        aria-label="Go back"
+        className="flex items-center justify-center px-2 shrink-0 transition-opacity enabled:hover:opacity-80 disabled:opacity-30 disabled:cursor-default"
+        style={{
+          color: "var(--color-text-secondary)",
+          boxShadow: "0 0 0 1px var(--color-border-default)",
+        }}
+      >
+        <Icon icon="heroicons:arrow-left" className="w-4 h-4" />
+      </button>
       <button
         onClick={onOpen}
         className="flex-1 max-w-2xl flex items-center gap-inline px-3 text-sm text-left"
