@@ -1,5 +1,6 @@
 import type { AddressInfo } from "../../../api/explorer";
 import { formatPLS } from "../format";
+import AddressRowActions from "../AddressRowActions";
 
 export function AddressHeader({
   address,
@@ -38,12 +39,15 @@ export function AddressHeader({
               </span>
             )}
           </div>
-          <span
-            className="font-mono text-sm break-all"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            {address}
-          </span>
+          <div className="flex items-center gap-inline">
+            <span
+              className="font-mono text-sm break-all"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {address}
+            </span>
+            <AddressRowActions address={address} />
+          </div>
         </div>
         <div className="text-right">
           <span
