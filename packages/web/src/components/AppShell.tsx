@@ -5,6 +5,7 @@ import { useRecentEntities } from "../hooks/useRecentEntities";
 import type { RecentEntity } from "../lib/recentEntities";
 import { NAV_GROUPS } from "../lib/navGroups";
 import { HEX_TX, HEX_ADDR, HEX_SELECTOR, DIGITS } from "../lib/entityInput";
+import { BackHistoryControl } from "./RecentMenu";
 
 /**
  * Routes that bring their own side rails. Sidebar auto-collapses when active.
@@ -199,16 +200,7 @@ function TopBar({
         />
       </button>
 
-      <button
-        onClick={() => navigate(-1)}
-        disabled={!canGoBack}
-        title="Back"
-        aria-label="Go back"
-        className={`${control} enabled:hover:opacity-80 disabled:opacity-30 disabled:cursor-default`}
-        style={{ color: "var(--color-text-secondary)", backgroundColor: "transparent", boxShadow: controlBorder }}
-      >
-        <Icon icon="heroicons:arrow-left" className="w-4 h-4" />
-      </button>
+      <BackHistoryControl canGoBack={canGoBack} onBack={() => navigate(-1)} />
 
       <div className="flex items-center gap-inline px-4 shrink-0">
         <PulseLogo />
