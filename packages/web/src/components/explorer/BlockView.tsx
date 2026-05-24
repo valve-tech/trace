@@ -3,6 +3,7 @@ import { fetchBlock, type BlockDetails } from "../../api/explorer";
 import TxRowActions from "./TxRowActions";
 import { formatPLS } from "./format";
 import { ExplorerLink } from "./ExplorerLink";
+import { TxGasInfo } from "./TxGasInfo";
 
 interface BlockViewProps {
   numberOrHash: string;
@@ -339,6 +340,12 @@ export default function BlockView({
                   >
                     Value
                   </th>
+                  <th
+                    className="text-left px-3 py-2.5 text-xs font-medium"
+                    style={{ color: "var(--color-text-secondary)" }}
+                  >
+                    Gas / Type
+                  </th>
                   <th className="px-3 py-2.5" />
                 </tr>
               </thead>
@@ -386,19 +393,15 @@ export default function BlockView({
                     </td>
                     <td className="px-3 py-2">
                       {tx.from ? (
-                        <button
-                          onClick={() =>
-                            onNavigate({
-                              type: "address",
-                              value: tx.from,
-                            })
-                          }
+                        <ExplorerLink
+                          target={{ type: "address", value: tx.from }}
+                          onNavigate={onNavigate}
                           className="font-mono text-xs hover:underline cursor-pointer"
                           style={{ color: "var(--color-accent)" }}
                           title={tx.from}
                         >
                           {truncateAddr(tx.from)}
-                        </button>
+                        </ExplorerLink>
                       ) : (
                         <span
                           className="text-xs"
@@ -410,19 +413,15 @@ export default function BlockView({
                     </td>
                     <td className="px-3 py-2">
                       {tx.to ? (
-                        <button
-                          onClick={() =>
-                            onNavigate({
-                              type: "address",
-                              value: tx.to!,
-                            })
-                          }
+                        <ExplorerLink
+                          target={{ type: "address", value: tx.to }}
+                          onNavigate={onNavigate}
                           className="font-mono text-xs hover:underline cursor-pointer"
                           style={{ color: "var(--color-accent)" }}
                           title={tx.to}
                         >
                           {truncateAddr(tx.to)}
-                        </button>
+                        </ExplorerLink>
                       ) : (
                         <span
                           className="text-[10px] px-1.5 py-0.5 rounded"
@@ -440,6 +439,14 @@ export default function BlockView({
                       style={{ color: "var(--color-text-primary)" }}
                     >
                       {formatPLS(tx.valuePLS)}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <TxGasInfo
+                        type={tx.type}
+                        gasPrice={tx.gasPrice}
+                        maxFeePerGas={tx.maxFeePerGas}
+                        maxPriorityFeePerGas={tx.maxPriorityFeePerGas}
+                      />
                     </td>
                     <td className="px-3 py-2 text-right relative">
                       <TxRowActions

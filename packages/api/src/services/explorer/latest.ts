@@ -198,6 +198,14 @@ export interface RecentTx {
   value: string;
   valuePLS: string;
   gasUsed: string | null;
+  /** viem tx-type string: "legacy" | "eip2930" | "eip1559" | "eip4844". */
+  type: string;
+  /** Legacy/2930 gas price; null for 1559+. Wei decimal string. */
+  gasPrice: string | null;
+  /** 1559+ fee cap (max base + tip); null for legacy. Wei decimal string. */
+  maxFeePerGas: string | null;
+  /** 1559+ tip — what the node sorts on; null for legacy. Wei. */
+  maxPriorityFeePerGas: string | null;
   methodId: string;
   methodName: string | null;
 }
@@ -243,6 +251,13 @@ export async function getRecentTxs(limit: number = 10): Promise<RecentTxsResult>
       const methodId =
         tx.input && tx.input !== "0x" ? tx.input.slice(0, 10) : "";
 
+      // viem narrows gas fields by tx.type; read through a loose view so we
+      // can pull whichever set the tx carries (legacy gasPrice vs 1559 caps).
+      const g = tx as {
+        gasPrice?: bigint;
+        maxFeePerGas?: bigint;
+        maxPriorityFeePerGas?: bigint;
+      };
       txs.push({
         hash: tx.hash,
         blockNumber: blockNumber.toString(10),
@@ -252,6 +267,13 @@ export async function getRecentTxs(limit: number = 10): Promise<RecentTxsResult>
         value: (tx.value ?? 0n).toString(10),
         valuePLS: formatEther(tx.value ?? 0n),
         gasUsed: null, // receipts not pulled here — kept light
+        type: tx.type ?? "legacy",
+        gasPrice: g.gasPrice != null ? g.gasPrice.toString(10) : null,
+        maxFeePerGas: g.maxFeePerGas != null ? g.maxFeePerGas.toString(10) : null,
+        maxPriorityFeePerGas:
+          g.maxPriorityFeePerGas != null
+            ? g.maxPriorityFeePerGas.toString(10)
+            : null,
         methodId,
         methodName: null, // filled below
       });

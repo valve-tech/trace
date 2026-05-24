@@ -52,6 +52,10 @@ export interface RecentTx {
   value: string;
   valuePLS: string;
   gasUsed: string | null;
+  type: string;
+  gasPrice: string | null;
+  maxFeePerGas: string | null;
+  maxPriorityFeePerGas: string | null;
   methodId: string;
   methodName: string | null;
 }

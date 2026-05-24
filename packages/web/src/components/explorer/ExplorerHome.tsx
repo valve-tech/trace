@@ -23,6 +23,7 @@ import {
 } from "../../api/latest";
 import TxRowActions from "./TxRowActions";
 import { ExplorerLink } from "./ExplorerLink";
+import { TxGasInfo } from "./TxGasInfo";
 import { subscriptSmall } from "./format";
 
 const REFETCH_MS = 5_000;
@@ -286,6 +287,14 @@ function TxsCard({
                   style={{ color: "var(--color-text-muted)" }}
                 >
                   {t.methodName ? `${t.methodName}()` : t.methodId || "transfer"}
+                </div>
+                <div className="mt-0.5">
+                  <TxGasInfo
+                    type={t.type}
+                    gasPrice={t.gasPrice}
+                    maxFeePerGas={t.maxFeePerGas}
+                    maxPriorityFeePerGas={t.maxPriorityFeePerGas}
+                  />
                 </div>
               </div>
               <div

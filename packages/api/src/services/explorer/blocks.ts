@@ -21,6 +21,12 @@ export interface BlockDetails {
     valuePLS: string;
     gasUsed: string | null;
     type: string;
+    /** Legacy/2930 gas price; null for 1559+. Wei decimal string. */
+    gasPrice: string | null;
+    /** 1559+ fee cap (max base + tip). Wei decimal string; null for legacy. */
+    maxFeePerGas: string | null;
+    /** 1559+ tip — what the node actually sorts on. Wei; null for legacy. */
+    maxPriorityFeePerGas: string | null;
     methodId: string;
   }>;
 }
@@ -67,6 +73,9 @@ export async function getBlockDetails(
         valuePLS: "0",
         gasUsed: null,
         type: "unknown",
+        gasPrice: null,
+        maxFeePerGas: null,
+        maxPriorityFeePerGas: null,
         methodId: "",
       };
     }
@@ -78,6 +87,9 @@ export async function getBlockDetails(
       valuePLS: formatEther(tx.value ?? BigInt(0)),
       gasUsed: tx.gas?.toString() ?? null,
       type: tx.type ?? "legacy",
+      gasPrice: tx.gasPrice?.toString() ?? null,
+      maxFeePerGas: tx.maxFeePerGas?.toString() ?? null,
+      maxPriorityFeePerGas: tx.maxPriorityFeePerGas?.toString() ?? null,
       methodId: tx.input ? tx.input.slice(0, 10) : "",
     };
   });
