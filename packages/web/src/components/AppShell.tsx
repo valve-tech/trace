@@ -8,6 +8,7 @@ const NAV_GROUPS = [
     hint: "Look at something that already happened",
     items: [
       { to: "/explorer", label: "Explorer", icon: "heroicons:magnifying-glass" },
+      { to: "/mempool", label: "Mempool", icon: "heroicons:queue-list" },
       { to: "/debugger", label: "Debugger", icon: "heroicons:bug-ant" },
       { to: "/storage", label: "Storage", icon: "heroicons:rectangle-stack" },
       { to: "/diff", label: "Contract Diff", icon: "heroicons:document-duplicate" },

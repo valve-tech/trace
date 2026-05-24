@@ -9,6 +9,7 @@ import AlertDashboard from "./components/monitoring/AlertDashboard";
 import TestNetDashboard from "./components/testnets/TestNetDashboard";
 import RpcPage from "./pages/RpcPage";
 import ExplorerPanel from "./components/explorer/ExplorerPanel";
+import MempoolView from "./components/mempool/MempoolView";
 import DebuggerView from "./components/debugger/DebuggerView";
 import ActionsDashboard from "./components/actions/ActionsDashboard";
 import ForkSimulator from "./components/ForkSimulator";
@@ -142,6 +143,7 @@ export default function App() {
             <Route path="/testnets" element={<TestNetDashboard />} />
             <Route path="/rpc" element={<RpcPage />} />
             <Route path="/explorer/*" element={<ExplorerPanel />} />
+            <Route path="/mempool" element={<MempoolView />} />
             <Route path="/debugger" element={<DebuggerView />} />
             <Route path="/debugger/:txHash" element={<DebuggerView />} />
             <Route path="/actions" element={<ActionsDashboard />} />
