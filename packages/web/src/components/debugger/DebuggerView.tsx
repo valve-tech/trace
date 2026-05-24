@@ -145,7 +145,7 @@ export default function DebuggerView() {
       )}
 
       {!loading && hasResult && (
-        <div>
+        <div className="card overflow-hidden">
           <Tabs
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -154,7 +154,7 @@ export default function DebuggerView() {
             hasGasProfile={!!gasProfile}
           />
 
-          <div className="mt-4">
+          <div className="p-4">
             {activeTab === "debugger" && (
               opcodeSteps.length > 0 ? (
                 <StepDebugger

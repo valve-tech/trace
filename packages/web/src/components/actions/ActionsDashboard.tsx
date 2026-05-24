@@ -137,7 +137,7 @@ export default function ActionsDashboard() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="card p-4 flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
           Actions
         </h2>

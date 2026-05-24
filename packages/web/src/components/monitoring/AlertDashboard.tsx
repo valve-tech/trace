@@ -177,11 +177,6 @@ export default function AlertDashboard() {
     void fetchAlerts();
   };
 
-  const cardStyle = {
-    backgroundColor: "var(--color-bg-card)",
-    boxShadow: "0 0 0 1px var(--color-border-default)",
-  };
-
   // -----------------------------------------------------------------------
   // Render sub-views
   // -----------------------------------------------------------------------
@@ -216,7 +211,7 @@ export default function AlertDashboard() {
     <div className="space-y-section">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg p-4" style={cardStyle}>
+        <div className="card p-4">
           <p
             className="text-xs font-medium mb-1"
             style={{ color: "var(--color-text-secondary)" }}
@@ -230,7 +225,7 @@ export default function AlertDashboard() {
             {stats.total}
           </p>
         </div>
-        <div className="rounded-lg p-4" style={cardStyle}>
+        <div className="card p-4">
           <p
             className="text-xs font-medium mb-1"
             style={{ color: "var(--color-text-secondary)" }}
@@ -244,7 +239,7 @@ export default function AlertDashboard() {
             {stats.active}
           </p>
         </div>
-        <div className="rounded-lg p-4" style={cardStyle}>
+        <div className="card p-4">
           <p
             className="text-xs font-medium mb-1"
             style={{ color: "var(--color-text-secondary)" }}
@@ -261,7 +256,7 @@ export default function AlertDashboard() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="card p-4 flex items-center justify-between">
         <div className="flex items-center gap-row">
           <h2
             className="text-lg font-semibold"
@@ -324,7 +319,7 @@ export default function AlertDashboard() {
 
       {/* Empty state */}
       {!loading && alerts.length === 0 && (
-        <div className="rounded-lg p-8 text-center" style={cardStyle}>
+        <div className="card p-8 text-center">
           <p
             className="text-sm mb-2"
             style={{ color: "var(--color-text-muted)" }}
@@ -357,11 +352,8 @@ export default function AlertDashboard() {
           return (
             <div
               key={a.id}
-              className="rounded-lg p-4"
-              style={{
-                ...cardStyle,
-                opacity: a.enabled ? 1 : 0.6,
-              }}
+              className="card p-4"
+              style={{ opacity: a.enabled ? 1 : 0.6 }}
             >
               <div className="flex items-start justify-between gap-4">
                 {/* Left side */}

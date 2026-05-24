@@ -31,8 +31,8 @@ function Toggle({
       style={{
         backgroundColor: checked ? "var(--color-accent)" : "var(--color-bg-tertiary)",
         boxShadow: checked
-          ? "inset 0 0 0 1px var(--color-accent)"
-          : "inset 0 0 0 1px var(--color-border-default)",
+          ? "0 0 0 1px var(--color-accent)"
+          : "0 0 0 1px var(--color-border-default)",
       }}
     >
       <span
@@ -91,12 +91,10 @@ export default function SettingsPanel() {
           {PANEL_HEAVY_ROUTES.map((r, i, arr) => (
             <div
               key={r.key}
-              className="flex items-start justify-between py-2.5"
-              style={{
-                boxShadow:
-                  i < arr.length - 1 ? "inset 0 -1px 0 0 var(--color-border-muted)" : undefined,
-                opacity: autoCollapse ? 1 : 0.4,
-              }}
+              className={`flex items-start justify-between py-2.5${
+                i < arr.length - 1 ? " bs-b-muted" : ""
+              }`}
+              style={{ opacity: autoCollapse ? 1 : 0.4 }}
             >
               <div>
                 <div className="text-sm" style={{ color: "var(--color-text-primary)" }}>

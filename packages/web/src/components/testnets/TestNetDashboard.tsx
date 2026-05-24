@@ -69,7 +69,7 @@ export default function TestNetDashboard() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="card p-4 flex items-center justify-between mb-6">
         <div>
           <h2
             className="text-lg font-semibold"
