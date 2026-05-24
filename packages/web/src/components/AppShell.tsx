@@ -154,7 +154,7 @@ export default function AppShell({
 
       <div className="flex-1 flex min-h-0">
         <Sidebar collapsed={collapsed} />
-        <div className="flex-1 overflow-auto min-w-0 p-4 md:p-6">{children}</div>
+        <div className="flex-1 overflow-auto min-w-0 p-3 md:p-4">{children}</div>
       </div>
 
       {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
