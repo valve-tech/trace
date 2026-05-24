@@ -1,6 +1,6 @@
 import type { AddressInfo } from "../../../api/explorer";
 import { formatPLS } from "../format";
-import AddressRowActions from "../AddressRowActions";
+import { EntityActionBar } from "../../EntityActionBar";
 
 export function AddressHeader({
   address,
@@ -39,14 +39,18 @@ export function AddressHeader({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-inline">
-            <span
-              className="font-mono text-sm break-all"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              {address}
-            </span>
-            <AddressRowActions address={address} />
+          <span
+            className="font-mono text-sm break-all"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            {address}
+          </span>
+          <div className="mt-3">
+            <EntityActionBar
+              kind={info?.isContract ? "contract" : "address"}
+              value={address}
+              omit={["explorer"]}
+            />
           </div>
         </div>
         <div className="text-right">

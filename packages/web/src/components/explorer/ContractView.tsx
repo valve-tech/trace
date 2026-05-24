@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchContractInfo, type ContractInfo } from "../../api/explorer";
+import { enrichEntity } from "../../lib/recentEntities";
 import {
   type AbiItem,
   type SubTab,
@@ -46,6 +47,12 @@ export default function ContractView({
         if (!cancelled) {
           setInfo(data);
           setSubTab(pickInitialTab(data));
+          // Surface the contract under both kinds so palette name-search finds
+          // it whether it was reached as a contract or a plain address.
+          if (data.contractName) {
+            enrichEntity("contract", address, { label: data.contractName });
+            enrichEntity("address", address, { label: data.contractName });
+          }
         }
       })
       .catch((err) => {

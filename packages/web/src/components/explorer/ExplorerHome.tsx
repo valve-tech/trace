@@ -25,6 +25,7 @@ import TxRowActions from "./TxRowActions";
 import { ExplorerLink } from "./ExplorerLink";
 import { TxGasInfo } from "./TxGasInfo";
 import { GasOracleWidget } from "./GasOracleWidget";
+import { RecentRail } from "../RecentRail";
 import { subscriptSmall } from "./format";
 
 const REFETCH_MS = 5_000;
@@ -64,17 +65,20 @@ export default function ExplorerHome({ onNavigate }: Props) {
 
       <GasOracleWidget />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <BlocksCard
-          blocks={blocks.data?.blocks ?? []}
-          loading={blocks.isPending}
-          onNavigate={onNavigate}
-        />
-        <TxsCard
-          txs={txs.data?.transactions ?? []}
-          loading={txs.isPending}
-          onNavigate={onNavigate}
-        />
+      <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-4">
+        <RecentRail />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <BlocksCard
+            blocks={blocks.data?.blocks ?? []}
+            loading={blocks.isPending}
+            onNavigate={onNavigate}
+          />
+          <TxsCard
+            txs={txs.data?.transactions ?? []}
+            loading={txs.isPending}
+            onNavigate={onNavigate}
+          />
+        </div>
       </div>
     </div>
   );

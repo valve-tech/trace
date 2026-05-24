@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
+import { useRecentEntities } from "../hooks/useRecentEntities";
+import type { RecentEntity } from "../lib/recentEntities";
 
 const NAV_GROUPS = [
   {
@@ -497,13 +499,139 @@ const KIND_LABELS: Record<Exclude<Parsed["kind"], "unknown">, string> = {
   selector: "Function selector",
 };
 
+/* ------------------------------------------------------------------ */
+/* Palette result model                                               */
+/* ------------------------------------------------------------------ */
+
+type ResultGroup = "Jump to" | "Recent" | "Contracts" | "Pages";
+type PaletteTab = "all" | "recent" | "contracts" | "pages";
+
+const TABS: { key: PaletteTab; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "recent", label: "Recent" },
+  { key: "contracts", label: "Contracts" },
+  { key: "pages", label: "Pages" },
+];
+
+interface Result {
+  id: string;
+  group: ResultGroup;
+  tag: string;
+  label: string;
+  detail: string;
+  icon: string;
+  to: string;
+}
+
+/** Flattened navigable pages, derived from the sidebar groups. */
+const PAGES: { label: string; to: string; icon: string }[] = NAV_GROUPS.flatMap(
+  (g) => g.items.map((it) => ({ label: it.label, to: it.to, icon: it.icon })),
+);
+
+function truncMid(v: string): string {
+  if (!v.startsWith("0x") || v.length <= 16) return v;
+  return `${v.slice(0, 8)}…${v.slice(-6)}`;
+}
+
+function recentToResult(e: RecentEntity): Result {
+  const to =
+    e.kind === "tx"
+      ? `/explorer?tx=${e.value}`
+      : e.kind === "block"
+        ? `/explorer?block=${e.value}`
+        : `/explorer?address=${e.value}`;
+  return {
+    id: `${e.kind}:${e.value}`,
+    group: e.kind === "contract" ? "Contracts" : "Recent",
+    tag: e.kind,
+    label: e.label ?? (e.value.startsWith("0x") ? truncMid(e.value) : `#${e.value}`),
+    detail: e.label ? truncMid(e.value) : e.kind === "tx" && e.status ? e.status : e.kind,
+    icon:
+      e.kind === "tx"
+        ? "heroicons:bug-ant"
+        : e.kind === "block"
+          ? "heroicons:cube"
+          : e.kind === "contract"
+            ? "heroicons:document-text"
+            : "heroicons:identification",
+    to,
+  };
+}
+
+function matches(q: string, ...fields: (string | undefined)[]): boolean {
+  if (!q) return true;
+  return fields.some((f) => f?.toLowerCase().includes(q));
+}
+
+/** Build the visible, ordered result list for the current query + tab. */
+function buildResults(
+  value: string,
+  parsed: Parsed,
+  recents: RecentEntity[],
+  tab: PaletteTab,
+): Result[] {
+  const q = value.trim().toLowerCase();
+
+  const jump: Result[] =
+    parsed.kind === "unknown"
+      ? []
+      : parsed.actions.map((a) => ({
+          id: a.to,
+          group: "Jump to" as const,
+          tag: parsed.kind,
+          label: a.label,
+          detail: a.detail,
+          icon: a.icon,
+          to: a.to,
+        }));
+
+  const recentResults = recents
+    .filter((e) => matches(q, e.label, e.value))
+    .map(recentToResult);
+  const contracts = recentResults.filter((r) => r.group === "Contracts");
+  const recentOnly = recentResults.filter((r) => r.group === "Recent");
+
+  const pages: Result[] = PAGES.filter((p) => matches(q, p.label, p.to)).map(
+    (p) => ({
+      id: `page:${p.to}`,
+      group: "Pages",
+      tag: "page",
+      label: p.label,
+      detail: p.to,
+      icon: p.icon,
+      to: p.to,
+    }),
+  );
+
+  switch (tab) {
+    case "recent":
+      return [...recentOnly, ...contracts];
+    case "contracts":
+      return contracts;
+    case "pages":
+      return pages;
+    case "all":
+      // Empty query → lead with what the user has touched, hide page noise.
+      if (q === "") return [...recentOnly, ...contracts];
+      return [...jump, ...contracts, ...recentOnly, ...pages];
+  }
+}
+
 function CommandPalette({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
+  const recents = useRecentEntities();
   const [value, setValue] = useState("");
+  const [tab, setTab] = useState<PaletteTab>("all");
+  const [selected, setSelected] = useState(0);
   const parsed = useMemo(() => parseInput(value), [value]);
 
-  const actions = parsed.kind === "unknown" ? [] : parsed.actions;
-  const primary = actions[0];
+  const results = useMemo(
+    () => buildResults(value, parsed, recents, tab),
+    [value, parsed, recents, tab],
+  );
+
+  // Reset the highlight whenever the visible set changes.
+  useEffect(() => setSelected(0), [value, tab]);
 
   const go = (to: string) => {
     onClose();
@@ -511,11 +639,26 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && primary) {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      go(primary.to);
+      setSelected((s) => Math.min(s + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelected((s) => Math.max(s - 1, 0));
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      const idx = TABS.findIndex((t) => t.key === tab);
+      const next = TABS[(idx + (e.shiftKey ? TABS.length - 1 : 1)) % TABS.length]!;
+      setTab(next.key);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const r = results[selected];
+      if (r) go(r.to);
     }
   };
+
+  // Render results with a group label whenever the group changes.
+  let lastGroup: ResultGroup | null = null;
 
   return (
     <div
@@ -524,10 +667,6 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div className="card w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-        {/* Input row — the row is the input visually; the actual <input>
-            stretches edge-to-edge inside, the magnifying glass overlays its
-            leading edge, and focus is signaled by the row's accent rail
-            (palette-row :focus-within in index.css). */}
         <div
           className="palette-row relative flex items-center px-4 h-12"
           style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
@@ -542,7 +681,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Paste a tx hash, address, block number, or 4byte selector"
+            placeholder="Search recent, contracts, pages — or paste a hash / address / block"
             className="bare-input flex-1 h-full pl-7 bg-transparent text-sm outline-none font-mono"
             style={{ color: "var(--color-text-primary)" }}
           />
@@ -558,7 +697,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             </span>
           )}
           <kbd
-            className="text-[10px] px-2 py-1 font-mono shrink-0"
+            className="text-[10px] px-2 py-1 font-mono shrink-0 ml-2"
             style={{
               backgroundColor: "var(--color-bg-tertiary)",
               color: "var(--color-text-secondary)",
@@ -568,95 +707,126 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
           </kbd>
         </div>
 
-        {/* Actions */}
-        {actions.length > 0 && (
-          <div className="py-2">
-            {actions.map((a, i) => {
-              const isPrimary = i === 0;
+        {/* Scope tabs */}
+        <div
+          className="flex items-center gap-tight px-3 pt-2"
+          style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
+        >
+          {TABS.map((t) => {
+            const on = t.key === tab;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className="text-[11px] px-3 py-1.5 transition-colors"
+                style={{
+                  color: on ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                  boxShadow: on ? "inset 0 -2px 0 0 var(--color-accent)" : "none",
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Results */}
+        {results.length > 0 ? (
+          <div className="py-2 max-h-[50vh] overflow-y-auto">
+            {results.map((r, i) => {
+              const isSel = i === selected;
+              const showGroup = r.group !== lastGroup;
+              lastGroup = r.group;
               return (
-                <button
-                  key={a.to}
-                  onClick={() => go(a.to)}
-                  className="w-full flex items-start gap-row px-4 py-3 text-left transition-colors"
-                  style={{
-                    backgroundColor: isPrimary ? "var(--color-bg-tertiary)" : "transparent",
-                  }}
-                >
-                  <Icon
-                    icon={a.icon}
-                    className="w-4 h-4 mt-0.5 shrink-0"
-                    style={{
-                      color: isPrimary ? "var(--color-accent)" : "var(--color-text-secondary)",
-                    }}
-                  />
-                  <div className="min-w-0 flex-1">
+                <div key={r.id}>
+                  {showGroup && (
                     <div
-                      className="text-sm font-medium leading-snug"
-                      style={{
-                        color: isPrimary ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                      }}
-                    >
-                      {a.label}
-                    </div>
-                    <div
-                      className="text-xs leading-snug mt-1"
+                      className="text-[9px] uppercase tracking-widest px-4 pt-2 pb-1"
                       style={{ color: "var(--color-text-muted)" }}
                     >
-                      {a.detail}
+                      {r.group}
                     </div>
-                  </div>
-                  {isPrimary && (
-                    <kbd
-                      className="text-[10px] px-2 py-1 font-mono shrink-0"
+                  )}
+                  <button
+                    onClick={() => go(r.to)}
+                    onMouseEnter={() => setSelected(i)}
+                    className="w-full flex items-center gap-row px-4 py-2.5 text-left transition-colors"
+                    style={{
+                      backgroundColor: isSel ? "var(--color-accent-muted)" : "transparent",
+                      boxShadow: isSel ? "inset 2px 0 0 0 var(--color-accent)" : "none",
+                    }}
+                  >
+                    <Icon
+                      icon={r.icon}
+                      className="w-4 h-4 shrink-0"
                       style={{
-                        backgroundColor: "var(--color-bg-card)",
+                        color: isSel ? "var(--color-accent)" : "var(--color-text-secondary)",
+                      }}
+                    />
+                    <span
+                      className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 shrink-0"
+                      style={{
+                        backgroundColor: "var(--color-bg-tertiary)",
                         color: "var(--color-text-secondary)",
                       }}
                     >
-                      ↵
-                    </kbd>
-                  )}
-                </button>
+                      {r.tag}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="text-sm font-mono truncate leading-snug"
+                        style={{ color: "var(--color-text-primary)" }}
+                      >
+                        {r.label}
+                      </div>
+                      <div
+                        className="text-[11px] truncate"
+                        style={{ color: "var(--color-text-muted)" }}
+                      >
+                        {r.detail}
+                      </div>
+                    </div>
+                    {isSel && (
+                      <kbd
+                        className="text-[10px] px-2 py-1 font-mono shrink-0"
+                        style={{
+                          backgroundColor: "var(--color-bg-card)",
+                          color: "var(--color-text-secondary)",
+                        }}
+                      >
+                        ↵
+                      </kbd>
+                    )}
+                  </button>
+                </div>
               );
             })}
           </div>
-        )}
-
-        {/* Empty / unrecognized states */}
-        {value.trim() === "" && (
-          <div className="px-4 py-3">
-            <div
-              className="text-[10px] uppercase tracking-widest mb-2"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              What you can paste
-            </div>
-            <ul className="space-y-1.5 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              <li>
-                <code style={{ color: "var(--color-text-primary)" }}>0x…</code>
-                <span className="ml-2" style={{ color: "var(--color-text-muted)" }}>
-                  66 chars → tx hash · 42 chars → address · 10 chars → 4byte selector
-                </span>
-              </li>
-              <li>
-                <code style={{ color: "var(--color-text-primary)" }}>21840194</code>
-                <span className="ml-2" style={{ color: "var(--color-text-muted)" }}>
-                  pure digits → block number
-                </span>
-              </li>
-            </ul>
+        ) : (
+          <div className="px-4 py-4 text-xs" style={{ color: "var(--color-text-muted)" }}>
+            {value.trim() === ""
+              ? "Nothing viewed yet — paste a tx hash, address, block number, or 4byte selector, or jump to a page from the Pages tab."
+              : "No matches. Paste a full tx hash, address, block number, or 4byte selector to open it directly."}
           </div>
         )}
 
-        {value.trim() !== "" && parsed.kind === "unknown" && (
-          <div
-            className="px-4 py-3 text-xs"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            Not a tx hash, address, block number, or selector. Contract-name search
-            is coming.
-          </div>
-        )}
+        <div
+          className="flex items-center gap-row px-4 py-2 text-[10px]"
+          style={{
+            color: "var(--color-text-muted)",
+            boxShadow: "0 -1px 0 0 var(--color-border-muted)",
+          }}
+        >
+          <span>
+            <kbd className="font-mono">↑</kbd> <kbd className="font-mono">↓</kbd> navigate
+          </span>
+          <span>
+            <kbd className="font-mono">↵</kbd> open
+          </span>
+          <span>
+            <kbd className="font-mono">tab</kbd> switch scope
+          </span>
+        </div>
       </div>
     </div>
   );

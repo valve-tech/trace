@@ -1,6 +1,6 @@
 import type { ContractInfo } from "../../../api/explorer";
 import { TokenImage } from "../../primitives/TokenImage";
-import AddressRowActions from "../AddressRowActions";
+import { EntityActionBar } from "../../EntityActionBar";
 
 export function ContractHeader({
   address,
@@ -51,15 +51,12 @@ export function ContractHeader({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-inline">
-            <span
-              className="font-mono text-sm break-all"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              {address}
-            </span>
-            <AddressRowActions address={address} />
-          </div>
+          <span
+            className="font-mono text-sm break-all"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            {address}
+          </span>
           {info.contractName && (
             <div className="mt-1">
               <span
@@ -78,6 +75,9 @@ export function ContractHeader({
               )}
             </div>
           )}
+          <div className="mt-3">
+            <EntityActionBar kind="contract" value={address} omit={["explorer"]} />
+          </div>
           </div>
         </div>
         <button
