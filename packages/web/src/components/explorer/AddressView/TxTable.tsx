@@ -4,8 +4,9 @@ import { formatRelativeTimestamp } from "./formatRelative";
 import type { AddressNavTarget } from "./TransactionsTab";
 import TxRowActions from "../TxRowActions";
 import { ExplorerLink } from "../ExplorerLink";
+import { TxGasInfo } from "../TxGasInfo";
 
-const HEADERS = ["Tx Hash", "Block", "Age", "From", "To", "Value", "Status", ""];
+const HEADERS = ["Tx Hash", "Block", "Age", "From", "To", "Value", "Gas / Type", "Status", ""];
 
 interface Props {
   txs: AddressTransaction[];
@@ -122,6 +123,14 @@ function TxRow({
         style={{ color: "var(--color-text-primary)" }}
       >
         {formatPLS(tx.valuePLS)}
+      </td>
+      <td className="px-3 py-2 whitespace-nowrap">
+        <TxGasInfo
+          type={tx.type}
+          gasPrice={tx.gasPrice}
+          maxFeePerGas={tx.maxFeePerGas}
+          maxPriorityFeePerGas={tx.maxPriorityFeePerGas}
+        />
       </td>
       <td className="px-3 py-2">
         <span

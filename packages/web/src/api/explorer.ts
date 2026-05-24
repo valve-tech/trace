@@ -93,6 +93,9 @@ export interface AddressTransaction {
   functionName: string;
   methodId: string;
   input: string;
+  type: string;
+  maxFeePerGas: string | null;
+  maxPriorityFeePerGas: string | null;
 }
 
 export interface AddressToken {

@@ -1,4 +1,4 @@
-import { type Address, formatEther, formatUnits } from "viem";
+import { type Address, type Hex, formatEther, formatUnits } from "viem";
 import { publicClient } from "../rpc.js";
 import { blockscoutFetch } from "./client.js";
 
@@ -21,6 +21,10 @@ export interface AddressTransaction {
   functionName: string;
   methodId: string;
   input: string;
+  /** Enriched from the node — BlockScout's txlist omits these. */
+  type: string;
+  maxFeePerGas: string | null;
+  maxPriorityFeePerGas: string | null;
 }
 
 export async function getAddressTransactions(
@@ -58,7 +62,7 @@ export async function getAddressTransactions(
     return { transactions: [], total: 0 };
   }
 
-  const transactions = data.result.map((tx) => ({
+  const base = data.result.map((tx) => ({
     hash: tx.hash,
     blockNumber: tx.blockNumber,
     timeStamp: tx.timeStamp,
@@ -74,6 +78,32 @@ export async function getAddressTransactions(
     methodId: tx.methodId || "",
     input: tx.input,
   }));
+
+  // BlockScout's txlist omits tx-type + the 1559 fee caps, so enrich from the
+  // node. viem batches these getTransaction calls into one HTTP round-trip
+  // (batch transport in rpc.ts). Per-tx failures fall back to legacy/null.
+  const transactions: AddressTransaction[] = await Promise.all(
+    base.map(async (tx) => {
+      try {
+        const full = await publicClient.getTransaction({ hash: tx.hash as Hex });
+        const g = full as {
+          maxFeePerGas?: bigint;
+          maxPriorityFeePerGas?: bigint;
+        };
+        return {
+          ...tx,
+          type: full.type ?? "legacy",
+          maxFeePerGas: g.maxFeePerGas != null ? g.maxFeePerGas.toString() : null,
+          maxPriorityFeePerGas:
+            g.maxPriorityFeePerGas != null
+              ? g.maxPriorityFeePerGas.toString()
+              : null,
+        };
+      } catch {
+        return { ...tx, type: "legacy", maxFeePerGas: null, maxPriorityFeePerGas: null };
+      }
+    }),
+  );
 
   return { transactions, total: transactions.length };
 }
