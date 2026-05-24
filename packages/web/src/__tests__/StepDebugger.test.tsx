@@ -143,4 +143,22 @@ describe("StepDebugger", () => {
     expect(screen.queryByText("Memory is empty")).not.toBeInTheDocument();
     expect(screen.getByText("Memory")).toBeInTheDocument();
   });
+
+  it("renders opcode-frequency tags in the Opcodes tab", () => {
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByText("Opcodes"));
+    // PUSH1 occurs twice in SAMPLE_STEPS → its tag exists with that title.
+    expect(
+      screen.getByTitle("PUSH1 — 2 occurrences"),
+    ).toBeInTheDocument();
+    expect(screen.getByTitle("SLOAD — 1 occurrence")).toBeInTheDocument();
+  });
+
+  it("filters the trace to a single opcode when its tag is clicked", () => {
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByText("Opcodes"));
+    fireEvent.click(screen.getByTitle("PUSH1 — 2 occurrences"));
+    // ControlsBar reports the filtered match count (exact: 2 PUSH1, not PUSH-family).
+    expect(screen.getByText(/2 matches/)).toBeInTheDocument();
+  });
 });

@@ -18,6 +18,8 @@ import { CallContextBreadcrumb } from "./StepDebugger/CallContextBreadcrumb";
 import { CallTreeFromOpcodes } from "./StepDebugger/CallTreeFromOpcodes";
 import { DecodedTrace } from "./StepDebugger/DecodedTrace";
 import { OpcodesTraceView } from "./StepDebugger/OpcodesTraceView";
+import { OpcodeFrequencyTags } from "./StepDebugger/OpcodeFrequencyTags";
+import { opcodeFrequencies } from "./StepDebugger/opcodeStats";
 import { SourceTabContent } from "./StepDebugger/SourceTabContent";
 import { StoragePanel, type StorageDiff } from "./StepDebugger/StoragePanel";
 import { StackPanel } from "./StepDebugger/StackPanel";
@@ -49,15 +51,24 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     return max;
   }, [steps]);
 
+  // Exact opcode match: filtering to "ADD" should not also catch "ADDRESS",
+  // and the highlighted count must equal the frequency tag's count.
   const filteredIndices = useMemo(() => {
     if (!opcodeFilter) return null;
     const upper = opcodeFilter.toUpperCase();
     const indices: number[] = [];
     for (let i = 0; i < steps.length; i++) {
-      if (steps[i]!.op.includes(upper)) indices.push(i);
+      if (steps[i]!.op === upper) indices.push(i);
     }
     return indices;
   }, [opcodeFilter, steps]);
+
+  const opcodeFreqs = useMemo(() => opcodeFrequencies(steps), [steps]);
+
+  const toggleOpcode = useCallback(
+    (op: string) => setOpcodeFilter((prev) => (prev === op ? "" : op)),
+    [],
+  );
 
   // Reset on new trace. The opcode-cursor reset is handled inside
   // useOpcodeNavigation (it watches `steps` identity); this effect only owns
@@ -378,13 +389,20 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
           )}
 
           {contentView === "opcodes" && (
-            <OpcodesTraceView
-              steps={steps}
-              currentStep={currentStep}
-              goTo={goTo}
-              filteredIndices={filteredIndices}
-              maxDepth={maxDepth}
-            />
+            <>
+              <OpcodeFrequencyTags
+                frequencies={opcodeFreqs}
+                activeOp={opcodeFilter}
+                onToggle={toggleOpcode}
+              />
+              <OpcodesTraceView
+                steps={steps}
+                currentStep={currentStep}
+                goTo={goTo}
+                filteredIndices={filteredIndices}
+                maxDepth={maxDepth}
+              />
+            </>
           )}
 
           {contentView === "source" && (
