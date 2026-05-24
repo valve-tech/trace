@@ -22,6 +22,7 @@ import {
   type RecentTx,
 } from "../../api/latest";
 import TxRowActions from "./TxRowActions";
+import { subscriptSmall } from "./format";
 
 const REFETCH_MS = 5_000;
 
@@ -350,8 +351,10 @@ function formatGwei(weiDecimal: string): string {
   try {
     const wei = BigInt(weiDecimal);
     const gwei = Number(wei) / 1e9;
-    if (gwei < 0.01) return gwei.toExponential(1);
-    return gwei.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    return (
+      subscriptSmall(gwei) ??
+      gwei.toLocaleString(undefined, { maximumFractionDigits: 2 })
+    );
   } catch {
     return weiDecimal;
   }
@@ -361,9 +364,11 @@ function formatPls(weiDecimal: string): string {
   try {
     const pls = Number(formatEther(BigInt(weiDecimal)));
     if (pls === 0) return "0";
-    if (pls < 0.0001) return pls.toExponential(1);
     if (pls > 1_000_000) return `${(pls / 1_000_000).toFixed(2)}M`;
-    return pls.toLocaleString(undefined, { maximumFractionDigits: 4 });
+    return (
+      subscriptSmall(pls) ??
+      pls.toLocaleString(undefined, { maximumFractionDigits: 4 })
+    );
   } catch {
     return weiDecimal;
   }
