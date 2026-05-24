@@ -1,4 +1,5 @@
 import type { ContractInfo } from "../../../api/explorer";
+import { TokenImage } from "../../primitives/TokenImage";
 
 export function ContractHeader({
   address,
@@ -17,7 +18,9 @@ export function ContractHeader({
       }}
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-row justify-between">
-        <div>
+        <div className="flex items-center gap-row min-w-0">
+          <TokenImage address={address} symbol={info.contractName ?? undefined} size={36} />
+          <div className="min-w-0">
           <div className="flex items-center gap-inline mb-1">
             <h2
               className="text-sm font-semibold"
@@ -71,6 +74,7 @@ export function ContractHeader({
               )}
             </div>
           )}
+          </div>
         </div>
         <button
           onClick={onViewAddress}
