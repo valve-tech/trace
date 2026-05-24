@@ -30,14 +30,17 @@ const WINDOW_MS = 60_000; // 60-second sliding window
 /**
  * Per-IP cap for unauthenticated `/api` requests, per 60s.
  *
- * Defaults to 0 = DISABLED. This is an internal-only app, and the hot read
- * endpoints (latest/summary, blocks, txs/recent, gas, mempool) are served
- * from server-side caches — not upstream passthroughs — so throttling our
- * own dashboard polling protects nothing. A public deployment can re-enable
- * a conservative cap with e.g. `API_UNAUTH_RATE_LIMIT=30`. Authenticated
- * requests are always limited per their own key's `rateLimit`, regardless.
+ * Defaults to 1200/min (20/s) — moderately high on purpose. These are
+ * custom endpoints, mostly server-cached reads (latest/summary, blocks,
+ * txs/recent, gas, mempool), not standard-RPC passthroughs, so the limit
+ * isn't protecting an expensive upstream from normal use. Real dashboard
+ * load is ~60/min even with several users behind one IP, so 20× headroom
+ * never trips legitimately; a runaway client (hundreds/sec) still gets
+ * caught within seconds. Set `API_UNAUTH_RATE_LIMIT` to tune, or 0 to
+ * disable. Authenticated requests are always limited per their key's own
+ * `rateLimit`, regardless.
  */
-const UNAUTHENTICATED_LIMIT = Number(process.env.API_UNAUTH_RATE_LIMIT ?? 0);
+const UNAUTHENTICATED_LIMIT = Number(process.env.API_UNAUTH_RATE_LIMIT ?? 1200);
 
 const rateLimitMap = new Map<string, RateLimitBucket>();
 
