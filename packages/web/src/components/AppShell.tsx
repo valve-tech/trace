@@ -215,11 +215,8 @@ function TopBar({
 
   return (
     <div
-      className="flex items-stretch h-12 shrink-0"
-      style={{
-        backgroundColor: "var(--color-bg-secondary)",
-        boxShadow: "0 1px 0 0 var(--color-border-default)",
-      }}
+      className="bs-b flex items-stretch h-12 shrink-0"
+      style={{ backgroundColor: "var(--color-bg-secondary)" }}
     >
       <button
         onClick={onToggleCollapse}
