@@ -191,14 +191,25 @@ function Sidebar({
                 style={{ color: "var(--color-text-muted)" }}
               >
                 <span>{group.label}</span>
-                <button
-                  type="button"
-                  title={group.hint}
-                  aria-label={`${group.label}: ${group.hint}`}
-                  className="opacity-50 hover:opacity-100 transition-opacity"
-                >
-                  <Icon icon="heroicons:information-circle" className="w-3 h-3" />
-                </button>
+                <span className="group/info relative inline-flex items-center">
+                  <button
+                    type="button"
+                    aria-label={`${group.label}: ${group.hint}`}
+                    className="opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    <Icon icon="heroicons:information-circle" className="w-3 h-3" />
+                  </button>
+                  <span
+                    role="tooltip"
+                    className="card pointer-events-none absolute top-full left-0 mt-1 z-50 hidden group-hover/info:block w-44 px-2 py-1.5 text-[11px] leading-snug normal-case tracking-normal font-normal"
+                    style={{
+                      backgroundColor: "var(--color-bg-card)",
+                      color: "var(--color-text-secondary)",
+                    }}
+                  >
+                    {group.hint}
+                  </span>
+                </span>
               </div>
             )}
             {collapsed && (
