@@ -314,40 +314,44 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
     >
       <nav className="flex-1 overflow-y-auto py-4">
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} className="mb-5">
-            {!collapsed && (
-              <div
-                className="px-4 mb-2 flex items-center gap-tight text-[10px] uppercase tracking-widest font-semibold"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                <span>{group.label}</span>
-                <span className="group/info relative inline-flex items-center">
-                  <button
-                    type="button"
-                    aria-label={`${group.label}: ${group.hint}`}
-                    className="opacity-50 hover:opacity-100 transition-opacity"
-                  >
-                    <Icon icon="heroicons:information-circle" className="w-3 h-3" />
-                  </button>
-                  <span
-                    role="tooltip"
-                    className="card pointer-events-none absolute top-full left-0 mt-1 z-50 hidden group-hover/info:block w-44 px-2 py-1.5 text-[11px] leading-snug normal-case tracking-normal font-normal"
-                    style={{
-                      backgroundColor: "var(--color-bg-card)",
-                      color: "var(--color-text-secondary)",
-                    }}
-                  >
-                    {group.hint}
+          <div key={group.label} className="mb-4">
+            {/* Fixed-height header slot: holds the label (expanded) or a
+                centered divider (collapsed). Same height either way, so the
+                icon rows below land at the same Y and don't jump on toggle. */}
+            <div className="h-7 flex items-center px-3">
+              {collapsed ? (
+                <div
+                  className="flex-1 h-px"
+                  style={{ backgroundColor: "var(--color-border-muted)" }}
+                />
+              ) : (
+                <div
+                  className="flex items-center gap-tight px-1 text-[10px] uppercase tracking-widest font-semibold"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  <span>{group.label}</span>
+                  <span className="group/info relative inline-flex items-center">
+                    <button
+                      type="button"
+                      aria-label={`${group.label}: ${group.hint}`}
+                      className="opacity-50 hover:opacity-100 transition-opacity"
+                    >
+                      <Icon icon="heroicons:information-circle" className="w-3 h-3" />
+                    </button>
+                    <span
+                      role="tooltip"
+                      className="card pointer-events-none absolute top-full left-0 mt-1 z-50 hidden group-hover/info:block w-44 px-2 py-1.5 text-[11px] leading-snug normal-case tracking-normal font-normal"
+                      style={{
+                        backgroundColor: "var(--color-bg-card)",
+                        color: "var(--color-text-secondary)",
+                      }}
+                    >
+                      {group.hint}
+                    </span>
                   </span>
-                </span>
-              </div>
-            )}
-            {collapsed && (
-              <div
-                className="mx-3 mb-1 h-px"
-                style={{ backgroundColor: "var(--color-border-muted)" }}
-              />
-            )}
+                </div>
+              )}
+            </div>
             {group.items.map((item) => (
               <NavLink
                 key={item.to}

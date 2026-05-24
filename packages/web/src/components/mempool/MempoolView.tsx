@@ -6,6 +6,7 @@ import { fetchPending, type PendingTx } from "../../api/mempool";
 import { ExplorerLink } from "../explorer/ExplorerLink";
 import { truncateAddr } from "../explorer/format";
 import { Badge } from "../primitives/Badge";
+import { Dropdown } from "../primitives/Dropdown";
 import { EmptyState } from "../primitives/EmptyState";
 import { TrackedTxPanel } from "./TrackedTxPanel";
 import { useTrackedTxs } from "../../hooks/useTrackedTxs";
@@ -393,28 +394,19 @@ function Toolbar({
           />
         </div>
 
-        <label
+        <div
           className="flex items-center gap-inline text-[11px]"
           style={{ color: "var(--color-text-muted)" }}
         >
           sort
-          <select
+          <Dropdown<SortKey>
             value={sortKey}
-            onChange={(e) => onSort(e.target.value as SortKey)}
-            className="text-[11px] font-mono px-2 py-1"
-            style={{
-              backgroundColor: "var(--color-bg-input)",
-              color: "var(--color-text-secondary)",
-              boxShadow: "inset 0 0 0 1px var(--color-border-muted)",
-            }}
-          >
-            {SORTS.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            onChange={onSort}
+            ariaLabel="Sort transactions"
+            align="right"
+            options={SORTS.map((s) => ({ value: s.key, label: s.label }))}
+          />
+        </div>
       </div>
 
       {presentTypes.length > 1 && (

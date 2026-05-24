@@ -1,4 +1,5 @@
 import type { AlertType } from "../../../api/alerts";
+import { Dropdown } from "../../primitives/Dropdown";
 import { ALERT_TYPES } from "./constants";
 import { cardStyle, inputStyle, labelStyle } from "./styles";
 
@@ -59,18 +60,14 @@ export function BasicInfoCard({
           >
             Alert Type
           </label>
-          <select
+          <Dropdown<AlertType>
             value={type}
-            onChange={(e) => onTypeChange(e.target.value as AlertType)}
-            className="w-full px-3 py-2 rounded-md text-sm"
-            style={inputStyle}
-          >
-            {ALERT_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
+            onChange={onTypeChange}
+            ariaLabel="Alert type"
+            className="w-full"
+            buttonClassName="w-full justify-between"
+            options={ALERT_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+          />
         </div>
 
         <div>

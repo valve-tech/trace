@@ -1,4 +1,5 @@
 import type { NotificationChannel } from "../../../api/alerts";
+import { Dropdown } from "../../primitives/Dropdown";
 import { CHANNEL_TYPES } from "./constants";
 import { cardStyle, inputStyle, labelStyle } from "./styles";
 
@@ -89,26 +90,20 @@ function ChannelEditor({
       }}
     >
       <div className="flex items-center justify-between">
-        <select
+        <Dropdown<NotificationChannel["type"]>
           value={channel.type}
-          onChange={(e) =>
+          onChange={(v) =>
             onUpdate({
-              type: e.target.value as NotificationChannel["type"],
+              type: v,
               url: "",
               webhookUrl: "",
               botToken: "",
               chatId: "",
             })
           }
-          className="px-2 py-1 rounded-md text-xs"
-          style={inputStyle}
-        >
-          {CHANNEL_TYPES.map((ct) => (
-            <option key={ct.value} value={ct.value}>
-              {ct.label}
-            </option>
-          ))}
-        </select>
+          ariaLabel="Channel type"
+          options={CHANNEL_TYPES.map((ct) => ({ value: ct.value, label: ct.label }))}
+        />
         <button
           type="button"
           onClick={onRemove}

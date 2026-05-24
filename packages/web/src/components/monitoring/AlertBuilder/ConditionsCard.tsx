@@ -1,4 +1,5 @@
 import type { AlertConditions, AlertType } from "../../../api/alerts";
+import { Dropdown } from "../../primitives/Dropdown";
 import { cardStyle, inputStyle, labelStyle } from "./styles";
 
 interface Props {
@@ -130,19 +131,17 @@ export function ConditionsCard({ type, conditions, setConditions }: Props) {
               >
                 Direction
               </label>
-              <select
+              <Dropdown<"above" | "below">
                 value={conditions.direction ?? "below"}
-                onChange={(e) =>
-                  patch({
-                    direction: e.target.value as "above" | "below",
-                  })
-                }
-                className="w-full px-3 py-2 rounded-md text-sm"
-                style={inputStyle}
-              >
-                <option value="above">Above</option>
-                <option value="below">Below</option>
-              </select>
+                onChange={(v) => patch({ direction: v })}
+                ariaLabel="Direction"
+                className="w-full"
+                buttonClassName="w-full justify-between"
+                options={[
+                  { value: "above", label: "Above" },
+                  { value: "below", label: "Below" },
+                ]}
+              />
             </div>
           </div>
         </>
