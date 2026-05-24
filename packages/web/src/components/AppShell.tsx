@@ -3,40 +3,8 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useRecentEntities } from "../hooks/useRecentEntities";
 import type { RecentEntity } from "../lib/recentEntities";
-
-const NAV_GROUPS = [
-  {
-    label: "Inspect",
-    hint: "Look at something that already happened",
-    items: [
-      { to: "/explorer", label: "Explorer", icon: "heroicons:magnifying-glass" },
-      { to: "/mempool", label: "Mempool", icon: "heroicons:queue-list" },
-      { to: "/debugger", label: "Debugger", icon: "heroicons:bug-ant" },
-      { to: "/storage", label: "Storage", icon: "heroicons:rectangle-stack" },
-      { to: "/diff", label: "Contract Diff", icon: "heroicons:document-duplicate" },
-    ],
-  },
-  {
-    label: "Simulate",
-    hint: "Try something before you broadcast",
-    items: [
-      { to: "/simulate", label: "Simulate", icon: "heroicons:play-circle" },
-      { to: "/fork", label: "Fork Sim", icon: "heroicons:arrows-right-left" },
-      { to: "/build", label: "Build Tx", icon: "heroicons:wrench-screwdriver" },
-      { to: "/bundle", label: "Bundle", icon: "heroicons:queue-list" },
-      { to: "/testnets", label: "TestNets", icon: "heroicons:beaker" },
-    ],
-  },
-  {
-    label: "Automate",
-    hint: "Keep something running in the background",
-    items: [
-      { to: "/monitoring", label: "Monitoring", icon: "heroicons:bell-alert" },
-      { to: "/actions", label: "Actions", icon: "heroicons:bolt" },
-      { to: "/rpc", label: "RPC", icon: "heroicons:server" },
-    ],
-  },
-] as const;
+import { NAV_GROUPS } from "../lib/navGroups";
+import { HEX_TX, HEX_ADDR, HEX_SELECTOR, DIGITS } from "../lib/entityInput";
 
 /**
  * Routes that bring their own side rails. Sidebar auto-collapses when active.
@@ -478,11 +446,6 @@ type Parsed =
   | { kind: "block"; value: string; actions: PaletteAction[] }
   | { kind: "selector"; value: string; actions: PaletteAction[] }
   | { kind: "unknown" };
-
-const HEX_TX = /^0x[a-fA-F0-9]{64}$/;
-const HEX_ADDR = /^0x[a-fA-F0-9]{40}$/;
-const HEX_SELECTOR = /^0x[a-fA-F0-9]{8}$/;
-const DIGITS = /^\d+$/;
 
 function parseInput(raw: string): Parsed {
   const v = raw.trim();

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { useAlertWebSocket, type AlertEvent } from "./hooks/useAlertWebSocket";
 import AlertToast from "./components/AlertToast";
 import AppShell from "./components/AppShell";
+import Landing from "./components/Landing";
 import SimulationPage from "./pages/SimulationPage";
 import BundleSimulator from "./components/BundleSimulator";
 import AlertDashboard from "./components/monitoring/AlertDashboard";
@@ -79,7 +80,7 @@ export default function App() {
 
       <AppShell apiStatus={apiStatus}>
         <Routes>
-          <Route path="/" element={<Navigate to="/simulate" replace />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/simulate" element={<SimulationPage />} />
           <Route path="/fork" element={<ForkSimulator />} />
           <Route path="/build" element={<TransactionBuilder />} />
