@@ -98,6 +98,22 @@ body {
   animation: spin 0.8s linear infinite;
 }
 
+/* Landing hero motifs — flowing EKG pulse line + breathing accent glow. */
+@keyframes ekg-flow {
+  from { transform: translateX(0); }
+  to { transform: translateX(-120px); }
+}
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.22; }
+  50% { opacity: 0.5; }
+}
+.ekg-flow { animation: ekg-flow 2.4s linear infinite; will-change: transform; }
+.glow-pulse { animation: glow-pulse 4.5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ekg-flow, .glow-pulse { animation: none; }
+}
+
 /* Focus styles */
 input:focus,
 textarea:focus,
