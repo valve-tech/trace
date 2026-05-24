@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
+import { Checkbox } from "./primitives/Checkbox";
 
 interface AbiInputProps {
   value: string;
@@ -86,17 +87,11 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
           style={{}}
         >
           <div className="flex items-center gap-row py-3">
-            <label className="flex items-center gap-inline cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoFetch}
-                onChange={(e) => handleAutoFetchChange(e.target.checked)}
-                className="w-4 h-4 rounded accent-purple-500"
-              />
-              <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                Auto-fetch ABI from contract
-              </span>
-            </label>
+            <Checkbox
+              checked={autoFetch}
+              onChange={handleAutoFetchChange}
+              label="Auto-fetch ABI from contract"
+            />
           </div>
 
           {!autoFetch && (
