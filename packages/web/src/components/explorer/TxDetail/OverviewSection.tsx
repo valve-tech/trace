@@ -6,6 +6,7 @@ import {
   type NavTarget,
 } from "./primitives";
 import { StatusBadge } from "../../primitives/StatusBadge";
+import { ExplorerLink } from "../ExplorerLink";
 import { formatGwei, formatPLS, formatTimestamp } from "./format";
 
 export function OverviewSection({
@@ -35,15 +36,14 @@ export function OverviewSection({
           <StatusBadge success={tx.status === "success"} />
         </InfoRow>
         <InfoRow label="Block">
-          <button
-            onClick={() =>
-              onNavigate({ type: "block", value: tx.blockNumber })
-            }
+          <ExplorerLink
+            target={{ type: "block", value: tx.blockNumber }}
+            onNavigate={onNavigate}
             className="font-mono text-sm hover:underline cursor-pointer"
             style={{ color: "var(--color-accent)" }}
           >
             {Number(tx.blockNumber).toLocaleString()}
-          </button>
+          </ExplorerLink>
         </InfoRow>
         <InfoRow label="Timestamp">
           <span style={{ color: "var(--color-text-primary)" }}>

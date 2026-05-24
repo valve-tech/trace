@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchBlock, type BlockDetails } from "../../api/explorer";
 import TxRowActions from "./TxRowActions";
 import { formatPLS } from "./format";
+import { ExplorerLink } from "./ExplorerLink";
 
 interface BlockViewProps {
   numberOrHash: string;
@@ -203,16 +204,15 @@ export default function BlockView({
           </span>
         </InfoRow>
         <InfoRow label="Miner / Validator">
-          <button
-            onClick={() =>
-              onNavigate({ type: "address", value: block.miner })
-            }
+          <ExplorerLink
+            target={{ type: "address", value: block.miner }}
+            onNavigate={onNavigate}
             className="font-mono text-sm hover:underline cursor-pointer"
             style={{ color: "var(--color-accent)" }}
             title={block.miner}
           >
             {truncateAddr(block.miner)}
-          </button>
+          </ExplorerLink>
         </InfoRow>
         <InfoRow label="Gas Used / Limit">
           <span style={{ color: "var(--color-text-primary)" }}>
@@ -250,18 +250,18 @@ export default function BlockView({
           </span>
         </InfoRow>
         <InfoRow label="Parent Hash">
-          <button
-            onClick={() => {
-              // Navigate to parent block by number
-              const parentNum = Number(block.number) - 1;
-              if (parentNum >= 0)
-                onNavigate({ type: "block", value: String(parentNum) });
+          <ExplorerLink
+            // Parent is navigated by number (current - 1), not by hash.
+            target={{
+              type: "block",
+              value: String(Math.max(0, Number(block.number) - 1)),
             }}
+            onNavigate={onNavigate}
             className="font-mono text-sm break-all hover:underline cursor-pointer"
             style={{ color: "var(--color-accent)" }}
           >
             {block.parentHash}
-          </button>
+          </ExplorerLink>
         </InfoRow>
       </div>
 
@@ -351,16 +351,15 @@ export default function BlockView({
                     }}
                   >
                     <td className="px-3 py-2">
-                      <button
-                        onClick={() =>
-                          onNavigate({ type: "tx", value: tx.hash })
-                        }
+                      <ExplorerLink
+                        target={{ type: "tx", value: tx.hash }}
+                        onNavigate={onNavigate}
                         className="font-mono text-xs hover:underline cursor-pointer"
                         style={{ color: "var(--color-accent)" }}
                         title={tx.hash}
                       >
                         {truncateAddr(tx.hash)}
-                      </button>
+                      </ExplorerLink>
                     </td>
                     <td className="px-3 py-2">
                       {tx.methodId && tx.methodId !== "0x" ? (

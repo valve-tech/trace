@@ -3,6 +3,7 @@ import { formatPLS, truncateAddr } from "../format";
 import { formatRelativeTimestamp } from "./formatRelative";
 import type { AddressNavTarget } from "./TransactionsTab";
 import TxRowActions from "../TxRowActions";
+import { ExplorerLink } from "../ExplorerLink";
 
 const HEADERS = ["Tx Hash", "Block", "Age", "From", "To", "Value", "Status", ""];
 
@@ -62,7 +63,8 @@ function TxRow({
     >
       <td className="px-3 py-2">
         <LinkButton
-          onClick={() => onNavigate({ type: "tx", value: tx.hash })}
+          target={{ type: "tx", value: tx.hash }}
+          onNavigate={onNavigate}
           title={tx.hash}
         >
           {truncateAddr(tx.hash)}
@@ -70,7 +72,8 @@ function TxRow({
       </td>
       <td className="px-3 py-2">
         <LinkButton
-          onClick={() => onNavigate({ type: "block", value: tx.blockNumber })}
+          target={{ type: "block", value: tx.blockNumber }}
+          onNavigate={onNavigate}
         >
           {Number(tx.blockNumber).toLocaleString()}
         </LinkButton>
@@ -83,7 +86,8 @@ function TxRow({
       </td>
       <td className="px-3 py-2">
         <LinkButton
-          onClick={() => onNavigate({ type: "address", value: tx.from })}
+          target={{ type: "address", value: tx.from }}
+          onNavigate={onNavigate}
           title={tx.from}
         >
           {truncateAddr(tx.from)}
@@ -104,7 +108,8 @@ function TxRow({
           <div className="flex items-center gap-1.5">
             <DirectionBadge isIn={isIn} />
             <LinkButton
-              onClick={() => onNavigate({ type: "address", value: tx.to })}
+              target={{ type: "address", value: tx.to }}
+              onNavigate={onNavigate}
               title={tx.to}
             >
               {truncateAddr(tx.to)}
@@ -142,23 +147,26 @@ function TxRow({
 }
 
 function LinkButton({
-  onClick,
+  target,
+  onNavigate,
   title,
   children,
 }: {
-  onClick: () => void;
+  target: AddressNavTarget;
+  onNavigate: (target: AddressNavTarget) => void;
   title?: string;
   children: React.ReactNode;
 }) {
   return (
-    <button
-      onClick={onClick}
+    <ExplorerLink
+      target={target}
+      onNavigate={onNavigate}
+      title={title}
       className="font-mono text-xs hover:underline cursor-pointer"
       style={{ color: "var(--color-accent)" }}
-      title={title}
     >
       {children}
-    </button>
+    </ExplorerLink>
   );
 }
 

@@ -22,6 +22,7 @@ import {
   type RecentTx,
 } from "../../api/latest";
 import TxRowActions from "./TxRowActions";
+import { ExplorerLink } from "./ExplorerLink";
 import { subscriptSmall } from "./format";
 
 const REFETCH_MS = 5_000;
@@ -199,10 +200,11 @@ function BlocksCard({
       ) : (
         <ul>
           {blocks.map((b) => (
-            <li
-              key={b.hash}
-              className="bs-b-muted flex items-center justify-between px-4 py-2.5 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => onNavigate({ type: "block", value: b.number })}
+            <li key={b.hash} className="bs-b-muted">
+            <ExplorerLink
+              target={{ type: "block", value: b.number }}
+              onNavigate={onNavigate}
+              className="flex items-center justify-between px-4 py-2.5 cursor-pointer hover:opacity-80 transition-opacity"
             >
               <div className="min-w-0">
                 <div
@@ -230,6 +232,7 @@ function BlocksCard({
                   gas used
                 </div>
               </div>
+            </ExplorerLink>
             </li>
           ))}
         </ul>
@@ -264,8 +267,12 @@ function TxsCard({
           {txs.map((t) => (
             <li
               key={t.hash}
-              className="bs-b-muted flex items-center justify-between gap-row px-4 py-2.5 cursor-pointer hover:opacity-80 transition-opacity relative"
-              onClick={() => onNavigate({ type: "tx", value: t.hash })}
+              className="bs-b-muted flex items-center justify-between gap-row px-4 py-2.5 hover:opacity-80 transition-opacity relative"
+            >
+            <ExplorerLink
+              target={{ type: "tx", value: t.hash }}
+              onNavigate={onNavigate}
+              className="flex items-center justify-between gap-row flex-1 min-w-0 cursor-pointer"
             >
               <div className="min-w-0 flex-1">
                 <div
@@ -293,6 +300,7 @@ function TxsCard({
                   {ago(t.timestamp)}
                 </div>
               </div>
+            </ExplorerLink>
               <TxRowActions hash={t.hash} contractAddress={t.to} compact />
             </li>
           ))}

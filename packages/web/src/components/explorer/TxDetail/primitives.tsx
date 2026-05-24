@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { truncateAddr } from "./format";
+import { ExplorerLink } from "../ExplorerLink";
 
 export type NavTarget = { type: "address" | "block"; value: string };
 export type AddressNavigate = (target: { type: "address"; value: string }) => void;
@@ -15,14 +16,15 @@ export function AddressLink({
   label?: string;
 }) {
   return (
-    <button
-      onClick={() => onNavigate({ type: "address", value: address })}
+    <ExplorerLink
+      target={{ type: "address" as const, value: address }}
+      onNavigate={onNavigate}
       className="font-mono text-sm hover:underline cursor-pointer"
       style={{ color: "var(--color-accent)" }}
       title={address}
     >
       {label || truncateAddr(address)}
-    </button>
+    </ExplorerLink>
   );
 }
 
