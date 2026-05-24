@@ -5,6 +5,7 @@ import {
   type RpcStatsResponse,
   type MethodStats,
 } from "../../api/rpc";
+import { copyToClipboard } from "../../lib/clipboard";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -61,7 +62,8 @@ export default function RpcDashboard() {
   }, [refresh]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(rpcUrl).then(() => {
+    void copyToClipboard(rpcUrl).then((ok) => {
+      if (!ok) return;
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });

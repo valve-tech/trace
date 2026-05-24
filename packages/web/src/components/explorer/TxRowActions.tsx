@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
+import { copyToClipboard } from "../../lib/clipboard";
 
 interface Props {
   /** Transaction hash to act on. */
@@ -139,7 +140,7 @@ function ActionMenu({
       icon: "heroicons:clipboard-document",
       enabled: true,
       onClick: () => {
-        void navigator.clipboard.writeText(hash);
+        void copyToClipboard(hash);
         onClose();
       },
     },

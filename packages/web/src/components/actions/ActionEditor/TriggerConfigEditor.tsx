@@ -1,4 +1,5 @@
 import type { Action } from "../../../api/actions";
+import { copyToClipboard } from "../../../lib/clipboard";
 
 interface Props {
   triggerType: string;
@@ -151,7 +152,7 @@ export function TriggerConfigEditor({
               />
               <button
                 onClick={() => {
-                  void navigator.clipboard.writeText(
+                  void copyToClipboard(
                     `${window.location.origin}${webhookUrl}`,
                   );
                 }}

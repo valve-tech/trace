@@ -1,20 +1,12 @@
 import { useState } from "react";
 import { sectionStyle } from "./styles";
+import { copyToClipboard } from "../../../lib/clipboard";
 
 export function RpcUrlPanel({ rpcUrl }: { rpcUrl: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(rpcUrl);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = rpcUrl;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    }
+    await copyToClipboard(rpcUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

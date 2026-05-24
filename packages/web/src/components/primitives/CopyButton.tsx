@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
+import { copyToClipboard } from "../../lib/clipboard";
 
 /**
  * Copy-to-clipboard icon button with transient ✓ feedback. Replaces the copy
@@ -22,15 +23,11 @@ export function CopyButton({
   const onClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    void navigator.clipboard
-      .writeText(value)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 900);
-      })
-      .catch(() => {
-        /* clipboard unavailable — silently no-op */
-      });
+    void copyToClipboard(value).then((ok) => {
+      if (!ok) return;
+      setCopied(true);
+      setTimeout(() => setCopied(false), 900);
+    });
   };
 
   return (
