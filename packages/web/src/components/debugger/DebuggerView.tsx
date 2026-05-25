@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   CallTree,
   GasFlamegraph,
@@ -29,30 +30,110 @@ import { EmptyState } from "./DebuggerView/EmptyState";
 import { NoDataPanel } from "./DebuggerView/NoDataPanel";
 import { Tabs, type DebugTab } from "./DebuggerView/Tabs";
 
+interface DebuggerData {
+  callTrace: CallFrame | null;
+  gasProfile: GasProfile | null;
+  opcodeProfile: OpcodeProfile | null;
+  opcodeSteps: OpcodeStep[];
+  targetAddress: string | null;
+  debugAvailable: boolean;
+  error: string | null;
+}
+
+/**
+ * Fetch all three trace endpoints once and fold them into a single payload.
+ * Returned (not thrown) so partial results and the "no debug node" state are
+ * cached by TanStack Query — which persists to IndexedDB, so a reload of the
+ * same tx serves instantly from cache instead of re-hitting the backend.
+ */
+async function fetchDebuggerData(hash: string): Promise<DebuggerData> {
+  const [traceRes, gasRes, opcodeRes] = await Promise.all([
+    fetchTrace(hash),
+    fetchGasProfile(hash),
+    fetchOpcodes(hash, 50000),
+  ]);
+
+  const data: DebuggerData = {
+    callTrace: null,
+    gasProfile: null,
+    opcodeProfile: null,
+    opcodeSteps: [],
+    targetAddress: null,
+    debugAvailable: false,
+    error: null,
+  };
+
+  if (traceRes.ok && traceRes.trace) {
+    data.callTrace = traceRes.trace;
+    data.debugAvailable = true;
+    data.targetAddress = traceRes.trace.to || null;
+  } else {
+    data.debugAvailable = traceRes.debugAvailable ?? false;
+    if (traceRes.error) data.error = traceRes.error;
+  }
+
+  if (gasRes.ok && gasRes.gasProfile) {
+    data.gasProfile = gasRes.gasProfile;
+    if (gasRes.opcodeProfile) data.opcodeProfile = gasRes.opcodeProfile;
+  }
+
+  if (opcodeRes.ok && opcodeRes.steps) data.opcodeSteps = opcodeRes.steps;
+
+  return data;
+}
+
 export default function DebuggerView() {
   const { txHash: urlHash } = useParams<{ txHash?: string }>();
   const navigate = useNavigate();
   const [txHash, setTxHash] = useState(urlHash ?? "");
   const [activeTab, setActiveTab] = useState<DebugTab>("debugger");
-  // Tracks the last hash we kicked off a trace for, so a URL change to a *new*
-  // hash (e.g. via the ⌘K palette) re-fires, but the same hash doesn't double-fire.
-  const lastFetchedRef = useRef<string | null>(null);
 
-  const [callTrace, setCallTrace] = useState<CallFrame | null>(null);
-  const [gasProfile, setGasProfile] = useState<GasProfile | null>(null);
-  const [opcodeProfile, setOpcodeProfile] = useState<OpcodeProfile | null>(null);
-  const [opcodeSteps, setOpcodeSteps] = useState<OpcodeStep[]>([]);
-  const [targetAddress, setTargetAddress] = useState<string | null>(null);
+  // Keep the search input in sync when the route hash changes (e.g. ⌘K nav).
+  useEffect(() => {
+    if (urlHash) setTxHash(urlHash);
+  }, [urlHash]);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [debugAvailable, setDebugAvailable] = useState<boolean | null>(null);
-  const [hasResult, setHasResult] = useState(false);
+  const validUrlHash = urlHash && isValidTxHash(urlHash) ? urlHash : null;
+
+  // The whole trace is one cache entry, keyed by hash. staleTime Infinity +
+  // the persisted client mean a revisit/reload reads it from IndexedDB.
+  const query = useQuery({
+    queryKey: ["debugger-trace", validUrlHash],
+    queryFn: () => fetchDebuggerData(validUrlHash!),
+    enabled: !!validUrlHash,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  const data = query.data ?? null;
+  // Only a true first load (nothing cached yet) shows the loading panel; a
+  // cache hit hydrates synchronously and skips it.
+  const loading = query.isFetching && !data;
+  const hasResult =
+    !!data &&
+    (!!data.callTrace || !!data.gasProfile || data.opcodeSteps.length > 0);
+  const error =
+    data?.error ?? (query.error instanceof Error ? query.error.message : null);
+  const debugAvailable = data?.debugAvailable ?? null;
+
+  const callTrace = data?.callTrace ?? null;
+  const gasProfile = data?.gasProfile ?? null;
+  const opcodeProfile = data?.opcodeProfile ?? null;
+  const opcodeSteps = useMemo(() => data?.opcodeSteps ?? [], [data]);
+  const targetAddress = data?.targetAddress ?? null;
+
+  // Record into recents whenever a result is shown — including cache hits.
+  useEffect(() => {
+    if (validUrlHash && hasResult) {
+      recordDebuggerTx(validUrlHash);
+      recordVisit({ kind: "tx", value: validUrlHash });
+    }
+  }, [validUrlHash, hasResult]);
 
   const isValidHash = isValidTxHash(txHash);
 
-  // Normalize wire-format trace into the SDK's canonical TraceFrame so the
-  // SDK CallTree can render it. Memoized to avoid re-walking on every render.
+  // Normalize wire-format trace into the SDK's canonical TraceFrame. Memoized
+  // to avoid re-walking on every render.
   const normalizedTrace = useMemo(
     () => (callTrace ? normalizeCallFrame(callTrace) : null),
     [callTrace],
@@ -62,77 +143,11 @@ export default function DebuggerView() {
     [opcodeSteps],
   );
 
-  const handleTrace = useCallback(async (hash: string) => {
-    if (!isValidTxHash(hash)) return;
-
-    setLoading(true);
-    setError(null);
-    setCallTrace(null);
-    setGasProfile(null);
-    setOpcodeProfile(null);
-    setOpcodeSteps([]);
-    setDebugAvailable(null);
-    setHasResult(false);
-    setTargetAddress(null);
-
-    try {
-      // Fetch all three traces in parallel — no explorer dependency
-      const [traceRes, gasRes, opcodeRes] = await Promise.all([
-        fetchTrace(hash),
-        fetchGasProfile(hash),
-        fetchOpcodes(hash, 50000),
-      ]);
-
-      if (traceRes.ok && traceRes.trace) {
-        setCallTrace(traceRes.trace);
-        setDebugAvailable(true);
-        setTargetAddress(traceRes.trace.to || null);
-      } else {
-        setDebugAvailable(traceRes.debugAvailable ?? false);
-        if (traceRes.error) setError(traceRes.error);
-      }
-
-      if (gasRes.ok && gasRes.gasProfile) {
-        setGasProfile(gasRes.gasProfile);
-        if (gasRes.opcodeProfile) setOpcodeProfile(gasRes.opcodeProfile);
-      }
-
-      if (opcodeRes.ok && opcodeRes.steps) setOpcodeSteps(opcodeRes.steps);
-
-      if (
-        (traceRes.ok && traceRes.trace) ||
-        (gasRes.ok && gasRes.gasProfile) ||
-        (opcodeRes.ok && opcodeRes.steps && opcodeRes.steps.length > 0)
-      ) {
-        setHasResult(true);
-        // Remember it: in the debugger-specific recents (one-click reopen) and
-        // the app-wide recent menu.
-        recordDebuggerTx(hash);
-        recordVisit({ kind: "tx", value: hash });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Auto-trace whenever the URL hash arrives or changes (e.g. palette navigation).
-  // `lastFetchedRef` dedupes against the same hash firing twice.
-  useEffect(() => {
-    if (urlHash && isValidTxHash(urlHash) && urlHash !== lastFetchedRef.current) {
-      lastFetchedRef.current = urlHash;
-      setTxHash(urlHash);
-      void handleTrace(urlHash);
-    }
-  }, [urlHash, handleTrace]);
-
-  const handleSubmitTrace = useCallback(() => {
-    if (!isValidHash || loading) return;
-    lastFetchedRef.current = txHash;
+  // Submitting the search box just navigates; the query fires off the new hash.
+  const handleSubmitTrace = () => {
+    if (!isValidHash) return;
     navigate(`/debugger/${txHash}`, { replace: true });
-    void handleTrace(txHash);
-  }, [isValidHash, loading, txHash, navigate, handleTrace]);
+  };
 
   return (
     <div className="space-y-section">

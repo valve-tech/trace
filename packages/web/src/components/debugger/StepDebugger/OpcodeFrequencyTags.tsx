@@ -19,8 +19,13 @@ export function OpcodeFrequencyTags({
 
   return (
     <div
-      className="flex flex-wrap gap-tight p-2"
-      style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
+      className="flex flex-wrap gap-tight p-2 overflow-y-auto flex-shrink-0"
+      style={{
+        boxShadow: "0 1px 0 0 var(--color-border-muted)",
+        // Cap the rail at ~3 rows; the rest scroll behind the custom bar so the
+        // opcode list keeps the vertical space.
+        maxHeight: "5.5rem",
+      }}
     >
       {frequencies.map((f) => {
         const active = f.op === activeOp;
