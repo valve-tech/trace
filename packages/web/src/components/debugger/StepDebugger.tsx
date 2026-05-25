@@ -1,14 +1,20 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   isCallOp,
   isStorageOp,
   isLogOp,
   useOpcodeNavigation,
 } from "@valve-tech/trace-sdk/hooks";
-import type { OpcodeStep, CallFrame } from "../../api/debugger";
+import {
+  fetchOpcodeDetail,
+  type OpcodeStep,
+  type CallFrame,
+  type StepDetail,
+} from "../../api/debugger";
 import { analyzeContract, type SlitherFinding } from "../../api/source";
 import { useContractSource, useSourceMappings } from "../../hooks/useContractSource";
-import { useContractNames } from "../../hooks/useContractNames";
+import { useContractMeta } from "../../hooks/useContractMeta";
 import { useSignatures } from "../../hooks/useSignatures";
 import FindingsPanel from "./SlitherFindingsPanel";
 import { flattenCallTree, walkCallTree } from "./StepDebugger/callTreeHelpers";
@@ -28,11 +34,36 @@ interface StepDebuggerProps {
   steps: OpcodeStep[];
   contractAddress?: string;
   callTrace?: CallFrame | null;
+  txHash?: string | null;
 }
 
-export default function StepDebugger({ steps, contractAddress, callTrace }: StepDebuggerProps) {
+// Per-step state (stack/memory/storage) is loaded lazily in chunks of this
+// many steps. The skeleton trace carries none of it (it'd be ~70% of the
+// payload across 100k+ steps); we fetch a window covering the cursor and let
+// TanStack Query cache each chunk.
+const DETAIL_CHUNK = 512;
+
+export default function StepDebugger({ steps, contractAddress, callTrace, txHash }: StepDebuggerProps) {
   const nav = useOpcodeNavigation(steps);
   const { currentIndex: currentStep, totalSteps } = nav;
+
+  // Lazy per-step state for the chunk containing the cursor. The first fetch
+  // for a tx warms a server-side full-trace cache (~seconds); later chunks are
+  // instant. Diffs read current + previous step out of the same chunk.
+  const chunkStart = Math.floor(currentStep / DETAIL_CHUNK) * DETAIL_CHUNK;
+  const detailQuery = useQuery({
+    queryKey: ["opcode-detail", txHash, chunkStart],
+    queryFn: () =>
+      fetchOpcodeDetail(txHash!, chunkStart, chunkStart + DETAIL_CHUNK),
+    enabled: !!txHash && steps.length > 0,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+  const detailMap = detailQuery.data?.detail ?? null;
+  const detailLoading = detailQuery.isFetching && !detailMap;
+  const currentDetail: StepDetail | null = detailMap?.[currentStep] ?? null;
+  const prevDetail: StepDetail | null =
+    currentStep > 0 ? detailMap?.[currentStep - 1] ?? null : null;
 
   const [opcodeFilter, setOpcodeFilter] = useState("");
   const [contentView, setContentView] = useState<"debugger" | "trace">("debugger");
@@ -113,7 +144,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     return [...sels];
   }, [callTrace]);
 
-  const { data: contractNames = {} } = useContractNames(callTreeAddresses);
+  const { names: contractNames, abiSelectors } = useContractMeta(callTreeAddresses);
   const { data: signatureMap = {} } = useSignatures(callTreeSelectors);
 
   const uniquePcs = useMemo(() => [...new Set(steps.map((s) => s.pc))], [steps]);
@@ -180,14 +211,14 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   }, [stepForward, stepBackward, goTo, totalSteps, jumpToNext]);
 
   const step = steps[currentStep];
-  const prevStep = currentStep > 0 ? steps[currentStep - 1] : null;
 
   // Stack diff: compare from TOS so PUSH/POP/DUP/SWAP highlight correctly.
+  // Stack values come from the lazily-loaded detail, not the skeleton step.
   const stackChanges = useMemo(() => {
-    if (!step || !prevStep) return new Set<number>();
+    if (!currentDetail || !prevDetail) return new Set<number>();
     const changes = new Set<number>();
-    const curr = step.stack;
-    const prev = prevStep.stack;
+    const curr = currentDetail.stack;
+    const prev = prevDetail.stack;
     const maxLen = Math.max(curr.length, prev.length);
     for (let i = 0; i < maxLen; i++) {
       const currIdx = curr.length - 1 - i;
@@ -197,12 +228,12 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       if (currVal !== prevVal && currIdx >= 0) changes.add(currIdx);
     }
     return changes;
-  }, [step, prevStep]);
+  }, [currentDetail, prevDetail]);
 
   const storageDiff = useMemo<StorageDiff[]>(() => {
-    if (!step) return [];
-    const curr: Record<string, string> = step.storage;
-    const prev: Record<string, string> = prevStep?.storage ?? {};
+    if (!currentDetail) return [];
+    const curr: Record<string, string> = currentDetail.storage;
+    const prev: Record<string, string> = prevDetail?.storage ?? {};
     const diffs: StorageDiff[] = [];
     for (const [slot, value] of Object.entries(curr)) {
       if (prev[slot] !== value) {
@@ -210,7 +241,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       }
     }
     return diffs;
-  }, [step, prevStep]);
+  }, [currentDetail, prevDetail]);
 
   // Which contract is executing at the current step? Walk the call tree by
   // depth: each CALL pushes its target, each depth-decrease pops back.
@@ -371,7 +402,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
   const callTreeProps = {
     steps, onJumpTo: jumpToAndShowSource, signatureMap, sourceMappings,
-    sourceData, callTrace, contractNames,
+    callTrace, contractNames, abiSelectors,
   };
 
   return (
@@ -469,9 +500,9 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
             />
           )}
 
-          <StoragePanel diffs={storageDiff} currentOp={step.op} />
-          <StackPanel stack={step.stack} changedIndices={stackChanges} />
-          <MemoryPanel memory={step.memory} />
+          <StoragePanel diffs={storageDiff} currentOp={step.op} loading={detailLoading} />
+          <StackPanel stack={currentDetail?.stack ?? []} changedIndices={stackChanges} loading={detailLoading} />
+          <MemoryPanel memory={currentDetail?.memory ?? []} loading={detailLoading} />
         </div>
       </div>
 

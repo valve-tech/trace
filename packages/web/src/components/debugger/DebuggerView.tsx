@@ -51,7 +51,9 @@ async function fetchDebuggerData(hash: string): Promise<DebuggerData> {
   const [traceRes, gasRes, opcodeRes] = await Promise.all([
     fetchTrace(hash),
     fetchGasProfile(hash),
-    fetchOpcodes(hash, 50000),
+    // Skeleton: the full opcode stream (no per-step stack/memory/storage).
+    // Per-step state is loaded lazily by StepDebugger for the current cursor.
+    fetchOpcodes(hash),
   ]);
 
   const data: DebuggerData = {
@@ -205,6 +207,7 @@ export default function DebuggerView() {
                   steps={opcodeSteps}
                   contractAddress={targetAddress ?? undefined}
                   callTrace={callTrace}
+                  txHash={validUrlHash}
                 />
               ) : (
                 <NoDataPanel message="Step debugger requires opcode trace data. A debug-enabled node is needed." />

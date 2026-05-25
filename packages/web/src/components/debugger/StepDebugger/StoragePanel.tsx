@@ -13,15 +13,21 @@ export interface StorageDiff {
 export function StoragePanel({
   diffs,
   currentOp,
+  loading,
 }: {
   diffs: StorageDiff[];
   currentOp: string;
+  loading?: boolean;
 }) {
   return (
     <div className="card overflow-hidden">
       <PanelHeader title="Storage" count={diffs.length} suffix="changes" />
       <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
-        {diffs.length === 0 ? (
+        {loading ? (
+          <div className="px-3 py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+            Loading storage…
+          </div>
+        ) : diffs.length === 0 ? (
           <div className="px-3 py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
             {isStorageOp(currentOp) ? "Storage read (no change)" : "No storage changes at this step"}
           </div>

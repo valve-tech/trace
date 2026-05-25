@@ -7,14 +7,18 @@ import { formatWord, truncateWord } from "./format";
 export function StackPanel({
   stack,
   changedIndices,
+  loading,
 }: {
   stack: string[];
   changedIndices: Set<number>;
+  loading?: boolean;
 }) {
   return (
     <CollapsiblePanel title="Stack" count={stack.length} defaultOpen={false}>
       <div className="overflow-y-auto px-3 py-1" style={{ maxHeight: "200px" }}>
-        {stack.length === 0 ? (
+        {loading ? (
+          <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Loading stack…</div>
+        ) : stack.length === 0 ? (
           <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Stack is empty</div>
         ) : (
           [...stack].reverse().map((word, i) => {

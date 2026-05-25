@@ -8,6 +8,8 @@ import { Router, type Request, type Response } from "express";
 import {
   traceTransaction,
   traceTransactionOpcodes,
+  traceOpcodesSkeleton,
+  getOpcodeDetail,
   traceCall,
 } from "../services/tracer.js";
 import { profileGas, profileOpcodes } from "../services/gasProfiler.js";
@@ -65,12 +67,12 @@ router.get(
   "/tx/:hash/opcodes",
   asyncRoute(async (req: Request, res: Response) => {
     const hash = requireHash(req.params.hash);
-    const limit = Math.min(
-      Math.max(1, parseInt(req.query.limit as string, 10) || 10000),
-      50000,
-    );
 
-    const result = await traceTransactionOpcodes(hash, limit);
+    // Skeleton: every step, no per-step state. Drives nav, the call tree,
+    // the opcode list, and gas. Stack/memory/storage are fetched lazily per
+    // step via /opcodes/detail — fetching them for all 100k+ steps up front
+    // is what forced the old 50k truncation that broke navigation.
+    const result = await traceOpcodesSkeleton(hash);
 
     if (!result.debugAvailable && result.steps.length === 0) {
       throw new ApiError(503, result.error ?? "debug RPC unavailable", {
@@ -84,13 +86,54 @@ router.get(
       });
     }
 
+    // Pad to the wire OpcodeStep shape (empty per-step state). The client
+    // merges lazily-loaded detail into the current step for the panels.
+    const steps = result.steps.map((s) => ({
+      ...s,
+      stack: [],
+      memory: [],
+      storage: {},
+    }));
+
     respond.ok(res, {
-      steps: result.steps,
+      steps,
       gas: result.gas,
       returnValue: result.returnValue,
       debugAvailable: result.debugAvailable,
     });
   }, "debug/opcodes"),
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/debug/tx/:hash/opcodes/detail?from=&to= — Per-step state window
+// ---------------------------------------------------------------------------
+
+router.get(
+  "/tx/:hash/opcodes/detail",
+  asyncRoute(async (req: Request, res: Response) => {
+    const hash = requireHash(req.params.hash);
+    const from = Math.max(0, parseInt(req.query.from as string, 10) || 0);
+    const rawTo = parseInt(req.query.to as string, 10);
+    // Default to a small window; cap the span so a bad query can't ask for
+    // the whole 100k-step trace's stacks at once.
+    const to = Math.min(
+      Number.isFinite(rawTo) ? rawTo : from + 1,
+      from + 2000,
+    );
+
+    const result = await getOpcodeDetail(hash, from, to);
+
+    if (!result.debugAvailable) {
+      throw new ApiError(503, result.error ?? "debug RPC unavailable", {
+        debugAvailable: false,
+      });
+    }
+
+    respond.ok(res, {
+      detail: result.detail,
+      debugAvailable: result.debugAvailable,
+    });
+  }, "debug/opcodes-detail"),
 );
 
 // ---------------------------------------------------------------------------

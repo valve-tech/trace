@@ -3,6 +3,7 @@ import { Icon } from "@iconify/react";
 import type { CallFrame } from "../../../api/debugger";
 import type { SignatureMatch } from "../../../api/signatures";
 import { lookupWellKnown } from "../../../lib/wellKnownSignatures";
+import { bestMatchSignature } from "./callTreeHelpers";
 import { CALL_TYPE_BORDER } from "./theme";
 import type { InternalCall } from "./types";
 
@@ -38,6 +39,7 @@ export function CallFrameRow({
   onJumpTo,
   signatureMap,
   contractNames,
+  abiSelectors,
   frameStepMap,
   internalCallsByFrame,
   onSelect,
@@ -48,6 +50,7 @@ export function CallFrameRow({
   onJumpTo: (step: number, funcName?: string) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   contractNames: Record<string, string | null>;
+  abiSelectors: Record<string, Record<string, string>>;
   frameStepMap: Map<CallFrame, number>;
   internalCallsByFrame: Map<CallFrame, InternalCall[]>;
   onSelect?: (frame: CallFrame) => void;
@@ -60,10 +63,29 @@ export function CallFrameRow({
   const selector = frame.input?.length >= 10 ? frame.input.slice(0, 10).toLowerCase() : "";
 
   const contractName = frame.to ? contractNames[frame.to.toLowerCase()] : null;
+  // Authoritative name from the callee's verified ABI, if we have it. This is
+  // exact — no 4byte hash collisions, and it covers custom selectors the
+  // public directory doesn't know.
+  const abiName = frame.to && selector
+    ? abiSelectors[frame.to.toLowerCase()]?.[selector]
+    : undefined;
   const wellKnown = selector ? lookupWellKnown(selector) : undefined;
-  const sigMatch = selector ? signatureMap[selector]?.[0]?.textSignature : undefined;
+  // 4byte fallback: disambiguate collisions by calldata length rather than
+  // blindly taking the first candidate (which is often spam like
+  // `_SIMONdotBLACK_` or `join_tg_invmru_…`).
+  const sigMatch = selector
+    ? bestMatchSignature(signatureMap[selector] ?? [], frame.input ?? "0x")
+    : undefined;
   const resolvedSig = wellKnown?.signature ?? sigMatch;
-  const funcName = resolvedSig ? resolvedSig.split("(")[0]! : selector || "???";
+  // Empty calldata = a plain value transfer, which the EVM routes to the
+  // callee's receive() (value sent) or fallback() — not an unknown function.
+  const hasValue = !!frame.value && frame.value !== "0x0" && frame.value !== "0";
+  const noCalldataLabel = hasValue ? "receive" : "fallback";
+  const funcName =
+    abiName ??
+    (resolvedSig
+      ? resolvedSig.split("(")[0]!
+      : selector || noCalldataLabel);
   const displayLabel = contractName ?? wellKnown?.interface ?? null;
 
   const stepIndex = frameStepMap.get(frame) ?? 0;
@@ -216,6 +238,7 @@ export function CallFrameRow({
           onJumpTo={onJumpTo}
           signatureMap={signatureMap}
           contractNames={contractNames}
+          abiSelectors={abiSelectors}
           frameStepMap={frameStepMap}
           internalCallsByFrame={internalCallsByFrame}
           onSelect={onSelect}

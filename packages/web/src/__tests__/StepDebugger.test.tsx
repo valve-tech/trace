@@ -1,8 +1,31 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StepDebugger from "../components/debugger/StepDebugger";
-import type { OpcodeStep } from "../api/debugger";
+import type { OpcodeStep, StepDetailResponse } from "../api/debugger";
+
+// Per-step state (stack/memory/storage) is lazy-loaded via fetchOpcodeDetail.
+// Stub it so the storage/stack assertions have data to render; the window is
+// keyed by step index, so we return detail for the SSTORE step under test.
+vi.mock("../api/debugger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../api/debugger")>();
+  return {
+    ...actual,
+    fetchOpcodeDetail: vi.fn(
+      async (_hash: string, from: number, to: number): Promise<StepDetailResponse> => {
+        const detail: Record<number, { stack: string[]; memory: string[]; storage: Record<string, string> }> = {};
+        for (let i = from; i < to; i++) {
+          detail[i] = {
+            stack: i === 4 ? ["0x00", "0x01"] : [],
+            memory: [],
+            storage: i === 4 ? { "0x00": "0x01" } : {},
+          };
+        }
+        return { ok: true, detail, debugAvailable: true };
+      },
+    ),
+  };
+});
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, staleTime: Infinity } },
@@ -127,14 +150,15 @@ describe("StepDebugger", () => {
     expect(screen.queryByText("Stack is empty")).not.toBeInTheDocument();
   });
 
-  it("shows storage changes at SSTORE step", () => {
-    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
+  it("shows storage changes at SSTORE step (from lazily-loaded detail)", async () => {
+    // txHash enables the lazy per-step detail fetch (mocked above).
+    render(<StepDebugger steps={SAMPLE_STEPS} txHash="0xabc" />, { wrapper: Wrapper });
     // Navigate to SSTORE (index 4) by clicking Next twice (first hits SLOAD at 3)
     const sstoreBtn = screen.getByTitle("Next SSTORE (S)");
     fireEvent.click(sstoreBtn); // SLOAD at index 3
     fireEvent.click(sstoreBtn); // SSTORE at index 4
-    // Should show storage panel with the change
-    expect(screen.getByText("1 changes")).toBeInTheDocument();
+    // Storage panel reflects the change once the detail window resolves.
+    expect(await screen.findByText("1 changes")).toBeInTheDocument();
   });
 
   it("shows memory panel collapsed by default", () => {

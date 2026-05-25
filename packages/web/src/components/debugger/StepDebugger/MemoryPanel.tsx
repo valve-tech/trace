@@ -2,7 +2,7 @@ import { CollapsiblePanel } from "./CollapsiblePanel";
 import { memoryToBytes, formatMemoryRow } from "./format";
 
 /** Collapsible hex/ascii view of EVM memory, 16-byte rows. Caps at 1KB display. */
-export function MemoryPanel({ memory }: { memory: string[] }) {
+export function MemoryPanel({ memory, loading }: { memory: string[]; loading?: boolean }) {
   const memoryHex = memoryToBytes(memory);
   const memorySize = memoryHex.length / 2;
   const memoryRows = Math.min(Math.ceil(memorySize / 16), 64); // Cap at 1KB display
@@ -10,7 +10,9 @@ export function MemoryPanel({ memory }: { memory: string[] }) {
   return (
     <CollapsiblePanel title="Memory" count={memorySize} suffix="bytes" defaultOpen={false}>
       <div className="overflow-y-auto px-3 py-1" style={{ maxHeight: "200px" }}>
-        {memorySize === 0 ? (
+        {loading ? (
+          <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Loading memory…</div>
+        ) : memorySize === 0 ? (
           <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Memory is empty</div>
         ) : (
           <>

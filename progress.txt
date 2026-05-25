@@ -1,5 +1,81 @@
 # PulseChain Dev Platform — Progress
 
+## Session: 2026-05-25 (cont.) — Debugger: untruncate trace, lazy step state, ABI labels
+
+The user: "every click on the tree goes to the wrong place … all of the calls
+also seem mislabeled … virtually all of it is wrong", and asked for an
+open-source reference. Drove the real UI (Playwright) on a 2.47M-gas PulseX
+swap (tx 0x94ff…5b95) and pulled raw backend data. Root cause was NOT the
+callTracer tree (which is correct + richly nested) — it was three frontend
+issues stacked:
+
+1. **Truncation (the big one).** Opcode stream was hard-capped at 50,000 steps
+   (`debugger.ts`), but this tx runs **111,743** steps. >55% of execution was
+   invisible, so `mapFramesToSteps` couldn't find entry steps for most frames
+   and collapsed them to step 0/parent → "every click wrong". The 50k cap
+   existed because the struct logger ships full stack+memory+storage per step,
+   and **stack alone is ~70%** of the payload (memory was 0% — the node returns
+   it empty for this tx; so the earlier "memory is the issue" hunch was wrong).
+
+2. **Labels.** The call tree named functions via 4byte `[0]` only — missing
+   verified contracts' custom selectors (DividendDistributor's `0xe09ff141`…
+   rendered as hex) and picking 4byte spam collisions (`_SIMONdotBLACK_`).
+
+3. **Internal-call noise.** A proportional-PC name guesser emitted wrong names
+   (`feeToSetter`, `allPairs`, `swapExactETHForTokens`×3).
+
+### Fix — split the trace into a skeleton + lazy per-step detail (Remix-style)
+
+- **Backend** `traceSkeleton.ts`: `debug_traceTransaction` with stack/memory/
+  storage DISABLED → `{pc,op,gas,gasCost,depth}` for ALL steps (cap 500k, cached
+  as `skeleton`). Drives nav, call tree, opcode list, gas. `/opcodes` now serves
+  this (padded to the wire OpcodeStep shape with empty state) — no more 50k cap.
+- **Backend** `opcodeDetail.ts`: `/opcodes/detail?from&to` returns stack/memory/
+  storage for a step window. Traces the full heavy trace once into an in-process
+  LRU (3 txs) and slices — first window ~8s, later windows ~0ms.
+- **Frontend** `StepDebugger`: lazy `useQuery` for the detail chunk
+  (`DETAIL_CHUNK=512`) around the cursor; Stack/Storage/Memory panels +
+  stack/storage diffs read from it (with a Loading state). `activeContractAddress`
+  needed no detail (op/depth only).
+- **Labels** `contractMeta.ts` + `useContractMeta`: ONE `/api/source` fetch per
+  address → `{name, selectors}`; selectors computed from the verified ABI via
+  viem `toFunctionSelector`. CallFrameRow priority: ABI name → wellKnown →
+  `bestMatchSignature` (4byte disambiguated by calldata length) → selector →
+  `receive`/`fallback` for empty-calldata value transfers. Merged the old
+  useContractNames + a throwaway useContractAbis into one to stop doubling
+  /api/source load (the double-fetch was 500-ing some name lookups → CODA showed
+  as "ERC20"). Dropped the PC-proportional internal-call guesser; kept only
+  source-map jumpType "i" (reliable since maps are structure-gated).
+- Deleted dead `sourceFuncResolver.ts`.
+
+### Verified live (Playwright, tx 0x94ff…5b95)
+
+Full 111,743 steps; tree fully labeled (PulseXRouter02 / CODA / WPLS /
+PulseXPair / DividendDistributor + ABI fn names + internal `pairFor`/`sortTokens`
++ `receive`); click `processPlsx` (0xf8a28464) → **exact** step 92,459 (callee's
+first opcode, prev step is the depth-2 CALL); Stack panel lazy-loads 32 real
+items. Gates: web 56, api unit 10, lint 0 errors, lint:spacing, build all green.
+
+### Open-source reference (asked for)
+
+Remix's `@remix-project/remix-debug` `InternalCallTree` (MIT) is the canonical
+implementation of this — one trace, tree built FROM it (exact step per frame),
+internal calls via source-map jumpType in lockstep, never truncated. Foundry's
+`cast run --debug` is the Rust equivalent. We adopted the architecture, not the
+lib (sol-dbg still declined — same source-map↔bytecode dependency).
+
+### Still open / notes
+
+- First detail fetch per tx is ~8s (full heavy trace into LRU). Could prefetch
+  in the background after the skeleton loads, or persist detail server-side.
+- `/api/source/<addr>` 500s for unverified/codeless addresses (e.g. the EOA
+  recipient) — handled gracefully (null name) but should be a clean 404/empty.
+- `OpcodeViewer` tab (separate from the debugger split) shows empty stack/memory
+  now (skeleton) — its primary purpose is the opcode list; lazy detail not wired
+  there yet.
+
+---
+
 ## Session: 2026-05-25 — Debugger correctness: structure-gated maps, caching, call tree
 
 Continuation of the opcode↔source work, driven by the user pushing on

@@ -20,9 +20,15 @@ export type {
   CallTraceResult,
   OpcodeStep,
   OpcodeTraceResult,
+  SkeletonStep,
+  SkeletonTraceResult,
+  StepDetail,
+  StepDetailResult,
   TraceCallParams,
 } from "./tracer/types.js";
 export { awaitPendingCacheWrites } from "./tracer/cache.js";
 export { traceTransaction } from "./tracer/traceTransaction.js";
 export { traceTransactionOpcodes } from "./tracer/traceOpcodes.js";
+export { traceOpcodesSkeleton } from "./tracer/traceSkeleton.js";
+export { getOpcodeDetail } from "./tracer/opcodeDetail.js";
 export { traceCall } from "./tracer/traceCall.js";

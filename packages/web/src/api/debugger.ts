@@ -88,6 +88,20 @@ export interface OpcodeResponse {
   debugAvailable?: boolean;
 }
 
+/** Per-step EVM state for a window of steps (lazy-loaded for the cursor). */
+export interface StepDetail {
+  stack: string[];
+  memory: string[];
+  storage: Record<string, string>;
+}
+
+export interface StepDetailResponse {
+  ok: boolean;
+  detail?: Record<number, StepDetail>;
+  error?: string;
+  debugAvailable?: boolean;
+}
+
 export interface GasProfileResponse {
   ok: boolean;
   gasProfile?: GasProfile;
@@ -169,6 +183,26 @@ export async function fetchOpcodes(
     };
   }
   return (await res.json()) as OpcodeResponse;
+}
+
+/**
+ * Get per-step EVM state (stack/memory/storage) for the half-open window
+ * [from, to). The opcode skeleton omits this to stay small; the debugger
+ * fetches a window around the current cursor on demand.
+ */
+export async function fetchOpcodeDetail(
+  hash: string,
+  from: number,
+  to: number,
+): Promise<StepDetailResponse> {
+  const res = await fetch(
+    `${API_BASE}/tx/${hash}/opcodes/detail?from=${from}&to=${to}`,
+  );
+  if (!res.ok) {
+    const error = await parseError(res);
+    return { ok: false, error };
+  }
+  return (await res.json()) as StepDetailResponse;
 }
 
 /**

@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
 import { isCallOp } from "@valve-tech/trace-sdk/hooks";
 import type { OpcodeStep, CallFrame } from "../../../api/debugger";
-import type { SourceLocation, ContractSource } from "../../../api/source";
+import type { SourceLocation } from "../../../api/source";
 import type { SignatureMatch } from "../../../api/signatures";
 import { PanelHeader } from "./PanelHeader";
 import { CallFrameRow } from "./CallFrameRow";
 import { FrameDetailPanel } from "./FrameDetailPanel";
-import { extractSourceFunctions, resolveFuncNameByProportion } from "./sourceFuncResolver";
 import { walkCallTree } from "./callTreeHelpers";
 import { mapFramesToSteps } from "./callTreeModel";
 import type { InternalCall } from "./types";
@@ -21,18 +20,18 @@ export function CallTreeFromOpcodes({
   onJumpTo,
   signatureMap,
   sourceMappings,
-  sourceData,
   callTrace,
   contractNames,
+  abiSelectors,
   inline,
 }: {
   steps: OpcodeStep[];
   onJumpTo: (step: number, funcName?: string) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   sourceMappings: Record<number, SourceLocation | null>;
-  sourceData: ContractSource | null;
   callTrace?: CallFrame | null;
   contractNames: Record<string, string | null>;
+  abiSelectors: Record<string, Record<string, string>>;
   inline?: boolean;
 }) {
   // Map each CallFrame to its opcode step index by opcode DEPTH (authoritative)
@@ -43,24 +42,13 @@ export function CallTreeFromOpcodes({
     [callTrace, steps],
   );
 
-  // Detect internal function calls (JUMP with jumpType "i" from the source map;
-  // a proportional-name fallback when source maps are absent), keyed per frame
-  // off that frame's now-accurate start step.
+  // Detect internal Solidity function calls: JUMPs the (structure-gated)
+  // source map marks as jumpType "i". The old PC-proportional name guesser
+  // was dropped — it emitted wrong names (e.g. `feeToSetter`, `allPairs`) that
+  // made the tree untrustworthy. We only surface calls the source map names.
   const internalCallsByFrame = useMemo((): Map<CallFrame, InternalCall[]> => {
     const internals = new Map<CallFrame, InternalCall[]>();
     if (!callTrace) return internals;
-
-    const sourceFuncs = sourceData ? extractSourceFunctions(sourceData) : [];
-    const totalSourceChars = sourceData
-      ? sourceData.files.reduce((sum, f) => sum + f.content.length, 0)
-      : 0;
-
-    let minPc = Infinity;
-    let maxPc = -Infinity;
-    for (const s of steps) {
-      if (s.pc < minPc) minPc = s.pc;
-      if (s.pc > maxPc) maxPc = s.pc;
-    }
 
     walkCallTree(callTrace, (frame) => {
       const start = frameStepMap.get(frame) ?? 0;
@@ -80,61 +68,18 @@ export function CallTreeFromOpcodes({
         const s = steps[i];
         if (!s || s.op !== "JUMP") continue;
 
-        // Primary: source map confirms an internal call (jumpType "i")
         const mapping = sourceMappings[s.pc];
         if (mapping?.jumpType === "i") {
           const snippet = mapping.sourceSnippet.trim();
           const match = snippet.match(/(\w+)\s*\(/);
           const funcName = match?.[1] ?? "internal";
           internalList.push({ stepIndex: i, funcName, line: mapping.line });
-          continue;
         }
-
-        // Heuristic: JUMP to a non-sequential JUMPDEST at the same depth —
-        // large PC delta indicates an internal function dispatch rather than a
-        // tight loop or short conditional branch.
-        if (i + 1 >= end) continue;
-        const next = steps[i + 1];
-        if (!next || next.op !== "JUMPDEST" || next.depth !== s.depth) continue;
-        const pcDelta = next.pc - s.pc;
-        if (pcDelta >= -10 && pcDelta <= 30) continue;
-
-        // --- Resolve the function name ---
-
-        // Step 1: scan the next 20 opcodes after the JUMPDEST for a source map
-        // snippet that names the function (works when source maps exist).
-        let funcName: string | null = null;
-        for (let j = i + 1; j < Math.min(i + 20, end); j++) {
-          const jMap = sourceMappings[steps[j]!.pc];
-          if (jMap?.sourceSnippet) {
-            const fnMatch = jMap.sourceSnippet.match(/function\s+(\w+)/);
-            if (fnMatch) {
-              funcName = fnMatch[1]!;
-              break;
-            }
-          }
-        }
-
-        // Step 2: when no source map entry was found, use the proportional
-        // PC→source-function approach if source code is available.
-        if (funcName === null && sourceFuncs.length > 0) {
-          funcName = resolveFuncNameByProportion(
-            next.pc,
-            minPc,
-            maxPc,
-            sourceFuncs,
-            totalSourceChars,
-          );
-        }
-
-        // Only surface internal calls we could actually name — the unnamed
-        // `fn@<pc>` heuristic entries are noise that make the tree unreadable.
-        if (funcName) internalList.push({ stepIndex: i, funcName, line: 0 });
       }
       if (internalList.length > 0) internals.set(frame, internalList);
     });
     return internals;
-  }, [callTrace, steps, sourceMappings, sourceData, frameStepMap]);
+  }, [callTrace, steps, sourceMappings, frameStepMap]);
 
   const [selectedFrame, setSelectedFrame] = useState<CallFrame | null>(null);
 
@@ -146,6 +91,7 @@ export function CallTreeFromOpcodes({
         onJumpTo={onJumpTo}
         signatureMap={signatureMap}
         contractNames={contractNames}
+        abiSelectors={abiSelectors}
         frameStepMap={frameStepMap}
         internalCallsByFrame={internalCallsByFrame}
         onSelect={setSelectedFrame}

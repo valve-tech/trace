@@ -43,6 +43,43 @@ export interface OpcodeTraceResult {
   debugAvailable: boolean;
 }
 
+/**
+ * A skeleton step carries only the navigation-relevant fields — no stack,
+ * memory, or storage. The struct logger is run with those disabled so the
+ * FULL execution (often 100k+ steps) fits without the stack, which is ~70%
+ * of a full struct-log payload. Drives call-tree mapping, the opcode list,
+ * stepping, and gas; per-step state is fetched lazily via getOpcodeDetail.
+ */
+export interface SkeletonStep {
+  pc: number;
+  op: string;
+  gas: number;
+  gasCost: number;
+  depth: number;
+}
+
+export interface SkeletonTraceResult {
+  steps: SkeletonStep[];
+  gas: number;
+  returnValue: string;
+  error: string | null;
+  debugAvailable: boolean;
+}
+
+/** Per-step EVM state, fetched lazily for a window of steps around the cursor. */
+export interface StepDetail {
+  stack: string[];
+  memory: string[];
+  storage: Record<string, string>;
+}
+
+export interface StepDetailResult {
+  /** Map of absolute step index → state. Sparse: only the requested window. */
+  detail: Record<number, StepDetail>;
+  error: string | null;
+  debugAvailable: boolean;
+}
+
 export interface TraceCallParams {
   from?: string;
   to?: string;
