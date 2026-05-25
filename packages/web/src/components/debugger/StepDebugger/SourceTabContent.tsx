@@ -4,7 +4,9 @@ import SourceViewer, { type HighlightSpan } from "../SoliditySourceViewer";
 type ContractSourceFile = ContractSource["files"][number];
 
 /** Renders the Source tab pane: either the source viewer (when a verified
- *  source file is available) or a friendly fallback message. */
+ *  source file is available) or a friendly fallback message. `maxHeight`
+ *  defaults to a standalone-tab size; the synchronized split passes "100%"
+ *  so the pane fills its half. */
 export function SourceTabContent({
   currentSourceFile,
   effectiveLine,
@@ -13,6 +15,9 @@ export function SourceTabContent({
   slitherFindings,
   sourceLoading,
   activeContractAddress,
+  maxHeight = "500px",
+  onLineClick,
+  executableLines,
 }: {
   currentSourceFile: ContractSourceFile | null;
   effectiveLine: number | null;
@@ -21,15 +26,18 @@ export function SourceTabContent({
   slitherFindings: SlitherFinding[];
   sourceLoading: boolean;
   activeContractAddress: string | null;
+  maxHeight?: string;
+  onLineClick?: (line: number) => void;
+  executableLines?: Set<number>;
 }) {
   if (currentSourceFile) {
     return (
       <div
-        className="card overflow-hidden"
+        className="card overflow-hidden h-full"
         style={{
           backgroundColor: "var(--color-bg-card)",
           boxShadow: "0 0 0 1px var(--color-border-default)",
-          maxHeight: "500px",
+          maxHeight,
         }}
       >
         <SourceViewer
@@ -37,6 +45,8 @@ export function SourceTabContent({
           currentLine={effectiveLine}
           highlightSpan={highlightSpan}
           scrollKey={scrollKey}
+          onLineClick={onLineClick}
+          executableLines={executableLines}
           findings={slitherFindings.flatMap((f) =>
             f.elements
               .filter((e) => e.sourceMapping?.lines?.length)

@@ -262,6 +262,12 @@ interface SourceViewerProps {
   highlightLines?: Set<number>;
   findings?: Array<{ line: number; severity: string; message: string }>;
   onIdentifierClick?: (identifier: string, line: number) => void;
+  /** Click the line-number gutter to act on a line (e.g. jump to the first
+   *  opcode mapped there). Lines with no executing opcode get a dimmed gutter. */
+  onLineClick?: (line: number) => void;
+  /** Lines that have at least one opcode mapped to them — used to indicate
+   *  which gutter numbers are clickable jump targets. */
+  executableLines?: Set<number>;
 }
 
 // ---------------------------------------------------------------------------
@@ -276,6 +282,8 @@ export default function SourceViewer({
   highlightLines,
   findings,
   onIdentifierClick,
+  onLineClick,
+  executableLines,
 }: SourceViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const lines = useMemo(() => file.content.split("\n"), [file.content]);
@@ -395,12 +403,23 @@ export default function SourceViewer({
                 minHeight: "20px",
               }}
             >
-              {/* Gutter */}
+              {/* Gutter — clickable when the line has an opcode to jump to */}
+              {(() => {
+                const isExecutable = executableLines?.has(lineNum) ?? false;
+                const clickable = !!onLineClick && isExecutable;
+                return (
               <span
+                onClick={clickable ? () => onLineClick(lineNum) : undefined}
+                title={clickable ? `Jump to first opcode on line ${lineNum}` : undefined}
                 className="w-12 text-right pr-3 flex-shrink-0 select-none"
                 style={{
-                  color: isCurrentLine ? "var(--color-accent)" : "var(--color-text-muted)",
+                  color: isCurrentLine
+                    ? "var(--color-accent)"
+                    : isExecutable
+                      ? "var(--color-text-secondary)"
+                      : "var(--color-text-muted)",
                   userSelect: "none",
+                  cursor: clickable ? "pointer" : undefined,
                 }}
               >
                 {lineFindings && (
@@ -412,6 +431,8 @@ export default function SourceViewer({
                 )}
                 {lineNum}
               </span>
+                );
+              })()}
 
               {/* Code with interactive tokens. Tokens are split by the active
                   span so the exact executing sub-expression can be boxed. */}

@@ -17,10 +17,8 @@ import { ControlsBar } from "./StepDebugger/ControlsBar";
 import { CallContextBreadcrumb } from "./StepDebugger/CallContextBreadcrumb";
 import { CallTreeFromOpcodes } from "./StepDebugger/CallTreeFromOpcodes";
 import { DecodedTrace } from "./StepDebugger/DecodedTrace";
-import { OpcodesTraceView } from "./StepDebugger/OpcodesTraceView";
-import { OpcodeFrequencyTags } from "./StepDebugger/OpcodeFrequencyTags";
+import { SourceOpcodeSplit } from "./StepDebugger/SourceOpcodeSplit";
 import { opcodeFrequencies } from "./StepDebugger/opcodeStats";
-import { SourceTabContent } from "./StepDebugger/SourceTabContent";
 import { StoragePanel, type StorageDiff } from "./StepDebugger/StoragePanel";
 import { StackPanel } from "./StepDebugger/StackPanel";
 import { MemoryPanel } from "./StepDebugger/MemoryPanel";
@@ -37,7 +35,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const { currentIndex: currentStep, totalSteps } = nav;
 
   const [opcodeFilter, setOpcodeFilter] = useState("");
-  const [contentView, setContentView] = useState<"trace" | "opcodes" | "source">("source");
+  const [contentView, setContentView] = useState<"debugger" | "trace">("debugger");
   const [slitherFindings, setSlitherFindings] = useState<SlitherFinding[]>([]);
   const [slitherLoading, setSlitherLoading] = useState(false);
   const [showFindings, setShowFindings] = useState(false);
@@ -77,7 +75,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     setOpcodeFilter("");
     setSlitherFindings([]);
     setShowFindings(false);
-    setContentView("source");
+    setContentView("debugger");
   }, [steps]);
 
   const handleAnalyze = useCallback(async () => {
@@ -88,7 +86,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       if (res.ok && res.analysis) {
         setSlitherFindings(res.analysis.findings);
         setShowFindings(true);
-        setContentView("source");
+        setContentView("debugger");
       }
     } catch (err) {
       console.error("[StepDebugger] Slither analysis error:", err);
@@ -133,19 +131,16 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   // a view that actually shows movement. Updated by an effect once source loads.
   const hasSourceRef = useRef(false);
 
-  // Jump to a step from the call tree. When verified source exists, switch to
-  // Source and scroll to the function; otherwise switch to the Opcodes trace
-  // (which auto-scrolls to the step) so the click always visibly navigates.
+  // Jump to a step from the call tree. The debugger split shows source AND
+  // the opcode trace, so the click always visibly navigates: the opcode pane
+  // auto-scrolls to the step even when there's no verified source, and the
+  // source pane scrolls to the function when one exists.
   const jumpToAndShowSource = useCallback(
     (step: number, funcName?: string) => {
       goTo(step);
-      if (hasSourceRef.current) {
-        setContentView("source");
-        setScrollKey((k) => k + 1);
-        if (funcName) setPendingFuncSearch(funcName);
-      } else {
-        setContentView("opcodes");
-      }
+      setContentView("debugger");
+      setScrollKey((k) => k + 1);
+      if (funcName && hasSourceRef.current) setPendingFuncSearch(funcName);
     },
     [goTo],
   );
@@ -344,6 +339,34 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
         }
       : null;
 
+  // Reverse link: which source lines have an opcode (so their gutter is a
+  // clickable jump target), and the first step that lands on each line. Built
+  // for the file currently shown so clicking a line jumps execution there.
+  const { executableLines, lineToFirstStep } = useMemo(() => {
+    const lines = new Set<number>();
+    const firstStep = new Map<number, number>();
+    if (!currentSourceFile) return { executableLines: lines, lineToFirstStep: firstStep };
+    for (let i = 0; i < steps.length; i++) {
+      const loc = sourceMappings[steps[i]!.pc];
+      if (loc && loc.file === currentSourceFile.name) {
+        lines.add(loc.line);
+        if (!firstStep.has(loc.line)) firstStep.set(loc.line, i);
+      }
+    }
+    return { executableLines: lines, lineToFirstStep: firstStep };
+  }, [steps, sourceMappings, currentSourceFile]);
+
+  const jumpToLine = useCallback(
+    (line: number) => {
+      const idx = lineToFirstStep.get(line);
+      if (idx !== undefined) {
+        setOverrideLine(null);
+        goTo(idx);
+      }
+    },
+    [lineToFirstStep, goTo],
+  );
+
   const callTreeProps = {
     steps, onJumpTo: jumpToAndShowSource, signatureMap, sourceMappings,
     sourceData, callTrace, contractNames,
@@ -391,7 +414,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
         <div className="flex-1 min-w-0 flex flex-col gap-0">
           <div className="flex" style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}>
-            {(["trace", "opcodes", "source"] as const).map((view) => (
+            {(["debugger", "trace"] as const).map((view) => (
               <button
                 key={view}
                 onClick={() => setContentView(view)}
@@ -405,7 +428,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
                   backgroundColor: "transparent",
                 }}
               >
-                {view === "trace" ? "Decoded Trace" : view === "opcodes" ? "Opcodes" : "Source"}
+                {view === "debugger" ? "Source + Opcodes" : "Decoded Trace"}
               </button>
             ))}
           </div>
@@ -422,25 +445,8 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
             />
           )}
 
-          {contentView === "opcodes" && (
-            <>
-              <OpcodeFrequencyTags
-                frequencies={opcodeFreqs}
-                activeOp={opcodeFilter}
-                onToggle={toggleOpcode}
-              />
-              <OpcodesTraceView
-                steps={steps}
-                currentStep={currentStep}
-                goTo={goTo}
-                filteredIndices={filteredIndices}
-                maxDepth={maxDepth}
-              />
-            </>
-          )}
-
-          {contentView === "source" && (
-            <SourceTabContent
+          {contentView === "debugger" && (
+            <SourceOpcodeSplit
               currentSourceFile={currentSourceFile}
               effectiveLine={effectiveLine}
               highlightSpan={highlightSpan}
@@ -448,6 +454,16 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
               slitherFindings={slitherFindings}
               sourceLoading={sourceLoading}
               activeContractAddress={activeContractAddress}
+              executableLines={executableLines}
+              onJumpToLine={jumpToLine}
+              steps={steps}
+              currentStep={currentStep}
+              goTo={goTo}
+              filteredIndices={filteredIndices}
+              maxDepth={maxDepth}
+              opcodeFreqs={opcodeFreqs}
+              opcodeFilter={opcodeFilter}
+              onToggleOpcode={toggleOpcode}
             />
           )}
 

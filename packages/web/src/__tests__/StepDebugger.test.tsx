@@ -144,10 +144,16 @@ describe("StepDebugger", () => {
     expect(screen.getByText("Memory")).toBeInTheDocument();
   });
 
-  it("renders opcode-frequency tags in the Opcodes tab", () => {
+  it("defaults to the synchronized Source + Opcodes view", () => {
     render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
-    fireEvent.click(screen.getByText("Opcodes"));
-    // PUSH1 occurs twice in SAMPLE_STEPS → its tag exists with that title.
+    expect(screen.getByText("Source + Opcodes")).toBeInTheDocument();
+    expect(screen.getByText("Decoded Trace")).toBeInTheDocument();
+  });
+
+  it("renders opcode-frequency tags in the default debugger view", () => {
+    render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
+    // The opcode pane (and its frequency rail) is part of the default split —
+    // no tab click required. PUSH1 occurs twice in SAMPLE_STEPS.
     expect(
       screen.getByTitle("PUSH1 — 2 occurrences"),
     ).toBeInTheDocument();
@@ -156,7 +162,6 @@ describe("StepDebugger", () => {
 
   it("filters the trace to a single opcode when its tag is clicked", () => {
     render(<StepDebugger steps={SAMPLE_STEPS} />, { wrapper: Wrapper });
-    fireEvent.click(screen.getByText("Opcodes"));
     fireEvent.click(screen.getByTitle("PUSH1 — 2 occurrences"));
     // ControlsBar reports the filtered match count (exact: 2 PUSH1, not PUSH-family).
     expect(screen.getByText(/2 matches/)).toBeInTheDocument();

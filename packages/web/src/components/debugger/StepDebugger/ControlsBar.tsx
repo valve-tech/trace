@@ -2,7 +2,7 @@ import { isCallOp, isStorageOp, isLogOp } from "@valve-tech/trace-sdk/hooks";
 import { ControlButton } from "./ControlButton";
 import { Divider } from "./Divider";
 
-type ContentView = "trace" | "opcodes" | "source";
+type ContentView = "debugger" | "trace";
 
 /** Top toolbar: nav buttons, jump-to-next-X buttons, opcode filter,
  *  Source/Slither toggles (when a contract is loaded), step slider, counter. */
@@ -91,16 +91,16 @@ export function ControlsBar({
         <>
           <Divider />
           <button
-            onClick={() => setContentView("source")}
+            onClick={() => setContentView("debugger")}
             className="rounded font-mono font-semibold transition-colors text-xs px-2 py-1"
             style={{
-              backgroundColor: contentView === "source"
+              backgroundColor: contentView === "debugger"
                 ? "var(--color-accent)"
                 : "var(--color-bg-secondary)",
-              color: contentView === "source" ? "#fff" : "var(--color-text-primary)",
+              color: contentView === "debugger" ? "#fff" : "var(--color-text-primary)",
             }}
           >
-            {sourceLoading ? "Loading..." : "Source"}
+            {sourceLoading ? "Loading..." : "Debugger"}
           </button>
           <button
             onClick={handleAnalyze}
