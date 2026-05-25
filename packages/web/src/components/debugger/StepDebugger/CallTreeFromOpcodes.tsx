@@ -7,6 +7,8 @@ import { PanelHeader } from "./PanelHeader";
 import { CallFrameRow } from "./CallFrameRow";
 import { FrameDetailPanel } from "./FrameDetailPanel";
 import { extractSourceFunctions, resolveFuncNameByProportion } from "./sourceFuncResolver";
+import { walkCallTree } from "./callTreeHelpers";
+import { mapFramesToSteps } from "./callTreeModel";
 import type { InternalCall } from "./types";
 
 /**
@@ -33,24 +35,26 @@ export function CallTreeFromOpcodes({
   contractNames: Record<string, string | null>;
   inline?: boolean;
 }) {
-  // Pre-compute: map each CallFrame to its opcode step index.
-  // Also detect internal function calls (JUMP with jumpType "i" from source map).
-  const { frameStepMap, internalCallsByFrame } = useMemo((): {
-    frameStepMap: Map<CallFrame, number>;
-    internalCallsByFrame: Map<CallFrame, InternalCall[]>;
-  } => {
-    const map = new Map<CallFrame, number>();
-    const internals = new Map<CallFrame, InternalCall[]>();
-    if (!callTrace) return { frameStepMap: map, internalCallsByFrame: internals };
+  // Map each CallFrame to its opcode step index by opcode DEPTH (authoritative)
+  // rather than counting CALL ops — see callTreeModel.ts. Tested in isolation
+  // (callTreeModel.test.ts) against STATICCALL/DELEGATECALL/codeless cases.
+  const frameStepMap = useMemo(
+    () => (callTrace ? mapFramesToSteps(callTrace, steps) : new Map<CallFrame, number>()),
+    [callTrace, steps],
+  );
 
-    // Pre-compute source function list for proportional PC→name resolution.
-    // Only populated when source is available but source maps are not.
+  // Detect internal function calls (JUMP with jumpType "i" from the source map;
+  // a proportional-name fallback when source maps are absent), keyed per frame
+  // off that frame's now-accurate start step.
+  const internalCallsByFrame = useMemo((): Map<CallFrame, InternalCall[]> => {
+    const internals = new Map<CallFrame, InternalCall[]>();
+    if (!callTrace) return internals;
+
     const sourceFuncs = sourceData ? extractSourceFunctions(sourceData) : [];
     const totalSourceChars = sourceData
       ? sourceData.files.reduce((sum, f) => sum + f.content.length, 0)
       : 0;
 
-    // PC range across the entire trace for proportional mapping
     let minPc = Infinity;
     let maxPc = -Infinity;
     for (const s of steps) {
@@ -58,22 +62,11 @@ export function CallTreeFromOpcodes({
       if (s.pc > maxPc) maxPc = s.pc;
     }
 
-    const callSteps: number[] = [];
-    for (let i = 0; i < steps.length; i++) {
-      if (isCallOp(steps[i]!.op)) callSteps.push(i + 1);
-    }
+    walkCallTree(callTrace, (frame) => {
+      const start = frameStepMap.get(frame) ?? 0;
 
-    let idx = 0;
-    function assignSteps(frame: CallFrame, isRoot: boolean) {
-      const start = isRoot ? 0 : (callSteps[idx] ?? 0);
-      if (!isRoot) idx++;
-      map.set(frame, start);
-
-      for (const child of frame.calls ?? []) {
-        assignSteps(child, false);
-      }
-
-      // Determine this frame's opcode range (from its start to next depth change back)
+      // This frame's opcode range: from its start to the next external call or
+      // a return to a shallower depth.
       const end = (() => {
         for (let i = start + 1; i < steps.length; i++) {
           if (isCallOp(steps[i]!.op)) return i;
@@ -82,7 +75,6 @@ export function CallTreeFromOpcodes({
         return steps.length;
       })();
 
-      // Find internal calls within this frame
       const internalList: InternalCall[] = [];
       for (let i = start; i < end; i++) {
         const s = steps[i];
@@ -140,10 +132,9 @@ export function CallTreeFromOpcodes({
         if (funcName) internalList.push({ stepIndex: i, funcName, line: 0 });
       }
       if (internalList.length > 0) internals.set(frame, internalList);
-    }
-    assignSteps(callTrace, true);
-    return { frameStepMap: map, internalCallsByFrame: internals };
-  }, [callTrace, steps, sourceMappings, sourceData]);
+    });
+    return internals;
+  }, [callTrace, steps, sourceMappings, sourceData, frameStepMap]);
 
   const [selectedFrame, setSelectedFrame] = useState<CallFrame | null>(null);
 
