@@ -4,8 +4,7 @@
  *
  *   - types.ts             StorageLayout + CompilationResult shapes
  *   - cache.ts             verified_sources row read/write for source_map
- *   - solcBinary.ts        download + cache native solc, npx fallback
- *   - runSolc.ts           spawn solc --standard-json + build sources map
+ *   - loadCompiler.ts      download + cache soljson, wrap via solc-js
  *   - extractOutput.ts     pull contract data out of standard-json output
  *   - compileForSourceMap.ts public entry: cache → fetch → compile → parse
  */
