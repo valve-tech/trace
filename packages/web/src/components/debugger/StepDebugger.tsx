@@ -307,9 +307,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     setPendingFuncSearch(null);
   }, [pendingFuncSearch, sourceData]);
 
-  if (!step) return null;
-
-  const currentSourceLocation = sourceMappings[step.pc] ?? null;
+  const currentSourceLocation = step ? sourceMappings[step.pc] ?? null : null;
   const currentSourceFile = sourceData
     ? currentSourceLocation
       ? sourceData.files.find((f) => f.name === currentSourceLocation.file) ?? sourceData.files[0] ?? null
@@ -366,6 +364,10 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
     },
     [lineToFirstStep, goTo],
   );
+
+  // All hooks are above this point; the early return is safe here (the cursor
+  // is always in range once there are steps, but guard for the empty trace).
+  if (!step) return null;
 
   const callTreeProps = {
     steps, onJumpTo: jumpToAndShowSource, signatureMap, sourceMappings,
