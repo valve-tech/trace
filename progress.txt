@@ -1,5 +1,82 @@
 # PulseChain Dev Platform — Progress
 
+## Session: 2026-05-24 (cont.) — Opcode ↔ verified-source rendering overhaul
+
+Goal from the user: "a better system for rendering opcodes + verified code …
+best architecture, best UX." Delivered as four commits, all verified live
+against a real PulseChain swap trace (PulseXRouter02, tx 0x3f1738…).
+
+### What shipped
+
+1. **`942e96f` Exact source-span highlight.** The backend source map already
+   carried `column/endLine/endColumn` per PC and shipped it to the client, but
+   the viewer only used `.line` and highlighted the whole line. Now the precise
+   sub-expression the current opcode maps to is boxed (e.g. `function quote(…)`),
+   via a pure `splitTokensBySpan` helper in `SoliditySourceViewer` (7 unit
+   tests). Suppressed for func-search overrides, cross-file maps, and spans
+   >4 lines (a JUMPDEST mapping to a whole body would paint the screen).
+
+2. **`aa78362` Synchronized "Source + Opcodes" view.** Collapsed the disjoint
+   opcodes/source tabs into one split: source beside the opcode trace, both
+   tracking the current step. Stepping highlights the source span AND the
+   opcode row; clicking an opcode jumps both; clicking an executable source
+   line jumps to the first opcode mapped there. View model is now
+   `debugger | trace`. New `SourceOpcodeSplit` + `OpcodeTracePane` (extracted
+   from the retired `OpcodesTraceView`). `SoliditySourceViewer` gained
+   `onLineClick` + `executableLines` (clickable gutter).
+
+3. **`c8b8b0c` THE UNLOCK — source maps actually resolve.** Discovery during
+   live verification: recompilation was failing for ~every verified contract
+   (`hasSourceMap=false`), so the source pane had nothing to highlight. Two
+   root causes, both fixed:
+     - Binary acquisition: native solc is pulled from GitHub releases
+       (`solc-macosx-amd64`, not published for macOS / old versions), then the
+       fallback ran `npx solc@<v> --standard-json` — which solc-js's CLI does
+       NOT support. Replaced the whole spawn path with the **solc-js library**
+       used programmatically: download + disk-cache the soljson build for the
+       contract's exact version, wrap via `solc.setupMethods`, `compile()` a
+       standard-JSON input. Pure JS → every platform/arch. New
+       `solcCompiler/loadCompiler.ts`; retired `runSolc.ts` + `solcBinary.ts`;
+       added `solc` dep to packages/api.
+     - Hardcoded `optimizer: { enabled: true, runs: 200 }` → recompiled
+       bytecode didn't match deployed → PC index misaligned with the trace.
+       Now uses the contract's OWN `optimizationUsed` / `optimizationRuns`.
+   Verified: HEX (unoptimized) + PulseXRouter02 (optimized) both return real
+   mappings; `hasSourceMap` flips true.
+
+4. **`225fe32`** rules-of-hooks fix (reverse-map hooks were below an early
+   return).
+
+### Live-verification gotcha worth remembering
+
+The frontend persists TanStack Query to IndexedDB with `staleTime: Infinity`.
+A contract whose `/api/source` was fetched BEFORE the solc fix stays cached as
+`hasSourceMap=false` → `useSourceMappings` never fires → no highlight, even
+though the API now returns true. Clearing IndexedDB (`keyval-store`) fixed it
+in the browser. **Follow-up worth considering:** bump a query-key version (or
+drop hasSourceMap from the persisted source payload) so the fix reaches
+already-viewed contracts without a manual cache clear.
+
+### Still open from "all of it"
+
+- **D — source-map-driven nav.** The heuristic active-contract walk
+  (`StepDebugger.tsx` ~222-242, matches CALLs to frames by index) and the
+  regex function-search (~257-313) both WORK acceptably in testing, so this is
+  robustness polish, not a fix. `jumpType` ("i"/"o") from the map is still
+  unused and could drive an exact call-stack.
+- **C — consolidate viewers.** Web's `SoliditySourceViewer` (Solidity-aware)
+  vs the SDK's data-agnostic `SourceViewer` still duplicate. Pushing the
+  tokenizer into the SDK is a deliberate SDK-API decision — per
+  `sdk_version_bump_preference`, needs explicit sign-off; prove-in-web-first
+  pattern says do it as its own reviewed step.
+
+### State at end of session
+
+main + 4 commits (942e96f, aa78362, c8b8b0c, 225fe32), NOT yet pushed.
+Green: web build + 53 tests, SDK 486 tests, API build, root lint 0 errors.
+
+---
+
 ## Session: 2026-05-24 — Truth-up: charting shipped, mempool + gas oracle, exploration kit
 
 > This entry was written to reconcile the log with actual HEAD (`0c64d16`).
