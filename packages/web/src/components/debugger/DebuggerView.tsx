@@ -17,6 +17,8 @@ import {
   type OpcodeStep,
 } from "../../api/debugger";
 import { lookupWellKnown } from "../../lib/wellKnownSignatures";
+import { recordDebuggerTx } from "../../lib/recentDebuggerTxs";
+import { recordVisit } from "../../lib/recentEntities";
 import GasProfiler from "./GasProfiler";
 import StepDebugger from "./StepDebugger";
 import { isValidTxHash } from "./DebuggerView/validation";
@@ -103,6 +105,10 @@ export default function DebuggerView() {
         (opcodeRes.ok && opcodeRes.steps && opcodeRes.steps.length > 0)
       ) {
         setHasResult(true);
+        // Remember it: in the debugger-specific recents (one-click reopen) and
+        // the app-wide recent menu.
+        recordDebuggerTx(hash);
+        recordVisit({ kind: "tx", value: hash });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred");
