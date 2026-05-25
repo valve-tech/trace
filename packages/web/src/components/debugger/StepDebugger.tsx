@@ -19,6 +19,7 @@ import { useSignatures } from "../../hooks/useSignatures";
 import FindingsPanel from "./SlitherFindingsPanel";
 import { flattenCallTree, walkCallTree } from "./StepDebugger/callTreeHelpers";
 import { CollapsiblePanel } from "./StepDebugger/CollapsiblePanel";
+import { ResizablePanel } from "./StepDebugger/ResizablePanel";
 import { ControlsBar } from "./StepDebugger/ControlsBar";
 import { CallContextBreadcrumb } from "./StepDebugger/CallContextBreadcrumb";
 import { CallTreeFromOpcodes } from "./StepDebugger/CallTreeFromOpcodes";
@@ -29,6 +30,9 @@ import { StoragePanel, type StorageDiff } from "./StepDebugger/StoragePanel";
 import { StackPanel } from "./StepDebugger/StackPanel";
 import { MemoryPanel } from "./StepDebugger/MemoryPanel";
 import { ShortcutsHelp } from "./StepDebugger/ShortcutsHelp";
+import { OperandBar } from "./StepDebugger/OperandBar";
+import { describeOperands } from "./StepDebugger/opcodeOperands";
+import { FrameOpcodesOverlay } from "./StepDebugger/FrameOpcodesOverlay";
 
 interface StepDebuggerProps {
   steps: OpcodeStep[];
@@ -67,6 +71,19 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
 
   const [opcodeFilter, setOpcodeFilter] = useState("");
   const [contentView, setContentView] = useState<"debugger" | "trace">("debugger");
+  // Call-tree column width — resizable so long frame labels are readable.
+  const [treeWidth, setTreeWidth] = useState(() => {
+    const saved = Number(localStorage.getItem("debugger:treeWidth"));
+    return saved >= 240 && saved <= 760 ? saved : 360;
+  });
+  const handleTreeResize = useCallback((w: number) => {
+    setTreeWidth(w);
+    localStorage.setItem("debugger:treeWidth", String(w));
+  }, []);
+  // A call frame whose opcode slice is shown in the expand overlay.
+  const [expandedFrame, setExpandedFrame] = useState<
+    { frame: CallFrame; from: number; label: string } | null
+  >(null);
   const [slitherFindings, setSlitherFindings] = useState<SlitherFinding[]>([]);
   const [slitherLoading, setSlitherLoading] = useState(false);
   const [showFindings, setShowFindings] = useState(false);
@@ -107,6 +124,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
     setSlitherFindings([]);
     setShowFindings(false);
     setContentView("debugger");
+    setExpandedFrame(null);
   }, [steps]);
 
   const handleAnalyze = useCallback(async () => {
@@ -229,6 +247,37 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
     }
     return changes;
   }, [currentDetail, prevDetail]);
+
+  // What the current opcode operates on — its stack inputs (consumed slots),
+  // output count, and the memory region / storage slot it touches. Pre-stack
+  // is the lazily-loaded detail's stack (geth reports it before the op runs).
+  const operands = useMemo(
+    () => (step && currentDetail ? describeOperands(step.op, currentDetail.stack) : null),
+    [step, currentDetail],
+  );
+  const inputIndices = useMemo(
+    () => new Set(operands?.inputIndices ?? []),
+    [operands],
+  );
+
+  const onExpandFrame = useCallback(
+    (frame: CallFrame, entryStep: number, label: string) =>
+      setExpandedFrame({ frame, from: entryStep, label }),
+    [],
+  );
+
+  // The expanded frame's opcode slice runs from its entry until execution
+  // returns above its depth (so nested sub-calls are included, indented).
+  const expandedRange = useMemo(() => {
+    if (!expandedFrame) return null;
+    const from = expandedFrame.from;
+    const baseDepth = steps[from]?.depth ?? 1;
+    let to = steps.length;
+    for (let i = from + 1; i < steps.length; i++) {
+      if (steps[i]!.depth < baseDepth) { to = i; break; }
+    }
+    return { from, to };
+  }, [expandedFrame, steps]);
 
   const storageDiff = useMemo<StorageDiff[]>(() => {
     if (!currentDetail) return [];
@@ -402,7 +451,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
 
   const callTreeProps = {
     steps, onJumpTo: jumpToAndShowSource, signatureMap, sourceMappings,
-    callTrace, contractNames, abiSelectors,
+    callTrace, contractNames, abiSelectors, onExpandFrame,
   };
 
   return (
@@ -434,8 +483,10 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
       )}
 
       <div className="flex flex-col lg:flex-row gap-0" style={{ minHeight: "500px" }}>
-        <div className="hidden lg:block w-[280px] flex-shrink-0 sticky top-0 self-start" style={{ height: "calc(100vh - 200px)" }}>
-          <CallTreeFromOpcodes {...callTreeProps} />
+        <div className="hidden lg:flex sticky top-0 self-start" style={{ height: "calc(100vh - 200px)" }}>
+          <ResizablePanel width={treeWidth} onResize={handleTreeResize} height="100%">
+            <CallTreeFromOpcodes {...callTreeProps} />
+          </ResizablePanel>
         </div>
         <div className="lg:hidden">
           <CollapsiblePanel title="Call Tree" count={steps.length} suffix="ops" defaultOpen={false}>
@@ -500,13 +551,41 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
             />
           )}
 
-          <StoragePanel diffs={storageDiff} currentOp={step.op} loading={detailLoading} />
-          <StackPanel stack={currentDetail?.stack ?? []} changedIndices={stackChanges} loading={detailLoading} />
-          <MemoryPanel memory={currentDetail?.memory ?? []} loading={detailLoading} />
+          <OperandBar op={step.op} operands={operands} />
+          <StoragePanel
+            diffs={storageDiff}
+            currentOp={step.op}
+            loading={detailLoading}
+            highlightSlot={operands?.storageSlot ?? null}
+          />
+          <StackPanel
+            stack={currentDetail?.stack ?? []}
+            changedIndices={stackChanges}
+            inputIndices={inputIndices}
+            loading={detailLoading}
+          />
+          <MemoryPanel
+            memory={currentDetail?.memory ?? []}
+            loading={detailLoading}
+            highlight={operands?.memory ?? null}
+          />
         </div>
       </div>
 
       <ShortcutsHelp />
+
+      {expandedFrame && expandedRange && (
+        <FrameOpcodesOverlay
+          steps={steps}
+          from={expandedRange.from}
+          to={expandedRange.to}
+          label={expandedFrame.label}
+          frameType={expandedFrame.frame.type}
+          currentStep={currentStep}
+          onJumpTo={(s) => { goTo(s); setContentView("debugger"); setScrollKey((k) => k + 1); }}
+          onClose={() => setExpandedFrame(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,33 @@
 # PulseChain Dev Platform — Progress
 
+## Session: 2026-05-25 (cont. 2) — Debugger UX: readable tree, operands, frame overlay
+
+Three asks after the untruncate work: (1) call tree unreadable (fixed 280px,
+nowrap) + show opcodes per frame; (2) highlight what an opcode operates on.
+
+- **Resizable tree** (`ResizablePanel.tsx`): left column is now drag-resizable
+  (pointer events, clamped 240–760px, width persisted to localStorage
+  `debugger:treeWidth`, default 360) so full frame labels are readable.
+- **Operand highlighting** (`opcodeOperands.ts`, pure + 6 unit tests): a per-
+  opcode spec of stack inputs (names, top-first), output count, and which stack
+  args index the memory region / storage slot. `OperandBar.tsx` shows the live
+  signature + resolved values + mem/storage chips under the split. StackPanel
+  flags the consumed input slots ("IN", warning rail); MemoryPanel tints the
+  touched byte rows; StoragePanel surfaces the SLOAD/SSTORE slot even with no
+  write. Pre-stack = the lazily-loaded detail's stack (geth reports it before
+  the op runs), so inputs are the top N items.
+- **Expand-on-click overlay** (`FrameOpcodesOverlay.tsx`): hovering a frame row
+  reveals an expand button → modal listing that frame's opcode slice
+  [entry, frameEnd) (computed by depth), virtualized, nested calls indented,
+  click-to-jump. Verified: processPlsx → 15,745 opcodes from step 92459.
+
+Verified live on 0x94ff…5b95 (tree wide+readable, SLOAD shows slot IN + operand
+bar + storage slot, overlay opens with correct slice). web 62 / lint 0 errors /
+build green. Note: had to hoist the overlay's useCallback/useMemo above the
+`if (!step) return null` early return (rules-of-hooks).
+
+---
+
 ## Session: 2026-05-25 (cont.) — Debugger: untruncate trace, lazy step state, ABI labels
 
 The user: "every click on the tree goes to the wrong place … all of the calls

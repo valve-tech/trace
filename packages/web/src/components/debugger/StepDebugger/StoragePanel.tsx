@@ -14,10 +14,13 @@ export function StoragePanel({
   diffs,
   currentOp,
   loading,
+  highlightSlot,
 }: {
   diffs: StorageDiff[];
   currentOp: string;
   loading?: boolean;
+  /** Slot the current SLOAD/SSTORE targets — shown even when there's no write. */
+  highlightSlot?: string | null;
 }) {
   return (
     <div className="card overflow-hidden">
@@ -28,8 +31,20 @@ export function StoragePanel({
             Loading storage…
           </div>
         ) : diffs.length === 0 ? (
-          <div className="px-3 py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
-            {isStorageOp(currentOp) ? "Storage read (no change)" : "No storage changes at this step"}
+          <div className="px-3 py-3 text-xs" style={{ color: "var(--color-text-muted)" }}>
+            {highlightSlot ? (
+              <span className="flex items-center gap-tight" style={{ fontFamily: "var(--font-mono)" }}>
+                <span>{isStorageOp(currentOp) ? "reads slot" : "slot"}</span>
+                <span title={formatWord(highlightSlot)} style={{ color: "var(--color-warning)" }}>
+                  {truncateWord(highlightSlot)}
+                </span>
+                <span>(no change)</span>
+              </span>
+            ) : (
+              <span className="block text-center">
+                {isStorageOp(currentOp) ? "Storage read (no change)" : "No storage changes at this step"}
+              </span>
+            )}
           </div>
         ) : (
           <div className="px-3 py-1 space-y-2">

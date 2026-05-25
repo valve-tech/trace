@@ -1,0 +1,138 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Icon } from "@iconify/react";
+import { getOpcodeColor } from "@valve-tech/trace-sdk";
+import type { OpcodeStep } from "../../../api/debugger";
+
+const ROW_HEIGHT = 26;
+const OVERSCAN = 12;
+
+/**
+ * Modal overlay listing the opcodes a single call frame executed — the steps
+ * from its entry until execution returns above its depth. Deeper rows (nested
+ * calls) are indented so you can see where sub-calls happen "in between" the
+ * frame's own opcodes. Clicking a row jumps the debugger there and closes.
+ */
+export function FrameOpcodesOverlay({
+  steps,
+  from,
+  to,
+  label,
+  frameType,
+  currentStep,
+  onJumpTo,
+  onClose,
+}: {
+  steps: OpcodeStep[];
+  from: number;
+  to: number;
+  label: string;
+  frameType: string;
+  currentStep: number;
+  onJumpTo: (step: number) => void;
+  onClose: () => void;
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportH, setViewportH] = useState(480);
+
+  const count = Math.max(0, to - from);
+  const baseDepth = steps[from]?.depth ?? 1;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (scrollerRef.current) setViewportH(scrollerRef.current.clientHeight);
+  }, []);
+
+  const visibleStart = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+  const visibleEnd = Math.min(count, Math.ceil((scrollTop + viewportH) / ROW_HEIGHT) + OVERSCAN);
+
+  const rows = useMemo(() => {
+    const out: number[] = [];
+    for (let i = visibleStart; i < visibleEnd; i++) out.push(from + i);
+    return out;
+  }, [visibleStart, visibleEnd, from]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+      onClick={onClose}
+    >
+      <div
+        className="card flex flex-col overflow-hidden"
+        style={{
+          width: "min(720px, 92vw)",
+          height: "min(80vh, 720px)",
+          backgroundColor: "var(--color-bg-card)",
+          boxShadow: "0 0 0 1px var(--color-border-default), 0 12px 40px rgba(0,0,0,0.5)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="flex items-center gap-row px-3 py-2 card-divider"
+          style={{ backgroundColor: "var(--color-bg-secondary)" }}
+        >
+          <span className="text-[9px] font-semibold tracking-wide px-1 py-0.5" style={{ color: "var(--color-danger)", boxShadow: "inset 0 0 0 1px var(--color-danger)" }}>
+            {frameType}
+          </span>
+          <span className="text-xs font-semibold truncate" style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-primary)" }}>
+            {label}
+          </span>
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            {count.toLocaleString()} opcodes
+          </span>
+          <button onClick={onClose} className="ml-auto flex-shrink-0" style={{ color: "var(--color-text-muted)" }} title="Close (Esc)">
+            <Icon icon="heroicons:x-mark" className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div
+          ref={scrollerRef}
+          className="overflow-y-auto flex-1"
+          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+        >
+          <div style={{ height: count * ROW_HEIGHT, position: "relative" }}>
+            {rows.map((idx) => {
+              const s = steps[idx]!;
+              const isActive = idx === currentStep;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => { onJumpTo(idx); onClose(); }}
+                  className="flex items-center cursor-pointer text-xs"
+                  style={{
+                    position: "absolute",
+                    top: (idx - from) * ROW_HEIGHT,
+                    height: ROW_HEIGHT,
+                    width: "100%",
+                    fontFamily: "var(--font-mono)",
+                    paddingLeft: `${8 + (s.depth - baseDepth) * 12}px`,
+                    paddingRight: "12px",
+                    backgroundColor: isActive ? "var(--color-accent-muted)" : "transparent",
+                    boxShadow: isActive ? "inset 2px 0 0 0 var(--color-accent)" : undefined,
+                  }}
+                >
+                  <span className="w-16 text-right mr-3 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{idx}</span>
+                  <span className="w-10 text-right mr-3 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{s.pc}</span>
+                  <span className="font-semibold mr-3 flex-shrink-0" style={{ color: getOpcodeColor(s.op) }}>{s.op}</span>
+                  {s.depth > baseDepth && (
+                    <span className="flex-shrink-0 text-[9px]" style={{ color: "var(--color-text-muted)" }}>
+                      ↳ depth {s.depth}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

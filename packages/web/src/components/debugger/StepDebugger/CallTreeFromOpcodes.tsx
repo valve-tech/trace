@@ -23,6 +23,7 @@ export function CallTreeFromOpcodes({
   callTrace,
   contractNames,
   abiSelectors,
+  onExpandFrame,
   inline,
 }: {
   steps: OpcodeStep[];
@@ -32,6 +33,7 @@ export function CallTreeFromOpcodes({
   callTrace?: CallFrame | null;
   contractNames: Record<string, string | null>;
   abiSelectors: Record<string, Record<string, string>>;
+  onExpandFrame?: (frame: CallFrame, entryStep: number, label: string) => void;
   inline?: boolean;
 }) {
   // Map each CallFrame to its opcode step index by opcode DEPTH (authoritative)
@@ -96,6 +98,7 @@ export function CallTreeFromOpcodes({
         internalCallsByFrame={internalCallsByFrame}
         onSelect={setSelectedFrame}
         selectedFrame={selectedFrame}
+        onExpand={onExpandFrame}
       />
     );
 

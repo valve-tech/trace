@@ -44,6 +44,7 @@ export function CallFrameRow({
   internalCallsByFrame,
   onSelect,
   selectedFrame,
+  onExpand,
 }: {
   frame: CallFrame;
   depth: number;
@@ -55,6 +56,8 @@ export function CallFrameRow({
   internalCallsByFrame: Map<CallFrame, InternalCall[]>;
   onSelect?: (frame: CallFrame) => void;
   selectedFrame?: CallFrame | null;
+  /** Open the frame's opcode slice in an overlay. */
+  onExpand?: (frame: CallFrame, entryStep: number, label: string) => void;
 }) {
   const [expanded, setExpanded] = useState(depth < 2);
   const [hovered, setHovered] = useState(false);
@@ -196,6 +199,24 @@ export function CallFrameRow({
           </span>
         )}
 
+        {onExpand && hovered && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onExpand(
+                frame,
+                stepIndex,
+                `${displayLabel ? `${displayLabel}.` : ""}${funcName}`,
+              );
+            }}
+            className="flex-shrink-0 flex items-center"
+            style={{ color: "var(--color-text-muted)" }}
+            title="Show this frame's opcodes"
+          >
+            <Icon icon="heroicons:arrows-pointing-out" className="w-3 h-3" />
+          </button>
+        )}
+
         {valuePLS && (
           <span className="flex-shrink-0" style={{ color: "var(--color-warning)" }}>
             {valuePLS} PLS
@@ -243,6 +264,7 @@ export function CallFrameRow({
           internalCallsByFrame={internalCallsByFrame}
           onSelect={onSelect}
           selectedFrame={selectedFrame}
+          onExpand={onExpand}
         />
       ))}
       {expanded && internalCallsByFrame.get(frame)?.map((ic, i) => (

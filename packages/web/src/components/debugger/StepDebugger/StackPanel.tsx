@@ -7,10 +7,13 @@ import { formatWord, truncateWord } from "./format";
 export function StackPanel({
   stack,
   changedIndices,
+  inputIndices,
   loading,
 }: {
   stack: string[];
   changedIndices: Set<number>;
+  /** Stack indices the current opcode consumes — flagged as inputs. */
+  inputIndices?: Set<number>;
   loading?: boolean;
 }) {
   return (
@@ -24,16 +27,38 @@ export function StackPanel({
           [...stack].reverse().map((word, i) => {
             const actualIndex = stack.length - 1 - i;
             const changed = changedIndices.has(actualIndex);
+            const isInput = inputIndices?.has(actualIndex) ?? false;
             return (
-              <div key={i} className="flex items-center text-xs py-0.5" style={{ fontFamily: "var(--font-mono)" }}>
+              <div
+                key={i}
+                className="flex items-center text-xs py-0.5"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  // Inputs the current op consumes get a warning-tinted rail.
+                  boxShadow: isInput ? "inset 2px 0 0 0 var(--color-warning)" : undefined,
+                  paddingLeft: isInput ? "4px" : undefined,
+                }}
+              >
                 <span className="w-8 text-right mr-2 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{i}</span>
                 <span
                   className="truncate"
                   title={formatWord(word)}
-                  style={{ color: changed ? "var(--color-accent)" : "var(--color-text-primary)", fontWeight: changed ? 600 : 400 }}
+                  style={{
+                    color: isInput
+                      ? "var(--color-warning)"
+                      : changed
+                        ? "var(--color-accent)"
+                        : "var(--color-text-primary)",
+                    fontWeight: changed || isInput ? 600 : 400,
+                  }}
                 >
                   {truncateWord(word)}
                 </span>
+                {isInput && (
+                  <span className="ml-auto flex-shrink-0 text-[9px] uppercase tracking-wide" style={{ color: "var(--color-warning)" }}>
+                    in
+                  </span>
+                )}
               </div>
             );
           })
