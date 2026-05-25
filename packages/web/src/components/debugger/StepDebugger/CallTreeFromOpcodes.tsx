@@ -135,7 +135,9 @@ export function CallTreeFromOpcodes({
           );
         }
 
-        internalList.push({ stepIndex: i, funcName: funcName ?? `fn@${next.pc}`, line: 0 });
+        // Only surface internal calls we could actually name — the unnamed
+        // `fn@<pc>` heuristic entries are noise that make the tree unreadable.
+        if (funcName) internalList.push({ stepIndex: i, funcName, line: 0 });
       }
       if (internalList.length > 0) internals.set(frame, internalList);
     }

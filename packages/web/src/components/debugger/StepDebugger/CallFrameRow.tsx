@@ -30,7 +30,7 @@ export function CallFrameRow({
   onSelect?: (frame: CallFrame) => void;
   selectedFrame?: CallFrame | null;
 }) {
-  const [expanded, setExpanded] = useState(depth < 4);
+  const [expanded, setExpanded] = useState(depth < 2);
   const [hovered, setHovered] = useState(false);
   const hasChildren = (frame.calls?.length ?? 0) > 0;
 

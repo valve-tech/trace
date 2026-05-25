@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   isCallOp,
   isStorageOp,
@@ -129,14 +129,23 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   const stepForward = useCallback(() => { setOverrideLine(null); nav.goForward(); }, [nav]);
   const stepBackward = useCallback(() => { setOverrideLine(null); nav.goBack(); }, [nav]);
 
-  // Jump to a step, switch to Source, and try to scroll to the function
-  // definition. `funcName` lets the call tree pass the resolved name directly.
+  // Tracks whether verified source is available, so a call-tree click can pick
+  // a view that actually shows movement. Updated by an effect once source loads.
+  const hasSourceRef = useRef(false);
+
+  // Jump to a step from the call tree. When verified source exists, switch to
+  // Source and scroll to the function; otherwise switch to the Opcodes trace
+  // (which auto-scrolls to the step) so the click always visibly navigates.
   const jumpToAndShowSource = useCallback(
     (step: number, funcName?: string) => {
       goTo(step);
-      setContentView("source");
-      setScrollKey((k) => k + 1);
-      if (funcName) setPendingFuncSearch(funcName);
+      if (hasSourceRef.current) {
+        setContentView("source");
+        setScrollKey((k) => k + 1);
+        if (funcName) setPendingFuncSearch(funcName);
+      } else {
+        setContentView("opcodes");
+      }
     },
     [goTo],
   );
@@ -233,6 +242,10 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
   }, [callTrace, contractAddress, currentStep, steps]);
 
   const { data: sourceData = null, isLoading: sourceLoading } = useContractSource(activeContractAddress);
+
+  useEffect(() => {
+    hasSourceRef.current = sourceData != null;
+  }, [sourceData]);
   const { data: sourceMappings = {} } = useSourceMappings(
     sourceData?.hasSourceMap ? activeContractAddress : null,
     uniquePcs,
@@ -344,7 +357,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
       )}
 
       <div className="flex flex-col lg:flex-row gap-0" style={{ minHeight: "500px" }}>
-        <div className="hidden lg:block w-[280px] flex-shrink-0 sticky top-0 self-start" style={{ maxHeight: "calc(100vh - 200px)" }}>
+        <div className="hidden lg:block w-[280px] flex-shrink-0 sticky top-0 self-start" style={{ height: "calc(100vh - 200px)" }}>
           <CallTreeFromOpcodes {...callTreeProps} />
         </div>
         <div className="lg:hidden">
