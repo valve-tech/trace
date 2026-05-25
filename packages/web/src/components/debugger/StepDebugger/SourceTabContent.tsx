@@ -1,5 +1,5 @@
 import type { ContractSource, SlitherFinding } from "../../../api/source";
-import SourceViewer from "../SoliditySourceViewer";
+import SourceViewer, { type HighlightSpan } from "../SoliditySourceViewer";
 
 type ContractSourceFile = ContractSource["files"][number];
 
@@ -8,6 +8,7 @@ type ContractSourceFile = ContractSource["files"][number];
 export function SourceTabContent({
   currentSourceFile,
   effectiveLine,
+  highlightSpan,
   scrollKey,
   slitherFindings,
   sourceLoading,
@@ -15,6 +16,7 @@ export function SourceTabContent({
 }: {
   currentSourceFile: ContractSourceFile | null;
   effectiveLine: number | null;
+  highlightSpan: HighlightSpan | null;
   scrollKey: number;
   slitherFindings: SlitherFinding[];
   sourceLoading: boolean;
@@ -33,6 +35,7 @@ export function SourceTabContent({
         <SourceViewer
           file={currentSourceFile}
           currentLine={effectiveLine}
+          highlightSpan={highlightSpan}
           scrollKey={scrollKey}
           findings={slitherFindings.flatMap((f) =>
             f.elements

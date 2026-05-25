@@ -1,5 +1,96 @@
 # PulseChain Dev Platform — Progress
 
+## Session: 2026-05-24 — Truth-up: charting shipped, mempool + gas oracle, exploration kit
+
+> This entry was written to reconcile the log with actual HEAD (`0c64d16`).
+> The 2026-05-23 entry below was last refreshed at commit `5961ed6`; ~37
+> commits landed after it. Several items it lists as "blocked" or "pending"
+> are now shipped. Read THIS entry for current state; the ones below are
+> historical.
+
+### Corrections to the stale notes below
+
+- **SDK 0.4.0 is PUBLISHED.** npm version history is now
+  `0.1.0 → 0.1.1 → 0.3.0 → 0.4.0`. The "NOT YET PUSHED" warning in the
+  2026-05-23 entry is resolved — main is in sync with origin (0 ahead /
+  0 behind) and the OIDC publish-sdk workflow shipped 0.4.0.
+- **Token charting is BUILT — the blocked A/B/C path decision is moot.**
+  The chifra "only-HEX-works monitor gating" diagnosis in the 2026-05-23
+  entry was WRONG. Root cause was a pagination cap, fixed by using
+  camelCase response keys (no chifra API change). Commits `9f48d5a`,
+  `348832e`, `34e1ba4` walk back the bogus diagnosis. We then shipped
+  BOTH data paths:
+    - `feat(api): token transfer history via trueblocks-sdk` (`56eb979`)
+    - `feat(web): client-side token transfer chart via eth_getLogs +
+      IndexedDB` (`3aea847`) → `TransferChart.tsx` + `lib/chartCache.ts`.
+  See `docs/CHARTING.md` (updated) for the corrected analysis.
+- **DebuggerView auto-debug is DONE.** `DebuggerView.tsx:122` effect
+  auto-fires `handleTrace(urlHash)` on a new `/debugger/:txHash`,
+  deduped via `lastFetchedRef`. ⌘K paste → trace, no extra click.
+- **Recent / Suggested-next persistence is DONE.** `lib/recentEntities.ts`
+  + `lib/recentDebuggerTxs.ts`; routes call `recordVisit` /
+  `recordDebuggerTx` on mount. Surfaced as the recent rail + the
+  debugger-landing "recently debugged" list (`0c64d16`) and folded into
+  a persistent split back button (`b454626`, `63bd1b8`).
+- **⌘K palette merged into the top bar** (`bb334fc`) — there is no
+  longer a standalone CommandPalette file; palette logic lives in the
+  unified top bar / exploration kit (`d1b757a`).
+
+### What actually landed since `d9064cc` (themed)
+
+- **Mempool + gas oracle (new feature surface).**
+    - `/mempool` route: pending txs in node inclusion order (`13f5829`),
+      gas/type columns + pin-to-track tx lifecycle (`427fe61`).
+    - Mempool-aware priority-fee oracle — a **service inside the API**
+      (`packages/api/src/services/gasOracle.ts`, route `routes/gas.ts`),
+      NOT a separate npm package despite the `@valve-tech/gas-oracle`
+      label in commit `47697ce`. Web widget `GasOracleWidget.tsx`,
+      collapsible to a thin gauge row (`ec4cfce`).
+    - Gas settings + tx type readouts across tx lists / per-address
+      history (`3e8e6b7`, `3bb703d`).
+- **Exploration kit + shell unification.** One top bar (`bb334fc`);
+  primitives + recent rail + breadcrumb + entity bar + palette +
+  mempool toolbar (`d1b757a`); fixed-height sidebar group headers +
+  Dropdown primitive (`09f09a8`); themed Checkbox (`5f38d3f`);
+  `/ui` component gallery (`b960113`).
+- **Landing hub.** `/` explains the platform + routes to features
+  (`6847e2a`), then bento hero + live stats + animated pulse line
+  (`2cc853d`).
+- **Address/explorer.** AddressRowActions menu (`7ae099b`); TokenImage
+  via gib.show + contract header logo (`b7d20a7`); cmd/ctrl-click opens
+  references in a new tab (`9249f9b`); subscript-leading-zeros tiny-amount
+  format (`13b5134`).
+- **Debugger.** Opcode-frequency filter tags + tests (`36f564a`); call
+  tree scroll + reliable click-to-jump + less noise (`9f6c186`).
+- **Fixes/infra.** Clipboard fallback for copy over http/insecure
+  context (`7f830d3`); register `eslint-plugin-react-hooks` (`dce9c23`);
+  API rate-limit defaults for internal-only app (`85bafbf`, `590d907`);
+  load repo-root `.env` regardless of cwd (`afd3f49`); instant themed
+  tooltip for sidebar info-icons (`3ba43b9`); border/padding/spacing
+  consistency (`c18b87b`, `ecc9063`, `92483cd`, `b2c414b`).
+
+### Genuinely open (verified against `App.tsx:84-101` route table)
+
+1. **Address Workspace → production.** Still the one structural item
+   from the old plan not done. `WorkspaceDraft.tsx` is draft-only; no
+   `/contract/:address` route exists. `/storage` and `/diff` are still
+   top-level sidebar items that were meant to fold into the workspace.
+2. **Contract-name palette search.** `useContractNames` hook +
+   `api/contractNames.ts` exist, but are not wired into the palette's
+   "unrecognized freeform text" branch.
+3. **SDK post-0.4 queue** (from older entries, still valid): UniV4 swap
+   decoder; TypeDoc docs site; `npm create @valve-tech/trace-app`
+   template; per-action env allow-list for the action executor.
+
+### Notes
+
+- Three packages only: `api`, `sdk`, `web` (+ `shared`, `examples/*`
+  in workspaces). No `gas-oracle` package.
+- `progress.txt` drifts fast — it's a hand log, not a tracker. When
+  resuming, trust `git log` + the `App.tsx` route table over this file.
+
+---
+
 ## Session: 2026-05-23 — Gap tokens, StepDebugger delegation, SDK 0.4, charting scope
 
 ### Headline events

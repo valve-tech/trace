@@ -45,6 +45,82 @@ interface Token {
   value: string;
 }
 
+// ---------------------------------------------------------------------------
+// Exact source-span highlighting
+// ---------------------------------------------------------------------------
+
+/**
+ * The precise character range the current opcode maps to, derived from the
+ * Solidity source map (1-indexed line/column, matching the backend's
+ * `offsetToLineCol`). Lets us highlight the exact sub-expression executing —
+ * e.g. just `amounts[0]` — instead of the whole line.
+ */
+export interface HighlightSpan {
+  startLine: number;
+  startCol: number; // 1-indexed; first highlighted char is at (startCol - 1)
+  endLine: number;
+  endCol: number; // 1-indexed exclusive end; last char is at (endCol - 2)
+}
+
+/** A token, possibly split so a sub-range can carry the span highlight. */
+interface RenderSegment {
+  token: Token;
+  highlighted: boolean;
+}
+
+/**
+ * Split a line's tokens into render segments, marking the characters that fall
+ * inside the active span. A token straddling the span boundary is cut into
+ * up to three pieces (before / inside / after) so the highlight lands on the
+ * exact characters the compiler attributed to this opcode.
+ */
+export function splitTokensBySpan(
+  tokens: Token[],
+  lineNum: number,
+  span: HighlightSpan | null,
+): RenderSegment[] {
+  if (!span || lineNum < span.startLine || lineNum > span.endLine) {
+    return tokens.map((token) => ({ token, highlighted: false }));
+  }
+
+  // Per-line highlighted char range, in 0-based [start, end) coordinates.
+  const lineStart = lineNum === span.startLine ? span.startCol - 1 : 0;
+  const lineEnd = lineNum === span.endLine ? span.endCol - 1 : Infinity;
+
+  const segments: RenderSegment[] = [];
+  let col = 0;
+  for (const token of tokens) {
+    const tokStart = col;
+    const tokEnd = col + token.value.length;
+    col = tokEnd;
+
+    const hiStart = Math.max(tokStart, lineStart);
+    const hiEnd = Math.min(tokEnd, lineEnd);
+
+    if (hiStart >= hiEnd) {
+      segments.push({ token, highlighted: false });
+      continue;
+    }
+    if (hiStart > tokStart) {
+      segments.push({
+        token: { type: token.type, value: token.value.slice(0, hiStart - tokStart) },
+        highlighted: false,
+      });
+    }
+    segments.push({
+      token: { type: token.type, value: token.value.slice(hiStart - tokStart, hiEnd - tokStart) },
+      highlighted: true,
+    });
+    if (hiEnd < tokEnd) {
+      segments.push({
+        token: { type: token.type, value: token.value.slice(hiEnd - tokStart) },
+        highlighted: false,
+      });
+    }
+  }
+  return segments;
+}
+
 function tokenizeLine(line: string, inBlockComment: boolean): { tokens: Token[]; inBlockComment: boolean } {
   const tokens: Token[] = [];
   let i = 0;
@@ -179,6 +255,9 @@ function splitCommentToken(token: Token): Token[] {
 interface SourceViewerProps {
   file: SourceFile;
   currentLine: number | null;
+  /** Exact character span the current opcode maps to. When present, the
+   *  precise sub-expression is boxed; the line still gets the soft accent. */
+  highlightSpan?: HighlightSpan | null;
   scrollKey?: number; // increment to force re-scroll even if currentLine hasn't changed
   highlightLines?: Set<number>;
   findings?: Array<{ line: number; severity: string; message: string }>;
@@ -192,6 +271,7 @@ interface SourceViewerProps {
 export default function SourceViewer({
   file,
   currentLine,
+  highlightSpan,
   scrollKey,
   highlightLines,
   findings,
@@ -333,30 +413,36 @@ export default function SourceViewer({
                 {lineNum}
               </span>
 
-              {/* Code with interactive tokens */}
+              {/* Code with interactive tokens. Tokens are split by the active
+                  span so the exact executing sub-expression can be boxed. */}
               <span className="flex-1 whitespace-pre" style={{ tabSize: 4 }}>
-                {tokens.map((token, j) => {
-                  const isClickable = token.type === "identifier";
-                  const isSelected = selectedIdentifier === token.value && isClickable;
+                {splitTokensBySpan(tokens, lineNum, highlightSpan ?? null).map(
+                  ({ token, highlighted }, j) => {
+                    const isClickable = token.type === "identifier";
+                    const isSelected = selectedIdentifier === token.value && isClickable;
 
-                  return (
-                    <span
-                      key={j}
-                      onClick={isClickable ? () => handleTokenClick(token, lineNum) : undefined}
-                      onMouseEnter={isClickable ? (e) => { e.currentTarget.style.textDecoration = "underline"; } : undefined}
-                      onMouseLeave={isClickable ? (e) => { e.currentTarget.style.textDecoration = isSelected ? "underline" : "none"; } : undefined}
-                      style={{
-                        color: isSelected ? "var(--color-accent)" : TOKEN_COLORS[token.type],
-                        fontWeight: isSelected ? 700 : undefined,
-                        textDecoration: isSelected ? "underline" : undefined,
-                        textDecorationColor: isSelected ? "var(--color-accent)" : undefined,
-                        cursor: isClickable ? "pointer" : undefined,
-                      }}
-                    >
-                      {token.value}
-                    </span>
-                  );
-                })}
+                    return (
+                      <span
+                        key={j}
+                        onClick={isClickable ? () => handleTokenClick(token, lineNum) : undefined}
+                        onMouseEnter={isClickable ? (e) => { e.currentTarget.style.textDecoration = "underline"; } : undefined}
+                        onMouseLeave={isClickable ? (e) => { e.currentTarget.style.textDecoration = isSelected ? "underline" : "none"; } : undefined}
+                        style={{
+                          color: isSelected ? "var(--color-accent)" : TOKEN_COLORS[token.type],
+                          fontWeight: isSelected || highlighted ? 700 : undefined,
+                          textDecoration: isSelected ? "underline" : undefined,
+                          textDecorationColor: isSelected ? "var(--color-accent)" : undefined,
+                          cursor: isClickable ? "pointer" : undefined,
+                          backgroundColor: highlighted ? "rgba(139, 92, 246, 0.35)" : undefined,
+                          boxShadow: highlighted ? "0 0 0 1px rgba(139, 92, 246, 0.7)" : undefined,
+                          borderRadius: highlighted ? "2px" : undefined,
+                        }}
+                      >
+                        {token.value}
+                      </span>
+                    );
+                  },
+                )}
               </span>
             </div>
           );

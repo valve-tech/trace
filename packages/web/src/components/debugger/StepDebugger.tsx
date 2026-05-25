@@ -323,6 +323,27 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
 
   const effectiveLine = overrideLine ?? currentSourceLocation?.line ?? null;
 
+  // Exact sub-expression highlight from the source map. Suppressed when a
+  // manual func-search override is active (those carry only a line), when the
+  // mapped location is for a different file than the one shown, or when the
+  // span is so large (a JUMPDEST mapping to a whole function/contract body)
+  // that boxing it would just paint the screen — there the line accent is
+  // clearer. The MAX_SPAN_LINES cap is the threshold for "still a sub-expr".
+  const MAX_SPAN_LINES = 4;
+  const highlightSpan =
+    overrideLine === null &&
+    currentSourceLocation !== null &&
+    currentSourceFile !== null &&
+    currentSourceLocation.file === currentSourceFile.name &&
+    currentSourceLocation.endLine - currentSourceLocation.line < MAX_SPAN_LINES
+      ? {
+          startLine: currentSourceLocation.line,
+          startCol: currentSourceLocation.column,
+          endLine: currentSourceLocation.endLine,
+          endCol: currentSourceLocation.endColumn,
+        }
+      : null;
+
   const callTreeProps = {
     steps, onJumpTo: jumpToAndShowSource, signatureMap, sourceMappings,
     sourceData, callTrace, contractNames,
@@ -422,6 +443,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace }: Step
             <SourceTabContent
               currentSourceFile={currentSourceFile}
               effectiveLine={effectiveLine}
+              highlightSpan={highlightSpan}
               scrollKey={scrollKey}
               slitherFindings={slitherFindings}
               sourceLoading={sourceLoading}
