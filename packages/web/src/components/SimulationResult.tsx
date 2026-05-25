@@ -83,7 +83,7 @@ function LoadingState() {
 function ErrorState({ message }: { message: string }) {
   return (
     <div
-      className="rounded-lg p-6"
+      className="rounded-lg p-4"
       style={{
         backgroundColor: "var(--color-bg-card)",
         borderColor: "var(--color-danger)",

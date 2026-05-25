@@ -293,7 +293,7 @@ export default function JourneyDraft() {
   const nextSteps = nextStepsFor(outcome);
 
   return (
-    <div className="px-6 py-6">
+    <div className="p-4">
       <div className="flex items-center justify-between mb-5">
         <Link
           to="/drafts"

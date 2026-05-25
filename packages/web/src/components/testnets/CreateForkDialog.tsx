@@ -46,7 +46,7 @@ export default function CreateForkDialog({
       }}
     >
       <div
-        className="rounded-lg bs p-6 w-full max-w-md"
+        className="rounded-lg bs p-4 w-full max-w-md"
         style={{
           backgroundColor: "var(--color-bg-card)",
         }}

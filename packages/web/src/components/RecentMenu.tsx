@@ -108,7 +108,7 @@ export function BackHistoryControl({
           </div>
 
           {entities.length === 0 ? (
-            <div className="px-3 py-6 text-center text-xs" style={{ color: "var(--color-text-muted)" }}>
+            <div className="px-3 py-4 text-center text-xs" style={{ color: "var(--color-text-muted)" }}>
               Nothing viewed yet. Transactions, addresses and blocks you open
               show up here.
             </div>

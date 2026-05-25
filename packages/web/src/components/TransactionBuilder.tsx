@@ -264,7 +264,7 @@ export default function TransactionBuilder() {
                 );
               })}
               {visibleFunctions.length === 0 && (
-                <div className="px-3 py-6 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+                <div className="px-3 py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
                   No {showRead ? "read" : "write"} functions
                 </div>
               )}

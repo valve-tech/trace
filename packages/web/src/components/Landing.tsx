@@ -99,7 +99,7 @@ function HeroTile({
 }) {
   return (
     <div
-      className="lg:col-span-2 card relative overflow-hidden flex flex-col justify-between p-6"
+      className="lg:col-span-2 card relative overflow-hidden flex flex-col justify-between p-4"
       style={{ minHeight: 240 }}
     >
       {/* breathing accent glow, top-right */}

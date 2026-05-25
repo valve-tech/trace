@@ -70,7 +70,7 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
   if (error) {
     return (
       <div
-        className="rounded-lg p-6"
+        className="rounded-lg p-4"
         style={{
           backgroundColor: "var(--color-bg-card)",
           borderColor: "var(--color-danger)",

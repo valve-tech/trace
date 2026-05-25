@@ -102,7 +102,7 @@ export default function BlockView({
   if (error) {
     return (
       <div
-        className="rounded-lg p-6"
+        className="rounded-lg p-4"
         style={{
           backgroundColor: "var(--color-bg-card)",
           borderColor: "var(--color-danger)",
@@ -296,7 +296,7 @@ export default function BlockView({
 
         {block.transactions.length === 0 ? (
           <div
-            className="p-6 text-center text-sm"
+            className="p-4 text-center text-sm"
             style={{ color: "var(--color-text-muted)" }}
           >
             No transactions in this block

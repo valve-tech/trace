@@ -401,7 +401,7 @@ export default function StateDiffPanel({ stateDiff }: StateDiffPanelProps) {
   if (!hasAnyChanges) {
     return (
       <div
-        className="rounded-lg bs p-6 text-center text-xs"
+        className="rounded-lg bs p-4 text-center text-xs"
         style={{
           backgroundColor: "var(--color-bg-card)",
           color: "var(--color-text-muted)",

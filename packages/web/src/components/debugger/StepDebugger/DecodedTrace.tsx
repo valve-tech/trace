@@ -101,7 +101,7 @@ export function DecodedTrace({
       <PanelHeader title="Decoded Trace" count={entries.length} suffix="calls" />
       <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>
         {entries.length === 0 ? (
-          <div className="px-3 py-6 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+          <div className="px-3 py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
             No function calls detected in this trace
           </div>
         ) : (

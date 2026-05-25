@@ -14,7 +14,7 @@ export function SearchBar({
 }) {
   return (
     <div
-      className="rounded-lg bs p-6"
+      className="rounded-lg bs p-4"
       style={{
         backgroundColor: "var(--color-bg-card)",
       }}

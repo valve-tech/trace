@@ -107,7 +107,7 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
       <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>
         {filtered.length === 0 ? (
           <div
-            className="px-3 py-6 text-xs text-center"
+            className="px-3 py-4 text-xs text-center"
             style={{ color: "var(--color-text-muted)" }}
           >
             {findings.length === 0 ? "No findings detected" : "No findings match filter"}

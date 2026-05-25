@@ -61,7 +61,7 @@ export default function SettingsPanel() {
   }, [autoCollapse]);
 
   return (
-    <div className="p-6 max-w-3xl">
+    <div className="p-4 max-w-3xl">
       <div className="mb-6">
         <div
           className="text-xs uppercase tracking-widest mb-1"

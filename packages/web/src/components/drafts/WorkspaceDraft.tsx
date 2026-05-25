@@ -133,7 +133,7 @@ export default function WorkspaceDraft() {
   const [tab, setTab] = useState<string>("activity");
 
   return (
-    <div className="px-6 py-6">
+    <div className="p-4">
       <Link
         to="/drafts"
         className="text-xs flex items-center gap-1.5 mb-5"

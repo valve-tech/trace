@@ -18,7 +18,7 @@ export function TokensTab({
     >
       {tokens.length === 0 ? (
         <div
-          className="p-6 text-center text-sm"
+          className="p-4 text-center text-sm"
           style={{ color: "var(--color-text-muted)" }}
         >
           No tokens found

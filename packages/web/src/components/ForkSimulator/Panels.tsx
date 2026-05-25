@@ -79,7 +79,7 @@ export function RevertReasonBlock({ reason }: { reason: string }) {
 export function NoStateChangesPanel() {
   return (
     <div
-      className="rounded-lg bs p-6 text-center"
+      className="rounded-lg bs p-4 text-center"
       style={{
         backgroundColor: "var(--color-bg-card)",
       }}
