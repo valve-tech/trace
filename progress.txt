@@ -1,5 +1,85 @@
 # PulseChain Dev Platform — Progress
 
+## Session: 2026-05-25 — Debugger correctness: structure-gated maps, caching, call tree
+
+Continuation of the opcode↔source work, driven by the user pushing on
+correctness ("most definitely not a useful debugger"). Outcome: the debugger
+is now correct-or-honest and the heavy data is cached. All pushed to
+origin/main (HEAD `0bba2fd`).
+
+### The decisive finding + fix (source-map correctness)
+
+The earlier "exact span highlight" was effectively lying: recompiled bytecode
+did NOT match deployed (router 27KB vs 22KB; HEX 31KB vs 21KB), because
+explorers misreport compiler settings — BlockScout reported the PulseX router
+as UNOPTIMIZED when it was built with the optimizer on at high run-count. So
+every PC→source mapping was misaligned.
+
+Fix (`895ccd8`): gate source maps on **opcode-structure match** against the
+on-chain bytecode. A source map maps opcode INDEX→source, so it's valid iff
+the opcode sequence matches — which tolerates immutables/library addresses
+(PUSH operand bytes) but catches wrong settings. `bytecodeStructure.ts` (pure,
+10 unit tests via `npm run test:unit -w packages/api`): stripMetadata,
+opcodeStructure (disassemble skipping PUSH operands), structuresMatch.
+`compileForSourceMap` now fetches eth_getCode, searches a small optimizer set
+(reported-first + on/200, on/1e6, on/999999, off), and keeps the first whose
+structure matches; no match → null → debugger shows **opcodes-only** (honest).
+Migration `006` clears pre-gate (wrong) cached maps.
+- Key insight: `sol-dbg` / EthereumJS wouldn't help — they map through the
+  same source-map↔bytecode relationship, so on-chain bytecode IS the better
+  oracle. No library adopted.
+- Verified live: router structure-matches (10940 opcodes) → correct mappings;
+  clicking source line 386 → step 105 → line 386 round-trips. HEX → opcodes-only.
+
+### Caching (the user's "biggest win")
+
+Debugger trace/opcodes/gas were fetched imperatively (useState), so they never
+persisted and refetched every load. Now folded into one TanStack Query
+(`2620131`) keyed by tx hash; persists to IndexedDB; reload = 0ms, 0 backend
+fetches (verified). Then scoped the key by **(tx hash, block hash)** with a
+**pending** fallback (`cdc38c9`) — a tx hash alone isn't a stable execution
+identity (re-orgs); pending txs key "pending" w/ staleTime 0. The cached trace
+doubles as a reproducible fixture for the same tx (frontend-compute only).
+
+### Call tree frame→step correctness
+
+Clicking a frame could jump to the wrong step: frame→step counted CALL ops,
+desyncing on STATICCALL/DELEGATECALL/codeless callees. Replaced with pure
+`mapFramesToSteps` (`callTreeModel.ts`, 3 unit tests) — DFS in execution order,
+mapping each child to the next step one depth deeper; codeless callee → parent
+step. Commit `52b152d`. Tree also restyled Tenderly-ish (guide lines, type
+tags, inline gas) in `a4285c4`.
+
+### UI rules applied (now in memory)
+
+- **Custom scrollbar everywhere** (`a4285c4`): global `::-webkit-scrollbar` in
+  index.css — square (no radius), always-visible (not macOS overlay).
+  [[feedback_custom_scrollbar]]
+- **No p-6 padding** (`1549ab9`): swept p-6/py-6 → p-4 across 22 files; kept
+  px-6 on 2 CTA buttons + empty-state. [[feedback_padding_no_p6]]
+- Opcode-frequency rail capped + scrollable (`2620131`).
+
+### Tests / gates
+
+web 56 (added splitTokensBySpan ×7-ish, callTreeModel ×3), api unit 10
+(`test:unit` script added), SDK 486. Builds + lint + lint:spacing green.
+
+### Notes / still open
+
+- **Match rate**: many contracts won't structure-match with the 4-setting
+  search (HEX didn't) → opcodes-only. Improving it = capture evmVersion /
+  exact settings (Sourcify metadata is byte-perfect but PulseChain coverage is
+  thin — router + HEX are NOT on Sourcify). Per user scope: gate-now is the
+  accepted behavior; full verification reproduction was declined.
+- **Internal-call detection** in the call tree still has a proportional-PC
+  name-guess fallback (noise when no source map). The jumpType-"i" path is now
+  reliable since maps are gated; the fallback could be dropped.
+- Git: repo author email set to the GH noreply
+  (`271573222+valvecitydev@users.noreply.github.com`) — earlier commits this
+  session used dev@valve.city which GitHub's email-privacy block rejected.
+
+---
+
 ## Session: 2026-05-24 (cont.) — Opcode ↔ verified-source rendering overhaul
 
 Goal from the user: "a better system for rendering opcodes + verified code …
