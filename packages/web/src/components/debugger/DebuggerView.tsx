@@ -17,6 +17,7 @@ import {
   type OpcodeProfile,
   type OpcodeStep,
 } from "../../api/debugger";
+import { fetchTransaction } from "../../api/explorer";
 import { lookupWellKnown } from "../../lib/wellKnownSignatures";
 import { recordDebuggerTx } from "../../lib/recentDebuggerTxs";
 import { recordVisit } from "../../lib/recentEntities";
@@ -95,20 +96,42 @@ export default function DebuggerView() {
 
   const validUrlHash = urlHash && isValidTxHash(urlHash) ? urlHash : null;
 
-  // The whole trace is one cache entry, keyed by hash. staleTime Infinity +
-  // the persisted client mean a revisit/reload reads it from IndexedDB.
-  const query = useQuery({
-    queryKey: ["debugger-trace", validUrlHash],
-    queryFn: () => fetchDebuggerData(validUrlHash!),
+  // Resolve block context first (cheap). A tx hash alone isn't a stable
+  // execution identity — a re-org can re-execute the same hash in a different
+  // block — so the trace cache is scoped by block hash too. A not-yet-mined tx
+  // has no block hash; it's keyed "pending" and never treated as final.
+  const txContext = useQuery({
+    queryKey: ["tx-context", validUrlHash],
+    queryFn: () => fetchTransaction(validUrlHash!),
     enabled: !!validUrlHash,
     staleTime: Infinity,
     gcTime: Infinity,
   });
 
+  const blockHash = txContext.data?.blockHash;
+  const pending = !blockHash || /^0x0*$/.test(blockHash);
+  // Gate the heavy trace on block context being resolved (success or error) so
+  // we always key it correctly.
+  const contextSettled = !validUrlHash || !txContext.isLoading;
+  const cacheScope = pending ? "pending" : blockHash!;
+
+  // The whole trace is one cache entry, keyed by (tx hash, block hash). With
+  // the persisted client + staleTime Infinity, a revisit/reload of a mined tx
+  // reads it straight from IndexedDB; pending traces stay fresh (staleTime 0).
+  const query = useQuery({
+    queryKey: ["debugger-trace", validUrlHash, cacheScope],
+    queryFn: () => fetchDebuggerData(validUrlHash!),
+    enabled: !!validUrlHash && contextSettled,
+    staleTime: pending ? 0 : Infinity,
+    gcTime: pending ? 0 : Infinity,
+  });
+
   const data = query.data ?? null;
   // Only a true first load (nothing cached yet) shows the loading panel; a
-  // cache hit hydrates synchronously and skips it.
-  const loading = query.isFetching && !data;
+  // cache hit hydrates synchronously and skips it. Covers the block-context
+  // resolve that precedes the trace fetch.
+  const loading =
+    !!validUrlHash && !data && (txContext.isLoading || query.isFetching);
   const hasResult =
     !!data &&
     (!!data.callTrace || !!data.gasProfile || data.opcodeSteps.length > 0);
