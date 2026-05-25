@@ -50,6 +50,28 @@
   border-radius: 0 !important;
 }
 
+/* Custom scrollbar — applied to everything that scrolls. Styling the webkit
+   pseudo-elements forces classic, always-visible bars instead of macOS overlay
+   bars that fade out when idle. Square (no radius), part of the dark theme. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  border-radius: 0;
+  border: 2px solid var(--color-bg-secondary); /* inset the thumb from the track */
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+::-webkit-scrollbar-corner {
+  background: var(--color-bg-secondary);
+}
+
 body {
   margin: 0;
   padding: 0;
