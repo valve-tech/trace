@@ -6,7 +6,6 @@ import type { SignatureMatch } from "../../../api/signatures";
 import { PanelHeader } from "./PanelHeader";
 import { CallFrameRow } from "./CallFrameRow";
 import { FrameDetailPanel } from "./FrameDetailPanel";
-import { walkCallTree } from "./callTreeHelpers";
 import { mapFramesToSteps } from "./callTreeModel";
 import type { InternalCall } from "./types";
 
@@ -52,34 +51,46 @@ export function CallTreeFromOpcodes({
     const internals = new Map<CallFrame, InternalCall[]>();
     if (!callTrace) return internals;
 
-    walkCallTree(callTrace, (frame) => {
+    // Walk with the parent's start step in hand. A codeless callee (value
+    // transfer, precompile, EOA) never enters a deeper opcode frame, so
+    // mapFramesToSteps maps it to its PARENT's step — which would make it
+    // inherit the parent's internal-call range and replicate those labels down
+    // the siblings. A frame ran its own code iff its start differs from its
+    // parent's; only then does it own internal calls.
+    const visit = (frame: CallFrame, parentStart: number | null) => {
       const start = frameStepMap.get(frame) ?? 0;
+      const ranOwnCode = parentStart === null || start !== parentStart;
 
-      // This frame's opcode range: from its start to the next external call or
-      // a return to a shallower depth.
-      const end = (() => {
-        for (let i = start + 1; i < steps.length; i++) {
-          if (isCallOp(steps[i]!.op)) return i;
-          if (i > 0 && steps[i]!.depth < steps[start]!.depth) return i;
+      if (ranOwnCode) {
+        // This frame's opcode range: from its start to the next external call
+        // or a return to a shallower depth.
+        const end = (() => {
+          for (let i = start + 1; i < steps.length; i++) {
+            if (isCallOp(steps[i]!.op)) return i;
+            if (i > 0 && steps[i]!.depth < steps[start]!.depth) return i;
+          }
+          return steps.length;
+        })();
+
+        const internalList: InternalCall[] = [];
+        for (let i = start; i < end; i++) {
+          const s = steps[i];
+          if (!s || s.op !== "JUMP") continue;
+
+          const mapping = sourceMappings[s.pc];
+          if (mapping?.jumpType === "i") {
+            const snippet = mapping.sourceSnippet.trim();
+            const match = snippet.match(/(\w+)\s*\(/);
+            const funcName = match?.[1] ?? "internal";
+            internalList.push({ stepIndex: i, funcName, line: mapping.line });
+          }
         }
-        return steps.length;
-      })();
-
-      const internalList: InternalCall[] = [];
-      for (let i = start; i < end; i++) {
-        const s = steps[i];
-        if (!s || s.op !== "JUMP") continue;
-
-        const mapping = sourceMappings[s.pc];
-        if (mapping?.jumpType === "i") {
-          const snippet = mapping.sourceSnippet.trim();
-          const match = snippet.match(/(\w+)\s*\(/);
-          const funcName = match?.[1] ?? "internal";
-          internalList.push({ stepIndex: i, funcName, line: mapping.line });
-        }
+        if (internalList.length > 0) internals.set(frame, internalList);
       }
-      if (internalList.length > 0) internals.set(frame, internalList);
-    });
+
+      for (const child of frame.calls ?? []) visit(child, start);
+    };
+    visit(callTrace, null);
     return internals;
   }, [callTrace, steps, sourceMappings, frameStepMap]);
 
