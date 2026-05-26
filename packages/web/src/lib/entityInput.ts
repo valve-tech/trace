@@ -4,6 +4,8 @@
  * palette and the landing-page search so both classify input identically.
  */
 
+import { scanPath } from "./scanRoutes";
+
 export const HEX_TX = /^0x[a-fA-F0-9]{64}$/;
 export const HEX_ADDR = /^0x[a-fA-F0-9]{40}$/;
 export const HEX_SELECTOR = /^0x[a-fA-F0-9]{8}$/;
@@ -27,13 +29,14 @@ export function routeForInput(raw: string): string | null {
   const v = raw.trim();
   switch (classifyInput(v)) {
     case "tx":
-      return `/explorer?tx=${v}`;
+      return scanPath("tx", v);
     case "address":
-      return `/explorer?address=${v}`;
+      return scanPath("address", v);
     case "selector":
+      // Not an EIP-3091 entity; placeholder until selector lookup is wired.
       return `/explorer?selector=${v}`;
     case "block":
-      return `/explorer?block=${v}`;
+      return scanPath("block", v);
     default:
       return null;
   }

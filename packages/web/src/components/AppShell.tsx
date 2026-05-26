@@ -5,6 +5,7 @@ import { useRecentEntities } from "../hooks/useRecentEntities";
 import type { RecentEntity } from "../lib/recentEntities";
 import { NAV_GROUPS } from "../lib/navGroups";
 import { HEX_TX, HEX_ADDR, HEX_SELECTOR, DIGITS } from "../lib/entityInput";
+import { scanPath } from "../lib/scanRoutes";
 import { BackHistoryControl } from "./RecentMenu";
 
 /**
@@ -470,7 +471,7 @@ function parseInput(raw: string): Parsed {
           label: "Open in Explorer",
           detail: "Decoded inputs, events, internal txs, token transfers",
           icon: "heroicons:magnifying-glass",
-          to: `/explorer?tx=${v}`,
+          to: scanPath("tx", v),
         },
       ],
     };
@@ -485,7 +486,7 @@ function parseInput(raw: string): Parsed {
           label: "Open in Explorer",
           detail: "Recent activity, contract source, ABI",
           icon: "heroicons:magnifying-glass",
-          to: `/explorer?address=${v}`,
+          to: scanPath("address", v),
         },
         {
           label: "Inspect storage layout",
@@ -522,7 +523,7 @@ function parseInput(raw: string): Parsed {
           label: "Open block in Explorer",
           detail: "Transactions, gas usage, miner",
           icon: "heroicons:cube",
-          to: `/explorer?block=${v}`,
+          to: scanPath("block", v),
         },
       ],
     };
@@ -573,12 +574,7 @@ function truncMid(v: string): string {
 }
 
 function recentToResult(e: RecentEntity): Result {
-  const to =
-    e.kind === "tx"
-      ? `/explorer?tx=${e.value}`
-      : e.kind === "block"
-        ? `/explorer?block=${e.value}`
-        : `/explorer?address=${e.value}`;
+  const to = scanPath(e.kind, e.value);
   return {
     id: `${e.kind}:${e.value}`,
     group: e.kind === "contract" ? "Contracts" : "Recent",

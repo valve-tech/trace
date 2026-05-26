@@ -29,11 +29,11 @@ describe("classifyInput", () => {
 });
 
 describe("routeForInput", () => {
-  it("routes each recognized kind to the right explorer query", () => {
-    expect(routeForInput(TX)).toBe(`/explorer?tx=${TX}`);
-    expect(routeForInput(ADDR)).toBe(`/explorer?address=${ADDR}`);
-    expect(routeForInput(SELECTOR)).toBe(`/explorer?selector=${SELECTOR}`);
-    expect(routeForInput("123")).toBe("/explorer?block=123");
+  it("routes each recognized kind to its EIP-3091 path", () => {
+    expect(routeForInput(TX)).toBe(`/tx/${TX}`);
+    expect(routeForInput(ADDR)).toBe(`/address/${ADDR}`);
+    expect(routeForInput(SELECTOR)).toBe(`/explorer?selector=${SELECTOR}`); // not a scan entity
+    expect(routeForInput("123")).toBe("/block/123");
   });
   it("returns null for unrecognized input", () => {
     expect(routeForInput("not-a-thing")).toBeNull();

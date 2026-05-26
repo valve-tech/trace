@@ -32,11 +32,11 @@ describe("dotColor", () => {
 });
 
 describe("hrefFor", () => {
-  it("routes each kind to the right explorer query", () => {
-    expect(hrefFor(entity({ kind: "tx", value: "0xabc" }))).toBe("/explorer?tx=0xabc");
-    expect(hrefFor(entity({ kind: "block", value: "42" }))).toBe("/explorer?block=42");
-    expect(hrefFor(entity({ kind: "address", value: "0xaaa" }))).toBe("/explorer?address=0xaaa");
-    expect(hrefFor(entity({ kind: "contract", value: "0xbbb" }))).toBe("/explorer?address=0xbbb");
+  it("routes each kind to its EIP-3091 path", () => {
+    expect(hrefFor(entity({ kind: "tx", value: "0xabc" }))).toBe("/tx/0xabc");
+    expect(hrefFor(entity({ kind: "block", value: "42" }))).toBe("/block/42");
+    expect(hrefFor(entity({ kind: "address", value: "0xaaa" }))).toBe("/address/0xaaa");
+    expect(hrefFor(entity({ kind: "contract", value: "0xbbb" }))).toBe("/token/0xbbb");
   });
 });
 

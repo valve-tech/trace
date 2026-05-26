@@ -14,17 +14,20 @@
  */
 
 import type { ReactNode, CSSProperties } from "react";
+import { scanPath, type ScanKind } from "../../lib/scanRoutes";
 
 interface ExplorerTargetLike {
   type: string; // "tx" | "address" | "block" | "contract"
   value: string;
 }
 
-/** Map a nav target to the hash URL ExplorerPanel reads on mount. */
+/** Map a nav target to the hash URL (EIP-3091 path scheme). */
 function hrefForTarget(target: ExplorerTargetLike): string {
-  const key =
-    target.type === "tx" ? "tx" : target.type === "block" ? "block" : "address";
-  return `#/explorer?${key}=${target.value}`;
+  const kinds = ["tx", "block", "address", "contract"] as const;
+  const kind: ScanKind = kinds.includes(target.type as ScanKind)
+    ? (target.type as ScanKind)
+    : "address";
+  return `#${scanPath(kind, target.value)}`;
 }
 
 export function ExplorerLink<T extends ExplorerTargetLike>({

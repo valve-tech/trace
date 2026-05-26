@@ -89,7 +89,12 @@ export default function App() {
           <Route path="/monitoring" element={<AlertDashboard />} />
           <Route path="/testnets" element={<TestNetDashboard />} />
           <Route path="/rpc" element={<RpcPage />} />
-          <Route path="/explorer/*" element={<ExplorerPanel />} />
+          <Route path="/explorer" element={<ExplorerPanel />} />
+          {/* EIP-3091 scan endpoints — shareable, back/forward-friendly. */}
+          <Route path="/tx/:hash" element={<ExplorerPanel />} />
+          <Route path="/block/:id" element={<ExplorerPanel />} />
+          <Route path="/address/:address" element={<ExplorerPanel />} />
+          <Route path="/token/:address" element={<ExplorerPanel />} />
           <Route path="/mempool" element={<MempoolView />} />
           <Route path="/debugger" element={<DebuggerView />} />
           <Route path="/debugger/:txHash" element={<DebuggerView />} />

@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import TxDetail from "./TxDetail";
 import AddressView from "./AddressView";
@@ -7,6 +7,7 @@ import BlockView from "./BlockView";
 import ContractView from "./ContractView";
 import ExplorerHome from "./ExplorerHome";
 import { recordVisit } from "../../lib/recentEntities";
+import { scanPath } from "../../lib/scanRoutes";
 import { truncateAddr } from "./format";
 
 type ExplorerView =
@@ -16,65 +17,75 @@ type ExplorerView =
   | { type: "block"; numberOrHash: string }
   | { type: "contract"; address: string };
 
+/** EIP-3091 path for a view; "none" is the explorer home. */
+function pathForView(v: ExplorerView): string {
+  switch (v.type) {
+    case "tx":
+      return scanPath("tx", v.hash);
+    case "address":
+      return scanPath("address", v.address);
+    case "contract":
+      return scanPath("contract", v.address);
+    case "block":
+      return scanPath("block", v.numberOrHash);
+    case "none":
+      return "/explorer";
+  }
+}
+
 export default function ExplorerPanel() {
-  const [view, setView] = useState<ExplorerView>({ type: "none" });
-  const [history, setHistory] = useState<ExplorerView[]>([]);
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams<{ hash?: string; id?: string; address?: string }>();
+
+  // The URL is the source of truth — /tx/<h>, /block/<n>, /address/<a>,
+  // /token/<a> (EIP-3091). Driving off the path makes back/forward, reload,
+  // and link-sharing all work.
+  const view = useMemo<ExplorerView>(() => {
+    const p = location.pathname;
+    if (p.startsWith("/tx/") && params.hash) return { type: "tx", hash: params.hash };
+    if (p.startsWith("/block/") && params.id) return { type: "block", numberOrHash: params.id };
+    if (p.startsWith("/token/") && params.address) return { type: "contract", address: params.address };
+    if (p.startsWith("/address/") && params.address) return { type: "address", address: params.address };
+    return { type: "none" };
+  }, [location.pathname, params.hash, params.id, params.address]);
+
+  // The breadcrumb trail rides in history state, so back/forward restore it.
+  const trail = useMemo<ExplorerView[]>(
+    () => (location.state as { trail?: ExplorerView[] } | null)?.trail ?? [],
+    [location.state],
+  );
+
+  useEffect(() => {
+    if (view.type === "tx") recordVisit({ kind: "tx", value: view.hash });
+    else if (view.type === "address") recordVisit({ kind: "address", value: view.address });
+    else if (view.type === "contract") recordVisit({ kind: "contract", value: view.address });
+    else if (view.type === "block") recordVisit({ kind: "block", value: view.numberOrHash });
+  }, [view]);
 
   const navigateTo = useCallback(
     (newView: ExplorerView) => {
-      if (view.type !== "none") {
-        setHistory((prev) => [...prev, view]);
-      }
-      setView(newView);
+      navigate(pathForView(newView), {
+        state: { trail: view.type !== "none" ? [...trail, view] : trail },
+      });
     },
-    [view],
+    [navigate, view, trail],
   );
 
-  // URL → view: lets the ⌘K palette (and any future deep link) drop a user
-  // straight into the right explorer view. Re-runs when search params change.
-  useEffect(() => {
-    const tx = searchParams.get("tx");
-    const address = searchParams.get("address");
-    const block = searchParams.get("block");
-    if (tx) {
-      setView({ type: "tx", hash: tx });
-      recordVisit({ kind: "tx", value: tx });
-    } else if (address) {
-      setView({ type: "address", address });
-      recordVisit({ kind: "address", value: address });
-    } else if (block) {
-      setView({ type: "block", numberOrHash: block });
-      recordVisit({ kind: "block", value: block });
-    }
-  }, [searchParams]);
+  const goBack = useCallback(() => navigate(-1), [navigate]);
 
-  const goBack = useCallback(() => {
-    if (history.length === 0) {
-      setView({ type: "none" });
-      return;
-    }
-    const prev = history[history.length - 1]!;
-    setHistory((h) => h.slice(0, -1));
-    setView(prev);
-  }, [history]);
-
-  // Jump to any node in the trail. `index` indexes into `history`; the special
-  // value -1 means Home (clear the view), and `history.length` is the current
-  // view (no-op). Selecting a history node truncates everything after it.
+  // Jump to a node in the breadcrumb trail (index into `trail`); -1 is Home.
   const jumpTo = useCallback(
     (index: number) => {
-      if (index >= history.length) return;
       if (index < 0) {
-        setView({ type: "none" });
-        setHistory([]);
+        navigate("/explorer", { state: { trail: [] } });
         return;
       }
-      const target = history[index]!;
-      setHistory((h) => h.slice(0, index));
-      setView(target);
+      const target = trail[index];
+      if (!target) return;
+      navigate(pathForView(target), { state: { trail: trail.slice(0, index) } });
     },
-    [history],
+    [navigate, trail],
   );
 
   const handleNavigate = (target: {
@@ -84,19 +95,15 @@ export default function ExplorerPanel() {
     switch (target.type) {
       case "tx":
         navigateTo({ type: "tx", hash: target.value });
-        recordVisit({ kind: "tx", value: target.value });
         break;
       case "address":
         navigateTo({ type: "address", address: target.value });
-        recordVisit({ kind: "address", value: target.value });
         break;
       case "block":
         navigateTo({ type: "block", numberOrHash: target.value });
-        recordVisit({ kind: "block", value: target.value });
         break;
       case "contract":
         navigateTo({ type: "contract", address: target.value });
-        recordVisit({ kind: "contract", value: target.value });
         break;
     }
   };
@@ -107,7 +114,7 @@ export default function ExplorerPanel() {
       {view.type !== "none" && (
         <Breadcrumb
           view={view}
-          history={history}
+          history={trail}
           onJump={jumpTo}
           onBack={goBack}
         />

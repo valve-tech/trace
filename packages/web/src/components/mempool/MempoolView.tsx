@@ -11,6 +11,7 @@ import { EmptyState } from "../primitives/EmptyState";
 import { TrackedTxPanel } from "./TrackedTxPanel";
 import { useTrackedTxs } from "../../hooks/useTrackedTxs";
 import { toggleTrack } from "../../lib/trackedTxs";
+import { scanPath, type ScanKind } from "../../lib/scanRoutes";
 
 type SortKey = "rank" | "tip" | "cap" | "nonce";
 
@@ -73,8 +74,9 @@ function compareTx(a: PendingTx, b: PendingTx, key: SortKey): number {
 export default function MempoolView() {
   const navigate = useNavigate();
   const onNavigate = (t: { type: string; value: string }) => {
-    const key = t.type === "tx" ? "tx" : t.type === "block" ? "block" : "address";
-    navigate(`/explorer?${key}=${t.value}`);
+    const kinds = ["tx", "block", "address", "contract"] as const;
+    const kind: ScanKind = kinds.includes(t.type as ScanKind) ? (t.type as ScanKind) : "address";
+    navigate(scanPath(kind, t.value));
   };
 
   const { data, status, error } = useQuery({

@@ -5,6 +5,7 @@
  */
 
 import type { RecentEntity } from "./recentEntities";
+import { scanPath } from "./scanRoutes";
 
 /** Kind dot colour — tx by status, addresses green, contracts purple. */
 export function dotColor(e: RecentEntity): string {
@@ -18,17 +19,9 @@ export function dotColor(e: RecentEntity): string {
   return "var(--color-text-muted)"; // block
 }
 
-/** Hash-router target for an entity. */
+/** Hash-router target for an entity (EIP-3091 path scheme). */
 export function hrefFor(e: RecentEntity): string {
-  switch (e.kind) {
-    case "tx":
-      return `/explorer?tx=${e.value}`;
-    case "block":
-      return `/explorer?block=${e.value}`;
-    case "address":
-    case "contract":
-      return `/explorer?address=${e.value}`;
-  }
+  return scanPath(e.kind, e.value);
 }
 
 function truncMid(v: string): string {

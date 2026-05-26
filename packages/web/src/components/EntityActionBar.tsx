@@ -14,6 +14,7 @@
 import { Icon } from "@iconify/react";
 import { Tooltip } from "./primitives/Tooltip";
 import { CopyButton } from "./primitives/CopyButton";
+import { scanPath } from "../lib/scanRoutes";
 
 export type EntityKind = "tx" | "address" | "contract";
 
@@ -39,7 +40,7 @@ function actionsFor(
     const list: Action[] = [
       { id: "debug", label: "Debug", icon: "heroicons:bug-ant", href: `/debugger/${value}`, primary: true },
       { id: "fork", label: "Fork from here", icon: "heroicons:arrows-right-left", href: `/fork?fromTx=${value}` },
-      { id: "explorer", label: "Open in Explorer", icon: "heroicons:magnifying-glass", href: `/explorer?tx=${value}` },
+      { id: "explorer", label: "Open in Explorer", icon: "heroicons:magnifying-glass", href: scanPath("tx", value) },
     ];
     if (contractAddress) {
       list.push({
@@ -53,7 +54,7 @@ function actionsFor(
   }
   // address + contract share the address jump set
   return [
-    { id: "explorer", label: "Open in Explorer", icon: "heroicons:magnifying-glass", href: `/explorer?address=${value}`, primary: true },
+    { id: "explorer", label: "Open in Explorer", icon: "heroicons:magnifying-glass", href: scanPath(kind === "contract" ? "contract" : "address", value), primary: true },
     { id: "simulate", label: "Simulate call", icon: "heroicons:play-circle", href: `/simulate?to=${value}` },
     { id: "storage", label: "Storage layout", icon: "heroicons:rectangle-stack", href: `/storage?address=${value}` },
     { id: "debugger", label: "Debugger", icon: "heroicons:bug-ant", href: `/debugger` },

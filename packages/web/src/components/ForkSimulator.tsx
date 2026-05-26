@@ -6,6 +6,7 @@ import type {
   ForkSimulationResponse,
 } from "../api/simulate";
 import { forkSimulateApi, simulateFromHashApi } from "./ForkSimulator/api";
+import { scanPath } from "../lib/scanRoutes";
 import { InputCard, type InputMode } from "./ForkSimulator/InputCard";
 import { StatusSummary } from "./ForkSimulator/StatusSummary";
 import {
@@ -114,9 +115,7 @@ export default function ForkSimulator() {
         <div className="space-y-stack">
           <StatusSummary
             result={result}
-            onViewContract={(address) =>
-              navigate(`/explorer?address=${address}`)
-            }
+            onViewContract={(address) => navigate(scanPath("contract", address))}
             onDebug={(hash) => navigate(`/debugger/${hash}`)}
           />
 

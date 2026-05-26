@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { copyToClipboard } from "../../lib/clipboard";
+import { scanPath } from "../../lib/scanRoutes";
 
 interface Props {
   /** Transaction hash to act on. */
@@ -149,7 +150,7 @@ function ActionMenu({
       icon: "heroicons:magnifying-glass",
       enabled: true,
       onClick: () => {
-        goto(`/#/explorer?tx=${hash}`);
+        goto(`/#${scanPath("tx", hash)}`);
         onClose();
       },
     },
