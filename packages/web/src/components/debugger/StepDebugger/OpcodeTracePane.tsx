@@ -43,8 +43,21 @@ export function OpcodeTracePane({
   }, [currentStep]);
 
   return (
-    <div ref={listRef} className="overflow-y-auto h-full" onScroll={handleScroll}>
-      <div style={{ height: totalSteps * ROW_HEIGHT, position: "relative" }}>
+    <div className="flex flex-col h-full">
+      {/* Column header — without it the step-index and program-counter columns
+          read like two unlabeled numbers and get mistaken for gas figures. */}
+      <div
+        className="flex items-center text-[10px] uppercase tracking-wider flex-shrink-0 bs-b-muted py-1"
+        style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-muted)", paddingLeft: 8, paddingRight: 12 }}
+      >
+        <span className="w-14 text-right mr-3 flex-shrink-0" title="Execution step index">Step</span>
+        <span className="w-10 text-right mr-3 flex-shrink-0" title="Program counter (byte offset in the contract's code)">PC</span>
+        <span className="w-28 mr-3 flex-shrink-0">Opcode</span>
+        <span className="flex-shrink-0" title="Gas this opcode costs (not cumulative)">Gas cost</span>
+      </div>
+
+      <div ref={listRef} className="overflow-y-auto flex-1" onScroll={handleScroll}>
+        <div style={{ height: totalSteps * ROW_HEIGHT, position: "relative" }}>
         {Array.from({ length: visibleEnd - visibleStart }, (_, i) => {
           const idx = visibleStart + i;
           const s = steps[idx]!;
@@ -90,6 +103,7 @@ export function OpcodeTracePane({
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
