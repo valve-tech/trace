@@ -1,5 +1,44 @@
 # PulseChain Dev Platform — Progress
 
+## Session: 2026-05-26 (cont.) — Unified tree, EIP-3091 routes, scrollbars
+
+Three asks, done in order:
+
+1. **Unified call+function tree** (`6bbf587`). The previous build kept external
+   frames and internal scopes as parallel structures, so transferFrom→_transferFrom
+   was buried/duplicated. Rewrote `executionScopes.buildExecutionTree` as ONE
+   stack-walk: 'enter'(jump i) pushes a fn, 'exit'(jump o) pops by COUNT (the
+   optimizer shares return blocks → an 'o's mapped fn is unreliable), a sub-call
+   frame nests under the open fn. Codeless callees are leaves; public-dispatch
+   wrappers (entries whose source is a `function …` decl) are hoisted via
+   `flattenDecls`; double-entry deduped. New unified renderer: `TreeNode`
+   dispatches call→CallFrameRow, fn→ScopeRow, children recurse through TreeNode.
+   Verified: router swap → pairFor/safeTransferFrom(→CODA.transferFrom)/_swap…;
+   CODA.transferFrom → _transferFrom → checkTxLimit/shouldSwapBack/swapBack.
+
+2. **EIP-3091 routes** (`d746ab1`). Explorer sub-views were local state + query
+   deep-links (`/explorer?tx=`), so clicks didn't change the URL → Back left the
+   explorer. Moved to path routes `/tx/<h>`, `/block/<n>`, `/address/<a>`,
+   `/token/<a>` (per https://eips.ethereum.org/EIPS/eip-3091 — user corrected me
+   off query strings). ExplorerPanel derives view from the path; breadcrumb trail
+   rides in history `location.state`. Centralized `lib/scanRoutes.scanPath` and
+   routed every deep-link through it (⌘K, EntityActionBar, Mempool, Fork,
+   TxRowActions, ExplorerLink, recentEntityView, entityInput) + tests. App.tsx
+   adds the four top-level routes; `/explorer` stays as home. selector stays a
+   query param (not a scan entity). Verified Back/forward + sharing.
+
+3. **Custom scrollbars everywhere** (`b252cff`). Root cause: Chrome 121+
+   implemented standard `scrollbar-width`/`scrollbar-color`, and setting either
+   makes Chrome IGNORE `::-webkit-scrollbar` — so the global `* { scrollbar-width:
+   thin }` reverted our custom bars to native thin ones. Gated the standard props
+   behind `@supports not selector(::-webkit-scrollbar)` (Firefox only); Chrome/
+   Safari keep the webkit pseudo. Verified in Chromium: every scroller = 10px
+   custom bar.
+
+Gates each: web 67, lint 0 errors, build green.
+
+---
+
 ## Session: 2026-05-26 — Debugger: Remix-style internal-function tree (ported)
 
 User: "if remix has a good one we should just use it." Verified the npm package
