@@ -1,5 +1,5 @@
 import { Icon } from "@iconify/react";
-import type { ExecNode } from "./executionScopes";
+import { nodeKey, type ExecNode } from "./executionScopes";
 import type { TreeShared } from "./TreeNode";
 
 /**
@@ -22,12 +22,18 @@ export function LogRow({
   const paren = node.name.indexOf("(");
   const eventName = paren > 0 ? node.name.slice(0, paren) : node.name;
   const params = paren > 0 ? node.name.slice(paren) : null;
+  const key = nodeKey(node);
+  const isSelected = shared.selectedKey === key;
 
   return (
     <div
       className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap"
-      onClick={() => shared.onJumpTo(node.step)}
-      style={{ fontFamily: "var(--font-mono)" }}
+      onClick={() => { shared.onJumpTo(node.step); shared.onSelectKey?.(key); }}
+      style={{
+        fontFamily: "var(--font-mono)",
+        backgroundColor: isSelected ? "var(--color-accent-muted)" : undefined,
+        boxShadow: isSelected ? "inset 2px 0 0 0 var(--color-accent)" : undefined,
+      }}
     >
       {Array.from({ length: depth }, (_, g) => (
         <span

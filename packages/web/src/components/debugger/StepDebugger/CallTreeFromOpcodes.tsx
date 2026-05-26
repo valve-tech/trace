@@ -39,6 +39,7 @@ export function CallTreeFromOpcodes({
   inline?: boolean;
 }) {
   const [selectedFrame, setSelectedFrame] = useState<CallFrame | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   // The unified execution tree: external frames + internal functions, one
   // nesting, interleaved in execution order.
@@ -58,6 +59,8 @@ export function CallTreeFromOpcodes({
       abiSelectors,
       onSelect: setSelectedFrame,
       selectedFrame,
+      selectedKey,
+      onSelectKey: setSelectedKey,
       onExpand: onExpandFrame,
     };
     const content = <TreeNode node={tree} depth={0} shared={shared} />;

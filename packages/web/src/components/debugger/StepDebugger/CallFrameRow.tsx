@@ -4,7 +4,7 @@ import { lookupWellKnown } from "../../../lib/wellKnownSignatures";
 import { bestMatchSignature } from "./callTreeHelpers";
 import { CALL_TYPE_BORDER } from "./theme";
 import { TreeNode, DEFAULT_EXPAND_DEPTH, type TreeShared } from "./TreeNode";
-import type { ExecNode } from "./executionScopes";
+import { nodeKey, type ExecNode } from "./executionScopes";
 
 // Short, uppercase call-type tag shown inline on each row (Tenderly-style),
 // colored by the call kind. Keeps the tree scannable without a hover tooltip.
@@ -42,9 +42,10 @@ export function CallFrameRow({
   depth: number;
   shared: TreeShared;
 }) {
-  const { onJumpTo, signatureMap, contractNames, abiSelectors, onSelect, selectedFrame, onExpand } = shared;
+  const { onJumpTo, signatureMap, contractNames, abiSelectors, onSelect, selectedKey, onSelectKey, onExpand } = shared;
   const frame = node.frame;
   const stepIndex = node.startStep;
+  const key = nodeKey(node);
 
   const [expanded, setExpanded] = useState(depth < DEFAULT_EXPAND_DEPTH);
   const [hovered, setHovered] = useState(false);
@@ -78,7 +79,7 @@ export function CallFrameRow({
       : selector || noCalldataLabel);
   const displayLabel = contractName ?? wellKnown?.interface ?? null;
 
-  const isSelected = selectedFrame === frame;
+  const isSelected = selectedKey === key;
   // Flat rows (Tenderly-style): selection + hover + error drive the background;
   // call type is conveyed by the inline tag, not a chunky colored left border.
   const bgColor = isSelected
@@ -114,7 +115,7 @@ export function CallFrameRow({
     <div>
       <div
         className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs relative whitespace-nowrap"
-        onClick={() => { onJumpTo(stepIndex, funcName !== "???" ? funcName : undefined); onSelect?.(frame); }}
+        onClick={() => { onJumpTo(stepIndex, funcName !== "???" ? funcName : undefined); onSelect?.(frame); onSelectKey?.(key); }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{

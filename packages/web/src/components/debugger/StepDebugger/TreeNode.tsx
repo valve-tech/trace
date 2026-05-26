@@ -22,6 +22,10 @@ export interface TreeShared {
   abiSelectors: Record<string, Record<string, string>>;
   onSelect?: (frame: CallFrame) => void;
   selectedFrame?: CallFrame | null;
+  /** Key of the currently-selected row (any kind), for the "you are here"
+   *  highlight that persists after a click. */
+  selectedKey?: string | null;
+  onSelectKey?: (key: string) => void;
   onExpand?: (frame: CallFrame, entryStep: number, label: string) => void;
 }
 

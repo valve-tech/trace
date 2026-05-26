@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
-import type { ExecNode } from "./executionScopes";
+import { nodeKey, type ExecNode } from "./executionScopes";
 import { TreeNode, DEFAULT_EXPAND_DEPTH, type TreeShared } from "./TreeNode";
 
 /**
@@ -20,13 +20,19 @@ export function ScopeRow({
 }) {
   const [expanded, setExpanded] = useState(depth < DEFAULT_EXPAND_DEPTH);
   const hasChildren = node.children.length > 0;
+  const key = nodeKey(node);
+  const isSelected = shared.selectedKey === key;
 
   return (
     <div>
       <div
         className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap"
-        onClick={() => shared.onJumpTo(node.startStep, node.name)}
-        style={{ fontFamily: "var(--font-mono)" }}
+        onClick={() => { shared.onJumpTo(node.startStep, node.name); shared.onSelectKey?.(key); }}
+        style={{
+          fontFamily: "var(--font-mono)",
+          backgroundColor: isSelected ? "var(--color-accent-muted)" : undefined,
+          boxShadow: isSelected ? "inset 2px 0 0 0 var(--color-accent)" : undefined,
+        }}
       >
         {Array.from({ length: depth }, (_, g) => (
           <span

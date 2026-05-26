@@ -59,6 +59,22 @@ const LOG_ARITY: Record<string, number> = {
 
 type SourceMap = Record<number, SourceLocation | null>;
 
+/**
+ * Stable identity for a tree row, so a click can keep it highlighted ("you are
+ * here") regardless of node kind. Steps are unique enough per row; the extra
+ * discriminators guard the rare same-step collision.
+ */
+export function nodeKey(node: ExecNode): string {
+  switch (node.kind) {
+    case "call":
+      return `c:${node.startStep}:${node.frame.to ?? ""}:${node.frame.input?.slice(0, 10) ?? ""}`;
+    case "fn":
+      return `f:${node.startStep}:${node.line}:${node.name}`;
+    case "log":
+      return `l:${node.step}:${node.name}`;
+  }
+}
+
 function funcNameFromSnippet(snippet: string): string {
   const m = snippet.trim().match(/(\w+)\s*\(/);
   return m?.[1] ?? "internal";
