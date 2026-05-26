@@ -79,6 +79,34 @@ describe("buildExecutionTree", () => {
     expect(calls(tree)).toHaveLength(0);
   });
 
+  it("closes a scope by containment when the return has no 'o' marker", () => {
+    // F1 (body lines 100-200) calls F2 (body 300-310); F2 returns with NO 'o'
+    // marker (optimizer shared the return block); execution resumes in F1 at
+    // line 160 and emits a log. The log must land in F1, not the stale F2.
+    const root = frame("0xAAA");
+    const L = (line: number, end: number, jump: string, snip: string): SourceLocation => ({
+      file: "C.sol", line, column: 0, endLine: end, endColumn: 0, sourceSnippet: snip, jumpType: jump,
+    });
+    const steps = [
+      step(0, 1), step(10, 1), step(11, 1), step(12, 1), step(13, 1), step(14, 1, "LOG1"), step(15, 1),
+    ];
+    const maps = {
+      "0xaaa": {
+        10: L(50, 50, "i", "f1()"), // enter F1 from the dispatch
+        11: L(100, 200, "-", "function f1() {"), // F1 body range
+        12: L(150, 150, "i", "f2()"), // F1 calls F2 (call site inside F1)
+        13: L(300, 310, "-", "function f2() {"), // F2 body range (disjoint)
+        14: L(160, 160, "-", "emit E()"), // back in F1 — F2 returned, no 'o'
+      } as Record<number, SourceLocation>,
+    };
+    const logsByStep = new Map([[5, { name: "E()", topicCount: 1 }]]);
+    const tree = buildExecutionTree(root, new Map([[root, 0]]), steps, maps, logsByStep);
+    const f1 = fns(tree)[0]!;
+    expect(f1.name).toBe("f1");
+    expect(fns(f1)[0]!.name).toBe("f2"); // F2 nested inside F1
+    expect(logs(f1).map((l) => l.name)).toContain("E()"); // log closed back into F1
+  });
+
   it("places a LOG opcode as an event leaf inside the open function scope", () => {
     const root = frame("0xAAA");
     // enter swapBack at step1, emit a LOG3 at step2 (own depth), still inside it

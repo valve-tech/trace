@@ -122,10 +122,25 @@ export function computePcsByContract(
 }
 
 type Event =
-  | { step: number; t: "enter"; name: string; line: number; decl: boolean }
+  | {
+      step: number;
+      t: "enter";
+      name: string;
+      line: number;
+      decl: boolean;
+      /** Source position at the jump site (in the caller) — drives containment
+       *  popping of finished sibling scopes before this one is pushed. */
+      curFile: string;
+      curLine: number;
+      /** The callee's own body range (from the entry JUMPDEST's mapping), used
+       *  to close the scope when execution later leaves it. */
+      fnFile?: string;
+      fnStart?: number;
+      fnEnd?: number;
+    }
   | { step: number; t: "exit" }
-  | { step: number; t: "call"; child: CallFrame }
-  | { step: number; t: "log"; name: string; topicCount: number };
+  | { step: number; t: "call"; child: CallFrame; curFile?: string; curLine?: number }
+  | { step: number; t: "log"; name: string; topicCount: number; curFile?: string; curLine?: number };
 
 /**
  * Hoist away "declaration" fn nodes — the public/dispatch entries whose source
@@ -175,10 +190,24 @@ export function buildExecutionTree(
     const { end, depth } = frameRange(entry, steps);
     const sm = frame.to ? sourceMapsByAddr[frame.to.toLowerCase()] : undefined;
 
+    // The body range a function entered at `i` occupies — read from the entry
+    // JUMPDEST it lands on, which Solidity maps to the whole FunctionDefinition.
+    // Lets us close the scope by containment when execution leaves that range,
+    // covering the returns the optimizer emits with no `'o'` marker.
+    const landingRange = (i: number): { file: string; start: number; end: number } | null => {
+      for (let j = i + 1; j < end; j++) {
+        if (steps[j]!.depth !== depth) continue;
+        const l = sm?.[steps[j]!.pc];
+        if (l) return { file: l.file, start: l.line, end: l.endLine };
+      }
+      return null;
+    };
+
     const events: Event[] = [];
     for (let i = entry; i < end; i++) {
       if (steps[i]!.depth !== depth) continue; // inside a sub-call — not ours
       const op = steps[i]!.op;
+      const loc = sm?.[steps[i]!.pc];
       // Emitted event: a LOG0–LOG4 at our own depth. Decoded name (if any)
       // comes from the receipt logs, matched by step.
       const arity = LOG_ARITY[op];
@@ -189,35 +218,95 @@ export function buildExecutionTree(
           t: "log",
           name: meta?.name ?? op,
           topicCount: meta?.topicCount ?? arity,
+          curFile: loc?.file,
+          curLine: loc?.line,
         });
         continue;
       }
-      const loc = sm?.[steps[i]!.pc];
       if (!loc) continue;
       if (loc.jumpType === "i") {
+        const range = landingRange(i);
         events.push({
           step: i,
           t: "enter",
           name: funcNameFromSnippet(loc.sourceSnippet),
           line: loc.line,
           decl: /^\s*function\b/.test(loc.sourceSnippet),
+          curFile: loc.file,
+          curLine: loc.line,
+          fnFile: range?.file,
+          fnStart: range?.start,
+          fnEnd: range?.end,
         });
       } else if (loc.jumpType === "o") {
         events.push({ step: i, t: "exit" });
       }
     }
+    // Call-site source position for a sub-call: scan back from its entry to the
+    // nearest own-depth mapped step (the CALL opcode lives in the caller's code).
+    const callSiteLoc = (callStep: number): SourceLocation | null => {
+      for (let j = Math.min(callStep, end - 1); j >= entry; j--) {
+        if (steps[j]!.depth !== depth) continue;
+        const l = sm?.[steps[j]!.pc];
+        if (l) return l;
+      }
+      return null;
+    };
     for (const child of frame.calls ?? []) {
-      events.push({ step: frameStepMap.get(child) ?? end, t: "call", child });
+      const step = frameStepMap.get(child) ?? end;
+      const site = callSiteLoc(step);
+      events.push({ step, t: "call", child, curFile: site?.file, curLine: site?.line });
     }
     events.sort((a, b) => a.step - b.step || RANK[a.t] - RANK[b.t]);
 
-    type OpenNode = Extract<ExecNode, { kind: "call" }> | Extract<ExecNode, { kind: "fn" }>;
-    const stack: OpenNode[] = [node];
+    // A scope on the open stack, paired with the source range it occupies. The
+    // range (when known) lets us close it by containment; the root call node has
+    // no range and so always "contains" the current position.
+    interface Open {
+      node: Extract<ExecNode, { kind: "call" }> | Extract<ExecNode, { kind: "fn" }>;
+      file?: string;
+      start?: number;
+      end?: number;
+    }
+    const stack: Open[] = [{ node }];
     let lastOwn = entry;
+
+    // Close finished scopes by containment — the safety net for returns the
+    // optimizer emitted without an `'o'` marker. Distinct functions occupy
+    // DISJOINT source ranges, so "the line left the current scope" happens on a
+    // call (line jumps into a callee) just as much as on a return. To tell them
+    // apart we only act on a return: find the deepest *ancestor fn* whose body
+    // range still contains the line and pop back down to it. If no open fn
+    // contains the line, we've entered a new function (often via a jump the map
+    // didn't tag `'i'`) — leave the stack be and let it nest under the top.
+    const popLeftScopes = (file?: string, line?: number, atStep?: number) => {
+      if (!file || line === undefined) return;
+      let target = -1;
+      for (let k = stack.length - 1; k >= 1; k--) {
+        const s = stack[k]!;
+        if (
+          s.node.kind === "fn" &&
+          s.start !== undefined &&
+          s.end !== undefined &&
+          s.file === file &&
+          line >= s.start &&
+          line <= s.end
+        ) {
+          target = k;
+          break;
+        }
+      }
+      if (target < 1) return; // no containing ancestor fn → not a return
+      while (stack.length - 1 > target) {
+        const popped = stack.pop()!.node;
+        if (atStep !== undefined && popped.kind === "fn") popped.endStep = atStep;
+      }
+    };
 
     for (const ev of events) {
       lastOwn = ev.step;
-      const top = stack[stack.length - 1]!;
+      if (ev.t !== "exit") popLeftScopes(ev.curFile, ev.curLine, ev.step);
+      const top = stack[stack.length - 1]!.node;
       if (ev.t === "enter") {
         // Dedupe the public-function double-entry (two 'i' to the same line).
         if (top.kind === "fn" && top.name === ev.name && top.line === ev.line) continue;
@@ -231,10 +320,10 @@ export function buildExecutionTree(
           decl: ev.decl,
         };
         top.children.push(fn);
-        stack.push(fn);
+        stack.push({ node: fn, file: ev.fnFile, start: ev.fnStart, end: ev.fnEnd });
       } else if (ev.t === "exit") {
-        if (stack.length > 1 && stack[stack.length - 1]!.kind === "fn") {
-          const closed = stack.pop() as Extract<ExecNode, { kind: "fn" }>;
+        if (stack.length > 1 && stack[stack.length - 1]!.node.kind === "fn") {
+          const closed = stack.pop()!.node as Extract<ExecNode, { kind: "fn" }>;
           closed.endStep = ev.step;
         }
       } else if (ev.t === "log") {
@@ -258,7 +347,7 @@ export function buildExecutionTree(
         );
       }
     }
-    for (const open of stack) if (open.kind === "fn") open.endStep = lastOwn;
+    for (const open of stack) if (open.node.kind === "fn") open.node.endStep = lastOwn;
     return node;
   };
 
