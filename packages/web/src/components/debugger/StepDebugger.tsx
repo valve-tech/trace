@@ -18,6 +18,9 @@ import { useContractMeta } from "../../hooks/useContractMeta";
 import { useSignatures } from "../../hooks/useSignatures";
 import FindingsPanel from "./SlitherFindingsPanel";
 import { flattenCallTree, walkCallTree } from "./StepDebugger/callTreeHelpers";
+import { mapFramesToSteps } from "./StepDebugger/callTreeModel";
+import { computePcsByContract } from "./StepDebugger/executionScopes";
+import { useTraceSourceMaps } from "../../hooks/useTraceSourceMaps";
 import { CollapsiblePanel } from "./StepDebugger/CollapsiblePanel";
 import { ResizablePanel } from "./StepDebugger/ResizablePanel";
 import { ControlsBar } from "./StepDebugger/ControlsBar";
@@ -164,6 +167,22 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
 
   const { names: contractNames, abiSelectors } = useContractMeta(callTreeAddresses);
   const { data: signatureMap = {} } = useSignatures(callTreeSelectors);
+
+  // Frame → entry-step mapping (lifted here so per-contract source maps can be
+  // computed once and shared with the call tree).
+  const frameStepMap = useMemo(
+    () => (callTrace ? mapFramesToSteps(callTrace, steps) : new Map<CallFrame, number>()),
+    [callTrace, steps],
+  );
+
+  // Source maps for EVERY contract in the trace, so the call tree can trace
+  // internal functions across all of them (Remix's model), not just the active
+  // contract. Keyed by the pcs each contract actually executed.
+  const pcsByContract = useMemo(
+    () => (callTrace ? computePcsByContract(callTrace, frameStepMap, steps) : {}),
+    [callTrace, frameStepMap, steps],
+  );
+  const { data: traceSourceMaps = {} } = useTraceSourceMaps(pcsByContract);
 
   const uniquePcs = useMemo(() => [...new Set(steps.map((s) => s.pc))], [steps]);
 
@@ -450,8 +469,8 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
   if (!step) return null;
 
   const callTreeProps = {
-    steps, onJumpTo: jumpToAndShowSource, signatureMap, sourceMappings,
-    callTrace, contractNames, abiSelectors, onExpandFrame,
+    steps, onJumpTo: jumpToAndShowSource, signatureMap, frameStepMap,
+    traceSourceMaps, callTrace, contractNames, abiSelectors, onExpandFrame,
   };
 
   return (

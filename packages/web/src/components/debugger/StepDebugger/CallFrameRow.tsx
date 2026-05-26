@@ -5,7 +5,8 @@ import type { SignatureMatch } from "../../../api/signatures";
 import { lookupWellKnown } from "../../../lib/wellKnownSignatures";
 import { bestMatchSignature } from "./callTreeHelpers";
 import { CALL_TYPE_BORDER } from "./theme";
-import type { InternalCall } from "./types";
+import { ScopeRow } from "./ScopeRow";
+import type { ScopeNode } from "./executionScopes";
 
 // Short, uppercase call-type tag shown inline on each row (Tenderly-style),
 // colored by the call kind. Keeps the tree scannable without a hover tooltip.
@@ -41,7 +42,7 @@ export function CallFrameRow({
   contractNames,
   abiSelectors,
   frameStepMap,
-  internalCallsByFrame,
+  scopesByFrame,
   onSelect,
   selectedFrame,
   onExpand,
@@ -53,7 +54,7 @@ export function CallFrameRow({
   contractNames: Record<string, string | null>;
   abiSelectors: Record<string, Record<string, string>>;
   frameStepMap: Map<CallFrame, number>;
-  internalCallsByFrame: Map<CallFrame, InternalCall[]>;
+  scopesByFrame: Map<CallFrame, ScopeNode[]>;
   onSelect?: (frame: CallFrame) => void;
   selectedFrame?: CallFrame | null;
   /** Open the frame's opcode slice in an overlay. */
@@ -251,50 +252,47 @@ export function CallFrameRow({
         )}
       </div>
 
-      {expanded && frame.calls?.map((child, i) => (
-        <CallFrameRow
-          key={i}
-          frame={child}
-          depth={depth + 1}
-          onJumpTo={onJumpTo}
-          signatureMap={signatureMap}
-          contractNames={contractNames}
-          abiSelectors={abiSelectors}
-          frameStepMap={frameStepMap}
-          internalCallsByFrame={internalCallsByFrame}
-          onSelect={onSelect}
-          selectedFrame={selectedFrame}
-          onExpand={onExpand}
-        />
-      ))}
-      {expanded && internalCallsByFrame.get(frame)?.map((ic, i) => (
-        <div
-          key={`internal-${i}`}
-          className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap"
-          onClick={() => onJumpTo(ic.stepIndex, ic.funcName)}
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          {/* Guide lines indented one level deeper than the parent frame. */}
-          {Array.from({ length: depth + 1 }, (_, g) => (
-            <span
-              key={g}
-              className="self-stretch flex-shrink-0"
-              style={{ width: "14px", boxShadow: "inset 1px 0 0 0 var(--color-border-muted)", marginLeft: g === 0 ? "6px" : 0 }}
+      {/* Children: sub-call frames AND this frame's own internal function
+          scopes, interleaved in execution order (by entry step) so an internal
+          call shows where it actually happened relative to the sub-calls. */}
+      {expanded && (() => {
+        type Child =
+          | { kind: "frame"; start: number; frame: CallFrame }
+          | { kind: "scope"; start: number; scope: ScopeNode };
+        const children: Child[] = [
+          ...(frame.calls ?? []).map((c) => ({
+            kind: "frame" as const,
+            start: frameStepMap.get(c) ?? Number.MAX_SAFE_INTEGER,
+            frame: c,
+          })),
+          ...(scopesByFrame.get(frame) ?? []).map((s) => ({
+            kind: "scope" as const,
+            start: s.startStep,
+            scope: s,
+          })),
+        ].sort((a, b) => a.start - b.start);
+
+        return children.map((item, i) =>
+          item.kind === "frame" ? (
+            <CallFrameRow
+              key={`f-${i}`}
+              frame={item.frame}
+              depth={depth + 1}
+              onJumpTo={onJumpTo}
+              signatureMap={signatureMap}
+              contractNames={contractNames}
+              abiSelectors={abiSelectors}
+              frameStepMap={frameStepMap}
+              scopesByFrame={scopesByFrame}
+              onSelect={onSelect}
+              selectedFrame={selectedFrame}
+              onExpand={onExpand}
             />
-          ))}
-          <span className="w-4 flex items-center justify-center flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
-            <Icon icon="heroicons:arrow-turn-down-right" className="w-3 h-3" />
-          </span>
-          <span style={{ color: "var(--color-text-secondary)", fontStyle: "italic" }}>
-            {ic.funcName}
-          </span>
-          {ic.line > 0 && (
-            <span style={{ color: "var(--color-text-muted)" }}>
-              L{ic.line}
-            </span>
-          )}
-        </div>
-      ))}
+          ) : (
+            <ScopeRow key={`s-${i}`} scope={item.scope} depth={depth + 1} onJumpTo={onJumpTo} />
+          ),
+        );
+      })()}
     </div>
   );
 }

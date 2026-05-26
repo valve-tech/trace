@@ -1,5 +1,7 @@
 import type { CallFrame, OpcodeStep } from "../../../api/debugger";
 
+const CALL_OPS = new Set(["CALL", "CALLCODE", "DELEGATECALL", "STATICCALL", "CREATE", "CREATE2"]);
+
 /**
  * Map each CallFrame to the opcode-step index where its execution begins.
  *
@@ -57,8 +59,24 @@ export function mapFramesToSteps(
         cursor = entry + 1;
         walk(child, childDepth, entry);
       } else {
-        map.set(child, frameStep);
-        walk(child, childDepth, frameStep);
+        // Codeless callee (value transfer, precompile, EOA): no deeper step
+        // exists, but the CALL-family op that invoked it does, at the parent's
+        // depth. Map there so the row sorts in execution order and a click
+        // lands on the call site — rather than collapsing to the parent's
+        // entry (which sorts the row to the very top).
+        let callSite = -1;
+        for (let j = cursor; j < steps.length; j++) {
+          const d = steps[j]!.depth;
+          if (d < frameDepth) break;
+          if (d === frameDepth && CALL_OPS.has(steps[j]!.op)) {
+            callSite = j;
+            break;
+          }
+        }
+        const at = callSite >= 0 ? callSite : frameStep;
+        if (callSite >= 0) cursor = callSite + 1;
+        map.set(child, at);
+        walk(child, childDepth, at);
       }
     }
   };

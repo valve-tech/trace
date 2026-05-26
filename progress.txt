@@ -1,5 +1,48 @@
 # PulseChain Dev Platform — Progress
 
+## Session: 2026-05-26 — Debugger: Remix-style internal-function tree (ported)
+
+User: "if remix has a good one we should just use it." Verified the npm package
+`@remix-project/remix-debug` is NOT a browser drop-in (full @ethereumjs/vm,
+CommonJS, needs full solc AST per contract). Ported its *approach* instead.
+
+Root cause of the weak tree: we only ever had source maps for ONE contract (the
+active one) and detected internal calls with a per-frame heuristic. Remix loads
+a source map per contract and walks the map's `jump` field with a scope stack
+('i' push, 'o' pop). Adopted that:
+
+- `executionScopes.ts` (pure, 5 tests): `computePcsByContract` (own-depth pcs per
+  frame.to) + `buildScopesByFrame` → nested ScopeNode tree via the jump-i/o
+  scope-stack walk over each frame's contract source map. Names from the jump
+  site's source snippet (no AST).
+- `useTraceSourceMaps.ts`: fetch source maps for EVERY contract in the trace
+  (one /api/source/:addr/map per contract; compileForSourceMap is cached on the
+  verified_sources row, so cheap). No backend change.
+- Lifted `frameStepMap` (mapFramesToSteps) to StepDebugger; pass per-contract
+  maps + frameStepMap into the tree.
+- `ScopeRow.tsx`: recursive nested internal-function rows (expandable,
+  click-to-jump). CallFrameRow now **interleaves** sub-call frames and internal
+  scopes by entry step (execution order) instead of frames-then-scopes.
+- `callTreeModel.ts`: codeless callees (value transfer/precompile/EOA) now map
+  to the CALL op that invoked them (CALL_OPS scan from cursor), not the parent's
+  step 0 — fixes the `receive` row sorting to the top AND makes its click land
+  on the call site. callTreeModel.test updated (D: 0 → 13).
+- Removed dead types.ts (InternalCall).
+
+Verified live on 0x94ff…5b95: router swap → pairFor→sortTokens / safeTransferFrom
+/ _swapSupportingFeeOnTransferTokens→sortTokens/pairFor/getAmountOut /
+safeTransferETH, THEN CODA.transferFrom (with its internals) and its sub-calls —
+correct nesting + execution order, internal fns traced across ALL contracts
+(router/CODA/PulseXPair/WPLS), no replication. web 67 / lint 0 / build green.
+
+### Still open / notes
+- Internal-fn names come from the jump-site snippet, so casts/lib calls can read
+  oddly (`uint L459`, `mapping L28`, `IERC20 L761`). Exact names need the AST
+  (Remix uses it); structure/lines are exact. Acceptable for now.
+- First load compiles source maps for every contract in the trace (cached after).
+
+---
+
 ## Session: 2026-05-25 (cont. 2) — Debugger UX: readable tree, operands, frame overlay
 
 Three asks after the untruncate work: (1) call tree unreadable (fixed 280px,

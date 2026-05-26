@@ -45,7 +45,7 @@ describe("mapFramesToSteps", () => {
     expect(m.get(A)).toBe(3);
     expect(m.get(B)).toBe(7);
     expect(m.get(C)).toBe(9); // nested via DELEGATECALL — depth 3
-    expect(m.get(D)).toBe(0); // codeless → falls back to parent (root) step
+    expect(m.get(D)).toBe(13); // codeless → maps to the CALL op that invoked it
   });
 
   it("maps every frame to 0 when there is no opcode trace", () => {
