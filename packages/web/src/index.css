@@ -45,9 +45,19 @@
 }
 
 * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border-default) transparent;
   border-radius: 0 !important;
+}
+
+/* Firefox (and anything without ::-webkit-scrollbar) gets the standard
+   properties. We DON'T set these globally: Chrome 121+ implemented
+   scrollbar-width/scrollbar-color, and setting either makes Chrome IGNORE the
+   ::-webkit-scrollbar styling below — reverting our custom bars to thin native
+   ones. Gating on @supports keeps Chrome/Safari on the webkit pseudo-elements. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-default) transparent;
+  }
 }
 
 /* Custom scrollbar — applied to everything that scrolls. Styling the webkit
