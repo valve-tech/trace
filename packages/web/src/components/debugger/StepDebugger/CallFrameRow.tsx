@@ -3,7 +3,7 @@ import { Icon } from "@iconify/react";
 import { lookupWellKnown } from "../../../lib/wellKnownSignatures";
 import { bestMatchSignature } from "./callTreeHelpers";
 import { CALL_TYPE_BORDER } from "./theme";
-import { TreeNode, type TreeShared } from "./TreeNode";
+import { TreeNode, DEFAULT_EXPAND_DEPTH, type TreeShared } from "./TreeNode";
 import type { ExecNode } from "./executionScopes";
 
 // Short, uppercase call-type tag shown inline on each row (Tenderly-style),
@@ -46,7 +46,7 @@ export function CallFrameRow({
   const frame = node.frame;
   const stepIndex = node.startStep;
 
-  const [expanded, setExpanded] = useState(depth < 2);
+  const [expanded, setExpanded] = useState(depth < DEFAULT_EXPAND_DEPTH);
   const [hovered, setHovered] = useState(false);
   const hasChildren = node.children.length > 0;
 

@@ -3,6 +3,16 @@ import type { SignatureMatch } from "../../../api/signatures";
 import type { ExecNode } from "./executionScopes";
 import { CallFrameRow } from "./CallFrameRow";
 import { ScopeRow } from "./ScopeRow";
+import { LogRow } from "./LogRow";
+
+/**
+ * Default depth to auto-expand the unified tree to. In this tree an external
+ * CALL nests inside the internal function that made it (e.g. `safeTransferFrom`
+ * → `CODA.transferFrom` → `_transferFrom`), so a frame's internal functions sit
+ * 1–2 levels below it. Expanding to 5 reveals the first layer of internals
+ * under each top-level call without unrolling the deep SafeMath chains.
+ */
+export const DEFAULT_EXPAND_DEPTH = 5;
 
 /** Props shared by every node in the execution tree, threaded down unchanged. */
 export interface TreeShared {
@@ -29,9 +39,12 @@ export function TreeNode({
   depth: number;
   shared: TreeShared;
 }) {
-  return node.kind === "call" ? (
-    <CallFrameRow node={node} depth={depth} shared={shared} />
-  ) : (
-    <ScopeRow node={node} depth={depth} shared={shared} />
-  );
+  switch (node.kind) {
+    case "call":
+      return <CallFrameRow node={node} depth={depth} shared={shared} />;
+    case "fn":
+      return <ScopeRow node={node} depth={depth} shared={shared} />;
+    case "log":
+      return <LogRow node={node} depth={depth} shared={shared} />;
+  }
 }

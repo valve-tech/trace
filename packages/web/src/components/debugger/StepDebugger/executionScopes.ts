@@ -20,6 +20,11 @@ import type { SourceLocation } from "../../../api/source";
  *
  * Names come from the jump-site source snippet (no AST), so casts/library
  * calls read approximately; structure and lines are exact.
+ *
+ * Emitted events (LOG0–LOG4) are interleaved too: each becomes a leaf `log`
+ * node inside whichever function/frame was executing when it fired, decoded to
+ * an event signature via the optional `logsByStep` map (built from the receipt
+ * logs in the debugger).
  */
 
 export type ExecNode =
@@ -35,7 +40,22 @@ export type ExecNode =
        *  dispatch into a function body) rather than an internal call site.
        *  These are redundant with the frame and get hoisted away. */
       decl?: boolean;
-    };
+    }
+  /** A LOG0–LOG4 opcode — an emitted event. A leaf: it nests inside whatever
+   *  function/frame was executing when it fired, so you see which function
+   *  emitted it. `name` is the decoded event signature when we have it. */
+  | { kind: "log"; step: number; name: string; topicCount: number };
+
+/**
+ * Decoded event metadata for a LOG opcode, keyed by the step index at which
+ * the LOG executed. Built in the debugger from the receipt's emitted logs
+ * (the k-th LOG opcode in execution order is the k-th receipt log).
+ */
+export type LogsByStep = Map<number, { name: string; topicCount: number }>;
+
+const LOG_ARITY: Record<string, number> = {
+  LOG0: 0, LOG1: 1, LOG2: 2, LOG3: 3, LOG4: 4,
+};
 
 type SourceMap = Record<number, SourceLocation | null>;
 
@@ -88,7 +108,8 @@ export function computePcsByContract(
 type Event =
   | { step: number; t: "enter"; name: string; line: number; decl: boolean }
   | { step: number; t: "exit" }
-  | { step: number; t: "call"; child: CallFrame };
+  | { step: number; t: "call"; child: CallFrame }
+  | { step: number; t: "log"; name: string; topicCount: number };
 
 /**
  * Hoist away "declaration" fn nodes — the public/dispatch entries whose source
@@ -102,16 +123,18 @@ function flattenDecls(nodes: ExecNode[]): ExecNode[] {
       const kids = flattenDecls(n.children);
       if (n.decl) out.push(...kids);
       else out.push({ ...n, children: kids });
-    } else {
+    } else if (n.kind === "call") {
       out.push({ ...n, children: flattenDecls(n.children) });
+    } else {
+      out.push(n); // log — leaf, nothing to recurse
     }
   }
   return out;
 }
 
-// At equal step, enter before call (a call nests in the just-entered fn)
-// before exit (close after the call is placed).
-const RANK: Record<Event["t"], number> = { enter: 0, call: 1, exit: 2 };
+// At equal step: enter before call (a call nests in the just-entered fn),
+// then log (it belongs to the open scope), then exit (close after both).
+const RANK: Record<Event["t"], number> = { enter: 0, call: 1, log: 2, exit: 3 };
 
 /**
  * Build the unified execution tree rooted at `root`. Every frame becomes a
@@ -123,6 +146,7 @@ export function buildExecutionTree(
   frameStepMap: Map<CallFrame, number>,
   steps: OpcodeStep[],
   sourceMapsByAddr: Record<string, SourceMap>,
+  logsByStep?: LogsByStep,
 ): ExecNode {
   const build = (frame: CallFrame): Extract<ExecNode, { kind: "call" }> => {
     const entry = frameStepMap.get(frame) ?? 0;
@@ -136,22 +160,34 @@ export function buildExecutionTree(
     const sm = frame.to ? sourceMapsByAddr[frame.to.toLowerCase()] : undefined;
 
     const events: Event[] = [];
-    if (sm) {
-      for (let i = entry; i < end; i++) {
-        if (steps[i]!.depth !== depth) continue; // inside a sub-call — not ours
-        const loc = sm[steps[i]!.pc];
-        if (!loc) continue;
-        if (loc.jumpType === "i") {
-          events.push({
-            step: i,
-            t: "enter",
-            name: funcNameFromSnippet(loc.sourceSnippet),
-            line: loc.line,
-            decl: /^\s*function\b/.test(loc.sourceSnippet),
-          });
-        } else if (loc.jumpType === "o") {
-          events.push({ step: i, t: "exit" });
-        }
+    for (let i = entry; i < end; i++) {
+      if (steps[i]!.depth !== depth) continue; // inside a sub-call — not ours
+      const op = steps[i]!.op;
+      // Emitted event: a LOG0–LOG4 at our own depth. Decoded name (if any)
+      // comes from the receipt logs, matched by step.
+      const arity = LOG_ARITY[op];
+      if (arity !== undefined) {
+        const meta = logsByStep?.get(i);
+        events.push({
+          step: i,
+          t: "log",
+          name: meta?.name ?? op,
+          topicCount: meta?.topicCount ?? arity,
+        });
+        continue;
+      }
+      const loc = sm?.[steps[i]!.pc];
+      if (!loc) continue;
+      if (loc.jumpType === "i") {
+        events.push({
+          step: i,
+          t: "enter",
+          name: funcNameFromSnippet(loc.sourceSnippet),
+          line: loc.line,
+          decl: /^\s*function\b/.test(loc.sourceSnippet),
+        });
+      } else if (loc.jumpType === "o") {
+        events.push({ step: i, t: "exit" });
       }
     }
     for (const child of frame.calls ?? []) {
@@ -185,6 +221,14 @@ export function buildExecutionTree(
           const closed = stack.pop() as Extract<ExecNode, { kind: "fn" }>;
           closed.endStep = ev.step;
         }
+      } else if (ev.t === "log") {
+        // Emitted event — a leaf inside whichever scope is currently open.
+        top.children.push({
+          kind: "log",
+          step: ev.step,
+          name: ev.name,
+          topicCount: ev.topicCount,
+        });
       } else {
         // Sub-call. A codeless callee (value transfer / precompile / EOA) ran
         // no deeper opcodes → it's a leaf, not a frame to recurse into.

@@ -1,4 +1,4 @@
-import { toFunctionSelector, type AbiFunction } from "viem";
+import { toFunctionSelector, toEventSelector, type AbiFunction, type AbiEvent } from "viem";
 
 /**
  * Per-contract metadata derived from a single /api/source fetch: the verified
@@ -13,6 +13,10 @@ export interface ContractMeta {
   name: string | null;
   /** selector (0x + 8 hex, lowercase) → function name */
   selectors: Record<string, string>;
+  /** topic0 (0x + 64 hex, lowercase) → event signature, e.g.
+   *  `Transfer(address,address,uint256)`. Lets the debugger label emitted
+   *  events from the verified ABI without a 4byte round-trip. */
+  events: Record<string, string>;
 }
 
 const cache = new Map<string, ContractMeta>();
@@ -26,6 +30,23 @@ function buildSelectorMap(abi: unknown): Record<string, string> {
       map[toFunctionSelector(item as AbiFunction).toLowerCase()] = (
         item as AbiFunction
       ).name;
+    } catch {
+      // Skip malformed ABI entries.
+    }
+  }
+  return map;
+}
+
+function buildEventMap(abi: unknown): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!Array.isArray(abi)) return map;
+  for (const item of abi) {
+    const ev = item as AbiEvent;
+    if (!item || ev.type !== "event") continue;
+    try {
+      const topic0 = toEventSelector(ev).toLowerCase();
+      const params = (ev.inputs ?? []).map((i) => i.type).join(",");
+      map[topic0] = `${ev.name}(${params})`;
     } catch {
       // Skip malformed ABI entries.
     }
@@ -55,7 +76,7 @@ export async function resolveContractMeta(
           const res = await fetch(`/api/source/${addr}`, {
             signal: AbortSignal.timeout(8_000),
           });
-          if (!res.ok) return [addr, { name: null, selectors: {} }];
+          if (!res.ok) return [addr, { name: null, selectors: {}, events: {} }];
           const data = (await res.json()) as {
             ok: boolean;
             source?: { contractName?: string | null; abi?: unknown };
@@ -65,10 +86,11 @@ export async function resolveContractMeta(
             {
               name: data.source?.contractName ?? null,
               selectors: buildSelectorMap(data.source?.abi),
+              events: buildEventMap(data.source?.abi),
             },
           ];
         } catch {
-          return [addr, { name: null, selectors: {} }];
+          return [addr, { name: null, selectors: {}, events: {} }];
         }
       }),
     );

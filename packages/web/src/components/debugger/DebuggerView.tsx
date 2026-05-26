@@ -208,6 +208,8 @@ export default function DebuggerView() {
                   contractAddress={targetAddress ?? undefined}
                   callTrace={callTrace}
                   txHash={validUrlHash}
+                  decodedLogs={txContext.data?.decodedLogs}
+                  rawLogs={txContext.data?.rawLogs}
                 />
               ) : (
                 <NoDataPanel message="Step debugger requires opcode trace data. A debug-enabled node is needed." />

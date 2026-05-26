@@ -9,7 +9,11 @@ import { resolveContractMeta, type ContractMeta } from "../api/contractMeta";
 export function useContractMeta(addresses: string[]) {
   const key = addresses.map((a) => a.toLowerCase()).sort().join(",");
   const query = useQuery({
-    queryKey: ["contract-meta", key],
+    // The `v2` segment busts persisted caches from before ContractMeta carried
+    // its `events` map — those entries are rehydrated from IndexedDB and, under
+    // the global `staleTime: Infinity`, would otherwise never refetch, leaving
+    // tree events undecoded.
+    queryKey: ["contract-meta", "v2", key],
     queryFn: () => resolveContractMeta(addresses),
     enabled: addresses.length > 0,
   });
@@ -17,10 +21,12 @@ export function useContractMeta(addresses: string[]) {
   const meta: Record<string, ContractMeta> = query.data ?? {};
   const names: Record<string, string | null> = {};
   const abiSelectors: Record<string, Record<string, string>> = {};
+  const eventTopics: Record<string, Record<string, string>> = {};
   for (const [addr, m] of Object.entries(meta)) {
     names[addr] = m.name;
     abiSelectors[addr] = m.selectors;
+    eventTopics[addr] = m.events;
   }
 
-  return { names, abiSelectors };
+  return { names, abiSelectors, eventTopics };
 }

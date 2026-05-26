@@ -20,6 +20,7 @@ import FindingsPanel from "./SlitherFindingsPanel";
 import { flattenCallTree, walkCallTree } from "./StepDebugger/callTreeHelpers";
 import { mapFramesToSteps } from "./StepDebugger/callTreeModel";
 import { computePcsByContract } from "./StepDebugger/executionScopes";
+import { buildLogsByStep } from "./StepDebugger/logsByStep";
 import { useTraceSourceMaps } from "../../hooks/useTraceSourceMaps";
 import { CollapsiblePanel } from "./StepDebugger/CollapsiblePanel";
 import { ResizablePanel } from "./StepDebugger/ResizablePanel";
@@ -37,11 +38,25 @@ import { OperandBar } from "./StepDebugger/OperandBar";
 import { describeOperands } from "./StepDebugger/opcodeOperands";
 import { FrameOpcodesOverlay } from "./StepDebugger/FrameOpcodesOverlay";
 
+interface DecodedLog {
+  eventName: string;
+  args: { type: string }[];
+  logIndex: number;
+}
+interface RawLog {
+  address: string;
+  topics: string[];
+  logIndex: number;
+}
+
 interface StepDebuggerProps {
   steps: OpcodeStep[];
   contractAddress?: string;
   callTrace?: CallFrame | null;
   txHash?: string | null;
+  /** Receipt logs (emission order), used to decode the events in the tree. */
+  decodedLogs?: DecodedLog[];
+  rawLogs?: RawLog[];
 }
 
 // Per-step state (stack/memory/storage) is loaded lazily in chunks of this
@@ -50,7 +65,14 @@ interface StepDebuggerProps {
 // TanStack Query cache each chunk.
 const DETAIL_CHUNK = 512;
 
-export default function StepDebugger({ steps, contractAddress, callTrace, txHash }: StepDebuggerProps) {
+export default function StepDebugger({
+  steps,
+  contractAddress,
+  callTrace,
+  txHash,
+  decodedLogs,
+  rawLogs,
+}: StepDebuggerProps) {
   const nav = useOpcodeNavigation(steps);
   const { currentIndex: currentStep, totalSteps } = nav;
 
@@ -165,7 +187,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
     return [...sels];
   }, [callTrace]);
 
-  const { names: contractNames, abiSelectors } = useContractMeta(callTreeAddresses);
+  const { names: contractNames, abiSelectors, eventTopics } = useContractMeta(callTreeAddresses);
   const { data: signatureMap = {} } = useSignatures(callTreeSelectors);
 
   // Frame → entry-step mapping (lifted here so per-contract source maps can be
@@ -183,6 +205,13 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
     [callTrace, frameStepMap, steps],
   );
   const { data: traceSourceMaps = {} } = useTraceSourceMaps(pcsByContract);
+
+  // Decoded events keyed by the LOG opcode's step, so the call tree can show
+  // each emitted event nested in the function that fired it.
+  const logsByStep = useMemo(
+    () => buildLogsByStep(steps, rawLogs ?? [], eventTopics, decodedLogs ?? []),
+    [steps, rawLogs, eventTopics, decodedLogs],
+  );
 
   const uniquePcs = useMemo(() => [...new Set(steps.map((s) => s.pc))], [steps]);
 
@@ -470,7 +499,7 @@ export default function StepDebugger({ steps, contractAddress, callTrace, txHash
 
   const callTreeProps = {
     steps, onJumpTo: jumpToAndShowSource, signatureMap, frameStepMap,
-    traceSourceMaps, callTrace, contractNames, abiSelectors, onExpandFrame,
+    traceSourceMaps, callTrace, contractNames, abiSelectors, logsByStep, onExpandFrame,
   };
 
   return (

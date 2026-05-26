@@ -5,7 +5,7 @@ import type { SignatureMatch } from "../../../api/signatures";
 import { PanelHeader } from "./PanelHeader";
 import { TreeNode, type TreeShared } from "./TreeNode";
 import { FrameDetailPanel } from "./FrameDetailPanel";
-import { buildExecutionTree } from "./executionScopes";
+import { buildExecutionTree, type LogsByStep } from "./executionScopes";
 
 /**
  * Sidebar tree built from the structured callTrace + per-contract source maps:
@@ -22,6 +22,7 @@ export function CallTreeFromOpcodes({
   callTrace,
   contractNames,
   abiSelectors,
+  logsByStep,
   onExpandFrame,
   inline,
 }: {
@@ -33,6 +34,7 @@ export function CallTreeFromOpcodes({
   callTrace?: CallFrame | null;
   contractNames: Record<string, string | null>;
   abiSelectors: Record<string, Record<string, string>>;
+  logsByStep?: LogsByStep;
   onExpandFrame?: (frame: CallFrame, entryStep: number, label: string) => void;
   inline?: boolean;
 }) {
@@ -41,8 +43,11 @@ export function CallTreeFromOpcodes({
   // The unified execution tree: external frames + internal functions, one
   // nesting, interleaved in execution order.
   const tree = useMemo(
-    () => (callTrace ? buildExecutionTree(callTrace, frameStepMap, steps, traceSourceMaps) : null),
-    [callTrace, frameStepMap, steps, traceSourceMaps],
+    () =>
+      callTrace
+        ? buildExecutionTree(callTrace, frameStepMap, steps, traceSourceMaps, logsByStep)
+        : null,
+    [callTrace, frameStepMap, steps, traceSourceMaps, logsByStep],
   );
 
   if (callTrace && tree) {

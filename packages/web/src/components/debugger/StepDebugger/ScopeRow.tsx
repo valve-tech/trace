@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
 import type { ExecNode } from "./executionScopes";
-import { TreeNode, type TreeShared } from "./TreeNode";
+import { TreeNode, DEFAULT_EXPAND_DEPTH, type TreeShared } from "./TreeNode";
 
 /**
  * One internal Solidity function (`fn` node of the execution tree). Its
@@ -18,7 +18,7 @@ export function ScopeRow({
   depth: number;
   shared: TreeShared;
 }) {
-  const [expanded, setExpanded] = useState(depth < 4);
+  const [expanded, setExpanded] = useState(depth < DEFAULT_EXPAND_DEPTH);
   const hasChildren = node.children.length > 0;
 
   return (

@@ -16,8 +16,10 @@ function loc(jumpType: string, snippet: string, line = 0): SourceLocation {
 function frame(to: string, calls: CallFrame[] = []): CallFrame {
   return { type: "CALL", from: "0x0", to, gas: "0x0", gasUsed: "0x0", input: "0x", calls } as CallFrame;
 }
-const fns = (n: ExecNode) => n.children.filter((c) => c.kind === "fn") as Extract<ExecNode, { kind: "fn" }>[];
-const calls = (n: ExecNode) => n.children.filter((c) => c.kind === "call") as Extract<ExecNode, { kind: "call" }>[];
+const kids = (n: ExecNode): ExecNode[] => (n.kind === "log" ? [] : n.children);
+const fns = (n: ExecNode) => kids(n).filter((c) => c.kind === "fn") as Extract<ExecNode, { kind: "fn" }>[];
+const calls = (n: ExecNode) => kids(n).filter((c) => c.kind === "call") as Extract<ExecNode, { kind: "call" }>[];
+const logs = (n: ExecNode) => kids(n).filter((c) => c.kind === "log") as Extract<ExecNode, { kind: "log" }>[];
 
 describe("buildExecutionTree", () => {
   it("nests internal functions via jump i/o", () => {
@@ -75,6 +77,19 @@ describe("buildExecutionTree", () => {
     expect(calls(swapBack)).toHaveLength(1);
     expect(calls(swapBack)[0]!.frame.to).toBe("0xBBB");
     expect(calls(tree)).toHaveLength(0);
+  });
+
+  it("places a LOG opcode as an event leaf inside the open function scope", () => {
+    const root = frame("0xAAA");
+    // enter swapBack at step1, emit a LOG3 at step2 (own depth), still inside it
+    const steps = [step(0, 1), step(10, 1), step(20, 1, "LOG3"), step(30, 1)];
+    const maps = { "0xaaa": { 10: loc("i", "swapBack()", 616) } as Record<number, SourceLocation> };
+    const logsByStep = new Map([[2, { name: "AutoLiquify(uint256,uint256)", topicCount: 3 }]]);
+    const tree = buildExecutionTree(root, new Map([[root, 0]]), steps, maps, logsByStep);
+    const swapBack = fns(tree)[0]!;
+    expect(logs(swapBack)).toHaveLength(1);
+    expect(logs(swapBack)[0]!.name).toBe("AutoLiquify(uint256,uint256)");
+    expect(logs(swapBack)[0]!.step).toBe(2);
   });
 
   it("treats a codeless callee as a leaf (no recursion into parent's code)", () => {
