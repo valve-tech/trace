@@ -1,29 +1,31 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
-import type { ScopeNode } from "./executionScopes";
+import type { ExecNode } from "./executionScopes";
+import { TreeNode, type TreeShared } from "./TreeNode";
 
 /**
- * One internal-function scope in the call tree, rendered recursively so nested
- * calls (a function that calls another) nest visually. Clicking jumps the
- * debugger to where the function was entered.
+ * One internal Solidity function (`fn` node of the execution tree). Its
+ * children — nested internal functions AND the external calls it made — render
+ * back through TreeNode, so a function that performs a CALL shows that call
+ * nested inside it. Clicking jumps to where the function was entered.
  */
 export function ScopeRow({
-  scope,
+  node,
   depth,
-  onJumpTo,
+  shared,
 }: {
-  scope: ScopeNode;
+  node: Extract<ExecNode, { kind: "fn" }>;
   depth: number;
-  onJumpTo: (step: number, funcName?: string) => void;
+  shared: TreeShared;
 }) {
-  const [expanded, setExpanded] = useState(depth < 3);
-  const hasChildren = scope.children.length > 0;
+  const [expanded, setExpanded] = useState(depth < 4);
+  const hasChildren = node.children.length > 0;
 
   return (
     <div>
       <div
         className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap"
-        onClick={() => onJumpTo(scope.startStep, scope.funcName)}
+        onClick={() => shared.onJumpTo(node.startStep, node.name)}
         style={{ fontFamily: "var(--font-mono)" }}
       >
         {Array.from({ length: depth }, (_, g) => (
@@ -48,14 +50,14 @@ export function ScopeRow({
           </span>
         )}
 
-        <span style={{ color: "var(--color-text-secondary)", fontStyle: "italic" }}>{scope.funcName}</span>
-        {scope.line > 0 && (
-          <span style={{ color: "var(--color-text-muted)" }}>L{scope.line}</span>
+        <span style={{ color: "var(--color-text-secondary)", fontStyle: "italic" }}>{node.name}</span>
+        {node.line > 0 && (
+          <span style={{ color: "var(--color-text-muted)" }}>L{node.line}</span>
         )}
       </div>
 
-      {expanded && scope.children.map((child, i) => (
-        <ScopeRow key={i} scope={child} depth={depth + 1} onJumpTo={onJumpTo} />
+      {expanded && node.children.map((child, i) => (
+        <TreeNode key={i} node={child} depth={depth + 1} shared={shared} />
       ))}
     </div>
   );

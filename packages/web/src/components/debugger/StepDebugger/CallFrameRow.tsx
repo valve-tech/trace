@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
-import type { CallFrame } from "../../../api/debugger";
-import type { SignatureMatch } from "../../../api/signatures";
 import { lookupWellKnown } from "../../../lib/wellKnownSignatures";
 import { bestMatchSignature } from "./callTreeHelpers";
 import { CALL_TYPE_BORDER } from "./theme";
-import { ScopeRow } from "./ScopeRow";
-import type { ScopeNode } from "./executionScopes";
+import { TreeNode, type TreeShared } from "./TreeNode";
+import type { ExecNode } from "./executionScopes";
 
 // Short, uppercase call-type tag shown inline on each row (Tenderly-style),
 // colored by the call kind. Keeps the tree scannable without a hover tooltip.
@@ -31,38 +29,26 @@ function formatGas(hex?: string): string | null {
 }
 
 /**
- * Render a single CallFrame from the API call tree.
- * Step index comes from the pre-computed frameStepMap (no mutable counters).
+ * Render one external call frame (a `call` node of the unified execution tree).
+ * Its children — sub-call frames and the internal functions it executed — are
+ * rendered back through TreeNode, so calls and functions nest freely.
  */
 export function CallFrameRow({
-  frame,
+  node,
   depth,
-  onJumpTo,
-  signatureMap,
-  contractNames,
-  abiSelectors,
-  frameStepMap,
-  scopesByFrame,
-  onSelect,
-  selectedFrame,
-  onExpand,
+  shared,
 }: {
-  frame: CallFrame;
+  node: Extract<ExecNode, { kind: "call" }>;
   depth: number;
-  onJumpTo: (step: number, funcName?: string) => void;
-  signatureMap: Record<string, SignatureMatch[]>;
-  contractNames: Record<string, string | null>;
-  abiSelectors: Record<string, Record<string, string>>;
-  frameStepMap: Map<CallFrame, number>;
-  scopesByFrame: Map<CallFrame, ScopeNode[]>;
-  onSelect?: (frame: CallFrame) => void;
-  selectedFrame?: CallFrame | null;
-  /** Open the frame's opcode slice in an overlay. */
-  onExpand?: (frame: CallFrame, entryStep: number, label: string) => void;
+  shared: TreeShared;
 }) {
+  const { onJumpTo, signatureMap, contractNames, abiSelectors, onSelect, selectedFrame, onExpand } = shared;
+  const frame = node.frame;
+  const stepIndex = node.startStep;
+
   const [expanded, setExpanded] = useState(depth < 2);
   const [hovered, setHovered] = useState(false);
-  const hasChildren = (frame.calls?.length ?? 0) > 0;
+  const hasChildren = node.children.length > 0;
 
   const selector = frame.input?.length >= 10 ? frame.input.slice(0, 10).toLowerCase() : "";
 
@@ -91,8 +77,6 @@ export function CallFrameRow({
       ? resolvedSig.split("(")[0]!
       : selector || noCalldataLabel);
   const displayLabel = contractName ?? wellKnown?.interface ?? null;
-
-  const stepIndex = frameStepMap.get(frame) ?? 0;
 
   const isSelected = selectedFrame === frame;
   // Flat rows (Tenderly-style): selection + hover + error drive the background;
@@ -252,47 +236,11 @@ export function CallFrameRow({
         )}
       </div>
 
-      {/* Children: sub-call frames AND this frame's own internal function
-          scopes, interleaved in execution order (by entry step) so an internal
-          call shows where it actually happened relative to the sub-calls. */}
-      {expanded && (() => {
-        type Child =
-          | { kind: "frame"; start: number; frame: CallFrame }
-          | { kind: "scope"; start: number; scope: ScopeNode };
-        const children: Child[] = [
-          ...(frame.calls ?? []).map((c) => ({
-            kind: "frame" as const,
-            start: frameStepMap.get(c) ?? Number.MAX_SAFE_INTEGER,
-            frame: c,
-          })),
-          ...(scopesByFrame.get(frame) ?? []).map((s) => ({
-            kind: "scope" as const,
-            start: s.startStep,
-            scope: s,
-          })),
-        ].sort((a, b) => a.start - b.start);
-
-        return children.map((item, i) =>
-          item.kind === "frame" ? (
-            <CallFrameRow
-              key={`f-${i}`}
-              frame={item.frame}
-              depth={depth + 1}
-              onJumpTo={onJumpTo}
-              signatureMap={signatureMap}
-              contractNames={contractNames}
-              abiSelectors={abiSelectors}
-              frameStepMap={frameStepMap}
-              scopesByFrame={scopesByFrame}
-              onSelect={onSelect}
-              selectedFrame={selectedFrame}
-              onExpand={onExpand}
-            />
-          ) : (
-            <ScopeRow key={`s-${i}`} scope={item.scope} depth={depth + 1} onJumpTo={onJumpTo} />
-          ),
-        );
-      })()}
+      {/* Children — sub-call frames and internal functions, already interleaved
+          in execution order by the tree builder. */}
+      {expanded && node.children.map((child, i) => (
+        <TreeNode key={i} node={child} depth={depth + 1} shared={shared} />
+      ))}
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildScopesForFrame,
+  buildExecutionTree,
   computePcsByContract,
-  buildScopesByFrame,
+  type ExecNode,
 } from "../components/debugger/StepDebugger/executionScopes";
 import type { OpcodeStep, CallFrame } from "../api/debugger";
 import type { SourceLocation } from "../api/source";
@@ -10,80 +10,92 @@ import type { SourceLocation } from "../api/source";
 function step(pc: number, depth: number, op = "JUMP"): OpcodeStep {
   return { pc, op, gas: 0, gasCost: 0, depth, stack: [], memory: [], storage: {} };
 }
-
 function loc(jumpType: string, snippet: string, line = 0): SourceLocation {
   return { file: "C.sol", line, column: 0, endLine: line, endColumn: 0, sourceSnippet: snippet, jumpType };
 }
+function frame(to: string, calls: CallFrame[] = []): CallFrame {
+  return { type: "CALL", from: "0x0", to, gas: "0x0", gasUsed: "0x0", input: "0x", calls } as CallFrame;
+}
+const fns = (n: ExecNode) => n.children.filter((c) => c.kind === "fn") as Extract<ExecNode, { kind: "fn" }>[];
+const calls = (n: ExecNode) => n.children.filter((c) => c.kind === "call") as Extract<ExecNode, { kind: "call" }>[];
 
-describe("buildScopesForFrame", () => {
-  it("nests an inner call inside an outer one via jump i/o", () => {
-    // depth-1 frame: enter pairFor, inside it enter sortTokens, return both.
-    const steps = [
-      step(0, 1), step(10, 1), step(20, 1), step(30, 1), step(40, 1), step(50, 1),
-    ];
-    const map: Record<number, SourceLocation> = {
-      10: loc("i", "pairFor(a, b)", 704),
-      20: loc("i", "sortTokens(x)", 224),
-      30: loc("o", ""),
-      40: loc("o", ""),
+describe("buildExecutionTree", () => {
+  it("nests internal functions via jump i/o", () => {
+    const root = frame("0xAAA");
+    const steps = [step(0, 1), step(10, 1), step(20, 1), step(30, 1), step(40, 1)];
+    const maps = {
+      "0xaaa": {
+        10: loc("i", "transferFrom(...)", 540),
+        20: loc("i", "_transferFrom(a, b)", 544),
+        30: loc("o", ""),
+        40: loc("o", ""),
+      } as Record<number, SourceLocation>,
     };
-    const scopes = buildScopesForFrame(0, steps, map);
-    expect(scopes).toHaveLength(1);
-    expect(scopes[0]!.funcName).toBe("pairFor");
-    expect(scopes[0]!.startStep).toBe(1);
-    expect(scopes[0]!.endStep).toBe(4);
-    expect(scopes[0]!.children).toHaveLength(1);
-    expect(scopes[0]!.children[0]!.funcName).toBe("sortTokens");
-    expect(scopes[0]!.children[0]!.startStep).toBe(2);
-    expect(scopes[0]!.children[0]!.endStep).toBe(3);
+    const tree = buildExecutionTree(root, new Map([[root, 0]]), steps, maps);
+    const top = fns(tree);
+    expect(top).toHaveLength(1);
+    expect(top[0]!.name).toBe("transferFrom");
+    expect(fns(top[0]!)[0]!.name).toBe("_transferFrom"); // nested inside transferFrom
   });
 
-  it("ignores steps inside a deeper sub-call", () => {
-    // Between entering and returning, depth jumps to 2 (an external sub-call);
-    // a jump 'i' at that depth must NOT be attributed to this frame.
-    const steps = [step(0, 1), step(10, 1, "CALL"), step(0, 2), step(99, 2), step(11, 1)];
-    const map: Record<number, SourceLocation> = {
-      99: loc("i", "shouldNotAppear(z)", 1),
+  it("hoists the public-dispatch wrapper so internal calls sit under the frame", () => {
+    const root = frame("0xAAA");
+    const steps = [step(0, 1), step(10, 1), step(11, 1), step(20, 1), step(30, 1)];
+    const maps = {
+      "0xaaa": {
+        10: loc("i", "function transferFrom(...)", 540), // public dispatch (decl)
+        11: loc("i", "function transferFrom(...)", 540), // duplicate entry
+        20: loc("i", "_transferFrom(a)", 544), // real internal call
+        30: loc("o", ""),
+      } as Record<number, SourceLocation>,
     };
-    expect(buildScopesForFrame(0, steps, map)).toEqual([]);
+    const tree = buildExecutionTree(root, new Map([[root, 0]]), steps, maps);
+    // The `function transferFrom` wrappers are hoisted away; _transferFrom is a
+    // direct child of the frame.
+    const top = fns(tree);
+    expect(top).toHaveLength(1);
+    expect(top[0]!.name).toBe("_transferFrom");
   });
 
-  it("closes an unbalanced open scope at the frame's last own step", () => {
-    const steps = [step(0, 1), step(10, 1), step(20, 1)];
-    const map: Record<number, SourceLocation> = { 10: loc("i", "foo()", 5) };
-    const scopes = buildScopesForFrame(0, steps, map);
-    expect(scopes[0]!.endStep).toBe(2);
+  it("nests an external sub-call inside the internal function that made it", () => {
+    const child = frame("0xBBB");
+    const root = frame("0xAAA", [child]);
+    // depth-1 root: enter swapBack at step1, CALL into child at step2 (depth 2 entry at 3)
+    const steps = [step(0, 1), step(10, 1), step(99, 1, "CALL"), step(0, 2), step(11, 1)];
+    const maps = { "0xaaa": { 10: loc("i", "swapBack()", 616) } as Record<number, SourceLocation> };
+    const tree = buildExecutionTree(
+      root,
+      new Map([[root, 0], [child, 3]]),
+      steps,
+      maps,
+    );
+    const swapBack = fns(tree)[0]!;
+    expect(swapBack.name).toBe("swapBack");
+    // the external call to 0xBBB nests INSIDE swapBack, not as a sibling
+    expect(calls(swapBack)).toHaveLength(1);
+    expect(calls(swapBack)[0]!.frame.to).toBe("0xBBB");
+    expect(calls(tree)).toHaveLength(0);
+  });
+
+  it("treats a codeless callee as a leaf (no recursion into parent's code)", () => {
+    const child = frame("0xBBB"); // value transfer, runs no code
+    const root = frame("0xAAA", [child]);
+    // child mapped to the CALL op at the parent's depth (step 1); never goes deeper
+    const steps = [step(0, 1), step(99, 1, "CALL"), step(11, 1), step(12, 1)];
+    const tree = buildExecutionTree(root, new Map([[root, 0], [child, 1]]), steps, {});
+    const leaf = calls(tree)[0]!;
+    expect(leaf.frame.to).toBe("0xBBB");
+    expect(leaf.children).toHaveLength(0);
   });
 });
 
 describe("computePcsByContract", () => {
   it("groups own-depth pcs by frame address", () => {
-    const root: CallFrame = {
-      type: "CALL", from: "0x0", to: "0xAAA", gas: "0x0", gasUsed: "0x0", input: "0x",
-      calls: [{ type: "CALL", from: "0xAAA", to: "0xBBB", gas: "0x0", gasUsed: "0x0", input: "0x" }],
-    };
-    // root own steps at depth1 (pcs 0,10), child at depth2 (pc 5)
+    const child = frame("0xBBB");
+    const root = frame("0xAAA", [child]);
     const steps = [step(0, 1), step(10, 1), step(5, 2), step(11, 1)];
-    const frameStepMap = new Map<CallFrame, number>([
-      [root, 0],
-      [root.calls![0]!, 2],
-    ]);
-    const out = computePcsByContract(root, frameStepMap, steps);
+    const out = computePcsByContract(root, new Map([[root, 0], [child, 2]]), steps);
     expect(new Set(out["0xaaa"])).toEqual(new Set([0, 10, 11]));
     expect(out["0xbbb"]).toEqual([5]);
-  });
-});
-
-describe("buildScopesByFrame", () => {
-  it("only emits scopes for frames whose contract has a source map", () => {
-    const root: CallFrame = {
-      type: "CALL", from: "0x0", to: "0xAAA", gas: "0x0", gasUsed: "0x0", input: "0x",
-    };
-    const steps = [step(0, 1), step(10, 1), step(20, 1)];
-    const maps = { "0xaaa": { 10: loc("i", "foo()", 1) } as Record<number, SourceLocation> };
-    const byFrame = buildScopesByFrame(root, new Map([[root, 0]]), steps, maps);
-    expect(byFrame.get(root)?.[0]?.funcName).toBe("foo");
-    // No map for the address → no scopes.
-    expect(buildScopesByFrame(root, new Map([[root, 0]]), steps, {}).size).toBe(0);
   });
 });

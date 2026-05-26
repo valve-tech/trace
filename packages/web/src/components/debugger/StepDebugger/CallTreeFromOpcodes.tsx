@@ -3,15 +3,15 @@ import type { OpcodeStep, CallFrame } from "../../../api/debugger";
 import type { SourceLocation } from "../../../api/source";
 import type { SignatureMatch } from "../../../api/signatures";
 import { PanelHeader } from "./PanelHeader";
-import { CallFrameRow } from "./CallFrameRow";
+import { TreeNode, type TreeShared } from "./TreeNode";
 import { FrameDetailPanel } from "./FrameDetailPanel";
-import { buildScopesByFrame, type ScopeNode } from "./executionScopes";
+import { buildExecutionTree } from "./executionScopes";
 
 /**
- * Sidebar tree built from the structured callTrace. Each external frame is
- * augmented with the internal Solidity function scopes it executed, traced via
- * the per-contract source maps (Remix's jump-i/jump-o model — see
- * executionScopes.ts). Rows map back to a step index via `frameStepMap`.
+ * Sidebar tree built from the structured callTrace + per-contract source maps:
+ * one unified tree where external CALLs nest inside the internal Solidity
+ * function executing them (Remix's model — see executionScopes.ts). Rows map
+ * back to a step index so clicks scrub the debugger.
  */
 export function CallTreeFromOpcodes({
   steps,
@@ -36,30 +36,26 @@ export function CallTreeFromOpcodes({
   onExpandFrame?: (frame: CallFrame, entryStep: number, label: string) => void;
   inline?: boolean;
 }) {
-  // Nested internal-function scopes per frame, from each contract's source map.
-  const scopesByFrame = useMemo((): Map<CallFrame, ScopeNode[]> => {
-    if (!callTrace) return new Map();
-    return buildScopesByFrame(callTrace, frameStepMap, steps, traceSourceMaps);
-  }, [callTrace, frameStepMap, steps, traceSourceMaps]);
-
   const [selectedFrame, setSelectedFrame] = useState<CallFrame | null>(null);
 
-  if (callTrace) {
-    const content = (
-      <CallFrameRow
-        frame={callTrace}
-        depth={0}
-        onJumpTo={onJumpTo}
-        signatureMap={signatureMap}
-        contractNames={contractNames}
-        abiSelectors={abiSelectors}
-        frameStepMap={frameStepMap}
-        scopesByFrame={scopesByFrame}
-        onSelect={setSelectedFrame}
-        selectedFrame={selectedFrame}
-        onExpand={onExpandFrame}
-      />
-    );
+  // The unified execution tree: external frames + internal functions, one
+  // nesting, interleaved in execution order.
+  const tree = useMemo(
+    () => (callTrace ? buildExecutionTree(callTrace, frameStepMap, steps, traceSourceMaps) : null),
+    [callTrace, frameStepMap, steps, traceSourceMaps],
+  );
+
+  if (callTrace && tree) {
+    const shared: TreeShared = {
+      onJumpTo,
+      signatureMap,
+      contractNames,
+      abiSelectors,
+      onSelect: setSelectedFrame,
+      selectedFrame,
+      onExpand: onExpandFrame,
+    };
+    const content = <TreeNode node={tree} depth={0} shared={shared} />;
 
     if (inline) return content;
 
