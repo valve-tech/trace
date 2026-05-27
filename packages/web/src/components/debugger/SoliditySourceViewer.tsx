@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { Icon } from "@iconify/react";
 import type { SourceFile } from "../../api/source";
 
 // ---------------------------------------------------------------------------
@@ -300,6 +301,67 @@ export default function SourceViewer({
   }, [lines]);
   const [selectedIdentifier, setSelectedIdentifier] = useState<string | null>(null);
 
+  // ---- In-pane find (Cmd/Ctrl+F) ------------------------------------------
+  // Native browser find searches the whole page (tree + opcodes + source) and
+  // can't scroll our pane sensibly, so we intercept it and search the code.
+  const findInputRef = useRef<HTMLInputElement>(null);
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [activeMatch, setActiveMatch] = useState(0);
+
+  const matchLines = useMemo(() => {
+    const q = findQuery.trim().toLowerCase();
+    if (!q) return [] as number[];
+    const out: number[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i]!.toLowerCase().includes(q)) out.push(i + 1);
+    }
+    return out;
+  }, [findQuery, lines]);
+
+  const matchSet = useMemo(() => new Set(matchLines), [matchLines]);
+  const activeMatchLine = matchLines[activeMatch] ?? null;
+
+  // Keep the active index in range as matches change, and scroll to it.
+  useEffect(() => {
+    if (activeMatch >= matchLines.length) setActiveMatch(0);
+  }, [matchLines, activeMatch]);
+  useEffect(() => {
+    if (!findOpen || activeMatchLine == null) return;
+    const el = containerRef.current?.querySelector(`[data-line="${activeMatchLine}"]`);
+    el?.scrollIntoView({ block: "center", behavior: "instant" });
+  }, [findOpen, activeMatchLine]);
+
+  const stepMatch = useCallback(
+    (dir: 1 | -1) => {
+      setActiveMatch((i) => {
+        const n = matchLines.length;
+        if (n === 0) return 0;
+        return (i + dir + n) % n;
+      });
+    },
+    [matchLines.length],
+  );
+
+  // Intercept Cmd/Ctrl+F while the viewer is mounted so it opens code-find.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F")) {
+        e.preventDefault();
+        setFindOpen(true);
+        requestAnimationFrame(() => findInputRef.current?.select());
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const closeFind = useCallback(() => {
+    setFindOpen(false);
+    setFindQuery("");
+    setActiveMatch(0);
+  }, []);
+
   // Auto-scroll to current line — also triggers when file changes
   useEffect(() => {
     if (!containerRef.current || !currentLine) return;
@@ -352,11 +414,45 @@ export default function SourceViewer({
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="overflow-auto text-xs"
-      style={{ fontFamily: "var(--font-mono)", maxHeight: "100%" }}
-    >
+    <div className="relative h-full">
+      {findOpen && (
+        <div
+          className="absolute top-2 right-3 z-20 flex items-center gap-tight px-2 py-1 card"
+          style={{ backgroundColor: "var(--color-bg-secondary)" }}
+        >
+          <Icon icon="heroicons:magnifying-glass" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--color-text-muted)" }} />
+          <input
+            ref={findInputRef}
+            value={findQuery}
+            onChange={(e) => { setFindQuery(e.target.value); setActiveMatch(0); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); stepMatch(e.shiftKey ? -1 : 1); }
+              else if (e.key === "Escape") { e.preventDefault(); closeFind(); }
+            }}
+            placeholder="Find in source"
+            className="bare-input bg-transparent outline-none text-xs"
+            style={{ width: 180, color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}
+            autoFocus
+          />
+          <span className="text-xs tabular-nums flex-shrink-0" style={{ color: "var(--color-text-muted)", minWidth: 44, textAlign: "right" }}>
+            {matchLines.length ? `${activeMatch + 1}/${matchLines.length}` : findQuery ? "0/0" : ""}
+          </span>
+          <button onClick={() => stepMatch(-1)} title="Previous match (Shift+Enter)" className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }} disabled={!matchLines.length}>
+            <Icon icon="heroicons:chevron-up" className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={() => stepMatch(1)} title="Next match (Enter)" className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }} disabled={!matchLines.length}>
+            <Icon icon="heroicons:chevron-down" className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={closeFind} title="Close (Esc)" className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+            <Icon icon="heroicons:x-mark" className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className="overflow-auto text-xs h-full"
+        style={{ fontFamily: "var(--font-mono)", maxHeight: "100%" }}
+      >
       {/* File name header */}
       <div
         className="sticky top-0 z-10 px-3 py-1.5 card-divider text-xs font-semibold"
@@ -381,6 +477,8 @@ export default function SourceViewer({
           const isCurrentLine = lineNum === currentLine;
           const isHighlighted = highlightLines?.has(lineNum);
           const isIdentifierLine = identifierLines.has(lineNum);
+          const isFindMatch = matchSet.has(lineNum);
+          const isActiveFind = findOpen && lineNum === activeMatchLine;
           const lineFindings = findingsByLine.get(lineNum);
           const tokens = tokenizedLines[i] ?? [];
 
@@ -390,16 +488,22 @@ export default function SourceViewer({
               data-line={lineNum}
               className="flex"
               style={{
-                backgroundColor: isCurrentLine
-                  ? "rgba(139, 92, 246, 0.15)"
-                  : isIdentifierLine
-                    ? "rgba(224, 108, 117, 0.08)"
-                    : isHighlighted
-                      ? "rgba(139, 92, 246, 0.05)"
-                      : "transparent",
-                borderLeft: isCurrentLine
-                  ? "3px solid var(--color-accent)"
-                  : "3px solid transparent",
+                backgroundColor: isActiveFind
+                  ? "rgba(210, 153, 34, 0.35)"
+                  : isFindMatch
+                    ? "rgba(210, 153, 34, 0.15)"
+                    : isCurrentLine
+                      ? "rgba(139, 92, 246, 0.15)"
+                      : isIdentifierLine
+                        ? "rgba(224, 108, 117, 0.08)"
+                        : isHighlighted
+                          ? "rgba(139, 92, 246, 0.05)"
+                          : "transparent",
+                borderLeft: isActiveFind
+                  ? "3px solid var(--color-warning)"
+                  : isCurrentLine
+                    ? "3px solid var(--color-accent)"
+                    : "3px solid transparent",
                 minHeight: "20px",
               }}
             >
@@ -468,6 +572,7 @@ export default function SourceViewer({
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
