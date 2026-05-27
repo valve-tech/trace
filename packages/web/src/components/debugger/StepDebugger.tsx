@@ -17,7 +17,7 @@ import { useContractSource, useSourceMappings } from "../../hooks/useContractSou
 import { useContractMeta } from "../../hooks/useContractMeta";
 import { useSignatures } from "../../hooks/useSignatures";
 import FindingsPanel from "./SlitherFindingsPanel";
-import { flattenCallTree, walkCallTree } from "./StepDebugger/callTreeHelpers";
+import { walkCallTree } from "./StepDebugger/callTreeHelpers";
 import { mapFramesToSteps } from "./StepDebugger/callTreeModel";
 import { computePcsByContract } from "./StepDebugger/executionScopes";
 import { buildLogsByStep } from "./StepDebugger/logsByStep";
@@ -340,29 +340,53 @@ export default function StepDebugger({
     return diffs;
   }, [currentDetail, prevDetail]);
 
-  // Which contract is executing at the current step? Walk the call tree by
-  // depth: each CALL pushes its target, each depth-decrease pops back.
-  const activeContractAddress = useMemo(() => {
-    if (!callTrace) return contractAddress ?? null;
-    const flatCalls = flattenCallTree(callTrace);
-    let callIdx = 0;
-    let currentAddr: string | null = callTrace.to ?? contractAddress ?? null;
-    const addrStack: Array<string | null> = [currentAddr];
+  // Step ranges of every frame that actually ran code, from the same
+  // frameStepMap the call tree uses. The previous approach counted CALL-family
+  // opcodes and paired them with the flattened tree in order; a codeless callee
+  // (EOA / precompile) or any call whose op/frame ordering didn't line up threw
+  // the count off by one and every later step resolved to the wrong contract
+  // ("fine until WPLS.balanceOf, then downhill"). Depth-bounded ranges don't
+  // drift: a frame owns [entry, end) where end is the first shallower step.
+  const frameRanges = useMemo(() => {
+    if (!callTrace) return [] as Array<{ addr: string | null; entry: number; end: number; depth: number }>;
+    const out: Array<{ addr: string | null; entry: number; end: number; depth: number }> = [];
+    const visit = (frame: CallFrame, parentDepth: number) => {
+      const entry = frameStepMap.get(frame);
+      if (entry === undefined) return;
+      const depth = steps[entry]?.depth ?? parentDepth + 1;
+      // A frame "ran code" only if it executed at a deeper depth than its
+      // parent; a codeless callee is mapped to the parent-depth CALL op and is
+      // skipped so it can't masquerade as the active contract.
+      const ranCode = depth > parentDepth;
+      if (ranCode) {
+        let end = steps.length;
+        for (let i = entry + 1; i < steps.length; i++) {
+          if (steps[i]!.depth < depth) { end = i; break; }
+        }
+        out.push({ addr: frame.to ?? null, entry, end, depth });
+        for (const c of frame.calls ?? []) visit(c, depth);
+      } else {
+        for (const c of frame.calls ?? []) visit(c, parentDepth);
+      }
+    };
+    visit(callTrace, 0);
+    return out;
+  }, [callTrace, frameStepMap, steps]);
 
-    for (let i = 0; i <= currentStep && i < steps.length; i++) {
-      const s = steps[i]!;
-      if (isCallOp(s.op) && callIdx < flatCalls.length) {
-        const target = flatCalls[callIdx]!.to;
-        callIdx++;
-        addrStack.push(target || currentAddr);
-        currentAddr = target || currentAddr;
-      } else if (i > 0 && s.depth < steps[i - 1]!.depth) {
-        addrStack.pop();
-        currentAddr = addrStack[addrStack.length - 1] ?? contractAddress ?? null;
+  // The contract executing at the cursor = the deepest frame whose range covers
+  // the current step. For DELEGATECALL the frame's `to` is the code contract,
+  // which is exactly the source we want to show.
+  const activeContractAddress = useMemo(() => {
+    let best: string | null = null;
+    let bestDepth = -1;
+    for (const f of frameRanges) {
+      if (f.entry <= currentStep && currentStep < f.end && f.depth > bestDepth) {
+        bestDepth = f.depth;
+        best = f.addr;
       }
     }
-    return currentAddr;
-  }, [callTrace, contractAddress, currentStep, steps]);
+    return best ?? callTrace?.to ?? contractAddress ?? null;
+  }, [frameRanges, currentStep, callTrace, contractAddress]);
 
   const { data: sourceData = null, isLoading: sourceLoading } = useContractSource(activeContractAddress);
 
