@@ -32,8 +32,16 @@ export type ExecNode =
   | {
       kind: "fn";
       name: string;
+      /** The function's definition line (where its body begins), shown on the
+       *  row and where a click navigates — not the call site. */
       line: number;
+      /** Step where this scope opened (the jump-in) — used for ordering and as
+       *  the stable selection key. */
       startStep: number;
+      /** Step at the function's first instruction (its entry JUMPDEST). Clicking
+       *  the row jumps here so the cursor lands on the definition and you can
+       *  step through the body. */
+      entryStep: number;
       endStep: number;
       children: ExecNode[];
       /** True when the entry mapped to a `function …` declaration (the public
@@ -137,6 +145,8 @@ type Event =
       fnFile?: string;
       fnStart?: number;
       fnEnd?: number;
+      /** Step at the function's first instruction (the entry JUMPDEST). */
+      entryStep: number;
     }
   | { step: number; t: "exit" }
   | { step: number; t: "call"; child: CallFrame; curFile?: string; curLine?: number }
@@ -194,11 +204,13 @@ export function buildExecutionTree(
     // JUMPDEST it lands on, which Solidity maps to the whole FunctionDefinition.
     // Lets us close the scope by containment when execution leaves that range,
     // covering the returns the optimizer emits with no `'o'` marker.
-    const landingRange = (i: number): { file: string; start: number; end: number } | null => {
+    const landingRange = (
+      i: number,
+    ): { step: number; file: string; start: number; end: number } | null => {
       for (let j = i + 1; j < end; j++) {
         if (steps[j]!.depth !== depth) continue;
         const l = sm?.[steps[j]!.pc];
-        if (l) return { file: l.file, start: l.line, end: l.endLine };
+        if (l) return { step: j, file: l.file, start: l.line, end: l.endLine };
       }
       return null;
     };
@@ -230,13 +242,15 @@ export function buildExecutionTree(
           step: i,
           t: "enter",
           name: funcNameFromSnippet(loc.sourceSnippet),
-          line: loc.line,
+          // Show the definition line (where the body begins), not the call site.
+          line: range?.start ?? loc.line,
           decl: /^\s*function\b/.test(loc.sourceSnippet),
           curFile: loc.file,
           curLine: loc.line,
           fnFile: range?.file,
           fnStart: range?.start,
           fnEnd: range?.end,
+          entryStep: range?.step ?? i,
         });
       } else if (loc.jumpType === "o") {
         events.push({ step: i, t: "exit" });
@@ -315,6 +329,7 @@ export function buildExecutionTree(
           name: ev.name,
           line: ev.line,
           startStep: ev.step,
+          entryStep: ev.entryStep,
           endStep: ev.step,
           children: [],
           decl: ev.decl,

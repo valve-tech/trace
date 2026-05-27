@@ -27,7 +27,7 @@ export function ScopeRow({
     <div>
       <div
         className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap"
-        onClick={() => { shared.onJumpTo(node.startStep, node.name); shared.onSelectKey?.(key); }}
+        onClick={() => { shared.onJumpTo(node.entryStep); shared.onSelectKey?.(key); }}
         style={{
           fontFamily: "var(--font-mono)",
           backgroundColor: isSelected ? "var(--color-accent-muted)" : undefined,
