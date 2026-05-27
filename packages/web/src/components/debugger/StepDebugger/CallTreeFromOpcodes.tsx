@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { OpcodeStep, CallFrame } from "../../../api/debugger";
 import type { SourceLocation } from "../../../api/source";
 import type { SignatureMatch } from "../../../api/signatures";
@@ -6,6 +6,11 @@ import { PanelHeader } from "./PanelHeader";
 import { TreeNode, type TreeShared } from "./TreeNode";
 import { FrameDetailPanel } from "./FrameDetailPanel";
 import { buildExecutionTree, type LogsByStep } from "./executionScopes";
+import {
+  loadTreeExpandState,
+  saveTreeExpandState,
+  pruneStaleTreeState,
+} from "../../../lib/debuggerTreeState";
 
 /**
  * Sidebar tree built from the structured callTrace + per-contract source maps:
@@ -47,30 +52,23 @@ export function CallTreeFromOpcodes({
   // Persisted expand/collapse overrides, scoped to the transaction. We store
   // only the rows the user explicitly toggled (deviations from the depth-based
   // default), keyed by the stable nodeKey so they reattach after a reload.
-  const storageKey = treeStateKey ? `debugger:tree-expand:${treeStateKey}` : null;
-  const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>(() => {
-    if (!storageKey) return {};
-    try {
-      return JSON.parse(localStorage.getItem(storageKey) ?? "{}") as Record<string, boolean>;
-    } catch {
-      return {};
-    }
-  });
+  const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>(() =>
+    treeStateKey ? loadTreeExpandState(treeStateKey) : {},
+  );
+  // Reload overrides when the viewed tx changes, and sweep stale entries once.
+  useEffect(() => {
+    pruneStaleTreeState();
+    setExpandedOverrides(treeStateKey ? loadTreeExpandState(treeStateKey) : {});
+  }, [treeStateKey]);
   const onToggleExpand = useCallback(
     (key: string, expanded: boolean) => {
       setExpandedOverrides((prev) => {
         const next = { ...prev, [key]: expanded };
-        if (storageKey) {
-          try {
-            localStorage.setItem(storageKey, JSON.stringify(next));
-          } catch {
-            /* quota / disabled storage — keep the in-memory state regardless. */
-          }
-        }
+        if (treeStateKey) saveTreeExpandState(treeStateKey, next);
         return next;
       });
     },
-    [storageKey],
+    [treeStateKey],
   );
 
   // The unified execution tree: external frames + internal functions, one
