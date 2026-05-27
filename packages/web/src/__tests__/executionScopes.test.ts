@@ -38,6 +38,9 @@ describe("buildExecutionTree", () => {
     expect(top).toHaveLength(1);
     expect(top[0]!.name).toBe("transferFrom");
     expect(fns(top[0]!)[0]!.name).toBe("_transferFrom"); // nested inside transferFrom
+    // dispatchStep = the first internal jump's landing step index (where a row
+    // click navigates): the 'i' at step 1 lands on step 2.
+    expect(tree.kind === "call" ? tree.dispatchStep : null).toBe(2);
   });
 
   it("names an internal fn from its definition snippet, not the call-site cast", () => {

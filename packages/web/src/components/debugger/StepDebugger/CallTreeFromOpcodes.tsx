@@ -6,6 +6,7 @@ import { PanelHeader } from "./PanelHeader";
 import { TreeNode, type TreeShared } from "./TreeNode";
 import { FrameDetailPanel } from "./FrameDetailPanel";
 import { buildExecutionTree, type LogsByStep } from "./executionScopes";
+import { publishNavTree } from "./navDiagnostics";
 import {
   loadTreeExpandState,
   saveTreeExpandState,
@@ -80,6 +81,11 @@ export function CallTreeFromOpcodes({
         : null,
     [callTrace, frameStepMap, steps, traceSourceMaps, logsByStep],
   );
+
+  // Expose the built tree for the dev nav audit (stripped from prod bundles).
+  useEffect(() => {
+    if (import.meta.env.DEV) publishNavTree(tree);
+  }, [tree]);
 
   if (callTrace && tree) {
     const shared: TreeShared = {

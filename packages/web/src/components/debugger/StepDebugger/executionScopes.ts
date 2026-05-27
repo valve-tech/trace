@@ -31,7 +31,19 @@ import type { SourceLocation } from "../../../api/source";
  */
 
 export type ExecNode =
-  | { kind: "call"; frame: CallFrame; startStep: number; children: ExecNode[] }
+  | {
+      kind: "call";
+      frame: CallFrame;
+      startStep: number;
+      children: ExecNode[];
+      /** Step the callee's first internal jump (`'i'`) lands on — the body of
+       *  the function this call dispatched into, in the callee's OWN source map.
+       *  Clicking the row navigates here so the source pane lands on the real
+       *  function (contract-scoped, never a same-named function in another
+       *  file). Absent for value transfers / unverified callees, whose bodies
+       *  the optimizer leaves unmapped. */
+      dispatchStep?: number;
+    }
   | {
       kind: "fn";
       name: string;
@@ -347,6 +359,10 @@ export function buildExecutionTree(
       if (ev.t !== "exit") popLeftScopes(ev.curFile, ev.curLine, ev.step);
       const top = stack[stack.length - 1]!.node;
       if (ev.t === "enter") {
+        // First internal jump into this frame = the function it dispatched into.
+        // Recorded on the frame node so a tree-row click lands on the real
+        // function body via the callee's own source map.
+        if (node.dispatchStep === undefined) node.dispatchStep = ev.entryStep;
         // Dedupe the public-function double-entry (two 'i' to the same line).
         if (top.kind === "fn" && top.name === ev.name && top.line === ev.line) continue;
         const fn: Extract<ExecNode, { kind: "fn" }> = {

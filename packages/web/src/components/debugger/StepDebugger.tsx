@@ -21,6 +21,7 @@ import { walkCallTree } from "./StepDebugger/callTreeHelpers";
 import { mapFramesToSteps } from "./StepDebugger/callTreeModel";
 import { computePcsByContract } from "./StepDebugger/executionScopes";
 import { buildLogsByStep } from "./StepDebugger/logsByStep";
+import { publishNavContext, recordNav } from "./StepDebugger/navDiagnostics";
 import { useTraceSourceMaps } from "../../hooks/useTraceSourceMaps";
 import { CollapsiblePanel } from "./StepDebugger/CollapsiblePanel";
 import { ResizablePanel } from "./StepDebugger/ResizablePanel";
@@ -232,8 +233,12 @@ export default function StepDebugger({
   // the opcode trace, so the click always visibly navigates: the opcode pane
   // auto-scrolls to the step even when there's no verified source, and the
   // source pane scrolls to the function when one exists.
+  // Records the latest call-tree click so the dev nav instrumentation can pair
+  // "what was clicked" with "where it landed" once resolution settles.
+  const navIntentRef = useRef<{ step: number; funcName: string | null } | null>(null);
   const jumpToAndShowSource = useCallback(
     (step: number, funcName?: string) => {
+      navIntentRef.current = { step, funcName: funcName ?? null };
       goTo(step);
       setContentView("debugger");
       setScrollKey((k) => k + 1);
@@ -495,6 +500,36 @@ export default function StepDebugger({
           endCol: currentSourceLocation.endColumn,
         }
       : null;
+
+  // ---- Dev nav instrumentation (stripped from prod bundles) ----
+  // Publishes the step→contract→source-map resolver and a buffer of click
+  // outcomes on window.__traceNav, so a headless check can compare what a tree
+  // row jumps to against where the source pane actually lands.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    publishNavContext({ steps, frameRanges, traceSourceMaps });
+  }, [steps, frameRanges, traceSourceMaps]);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    recordNav({
+      intentStep: navIntentRef.current?.step ?? null,
+      intentFuncName: navIntentRef.current?.funcName ?? null,
+      currentStep,
+      activeContract: activeContractAddress,
+      file: currentSourceFile?.name ?? null,
+      effectiveLine,
+      overrideLine,
+      sourceMapLine: currentSourceLocation?.line ?? null,
+      snippet: currentSourceLocation?.sourceSnippet ?? null,
+    });
+  }, [
+    currentStep,
+    effectiveLine,
+    overrideLine,
+    activeContractAddress,
+    currentSourceFile,
+    currentSourceLocation,
+  ]);
 
   // Reverse link: which source lines have an opcode (so their gutter is a
   // clickable jump target), and the first step that lands on each line. Built

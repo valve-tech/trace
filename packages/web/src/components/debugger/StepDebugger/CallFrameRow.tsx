@@ -79,6 +79,14 @@ export function CallFrameRow({
       : selector || noCalldataLabel);
   const displayLabel = contractName ?? wellKnown?.interface ?? null;
 
+  // Prefer the dispatched-function step (resolved from the callee's own source
+  // map) so the source pane lands on the real function body. Only when there's
+  // no dispatch target — value transfers (receive/fallback) and unverified
+  // callees, whose bodies the optimizer leaves unmapped — fall back to the
+  // frame entry plus a name search.
+  const jumpStep = node.dispatchStep ?? stepIndex;
+  const searchName = node.dispatchStep === undefined && funcName !== "???" ? funcName : undefined;
+
   const isSelected = selectedKey === key;
   // Flat rows (Tenderly-style): selection + hover + error drive the background;
   // call type is conveyed by the inline tag, not a chunky colored left border.
@@ -115,7 +123,7 @@ export function CallFrameRow({
     <div>
       <div
         className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs relative whitespace-nowrap"
-        onClick={() => { onJumpTo(stepIndex, funcName !== "???" ? funcName : undefined); onSelect?.(frame); onSelectKey?.(key); }}
+        onClick={() => { onJumpTo(jumpStep, searchName); onSelect?.(frame); onSelectKey?.(key); }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
