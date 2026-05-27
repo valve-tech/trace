@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { OpcodeStep, CallFrame } from "../../../api/debugger";
 import type { SourceLocation } from "../../../api/source";
 import type { SignatureMatch } from "../../../api/signatures";
@@ -23,6 +23,7 @@ export function CallTreeFromOpcodes({
   contractNames,
   abiSelectors,
   logsByStep,
+  treeStateKey,
   onExpandFrame,
   inline,
 }: {
@@ -35,11 +36,42 @@ export function CallTreeFromOpcodes({
   contractNames: Record<string, string | null>;
   abiSelectors: Record<string, Record<string, string>>;
   logsByStep?: LogsByStep;
+  /** Stable key (the tx hash) the persisted expand/collapse state is scoped to. */
+  treeStateKey?: string | null;
   onExpandFrame?: (frame: CallFrame, entryStep: number, label: string) => void;
   inline?: boolean;
 }) {
   const [selectedFrame, setSelectedFrame] = useState<CallFrame | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  // Persisted expand/collapse overrides, scoped to the transaction. We store
+  // only the rows the user explicitly toggled (deviations from the depth-based
+  // default), keyed by the stable nodeKey so they reattach after a reload.
+  const storageKey = treeStateKey ? `debugger:tree-expand:${treeStateKey}` : null;
+  const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>(() => {
+    if (!storageKey) return {};
+    try {
+      return JSON.parse(localStorage.getItem(storageKey) ?? "{}") as Record<string, boolean>;
+    } catch {
+      return {};
+    }
+  });
+  const onToggleExpand = useCallback(
+    (key: string, expanded: boolean) => {
+      setExpandedOverrides((prev) => {
+        const next = { ...prev, [key]: expanded };
+        if (storageKey) {
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(next));
+          } catch {
+            /* quota / disabled storage — keep the in-memory state regardless. */
+          }
+        }
+        return next;
+      });
+    },
+    [storageKey],
+  );
 
   // The unified execution tree: external frames + internal functions, one
   // nesting, interleaved in execution order.
@@ -60,6 +92,8 @@ export function CallTreeFromOpcodes({
       onSelect: setSelectedFrame,
       selectedFrame,
       selectedKey,
+      expandedOverrides,
+      onToggleExpand,
       onSelectKey: setSelectedKey,
       onExpand: onExpandFrame,
     };

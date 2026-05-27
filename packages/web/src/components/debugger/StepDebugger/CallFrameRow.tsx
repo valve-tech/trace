@@ -42,12 +42,12 @@ export function CallFrameRow({
   depth: number;
   shared: TreeShared;
 }) {
-  const { onJumpTo, signatureMap, contractNames, abiSelectors, onSelect, selectedKey, onSelectKey, onExpand } = shared;
+  const { onJumpTo, signatureMap, contractNames, abiSelectors, onSelect, selectedKey, onSelectKey, expandedOverrides, onToggleExpand, onExpand } = shared;
   const frame = node.frame;
   const stepIndex = node.startStep;
   const key = nodeKey(node);
 
-  const [expanded, setExpanded] = useState(depth < DEFAULT_EXPAND_DEPTH);
+  const expanded = expandedOverrides?.[key] ?? depth < DEFAULT_EXPAND_DEPTH;
   const [hovered, setHovered] = useState(false);
   const hasChildren = node.children.length > 0;
 
@@ -135,7 +135,7 @@ export function CallFrameRow({
 
         {hasChildren ? (
           <button
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            onClick={(e) => { e.stopPropagation(); onToggleExpand?.(key, !expanded); }}
             className="w-4 flex items-center justify-center flex-shrink-0"
             style={{ color: "var(--color-text-muted)" }}
           >

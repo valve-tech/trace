@@ -499,7 +499,8 @@ export default function StepDebugger({
 
   const callTreeProps = {
     steps, onJumpTo: jumpToAndShowSource, signatureMap, frameStepMap,
-    traceSourceMaps, callTrace, contractNames, abiSelectors, logsByStep, onExpandFrame,
+    traceSourceMaps, callTrace, contractNames, abiSelectors, logsByStep,
+    treeStateKey: txHash, onExpandFrame,
   };
 
   return (

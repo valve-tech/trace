@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { nodeKey, type ExecNode } from "./executionScopes";
 import { TreeNode, DEFAULT_EXPAND_DEPTH, type TreeShared } from "./TreeNode";
@@ -18,9 +17,9 @@ export function ScopeRow({
   depth: number;
   shared: TreeShared;
 }) {
-  const [expanded, setExpanded] = useState(depth < DEFAULT_EXPAND_DEPTH);
-  const hasChildren = node.children.length > 0;
   const key = nodeKey(node);
+  const expanded = shared.expandedOverrides?.[key] ?? depth < DEFAULT_EXPAND_DEPTH;
+  const hasChildren = node.children.length > 0;
   const isSelected = shared.selectedKey === key;
 
   return (
@@ -44,7 +43,7 @@ export function ScopeRow({
 
         {hasChildren ? (
           <button
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            onClick={(e) => { e.stopPropagation(); shared.onToggleExpand?.(key, !expanded); }}
             className="w-4 flex items-center justify-center flex-shrink-0"
             style={{ color: "var(--color-text-muted)" }}
           >

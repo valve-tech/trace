@@ -26,6 +26,10 @@ export interface TreeShared {
    *  highlight that persists after a click. */
   selectedKey?: string | null;
   onSelectKey?: (key: string) => void;
+  /** Persisted expand/collapse overrides by node key. A key present here wins
+   *  over the depth-based default, so a user's collapse/expand survives reload. */
+  expandedOverrides?: Record<string, boolean>;
+  onToggleExpand?: (key: string, expanded: boolean) => void;
   onExpand?: (frame: CallFrame, entryStep: number, label: string) => void;
 }
 
