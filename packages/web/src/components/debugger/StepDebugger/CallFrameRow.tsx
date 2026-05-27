@@ -185,7 +185,10 @@ export function CallFrameRow({
           </span>
         )}
 
-        {onExpand && hovered && (
+        {/* Always rendered (when expandable) so it reserves its slot — toggling
+            on hover would change the row width and make the tree thrash. We fade
+            it in and disable pointer events instead. */}
+        {onExpand && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -195,9 +198,15 @@ export function CallFrameRow({
                 `${displayLabel ? `${displayLabel}.` : ""}${funcName}`,
               );
             }}
-            className="flex-shrink-0 flex items-center"
-            style={{ color: "var(--color-text-muted)" }}
+            className="flex-shrink-0 flex items-center transition-opacity"
+            style={{
+              color: "var(--color-text-muted)",
+              opacity: hovered ? 1 : 0,
+              pointerEvents: hovered ? "auto" : "none",
+            }}
             title="Show this frame's opcodes"
+            aria-hidden={!hovered}
+            tabIndex={hovered ? 0 : -1}
           >
             <Icon icon="heroicons:arrows-pointing-out" className="w-3 h-3" />
           </button>
