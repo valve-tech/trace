@@ -404,7 +404,14 @@ export default function StepDebugger({
   useEffect(() => {
     if (!pendingFuncSearch || !sourceData) return;
 
-    const funcPattern = new RegExp(`function\\s+${pendingFuncSearch}\\s*\\(`);
+    // Solidity's special members (`receive() external payable`,
+    // `fallback() …`) are declared without the `function` keyword, so a
+    // `function NAME(` pattern would never match and we'd latch onto a stray
+    // token elsewhere. Match those by their own header form.
+    const isSpecial = pendingFuncSearch === "receive" || pendingFuncSearch === "fallback";
+    const funcPattern = isSpecial
+      ? new RegExp(`\\b${pendingFuncSearch}\\s*\\(\\s*\\)`)
+      : new RegExp(`function\\s+${pendingFuncSearch}\\s*\\(`);
     const varPattern = new RegExp(`\\b${pendingFuncSearch}\\b`);
 
     for (const file of sourceData.files ?? []) {

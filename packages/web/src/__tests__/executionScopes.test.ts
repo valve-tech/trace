@@ -40,6 +40,36 @@ describe("buildExecutionTree", () => {
     expect(fns(top[0]!)[0]!.name).toBe("_transferFrom"); // nested inside transferFrom
   });
 
+  it("names an internal fn from its definition snippet, not the call-site cast", () => {
+    const root = frame("0xAAA");
+    const steps = [step(0, 1), step(10, 1), step(20, 1), step(30, 1)];
+    const maps = {
+      "0xaaa": {
+        // Call site reads like a cast — the old call-site heuristic named this
+        // "IERC20"; the entry JUMPDEST maps to the real FunctionDefinition.
+        10: loc("i", "IERC20(token).balanceOf(addr)", 100),
+        20: loc("-", "function balanceOf(address account) public view returns (uint256)", 200),
+        30: loc("o", ""),
+      } as Record<number, SourceLocation>,
+    };
+    const tree = buildExecutionTree(root, new Map([[root, 0]]), steps, maps);
+    expect(fns(tree)[0]!.name).toBe("balanceOf");
+  });
+
+  it("names an unnamed receive()/fallback from its definition snippet", () => {
+    const root = frame("0xAAA");
+    const steps = [step(0, 1), step(10, 1), step(20, 1), step(30, 1)];
+    const maps = {
+      "0xaaa": {
+        10: loc("i", "to.call{value: amt}('')", 50),
+        20: loc("-", "receive() external payable {", 80),
+        30: loc("o", ""),
+      } as Record<number, SourceLocation>,
+    };
+    const tree = buildExecutionTree(root, new Map([[root, 0]]), steps, maps);
+    expect(fns(tree)[0]!.name).toBe("receive");
+  });
+
   it("hoists the public-dispatch wrapper so internal calls sit under the frame", () => {
     const root = frame("0xAAA");
     const steps = [step(0, 1), step(10, 1), step(11, 1), step(20, 1), step(30, 1)];

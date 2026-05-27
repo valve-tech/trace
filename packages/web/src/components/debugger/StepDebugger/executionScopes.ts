@@ -18,8 +18,11 @@ import type { SourceLocation } from "../../../api/source";
  *   - Entering a public function can emit two consecutive `'i'` jumps to the
  *     same declaration line; we dedupe those so the function isn't doubled.
  *
- * Names come from the jump-site source snippet (no AST), so casts/library
- * calls read approximately; structure and lines are exact.
+ * Names come from the entry JUMPDEST's snippet, which Solidity maps to the
+ * whole FunctionDefinition (so it reads `function name(...)`) — exact for real
+ * function entries, including unnamed `receive`/`fallback`/`constructor`. We
+ * fall back to the call-site snippet's leading identifier only when the landing
+ * isn't a plain declaration (a cast/library jump the map tagged loosely).
  *
  * Emitted events (LOG0–LOG4) are interleaved too: each becomes a leaf `log`
  * node inside whichever function/frame was executing when it fired, decoded to
@@ -86,6 +89,28 @@ export function nodeKey(node: ExecNode): string {
 function funcNameFromSnippet(snippet: string): string {
   const m = snippet.trim().match(/(\w+)\s*\(/);
   return m?.[1] ?? "internal";
+}
+
+/**
+ * Best-effort internal function name. Prefer the definition snippet at the
+ * entry JUMPDEST (mapped to the whole FunctionDefinition, so it reads
+ * `function NAME(...)`); this gets `_transferFrom`, `mul`, etc. exactly right
+ * instead of the cast/receiver that happens to lead the call-site expression.
+ * Solidity's special members have no `function` keyword, so match them
+ * directly. Fall back to the call-site heuristic when the landing isn't a
+ * recognizable declaration (a loosely-tagged 'i' jump).
+ */
+function funcNameFromDefinition(defSnippet: string | undefined, callSnippet: string): string {
+  if (defSnippet) {
+    const fn = defSnippet.match(/\bfunction\s+(\w+)/);
+    if (fn) return fn[1]!;
+    if (/^\s*receive\s*\(/.test(defSnippet)) return "receive";
+    if (/^\s*fallback\s*\(/.test(defSnippet)) return "fallback";
+    if (/^\s*constructor\b/.test(defSnippet)) return "constructor";
+    const mod = defSnippet.match(/\bmodifier\s+(\w+)/);
+    if (mod) return mod[1]!;
+  }
+  return funcNameFromSnippet(callSnippet);
 }
 
 /** Own-code range of a frame entered at `entry`: [entry, end) at its depth. */
@@ -206,11 +231,11 @@ export function buildExecutionTree(
     // covering the returns the optimizer emits with no `'o'` marker.
     const landingRange = (
       i: number,
-    ): { step: number; file: string; start: number; end: number } | null => {
+    ): { step: number; file: string; start: number; end: number; snippet: string } | null => {
       for (let j = i + 1; j < end; j++) {
         if (steps[j]!.depth !== depth) continue;
         const l = sm?.[steps[j]!.pc];
-        if (l) return { step: j, file: l.file, start: l.line, end: l.endLine };
+        if (l) return { step: j, file: l.file, start: l.line, end: l.endLine, snippet: l.sourceSnippet };
       }
       return null;
     };
@@ -241,7 +266,7 @@ export function buildExecutionTree(
         events.push({
           step: i,
           t: "enter",
-          name: funcNameFromSnippet(loc.sourceSnippet),
+          name: funcNameFromDefinition(range?.snippet, loc.sourceSnippet),
           // Show the definition line (where the body begins), not the call site.
           line: range?.start ?? loc.line,
           decl: /^\s*function\b/.test(loc.sourceSnippet),
