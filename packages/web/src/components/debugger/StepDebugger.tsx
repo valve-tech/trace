@@ -531,7 +531,10 @@ export default function StepDebugger({
       )}
 
       <div className="flex flex-col lg:flex-row gap-0" style={{ minHeight: "500px" }}>
-        <div className="hidden lg:flex sticky top-0 self-start" style={{ height: "calc(100vh - 200px)" }}>
+        {/* Tree column stretches to the content column's height (no dead space
+            below it) while staying sticky and capped to the viewport so it
+            remains a self-contained, scrollable pane as you move down the page. */}
+        <div className="hidden lg:flex sticky top-0 self-stretch" style={{ maxHeight: "100vh" }}>
           <ResizablePanel width={treeWidth} onResize={handleTreeResize} height="100%">
             <CallTreeFromOpcodes {...callTreeProps} />
           </ResizablePanel>
