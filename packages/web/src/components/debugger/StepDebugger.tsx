@@ -718,6 +718,10 @@ export default function StepDebugger({
         stepForward={stepForward}
         stepBackward={stepBackward}
         jumpToNext={jumpToNext}
+        navGoBack={navGoBack}
+        navGoForward={navGoForward}
+        canBack={canBack}
+        canForward={canForward}
         opcodeFilter={opcodeFilter}
         setOpcodeFilter={setOpcodeFilter}
         filteredCount={filteredIndices?.length ?? null}

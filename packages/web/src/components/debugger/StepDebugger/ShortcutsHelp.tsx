@@ -14,6 +14,8 @@ export function ShortcutsHelp() {
       <Shortcut keys="← →" label="Step" />
       <Shortcut keys="Space" label="Forward" />
       <Shortcut keys="Home/End" label="Jump" />
+      <Shortcut keys="⌘[" label="Back" />
+      <Shortcut keys="⌘]" label="Forward" />
       <Shortcut keys="C" label="Next CALL" />
       <Shortcut keys="S" label="Next SSTORE" />
       <Shortcut keys="L" label="Next LOG" />

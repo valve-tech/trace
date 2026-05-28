@@ -15,6 +15,10 @@ export function ControlsBar({
   stepForward,
   stepBackward,
   jumpToNext,
+  navGoBack,
+  navGoForward,
+  canBack,
+  canForward,
   opcodeFilter,
   setOpcodeFilter,
   filteredCount,
@@ -38,6 +42,11 @@ export function ControlsBar({
   stepForward: () => void;
   stepBackward: () => void;
   jumpToNext: (predicate: (op: string) => boolean) => void;
+  /** Browser-style nav history: walk through the explicit-jump trail. */
+  navGoBack: () => void;
+  navGoForward: () => void;
+  canBack: boolean;
+  canForward: boolean;
   opcodeFilter: string;
   setOpcodeFilter: (v: string) => void;
   filteredCount: number | null;
@@ -58,6 +67,25 @@ export function ControlsBar({
       className="flex items-center gap-row px-4 py-2 bs-b"
       style={{ backgroundColor: "var(--color-bg-card)" }}
     >
+      <div className="flex items-center gap-tight">
+        <ControlButton
+          label="BACK"
+          title="Back in nav history (Cmd+[)"
+          onClick={navGoBack}
+          small
+          disabled={!canBack}
+        />
+        <ControlButton
+          label="FWD"
+          title="Forward in nav history (Cmd+])"
+          onClick={navGoForward}
+          small
+          disabled={!canForward}
+        />
+      </div>
+
+      <Divider />
+
       <div className="flex items-center gap-tight">
         <ControlButton label="|<" title="Jump to start (Home)" onClick={jumpToStart} />
         <ControlButton label="<" title="Step back (Left arrow)" onClick={stepBackward} />
