@@ -23,7 +23,7 @@ export function flattenVisible(
   const out: VisibleRow[] = [];
   const walk = (node: ExecNode, depth: number, parentKey: string | null) => {
     const key = nodeKey(node);
-    const children = node.kind === "log" ? [] : node.children;
+    const children = node.kind === "log" || node.kind === "op" ? [] : node.children;
     const expandable = children.length > 0;
     const expanded = expandable && isRowExpanded(key, depth, overrides);
     out.push({ key, depth, expandable, expanded, parentKey });

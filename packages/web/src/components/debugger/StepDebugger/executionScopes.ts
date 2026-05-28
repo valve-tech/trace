@@ -67,7 +67,11 @@ export type ExecNode =
   /** A LOG0–LOG4 opcode — an emitted event. A leaf: it nests inside whatever
    *  function/frame was executing when it fired, so you see which function
    *  emitted it. `name` is the decoded event signature when we have it. */
-  | { kind: "log"; step: number; name: string; topicCount: number };
+  | { kind: "log"; step: number; name: string; topicCount: number }
+  /** A surfaced opcode (e.g. SSTORE/TSTORE) the user toggled into the tree. A
+   *  leaf nested in the function/frame that ran it; clicking jumps to its step
+   *  so the source pane lands on the line that executed it. */
+  | { kind: "op"; step: number; op: string; pc: number };
 
 /**
  * Decoded event metadata for a LOG opcode, keyed by the step index at which
@@ -95,6 +99,8 @@ export function nodeKey(node: ExecNode): string {
       return `f:${node.startStep}:${node.line}:${node.name}`;
     case "log":
       return `l:${node.step}:${node.name}`;
+    case "op":
+      return `o:${node.step}:${node.op}`;
   }
 }
 
@@ -187,7 +193,8 @@ type Event =
     }
   | { step: number; t: "exit" }
   | { step: number; t: "call"; child: CallFrame; curFile?: string; curLine?: number }
-  | { step: number; t: "log"; name: string; topicCount: number; curFile?: string; curLine?: number };
+  | { step: number; t: "log"; name: string; topicCount: number; curFile?: string; curLine?: number }
+  | { step: number; t: "op"; op: string; pc: number; curFile?: string; curLine?: number };
 
 /**
  * Hoist away "declaration" fn nodes — the public/dispatch entries whose source
@@ -212,7 +219,7 @@ function flattenDecls(nodes: ExecNode[]): ExecNode[] {
 
 // At equal step: enter before call (a call nests in the just-entered fn),
 // then log (it belongs to the open scope), then exit (close after both).
-const RANK: Record<Event["t"], number> = { enter: 0, call: 1, log: 2, exit: 3 };
+const RANK: Record<Event["t"], number> = { enter: 0, call: 1, log: 2, op: 2, exit: 3 };
 
 /**
  * Build the unified execution tree rooted at `root`. Every frame becomes a
@@ -225,6 +232,10 @@ export function buildExecutionTree(
   steps: OpcodeStep[],
   sourceMapsByAddr: Record<string, SourceMap>,
   logsByStep?: LogsByStep,
+  /** Opcodes the user toggled into the tree (e.g. SSTORE, TSTORE). Each matching
+   *  step becomes a leaf `op` node in the function/frame that ran it. Empty by
+   *  default, so the tree carries no opcode rows unless asked. */
+  opSet?: Set<string>,
 ): ExecNode {
   const build = (frame: CallFrame): Extract<ExecNode, { kind: "call" }> => {
     const entry = frameStepMap.get(frame) ?? 0;
@@ -270,6 +281,12 @@ export function buildExecutionTree(
           curFile: loc?.file,
           curLine: loc?.line,
         });
+        continue;
+      }
+      // A toggled-on opcode (SSTORE/TSTORE/…) at our own depth — a leaf in the
+      // scope currently executing. Not a jump, so no source loc is required.
+      if (opSet?.has(op)) {
+        events.push({ step: i, t: "op", op, pc: steps[i]!.pc, curFile: loc?.file, curLine: loc?.line });
         continue;
       }
       if (!loc) continue;
@@ -390,6 +407,9 @@ export function buildExecutionTree(
           name: ev.name,
           topicCount: ev.topicCount,
         });
+      } else if (ev.t === "op") {
+        // Toggled opcode — a leaf inside the scope that executed it.
+        top.children.push({ kind: "op", step: ev.step, op: ev.op, pc: ev.pc });
       } else {
         // Sub-call. A codeless callee (value transfer / precompile / EOA) ran
         // no deeper opcodes → it's a leaf, not a frame to recurse into.
@@ -412,4 +432,42 @@ export function buildExecutionTree(
   // under their frame.
   root2.children = flattenDecls(root2.children);
   return root2;
+}
+
+/** Which node kinds the tree should show. Calls (the frame backbone) and any
+ *  toggled-in `op` leaves are always kept; functions and events are toggleable. */
+export interface TreeFilters {
+  functions: boolean;
+  events: boolean;
+}
+
+/**
+ * Apply the visibility toggles to a built tree. Hiding a function doesn't drop
+ * what it contained — its children are promoted to its parent (same as the
+ * decl-hoist), so a hidden function's calls/opcodes stay visible in place.
+ * Cheap enough to run on every toggle; no rebuild needed (opcodes, which change
+ * the node set, are handled at build time instead).
+ */
+export function filterExecutionTree(root: ExecNode, filters: TreeFilters): ExecNode {
+  const visit = (nodes: ExecNode[]): ExecNode[] => {
+    const out: ExecNode[] = [];
+    for (const n of nodes) {
+      if (n.kind === "log") {
+        if (filters.events) out.push(n);
+      } else if (n.kind === "op") {
+        out.push(n);
+      } else if (n.kind === "call") {
+        out.push({ ...n, children: visit(n.children) });
+      } else {
+        // fn: keep it (with filtered children) or promote its children up.
+        const kids = visit(n.children);
+        if (filters.functions) out.push({ ...n, children: kids });
+        else out.push(...kids);
+      }
+    }
+    return out;
+  };
+  return root.kind === "call" || root.kind === "fn"
+    ? { ...root, children: visit(root.children) }
+    : root;
 }

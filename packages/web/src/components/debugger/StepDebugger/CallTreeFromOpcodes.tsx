@@ -5,8 +5,9 @@ import type { SignatureMatch } from "../../../api/signatures";
 import { PanelHeader } from "./PanelHeader";
 import { TreeNode, type TreeShared } from "./TreeNode";
 import { FrameDetailPanel } from "./FrameDetailPanel";
-import { buildExecutionTree, type LogsByStep } from "./executionScopes";
+import { buildExecutionTree, filterExecutionTree, type LogsByStep } from "./executionScopes";
 import { flattenVisible, resolveTreeKey } from "./treeKeyboard";
+import { TreeFilterBar } from "./TreeFilterBar";
 import { publishNavTree } from "./navDiagnostics";
 import {
   loadTreeExpandState,
@@ -51,6 +52,21 @@ export function CallTreeFromOpcodes({
   const [selectedFrame, setSelectedFrame] = useState<CallFrame | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
+  // Tree filters: whole-kind toggles (functions, events) plus the set of
+  // opcodes to surface as leaves. Opcodes default off — the tree stays lean
+  // until you ask for them.
+  const [showFunctions, setShowFunctions] = useState(true);
+  const [showEvents, setShowEvents] = useState(true);
+  const [enabledOps, setEnabledOps] = useState<Set<string>>(() => new Set());
+  const toggleOp = useCallback((op: string) => {
+    setEnabledOps((prev) => {
+      const next = new Set(prev);
+      if (next.has(op)) next.delete(op);
+      else next.add(op);
+      return next;
+    });
+  }, []);
+
   // Persisted expand/collapse overrides, scoped to the transaction. We store
   // only the rows the user explicitly toggled (deviations from the depth-based
   // default), keyed by the stable nodeKey so they reattach after a reload.
@@ -74,16 +90,22 @@ export function CallTreeFromOpcodes({
   );
 
   // The unified execution tree: external frames + internal functions, one
-  // nesting, interleaved in execution order.
-  const tree = useMemo(
+  // nesting, interleaved in execution order. Rebuilds when the opcode set
+  // changes (opcodes add/remove leaf nodes); the cheaper function/event toggles
+  // are applied as a post-filter below without rebuilding.
+  const builtTree = useMemo(
     () =>
       callTrace
-        ? buildExecutionTree(callTrace, frameStepMap, steps, traceSourceMaps, logsByStep)
+        ? buildExecutionTree(callTrace, frameStepMap, steps, traceSourceMaps, logsByStep, enabledOps)
         : null,
-    [callTrace, frameStepMap, steps, traceSourceMaps, logsByStep],
+    [callTrace, frameStepMap, steps, traceSourceMaps, logsByStep, enabledOps],
+  );
+  const tree = useMemo(
+    () => (builtTree ? filterExecutionTree(builtTree, { functions: showFunctions, events: showEvents }) : null),
+    [builtTree, showFunctions, showEvents],
   );
 
-  // Expose the built tree for the dev nav audit (stripped from prod bundles).
+  // Expose the filtered (rendered) tree for the dev nav audit (stripped from prod).
   useEffect(() => {
     if (import.meta.env.DEV) publishNavTree(tree);
   }, [tree]);
@@ -156,6 +178,14 @@ export function CallTreeFromOpcodes({
     return (
       <div className="card overflow-hidden flex flex-col h-full">
         <PanelHeader title="Call Tree" count={callTrace.calls?.length ?? 0} suffix="calls" />
+        <TreeFilterBar
+          functions={showFunctions}
+          events={showEvents}
+          onToggleFunctions={() => setShowFunctions((v) => !v)}
+          onToggleEvents={() => setShowEvents((v) => !v)}
+          enabledOps={enabledOps}
+          onToggleOp={toggleOp}
+        />
         <div
           ref={containerRef}
           tabIndex={0}

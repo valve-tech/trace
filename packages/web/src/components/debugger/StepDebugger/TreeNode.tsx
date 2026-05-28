@@ -4,6 +4,7 @@ import type { ExecNode } from "./executionScopes";
 import { CallFrameRow } from "./CallFrameRow";
 import { ScopeRow } from "./ScopeRow";
 import { LogRow } from "./LogRow";
+import { OpRow } from "./OpRow";
 
 /**
  * Default depth to auto-expand the unified tree to. In this tree an external
@@ -67,5 +68,7 @@ export function TreeNode({
       return <ScopeRow node={node} depth={depth} shared={shared} />;
     case "log":
       return <LogRow node={node} depth={depth} shared={shared} />;
+    case "op":
+      return <OpRow node={node} depth={depth} shared={shared} />;
   }
 }

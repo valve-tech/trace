@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildExecutionTree,
+  filterExecutionTree,
   computePcsByContract,
   type ExecNode,
 } from "../components/debugger/StepDebugger/executionScopes";
@@ -16,7 +17,7 @@ function loc(jumpType: string, snippet: string, line = 0): SourceLocation {
 function frame(to: string, calls: CallFrame[] = []): CallFrame {
   return { type: "CALL", from: "0x0", to, gas: "0x0", gasUsed: "0x0", input: "0x", calls } as CallFrame;
 }
-const kids = (n: ExecNode): ExecNode[] => (n.kind === "log" ? [] : n.children);
+const kids = (n: ExecNode): ExecNode[] => (n.kind === "log" || n.kind === "op" ? [] : n.children);
 const fns = (n: ExecNode) => kids(n).filter((c) => c.kind === "fn") as Extract<ExecNode, { kind: "fn" }>[];
 const calls = (n: ExecNode) => kids(n).filter((c) => c.kind === "call") as Extract<ExecNode, { kind: "call" }>[];
 const logs = (n: ExecNode) => kids(n).filter((c) => c.kind === "log") as Extract<ExecNode, { kind: "log" }>[];
@@ -162,6 +163,43 @@ describe("buildExecutionTree", () => {
     const leaf = calls(tree)[0]!;
     expect(leaf.frame.to).toBe("0xBBB");
     expect(leaf.children).toHaveLength(0);
+  });
+
+  it("surfaces a toggled opcode as a leaf in the scope that ran it", () => {
+    const root = frame("0xAAA");
+    const steps = [step(0, 1), step(10, 1, "SSTORE"), step(20, 1, "TLOAD"), step(30, 1)];
+    const tree = buildExecutionTree(root, new Map([[root, 0]]), steps, {}, undefined, new Set(["SSTORE"]));
+    const ops = kids(tree).filter((c) => c.kind === "op") as Extract<ExecNode, { kind: "op" }>[];
+    expect(ops).toHaveLength(1); // only SSTORE toggled; TLOAD ignored
+    expect(ops[0]!.op).toBe("SSTORE");
+    expect(ops[0]!.step).toBe(1); // step index of the SSTORE
+  });
+});
+
+describe("filterExecutionTree", () => {
+  const opNode: ExecNode = { kind: "op", step: 3, op: "SSTORE", pc: 10 };
+  const logNode: ExecNode = { kind: "log", step: 2, name: "E()", topicCount: 1 };
+  const childCall: ExecNode = { kind: "call", frame: frame("0xBBB"), startStep: 4, children: [] };
+  const fnNode: ExecNode = {
+    kind: "fn", name: "f", line: 1, startStep: 1, entryStep: 1, endStep: 9,
+    children: [logNode, opNode, childCall],
+  };
+  const root: ExecNode = { kind: "call", frame: frame("0xAAA"), startStep: 0, children: [fnNode] };
+
+  it("drops a hidden function but promotes its children in place", () => {
+    const out = filterExecutionTree(root, { functions: false, events: true });
+    expect(kids(out).map((c) => c.kind)).toEqual(["log", "op", "call"]);
+  });
+
+  it("drops events when off, keeping functions and opcodes", () => {
+    const out = filterExecutionTree(root, { functions: true, events: false });
+    const fn = kids(out)[0]!;
+    expect(kids(fn).map((c) => c.kind)).toEqual(["op", "call"]); // log gone
+  });
+
+  it("keeps everything when both are on", () => {
+    const out = filterExecutionTree(root, { functions: true, events: true });
+    expect(kids(kids(out)[0]!).map((c) => c.kind)).toEqual(["log", "op", "call"]);
   });
 });
 
