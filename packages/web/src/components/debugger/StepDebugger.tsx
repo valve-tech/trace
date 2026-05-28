@@ -31,6 +31,15 @@ import { CallContextBreadcrumb } from "./StepDebugger/CallContextBreadcrumb";
 import { CallTreeFromOpcodes } from "./StepDebugger/CallTreeFromOpcodes";
 import { findFunctionLine } from "./StepDebugger/findFunctionLine";
 import { findDefinitionLine } from "./StepDebugger/findDefinitionLine";
+import {
+  emptyHistory,
+  pushEntry as pushHistoryEntry,
+  goBack as historyGoBack,
+  goForward as historyGoForward,
+  canGoBack as historyCanGoBack,
+  canGoForward as historyCanGoForward,
+  currentEntry as historyCurrentEntry,
+} from "./StepDebugger/navHistory";
 import { DecodedTrace } from "./StepDebugger/DecodedTrace";
 import { SourceOpcodeSplit } from "./StepDebugger/SourceOpcodeSplit";
 import { opcodeFrequencies } from "./StepDebugger/opcodeStats";
@@ -128,6 +137,9 @@ export default function StepDebugger({
   // cleared on the next successful navigation.
   const [navError, setNavError] = useState<string | null>(null);
   const [scrollKey, setScrollKey] = useState(0);
+  // Browser-style bidirectional navigation history. Tree-row clicks and source
+  // identifier clicks push; back/forward (Cmd+[ / Cmd+]) walk without pushing.
+  const [navHistory, setNavHistory] = useState(emptyHistory);
 
   const maxDepth = useMemo(() => {
     let max = 1;
@@ -297,29 +309,29 @@ export default function StepDebugger({
       goTo(step);
       setContentView("debugger");
       setScrollKey((k) => k + 1);
-      if (!hint) return;
 
-      // Three explicit branches — no silent fall-through. useTraceSources
-      // returns a record keyed by every code-executing trace contract: missing
-      // key = still loading (defer), empty array = loaded but unverified (real
-      // error), populated = run the search and either land the line or report
-      // that the function wasn't found.
-      const addrKey = hint.contractAddr?.toLowerCase();
-      const files = addrKey ? sourcesByAddr[addrKey] : undefined;
-      const where = hint.contractAddr ? `${hint.contractAddr.slice(0, 8)}…` : "this contract";
+      // Resolve the target overrideLine eagerly so we can push the right entry.
+      let resolvedLine: number | null = null;
+      if (hint) {
+        const addrKey = hint.contractAddr?.toLowerCase();
+        const files = addrKey ? sourcesByAddr[addrKey] : undefined;
+        const where = hint.contractAddr ? `${hint.contractAddr.slice(0, 8)}…` : "this contract";
 
-      if (files === undefined) {
-        setPendingSearch(hint); // not loaded yet — resolver effect will pick it up
-        return;
+        if (files === undefined) {
+          setPendingSearch(hint); // not loaded yet — resolver effect will pick it up
+        } else if (files.length === 0) {
+          setNavError(`No verified source for ${where} — can't locate \`${hint.funcName}()\`.`);
+        } else {
+          const hit = findFunctionLine(files, hint.funcName);
+          if (hit) {
+            resolvedLine = hit.line;
+            setOverrideLine(hit.line);
+          } else {
+            setNavError(`Couldn't locate \`${hint.funcName}()\` in ${where}'s source.`);
+          }
+        }
       }
-      if (files.length === 0) {
-        setNavError(`No verified source for ${where} — can't locate \`${hint.funcName}()\`.`);
-        return;
-      }
-
-      const hit = findFunctionLine(files, hint.funcName);
-      if (hit) setOverrideLine(hit.line);
-      else setNavError(`Couldn't locate \`${hint.funcName}()\` in ${where}'s source.`);
+      setNavHistory((h) => pushHistoryEntry(h, { step, overrideLine: resolvedLine }));
     },
     [goTo, sourcesByAddr],
   );
@@ -380,9 +392,41 @@ export default function StepDebugger({
       setNavError(null);
       setOverrideLine(hit.line);
       setScrollKey((k) => k + 1);
+      setNavHistory((h) => pushHistoryEntry(h, { step: currentStep, overrideLine: hit.line }));
     },
     [frameRanges, currentStep, sourcesByAddr],
   );
+
+  // Apply a history entry (back/forward). Same shape as the other navigators
+  // — clear pending state, restore step + line — but does NOT push to history,
+  // so back→forward returns you to where you were, not a new branch.
+  const applyHistoryEntry = useCallback(
+    (entry: { step: number; overrideLine: number | null }) => {
+      setPendingSearch(null);
+      setNavError(null);
+      setOverrideLine(entry.overrideLine);
+      goTo(entry.step);
+      setContentView("debugger");
+      setScrollKey((k) => k + 1);
+    },
+    [goTo],
+  );
+  const navGoBack = useCallback(() => {
+    const next = historyGoBack(navHistory);
+    if (next === navHistory) return;
+    const entry = historyCurrentEntry(next);
+    if (entry) applyHistoryEntry(entry);
+    setNavHistory(next);
+  }, [navHistory, applyHistoryEntry]);
+  const navGoForward = useCallback(() => {
+    const next = historyGoForward(navHistory);
+    if (next === navHistory) return;
+    const entry = historyCurrentEntry(next);
+    if (entry) applyHistoryEntry(entry);
+    setNavHistory(next);
+  }, [navHistory, applyHistoryEntry]);
+  const canBack = historyCanGoBack(navHistory);
+  const canForward = historyCanGoForward(navHistory);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -407,11 +451,19 @@ export default function StepDebugger({
           e.preventDefault(); jumpToNext(isStorageOp); break;
         case "l": case "L":
           e.preventDefault(); jumpToNext(isLogOp); break;
+        case "[":
+          // Cmd/Ctrl+[ — go back in nav history (browser convention).
+          if (e.metaKey || e.ctrlKey) { e.preventDefault(); navGoBack(); }
+          break;
+        case "]":
+          // Cmd/Ctrl+] — go forward in nav history.
+          if (e.metaKey || e.ctrlKey) { e.preventDefault(); navGoForward(); }
+          break;
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [stepForward, stepBackward, goTo, totalSteps, jumpToNext]);
+  }, [stepForward, stepBackward, goTo, totalSteps, jumpToNext, navGoBack, navGoForward]);
 
   const step = steps[currentStep];
 
@@ -666,7 +718,7 @@ export default function StepDebugger({
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col gap-0">
-          <div className="flex" style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}>
+          <div className="flex items-center" style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}>
             {(["debugger", "trace"] as const).map((view) => (
               <button
                 key={view}
@@ -684,6 +736,37 @@ export default function StepDebugger({
                 {view === "debugger" ? "Source + Opcodes" : "Decoded Trace"}
               </button>
             ))}
+            {/* Back / forward through the nav history. Buttons are visible only
+                when the corresponding direction has somewhere to go — so an
+                untouched session never shows the controls at all. */}
+            <div className="ml-auto flex items-center gap-1 pr-2">
+              <button
+                onClick={navGoBack}
+                disabled={!canBack}
+                title="Back (⌘[)"
+                className="px-2 py-1 text-xs font-mono transition-opacity"
+                style={{
+                  color: canBack ? "var(--color-text-secondary)" : "var(--color-text-muted)",
+                  opacity: canBack ? 1 : 0.35,
+                  cursor: canBack ? "pointer" : "not-allowed",
+                }}
+              >
+                ←
+              </button>
+              <button
+                onClick={navGoForward}
+                disabled={!canForward}
+                title="Forward (⌘])"
+                className="px-2 py-1 text-xs font-mono transition-opacity"
+                style={{
+                  color: canForward ? "var(--color-text-secondary)" : "var(--color-text-muted)",
+                  opacity: canForward ? 1 : 0.35,
+                  cursor: canForward ? "pointer" : "not-allowed",
+                }}
+              >
+                →
+              </button>
+            </div>
           </div>
 
           {contentView === "trace" && (
