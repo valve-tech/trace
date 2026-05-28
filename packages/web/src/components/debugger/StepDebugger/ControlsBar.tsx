@@ -44,12 +44,12 @@ export function ControlsBar({
   slitherFindingsCount: number;
 }) {
   return (
+    // bg-card supplies the surface; bs-b draws ONE bottom border that
+    // connects to the cards in the content row below (instead of stacking
+    // two card borders separated by their margins).
     <div
-      className="flex items-center gap-row px-4 py-2 card"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-        boxShadow: "0 0 0 1px var(--color-border-default)",
-      }}
+      className="flex items-center gap-row px-4 py-2 bs-b"
+      style={{ backgroundColor: "var(--color-bg-card)" }}
     >
       <div className="flex items-center gap-tight">
         <ControlButton label="|<" title="Jump to start (Home)" onClick={() => goTo(0)} />

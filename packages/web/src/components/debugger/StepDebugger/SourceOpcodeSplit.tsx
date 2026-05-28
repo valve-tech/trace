@@ -73,13 +73,10 @@ export function SourceOpcodeSplit({
         />
       </div>
 
-      {/* Opcode trace — synced companion */}
-      <div className="lg:flex-[2] lg:min-w-[340px] min-h-[240px] flex flex-col card overflow-hidden"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-          boxShadow: "0 0 0 1px var(--color-border-default)",
-        }}
-      >
+      {/* Opcode trace — synced companion. The `.card` class already provides
+          the bg-card surface + outset border + 1px margin; no need to repeat
+          them inline. */}
+      <div className="lg:flex-[2] lg:min-w-[340px] min-h-[240px] flex flex-col card overflow-hidden">
         <OpcodeFrequencyTags
           frequencies={opcodeFreqs}
           activeOp={opcodeFilter}
