@@ -78,11 +78,14 @@ export function CallTreeFromOpcodes({
   const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>(() =>
     treeStateKey ? loadTreeExpandState(treeStateKey) : {},
   );
-  // Reload overrides when the viewed tx changes, and sweep stale entries once.
+  // Mount-only: sweep localStorage entries for transactions we no longer
+  // care about. The "reload overrides on tx change" path the parent used to
+  // need is gone — StepDebugger keys its subtree on txHash, so this whole
+  // component remounts when tx changes and the useState initializer above
+  // reloads from storage naturally.
   useEffect(() => {
     pruneStaleTreeState();
-    setExpandedOverrides(treeStateKey ? loadTreeExpandState(treeStateKey) : {});
-  }, [treeStateKey]);
+  }, []);
   const onToggleExpand = useCallback(
     (key: string, expanded: boolean) => {
       setExpandedOverrides((prev) => {
