@@ -46,22 +46,26 @@ export function FrameOpcodesOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Measure the viewport AND scroll the current cursor's row into the middle
-  // in the same layout pass — useLayoutEffect runs before paint, so the list
-  // never visibly starts at the top when the cursor is 4,000 rows down.
-  // Mount-only: the overlay closes on every jump, so currentStep can't drift
-  // while it's open.
+  // Measure the viewport AND keep the cursor's row visible. useLayoutEffect
+  // runs before paint, so the initial mount never flashes scrolled-to-top.
+  // Re-runs on currentStep so that arrow-stepping (which the parent now
+  // clamps to this frame's range) keeps the active row on screen. Same
+  // out-of-view-then-center pattern as OpcodeTracePane: if the row is
+  // already visible, don't yank the scroll position.
   useLayoutEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
     const h = el.clientHeight;
     setViewportH(h);
-    if (currentStep >= from && currentStep < to) {
-      const relIdx = currentStep - from;
-      el.scrollTop = Math.max(0, relIdx * ROW_HEIGHT - h / 2);
+    if (currentStep < from || currentStep >= to) return;
+    const rowTop = (currentStep - from) * ROW_HEIGHT;
+    const rowBottom = rowTop + ROW_HEIGHT;
+    const viewTop = el.scrollTop;
+    const viewBottom = viewTop + h;
+    if (rowTop < viewTop || rowBottom > viewBottom) {
+      el.scrollTop = Math.max(0, rowTop - h / 2 + ROW_HEIGHT / 2);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentStep, from, to]);
 
   const visibleStart = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
   const visibleEnd = Math.min(count, Math.ceil((scrollTop + viewportH) / ROW_HEIGHT) + OVERSCAN);

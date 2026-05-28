@@ -289,6 +289,21 @@ export default function StepDebugger({
   const stepForward = useCallback(() => { setOverrideLine(null); nav.goForward(); }, [nav]);
   const stepBackward = useCallback(() => { setOverrideLine(null); nav.goBack(); }, [nav]);
 
+  // The expanded frame's opcode slice — from its entry until execution returns
+  // above its depth (so nested sub-calls are included). Hoisted up here so the
+  // keyboard handler below can clamp arrow nav to the frame when an overlay is
+  // open. Returns null when no frame is expanded.
+  const expandedRange = useMemo(() => {
+    if (!expandedFrame) return null;
+    const from = expandedFrame.from;
+    const baseDepth = steps[from]?.depth ?? 1;
+    let to = steps.length;
+    for (let i = from + 1; i < steps.length; i++) {
+      if (steps[i]!.depth < baseDepth) { to = i; break; }
+    }
+    return { from, to };
+  }, [expandedFrame, steps]);
+
   // Recording navigate: every explicit user-initiated jump (button click,
   // C/S/L hotkey, source-line click, opcode-row click) routes through here so
   // it lands in nav history and is reversible with Cmd+[. Arrow-stepping and
@@ -476,16 +491,32 @@ export default function StepDebugger({
       // When the call tree has focus, it owns the arrow/enter keys (expand /
       // collapse / move). Don't also scrub the trace from underneath it.
       if (e.target instanceof HTMLElement && e.target.closest("[data-debugger-tree]")) return;
+      // When the frame overlay is open, nav scopes to that frame's range —
+      // arrows clamp at its boundaries, Home/End jump to its endpoints — so
+      // you can't walk the cursor out of the focused frame without explicitly
+      // closing the overlay (Esc) or using nav-history (Cmd+[).
+      // Clamping only kicks in when the cursor is INSIDE the frame; if it's
+      // already outside (e.g. walked there via Cmd+[), stepping is unrestricted.
       switch (e.key) {
         case "ArrowRight":
         case " ":
-          e.preventDefault(); stepForward(); break;
+          e.preventDefault();
+          if (expandedRange && currentStep === expandedRange.to - 1) break;
+          stepForward();
+          break;
         case "ArrowLeft":
-          e.preventDefault(); stepBackward(); break;
+          e.preventDefault();
+          if (expandedRange && currentStep === expandedRange.from) break;
+          stepBackward();
+          break;
         case "Home":
-          e.preventDefault(); recordingNavigate(0); break;
+          e.preventDefault();
+          recordingNavigate(expandedRange?.from ?? 0);
+          break;
         case "End":
-          e.preventDefault(); recordingNavigate(totalSteps - 1); break;
+          e.preventDefault();
+          recordingNavigate(expandedRange ? expandedRange.to - 1 : totalSteps - 1);
+          break;
         case "c": case "C":
           e.preventDefault(); jumpToNext(isCallOp); break;
         case "s": case "S":
@@ -504,7 +535,7 @@ export default function StepDebugger({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [stepForward, stepBackward, recordingNavigate, totalSteps, jumpToNext, navGoBack, navGoForward]);
+  }, [stepForward, stepBackward, recordingNavigate, totalSteps, jumpToNext, navGoBack, navGoForward, expandedRange, currentStep]);
 
   const step = steps[currentStep];
 
@@ -544,18 +575,6 @@ export default function StepDebugger({
     [],
   );
 
-  // The expanded frame's opcode slice runs from its entry until execution
-  // returns above its depth (so nested sub-calls are included, indented).
-  const expandedRange = useMemo(() => {
-    if (!expandedFrame) return null;
-    const from = expandedFrame.from;
-    const baseDepth = steps[from]?.depth ?? 1;
-    let to = steps.length;
-    for (let i = from + 1; i < steps.length; i++) {
-      if (steps[i]!.depth < baseDepth) { to = i; break; }
-    }
-    return { from, to };
-  }, [expandedFrame, steps]);
 
   const storageDiff = useMemo<StorageDiff[]>(() => {
     if (!currentDetail) return [];
