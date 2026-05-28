@@ -30,6 +30,7 @@ import { ControlsBar } from "./StepDebugger/ControlsBar";
 import { CallContextBreadcrumb } from "./StepDebugger/CallContextBreadcrumb";
 import { CallTreeFromOpcodes } from "./StepDebugger/CallTreeFromOpcodes";
 import { findFunctionLine } from "./StepDebugger/findFunctionLine";
+import { findDefinitionLine } from "./StepDebugger/findDefinitionLine";
 import { DecodedTrace } from "./StepDebugger/DecodedTrace";
 import { SourceOpcodeSplit } from "./StepDebugger/SourceOpcodeSplit";
 import { opcodeFrequencies } from "./StepDebugger/opcodeStats";
@@ -346,6 +347,41 @@ export default function StepDebugger({
       }
     },
     [nav, steps, frameRanges, currentStep],
+  );
+
+  // Go-to-definition: triggered when the user clicks any identifier token in
+  // the source pane. Resolves the symbol in the active contract's flattened
+  // sources and scrolls the source pane there. Falls back to a navError when
+  // we can't find the definition (the symbol may live in an external library
+  // whose source isn't loaded, or be a Solidity built-in like `block.timestamp`).
+  // Computes activeContractAddress inline (the memo is defined further down)
+  // so we don't have to reshuffle file order for this one consumer.
+  const jumpToDefinition = useCallback(
+    (name: string) => {
+      let addr: string | null = null;
+      let bestDepth = -1;
+      for (const f of frameRanges) {
+        if (f.entry <= currentStep && currentStep < f.end && f.depth > bestDepth) {
+          bestDepth = f.depth;
+          addr = f.addr;
+        }
+      }
+      const addrKey = addr?.toLowerCase();
+      const files = addrKey ? sourcesByAddr[addrKey] : undefined;
+      if (!files || files.length === 0) {
+        setNavError(`Can't navigate — no verified source loaded for the active contract.`);
+        return;
+      }
+      const hit = findDefinitionLine(files, name);
+      if (!hit) {
+        setNavError(`No definition of \`${name}\` in this contract's source.`);
+        return;
+      }
+      setNavError(null);
+      setOverrideLine(hit.line);
+      setScrollKey((k) => k + 1);
+    },
+    [frameRanges, currentStep, sourcesByAddr],
   );
 
   // Keyboard shortcuts
@@ -690,6 +726,7 @@ export default function StepDebugger({
               activeContractAddress={activeContractAddress}
               executableLines={executableLines}
               onJumpToLine={jumpToLine}
+              onIdentifierClick={jumpToDefinition}
               steps={steps}
               currentStep={currentStep}
               goTo={goTo}

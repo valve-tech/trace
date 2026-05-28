@@ -17,6 +17,7 @@ export function SourceTabContent({
   activeContractAddress,
   maxHeight = "500px",
   onLineClick,
+  onIdentifierClick,
   executableLines,
 }: {
   currentSourceFile: ContractSourceFile | null;
@@ -28,6 +29,7 @@ export function SourceTabContent({
   activeContractAddress: string | null;
   maxHeight?: string;
   onLineClick?: (line: number) => void;
+  onIdentifierClick?: (identifier: string, line: number) => void;
   executableLines?: Set<number>;
 }) {
   if (currentSourceFile) {
@@ -46,6 +48,7 @@ export function SourceTabContent({
           highlightSpan={highlightSpan}
           scrollKey={scrollKey}
           onLineClick={onLineClick}
+          onIdentifierClick={onIdentifierClick}
           executableLines={executableLines}
           findings={slitherFindings.flatMap((f) =>
             f.elements

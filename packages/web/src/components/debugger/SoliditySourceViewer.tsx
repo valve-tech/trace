@@ -299,7 +299,9 @@ export default function SourceViewer({
       return result.tokens.flatMap(splitCommentToken);
     });
   }, [lines]);
-  const [selectedIdentifier, setSelectedIdentifier] = useState<string | null>(null);
+  // Identifier clicks used to toggle a self-contained filter+badge. They now
+  // fire onIdentifierClick so the parent can navigate to the definition; the
+  // selected/highlight UI state lives there, not here.
 
   // ---- In-pane find (Cmd/Ctrl+F) ------------------------------------------
   // Native browser find searches the whole page (tree + opcodes + source) and
@@ -385,21 +387,9 @@ export default function SourceViewer({
     return map;
   }, [findings]);
 
-  // Find all occurrences of selected identifier for highlighting
-  const identifierLines = useMemo(() => {
-    if (!selectedIdentifier) return new Set<number>();
-    const result = new Set<number>();
-    for (let i = 0; i < lines.length; i++) {
-      const regex = new RegExp(`\\b${selectedIdentifier}\\b`);
-      if (regex.test(lines[i]!)) result.add(i + 1);
-    }
-    return result;
-  }, [selectedIdentifier, lines]);
-
   const handleTokenClick = useCallback(
     (token: Token, lineNum: number) => {
       if (token.type === "identifier") {
-        setSelectedIdentifier((prev) => (prev === token.value ? null : token.value));
         onIdentifierClick?.(token.value, lineNum);
       }
     },
@@ -459,15 +449,6 @@ export default function SourceViewer({
         style={{ backgroundColor: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}
       >
         {file.name}
-        {selectedIdentifier && (
-          <span
-            className="ml-3 px-2 py-0.5 cursor-pointer"
-            style={{ backgroundColor: "var(--color-accent-muted)", color: "var(--color-accent)" }}
-            onClick={() => setSelectedIdentifier(null)}
-          >
-            {selectedIdentifier} ({identifierLines.size} refs) ×
-          </span>
-        )}
       </div>
 
       {/* Source lines */}
@@ -476,7 +457,6 @@ export default function SourceViewer({
           const lineNum = i + 1;
           const isCurrentLine = lineNum === currentLine;
           const isHighlighted = highlightLines?.has(lineNum);
-          const isIdentifierLine = identifierLines.has(lineNum);
           const isFindMatch = matchSet.has(lineNum);
           const isActiveFind = findOpen && lineNum === activeMatchLine;
           const lineFindings = findingsByLine.get(lineNum);
@@ -494,11 +474,9 @@ export default function SourceViewer({
                     ? "rgba(210, 153, 34, 0.15)"
                     : isCurrentLine
                       ? "rgba(139, 92, 246, 0.15)"
-                      : isIdentifierLine
-                        ? "rgba(224, 108, 117, 0.08)"
-                        : isHighlighted
-                          ? "rgba(139, 92, 246, 0.05)"
-                          : "transparent",
+                      : isHighlighted
+                        ? "rgba(139, 92, 246, 0.05)"
+                        : "transparent",
                 borderLeft: isActiveFind
                   ? "3px solid var(--color-warning)"
                   : isCurrentLine
@@ -552,18 +530,15 @@ export default function SourceViewer({
                     highlighted: boolean,
                   ) => {
                     const isClickable = token.type === "identifier";
-                    const isSelected = selectedIdentifier === token.value && isClickable;
                     return (
                       <span
                         key={j}
                         onClick={isClickable ? () => handleTokenClick(token, lineNum) : undefined}
                         onMouseEnter={isClickable ? (e) => { e.currentTarget.style.textDecoration = "underline"; } : undefined}
-                        onMouseLeave={isClickable ? (e) => { e.currentTarget.style.textDecoration = isSelected ? "underline" : "none"; } : undefined}
+                        onMouseLeave={isClickable ? (e) => { e.currentTarget.style.textDecoration = "none"; } : undefined}
                         style={{
-                          color: isSelected ? "var(--color-accent)" : TOKEN_COLORS[token.type],
-                          fontWeight: isSelected || highlighted ? 700 : undefined,
-                          textDecoration: isSelected ? "underline" : undefined,
-                          textDecorationColor: isSelected ? "var(--color-accent)" : undefined,
+                          color: TOKEN_COLORS[token.type],
+                          fontWeight: highlighted ? 700 : undefined,
                           cursor: isClickable ? "pointer" : undefined,
                         }}
                       >

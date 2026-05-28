@@ -27,6 +27,7 @@ export function SourceOpcodeSplit({
   activeContractAddress,
   executableLines,
   onJumpToLine,
+  onIdentifierClick,
   // opcode pane
   steps,
   currentStep,
@@ -46,6 +47,9 @@ export function SourceOpcodeSplit({
   activeContractAddress: string | null;
   executableLines: Set<number>;
   onJumpToLine: (line: number) => void;
+  /** Fired when the user clicks any identifier token in the source pane.
+   *  Used by the parent for go-to-definition navigation. */
+  onIdentifierClick?: (identifier: string, line: number) => void;
   steps: OpcodeStep[];
   currentStep: number;
   goTo: (step: number) => void;
@@ -69,6 +73,7 @@ export function SourceOpcodeSplit({
           activeContractAddress={activeContractAddress}
           maxHeight="100%"
           onLineClick={onJumpToLine}
+          onIdentifierClick={onIdentifierClick}
           executableLines={executableLines}
         />
       </div>
