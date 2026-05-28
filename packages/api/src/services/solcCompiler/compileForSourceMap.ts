@@ -53,7 +53,14 @@ export async function compileForSourceMap(
   const cached = await getCachedCompilation(address);
   if (cached) return cached;
 
-  const source = await getVerifiedSource(address);
+  // Best-effort: getVerifiedSource can throw UpstreamError during outages.
+  // Swallow it here — recompilation has nothing to do if the upstream is down.
+  let source;
+  try {
+    source = await getVerifiedSource(address);
+  } catch {
+    return null;
+  }
   if (!source || !source.compilerVersion) return null;
 
   // The deployed bytecode is the ground truth we gate against.

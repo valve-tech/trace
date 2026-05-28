@@ -1,6 +1,7 @@
 import {
   FETCH_TIMEOUT,
   SOURCIFY_API_URL,
+  UpstreamError,
   type SourceFile,
   type VerifiedSource,
 } from "./types.js";
@@ -31,11 +32,29 @@ export async function fetchFromSourcify(
 
     for (const matchType of ["full_match", "partial_match"]) {
       const url = `${SOURCIFY_API_URL}/repository/contracts/${matchType}/${chainId}/${address}/`;
-      const res = await fetch(url, { signal: controller.signal });
-      if (!res.ok) continue;
+      let res: Response;
+      try {
+        res = await fetch(url, { signal: controller.signal });
+      } catch (err) {
+        throw new UpstreamError(
+          "sourcify",
+          err instanceof Error ? err.message : "network error",
+        );
+      }
+      if (res.status >= 500) throw new UpstreamError("sourcify", `HTTP ${res.status}`);
+      if (!res.ok) continue; // 404 = not in this match-type bucket; try the next
 
       const metadataUrl = `${SOURCIFY_API_URL}/files/${chainId}/${address}`;
-      const metaRes = await fetch(metadataUrl, { signal: controller.signal });
+      let metaRes: Response;
+      try {
+        metaRes = await fetch(metadataUrl, { signal: controller.signal });
+      } catch (err) {
+        throw new UpstreamError(
+          "sourcify",
+          err instanceof Error ? err.message : "network error",
+        );
+      }
+      if (metaRes.status >= 500) throw new UpstreamError("sourcify", `HTTP ${metaRes.status}`);
       if (!metaRes.ok) continue;
 
       const files = (await metaRes.json()) as SourcifyFile[];
@@ -77,7 +96,10 @@ export async function fetchFromSourcify(
     }
 
     return null;
-  } catch {
+  } catch (err) {
+    // Let UpstreamError propagate so getVerifiedSource can distinguish
+    // "sourcify is down" from "sourcify said this contract isn't there".
+    if (err instanceof UpstreamError) throw err;
     return null;
   } finally {
     clearTimeout(timer);

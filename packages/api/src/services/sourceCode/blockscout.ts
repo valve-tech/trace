@@ -1,6 +1,7 @@
 import {
   BLOCKSCOUT_API_URL,
   FETCH_TIMEOUT,
+  UpstreamError,
   type SourceFile,
   type VerifiedSource,
 } from "./types.js";
@@ -17,7 +18,10 @@ interface BlockScoutSourceResult {
 
 /**
  * Fetch verified source from BlockScout's v1 `getsourcecode` endpoint.
- * Returns `null` on any failure or unverified contract.
+ * Returns `null` only when BlockScout responds normally with "not verified"
+ * (status !== "1" or empty SourceCode). Throws `UpstreamError` for transient
+ * failures — 5xx, network errors, timeouts — so the caller can avoid caching
+ * an outage as a permanent miss and the route can surface a 503.
  *
  * Also reaches into the v2 `smart-contracts/{address}` endpoint when
  * available to pick up `source_map` and `deployed_bytecode` — useful for
@@ -30,10 +34,24 @@ export async function fetchFromBlockScout(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
+  let res: Response;
   try {
     const url = `${BLOCKSCOUT_API_URL}?module=contract&action=getsourcecode&address=${address}`;
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) return null;
+    res = await fetch(url, { signal: controller.signal });
+  } catch (err) {
+    clearTimeout(timer);
+    // Network error or AbortError (timeout). Either way it's transient.
+    throw new UpstreamError(
+      "blockscout",
+      err instanceof Error ? err.message : "network error",
+    );
+  }
+
+  try {
+    if (res.status >= 500) {
+      throw new UpstreamError("blockscout", `HTTP ${res.status}`);
+    }
+    if (!res.ok) return null; // 4xx → upstream answered, just no source
 
     const data = (await res.json()) as {
       status: string;

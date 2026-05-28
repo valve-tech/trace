@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { getVerifiedSource } from "../services/sourceCode.js";
+import { getVerifiedSource, UpstreamError } from "../services/sourceCode.js";
 import {
   precomputeSourceMap,
   lookupPc,
@@ -28,7 +28,17 @@ router.get(
   asyncRoute(async (req: Request, res: Response) => {
     const address = requireAddress(req.params.address);
 
-    const source = await getVerifiedSource(address);
+    let source;
+    try {
+      source = await getVerifiedSource(address);
+    } catch (err) {
+      if (err instanceof UpstreamError) {
+        throw new ApiError(503, "Verification source temporarily unavailable", {
+          hint: `${err.upstream} returned an error; the contract may actually be verified — retry shortly`,
+        });
+      }
+      throw err;
+    }
     if (!source) {
       throw new ApiError(404, "Verified source not found", {
         hint: "Contract may not be verified on BlockScout or Sourcify",
@@ -86,7 +96,17 @@ router.post(
 
     const { pcs } = mapPcsSchema.parse(req.body);
 
-    const source = await getVerifiedSource(address);
+    let source;
+    try {
+      source = await getVerifiedSource(address);
+    } catch (err) {
+      if (err instanceof UpstreamError) {
+        throw new ApiError(503, "Verification source temporarily unavailable", {
+          hint: `${err.upstream} returned an error; retry shortly`,
+        });
+      }
+      throw err;
+    }
     if (!source) throw new ApiError(404, "Verified source not found");
 
     let sourceMap = source.sourceMap;

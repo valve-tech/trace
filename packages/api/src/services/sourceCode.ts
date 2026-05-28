@@ -10,4 +10,5 @@
  */
 
 export type { SourceFile, VerifiedSource } from "./sourceCode/types.js";
+export { UpstreamError } from "./sourceCode/types.js";
 export { getVerifiedSource } from "./sourceCode/getVerifiedSource.js";

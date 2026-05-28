@@ -28,7 +28,17 @@ export async function analyzeContract(
 
   const startTime = Date.now();
 
-  const source = await getVerifiedSource(address);
+  let source;
+  try {
+    source = await getVerifiedSource(address);
+  } catch (err) {
+    // Don't blame the contract when the upstream is just down.
+    return resultWithError(
+      address,
+      startTime,
+      err instanceof Error ? `Upstream unavailable: ${err.message}` : "Upstream unavailable",
+    );
+  }
   if (!source) {
     return resultWithError(address, startTime, "Verified source not found");
   }

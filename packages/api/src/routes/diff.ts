@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import {
   getVerifiedSource,
+  UpstreamError,
   type SourceFile,
 } from "../services/sourceCode.js";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
@@ -37,10 +38,23 @@ router.post(
       throw new ApiError(400, "addressA and addressB must be different");
     }
 
-    const [sourceA, sourceB] = await Promise.all([
+    // allSettled so one upstream outage on one address doesn't blow up the
+    // whole diff request; we surface 503 only when BOTH sides errored.
+    const [resA, resB] = await Promise.allSettled([
       getVerifiedSource(addressA),
       getVerifiedSource(addressB),
     ]);
+    const errA = resA.status === "rejected" && resA.reason instanceof UpstreamError ? resA.reason : null;
+    const errB = resB.status === "rejected" && resB.reason instanceof UpstreamError ? resB.reason : null;
+    if (errA && errB) {
+      throw new ApiError(503, "Verification source temporarily unavailable", {
+        hint: `${errA.upstream} and ${errB.upstream} both failed; retry shortly`,
+      });
+    }
+    if (resA.status === "rejected" && !errA) throw resA.reason;
+    if (resB.status === "rejected" && !errB) throw resB.reason;
+    const sourceA = resA.status === "fulfilled" ? resA.value : null;
+    const sourceB = resB.status === "fulfilled" ? resB.value : null;
 
     if (!sourceA && !sourceB) {
       throw new ApiError(404, "Neither contract has verified source code");

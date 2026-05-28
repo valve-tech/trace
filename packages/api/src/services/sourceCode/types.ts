@@ -24,3 +24,19 @@ export const BLOCKSCOUT_API_URL =
 export const SOURCIFY_API_URL = "https://sourcify.dev/server";
 
 export const FETCH_TIMEOUT = 15_000;
+
+/**
+ * Thrown by a source fetcher when the upstream is transiently unavailable
+ * (5xx, network error, timeout) — distinct from "upstream answered and the
+ * contract isn't verified" (which is null). Lets getVerifiedSource avoid
+ * caching a transient outage as a permanent "not verified", and lets the
+ * route surface a 503 instead of a misleading 404.
+ */
+export class UpstreamError extends Error {
+  readonly upstream: string;
+  constructor(upstream: string, message: string) {
+    super(`[${upstream}] ${message}`);
+    this.name = "UpstreamError";
+    this.upstream = upstream;
+  }
+}
