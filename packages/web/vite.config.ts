@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 11800,
+    host: true, // bind to 0.0.0.0 so the dev server is reachable from other devices on the LAN
     proxy: {
       "/health": {
         target: "http://localhost:10100",
