@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { Icon } from "@iconify/react";
 import type { SourceFile } from "../../api/source";
 
@@ -539,13 +539,20 @@ export default function SourceViewer({
               })()}
 
               {/* Code with interactive tokens. Tokens are split by the active
-                  span so the exact executing sub-expression can be boxed. */}
+                  span so the exact executing sub-expression can be boxed.
+                  Adjacent highlighted segments are wrapped in ONE run-container
+                  so the box reads as a single continuous region instead of N
+                  abutting rounded boxes — see runs-grouping below. */}
               <span className="flex-1 whitespace-pre" style={{ tabSize: 4 }}>
-                {splitTokensBySpan(tokens, lineNum, highlightSpan ?? null).map(
-                  ({ token, highlighted }, j) => {
+                {(() => {
+                  const segs = splitTokensBySpan(tokens, lineNum, highlightSpan ?? null);
+                  const renderToken = (
+                    { token }: { token: Token },
+                    j: number,
+                    highlighted: boolean,
+                  ) => {
                     const isClickable = token.type === "identifier";
                     const isSelected = selectedIdentifier === token.value && isClickable;
-
                     return (
                       <span
                         key={j}
@@ -558,16 +565,43 @@ export default function SourceViewer({
                           textDecoration: isSelected ? "underline" : undefined,
                           textDecorationColor: isSelected ? "var(--color-accent)" : undefined,
                           cursor: isClickable ? "pointer" : undefined,
-                          backgroundColor: highlighted ? "rgba(139, 92, 246, 0.35)" : undefined,
-                          boxShadow: highlighted ? "0 0 0 1px rgba(139, 92, 246, 0.7)" : undefined,
-                          borderRadius: highlighted ? "2px" : undefined,
                         }}
                       >
                         {token.value}
                       </span>
                     );
-                  },
-                )}
+                  };
+
+                  // Walk segments, grouping consecutive `highlighted: true` ones
+                  // into a run that shares one box. Non-highlighted segments
+                  // emit individually with no wrapper.
+                  const out: ReactNode[] = [];
+                  let i = 0;
+                  let runIdx = 0;
+                  while (i < segs.length) {
+                    if (!segs[i]!.highlighted) {
+                      out.push(renderToken(segs[i]!, i, false));
+                      i++;
+                      continue;
+                    }
+                    const start = i;
+                    while (i < segs.length && segs[i]!.highlighted) i++;
+                    const run = segs.slice(start, i);
+                    out.push(
+                      <span
+                        key={`run-${runIdx++}`}
+                        style={{
+                          backgroundColor: "rgba(139, 92, 246, 0.35)",
+                          boxShadow: "0 0 0 1px rgba(139, 92, 246, 0.7)",
+                          borderRadius: "2px",
+                        }}
+                      >
+                        {run.map((seg, j) => renderToken(seg, start + j, true))}
+                      </span>,
+                    );
+                  }
+                  return out;
+                })()}
               </span>
             </div>
           );
