@@ -200,59 +200,57 @@ export default function DebuggerView() {
             hasGasProfile={!!gasProfile}
           />
 
-          <div className="p-4">
-            {activeTab === "debugger" && (
-              opcodeSteps.length > 0 ? (
-                <StepDebugger
-                  steps={opcodeSteps}
-                  contractAddress={targetAddress ?? undefined}
-                  callTrace={callTrace}
-                  txHash={validUrlHash}
-                  decodedLogs={txContext.data?.decodedLogs}
-                  rawLogs={txContext.data?.rawLogs}
+          {activeTab === "debugger" && (
+            opcodeSteps.length > 0 ? (
+              <StepDebugger
+                steps={opcodeSteps}
+                contractAddress={targetAddress ?? undefined}
+                callTrace={callTrace}
+                txHash={validUrlHash}
+                decodedLogs={txContext.data?.decodedLogs}
+                rawLogs={txContext.data?.rawLogs}
+              />
+            ) : (
+              <NoDataPanel message="Step debugger requires opcode trace data. A debug-enabled node is needed." />
+            )
+          )}
+
+          {activeTab === "calltree" && (
+            normalizedTrace ? (
+              <CallTree frame={normalizedTrace} />
+            ) : (
+              <NoDataPanel message="Call tree data is not available for this transaction." />
+            )
+          )}
+
+          {activeTab === "gas" && (
+            <div className="space-y-stack">
+              {normalizedTrace && (
+                <GasFlamegraph
+                  frame={normalizedTrace}
+                  resolveSelector={(sel) =>
+                    lookupWellKnown(sel)?.signature?.split("(")[0]
+                  }
+                />
+              )}
+              {gasProfile ? (
+                <GasProfiler
+                  gasProfile={gasProfile}
+                  opcodeProfile={opcodeProfile}
                 />
               ) : (
-                <NoDataPanel message="Step debugger requires opcode trace data. A debug-enabled node is needed." />
-              )
-            )}
+                <NoDataPanel message="Gas profile data is not available for this transaction." />
+              )}
+            </div>
+          )}
 
-            {activeTab === "calltree" && (
-              normalizedTrace ? (
-                <CallTree frame={normalizedTrace} />
-              ) : (
-                <NoDataPanel message="Call tree data is not available for this transaction." />
-              )
-            )}
-
-            {activeTab === "gas" && (
-              <div className="space-y-stack">
-                {normalizedTrace && (
-                  <GasFlamegraph
-                    frame={normalizedTrace}
-                    resolveSelector={(sel) =>
-                      lookupWellKnown(sel)?.signature?.split("(")[0]
-                    }
-                  />
-                )}
-                {gasProfile ? (
-                  <GasProfiler
-                    gasProfile={gasProfile}
-                    opcodeProfile={opcodeProfile}
-                  />
-                ) : (
-                  <NoDataPanel message="Gas profile data is not available for this transaction." />
-                )}
-              </div>
-            )}
-
-            {activeTab === "opcodes" && (
-              normalizedSteps.length > 0 ? (
-                <OpcodeViewer steps={normalizedSteps} />
-              ) : (
-                <NoDataPanel message="Opcode trace data is not available for this transaction." />
-              )
-            )}
-          </div>
+          {activeTab === "opcodes" && (
+            normalizedSteps.length > 0 ? (
+              <OpcodeViewer steps={normalizedSteps} />
+            ) : (
+              <NoDataPanel message="Opcode trace data is not available for this transaction." />
+            )
+          )}
         </div>
       )}
 
