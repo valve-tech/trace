@@ -258,6 +258,9 @@ export default function StepDebugger({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // When the call tree has focus, it owns the arrow/enter keys (expand /
+      // collapse / move). Don't also scrub the trace from underneath it.
+      if (e.target instanceof HTMLElement && e.target.closest("[data-debugger-tree]")) return;
       switch (e.key) {
         case "ArrowRight":
         case " ":

@@ -3,7 +3,7 @@ import { Icon } from "@iconify/react";
 import { lookupWellKnown } from "../../../lib/wellKnownSignatures";
 import { bestMatchSignature } from "./callTreeHelpers";
 import { CALL_TYPE_BORDER } from "./theme";
-import { TreeNode, DEFAULT_EXPAND_DEPTH, type TreeShared } from "./TreeNode";
+import { TreeNode, isRowExpanded, type TreeShared } from "./TreeNode";
 import { nodeKey, type ExecNode } from "./executionScopes";
 
 // Short, uppercase call-type tag shown inline on each row (Tenderly-style),
@@ -47,7 +47,7 @@ export function CallFrameRow({
   const stepIndex = node.startStep;
   const key = nodeKey(node);
 
-  const expanded = expandedOverrides?.[key] ?? depth < DEFAULT_EXPAND_DEPTH;
+  const expanded = isRowExpanded(key, depth, expandedOverrides);
   const [hovered, setHovered] = useState(false);
   const hasChildren = node.children.length > 0;
 
@@ -122,6 +122,7 @@ export function CallFrameRow({
   return (
     <div>
       <div
+        data-node-key={key}
         className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs relative whitespace-nowrap"
         onClick={() => { onJumpTo(jumpStep, searchName); onSelect?.(frame); onSelectKey?.(key); }}
         onMouseEnter={() => setHovered(true)}

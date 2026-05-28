@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { OpcodeStep, CallFrame } from "../../../api/debugger";
 import type { SourceLocation } from "../../../api/source";
 import type { SignatureMatch } from "../../../api/signatures";
@@ -6,6 +6,7 @@ import { PanelHeader } from "./PanelHeader";
 import { TreeNode, type TreeShared } from "./TreeNode";
 import { FrameDetailPanel } from "./FrameDetailPanel";
 import { buildExecutionTree, type LogsByStep } from "./executionScopes";
+import { flattenVisible, resolveTreeKey } from "./treeKeyboard";
 import { publishNavTree } from "./navDiagnostics";
 import {
   loadTreeExpandState,
@@ -87,6 +88,53 @@ export function CallTreeFromOpcodes({
     if (import.meta.env.DEV) publishNavTree(tree);
   }, [tree]);
 
+  // ---- Keyboard navigation ----
+  // The pane is focusable; while it holds focus the arrow keys drive the tree
+  // (expand/collapse + move) rather than the scrubber. The visible-row list is
+  // built with the same expand rule the rows render with, so they stay in sync.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const visibleRows = useMemo(
+    () => (tree ? flattenVisible(tree, expandedOverrides) : []),
+    [tree, expandedOverrides],
+  );
+  const scrollRowIntoView = useCallback((key: string) => {
+    // rAF so the row exists after an expand toggle re-renders the list.
+    requestAnimationFrame(() =>
+      containerRef.current
+        ?.querySelector(`[data-node-key="${key}"]`)
+        ?.scrollIntoView({ block: "nearest" }),
+    );
+  }, []);
+  const focusRow = useCallback(
+    (key: string) => {
+      setSelectedKey(key);
+      scrollRowIntoView(key);
+    },
+    [scrollRowIntoView],
+  );
+  // Clicking a row focuses the pane so arrows take over immediately (no second
+  // click), and keeps the selection highlight as the focus indicator.
+  const selectOnClick = useCallback((key: string) => {
+    setSelectedKey(key);
+    containerRef.current?.focus({ preventScroll: true });
+  }, []);
+  const onTreeKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      const action = resolveTreeKey(e.key, visibleRows, selectedKey);
+      if (!action) return;
+      e.preventDefault(); // arrows/space would otherwise scroll the pane
+      if (action.type === "focus") focusRow(action.key);
+      else if (action.type === "toggle") onToggleExpand(action.key, action.expanded);
+      else
+        (
+          containerRef.current?.querySelector(
+            `[data-node-key="${action.key}"]`,
+          ) as HTMLElement | null
+        )?.click();
+    },
+    [visibleRows, selectedKey, focusRow, onToggleExpand],
+  );
+
   if (callTrace && tree) {
     const shared: TreeShared = {
       onJumpTo,
@@ -98,7 +146,7 @@ export function CallTreeFromOpcodes({
       selectedKey,
       expandedOverrides,
       onToggleExpand,
-      onSelectKey: setSelectedKey,
+      onSelectKey: selectOnClick,
       onExpand: onExpandFrame,
     };
     const content = <TreeNode node={tree} depth={0} shared={shared} />;
@@ -108,7 +156,14 @@ export function CallTreeFromOpcodes({
     return (
       <div className="card overflow-hidden flex flex-col h-full">
         <PanelHeader title="Call Tree" count={callTrace.calls?.length ?? 0} suffix="calls" />
-        <div className="overflow-auto flex-1">
+        <div
+          ref={containerRef}
+          tabIndex={0}
+          data-debugger-tree
+          onKeyDown={onTreeKeyDown}
+          className="overflow-auto flex-1"
+          style={{ outline: "none" }}
+        >
           <div style={{ minWidth: "fit-content" }}>
             {content}
           </div>

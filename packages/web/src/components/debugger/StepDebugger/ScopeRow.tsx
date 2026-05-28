@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 import { nodeKey, type ExecNode } from "./executionScopes";
-import { TreeNode, DEFAULT_EXPAND_DEPTH, type TreeShared } from "./TreeNode";
+import { TreeNode, isRowExpanded, type TreeShared } from "./TreeNode";
 
 /**
  * One internal Solidity function (`fn` node of the execution tree). Its
@@ -18,13 +18,14 @@ export function ScopeRow({
   shared: TreeShared;
 }) {
   const key = nodeKey(node);
-  const expanded = shared.expandedOverrides?.[key] ?? depth < DEFAULT_EXPAND_DEPTH;
+  const expanded = isRowExpanded(key, depth, shared.expandedOverrides);
   const hasChildren = node.children.length > 0;
   const isSelected = shared.selectedKey === key;
 
   return (
     <div>
       <div
+        data-node-key={key}
         className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap"
         onClick={() => { shared.onJumpTo(node.entryStep); shared.onSelectKey?.(key); }}
         style={{

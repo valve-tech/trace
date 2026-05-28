@@ -27,6 +27,7 @@ export function LogRow({
 
   return (
     <div
+      data-node-key={key}
       className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap"
       onClick={() => { shared.onJumpTo(node.step); shared.onSelectKey?.(key); }}
       style={{

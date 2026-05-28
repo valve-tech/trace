@@ -14,6 +14,19 @@ import { LogRow } from "./LogRow";
  */
 export const DEFAULT_EXPAND_DEPTH = 5;
 
+/**
+ * Whether a row is expanded: an explicit user override wins, else rows shallower
+ * than DEFAULT_EXPAND_DEPTH start open. Shared by the rows and the keyboard
+ * walker so the visible set they compute can never drift apart.
+ */
+export function isRowExpanded(
+  key: string,
+  depth: number,
+  overrides?: Record<string, boolean>,
+): boolean {
+  return overrides?.[key] ?? depth < DEFAULT_EXPAND_DEPTH;
+}
+
 /** Props shared by every node in the execution tree, threaded down unchanged. */
 export interface TreeShared {
   onJumpTo: (step: number, funcName?: string) => void;
