@@ -37,7 +37,7 @@ export function CallTreeFromOpcodes({
   inline,
 }: {
   steps: OpcodeStep[];
-  onJumpTo: (step: number, funcName?: string) => void;
+  onJumpTo: (step: number, hint?: { funcName: string; contractAddr?: string }) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   frameStepMap: Map<CallFrame, number>;
   traceSourceMaps: Record<string, Record<number, SourceLocation | null>>;

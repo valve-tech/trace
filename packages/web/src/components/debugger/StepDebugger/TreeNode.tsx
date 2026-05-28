@@ -30,7 +30,7 @@ export function isRowExpanded(
 
 /** Props shared by every node in the execution tree, threaded down unchanged. */
 export interface TreeShared {
-  onJumpTo: (step: number, funcName?: string) => void;
+  onJumpTo: (step: number, hint?: { funcName: string; contractAddr?: string }) => void;
   signatureMap: Record<string, SignatureMatch[]>;
   contractNames: Record<string, string | null>;
   abiSelectors: Record<string, Record<string, string>>;

@@ -83,9 +83,14 @@ export function CallFrameRow({
   // map) so the source pane lands on the real function body. Only when there's
   // no dispatch target — value transfers (receive/fallback) and unverified
   // callees, whose bodies the optimizer leaves unmapped — fall back to the
-  // frame entry plus a name search.
+  // frame entry plus a name+contract hint. The handler does the (pure) source
+  // search synchronously at click time, so a missed lookup raises a visible
+  // error rather than briefly rendering the entry-step source-map location.
   const jumpStep = node.dispatchStep ?? stepIndex;
-  const searchName = node.dispatchStep === undefined && funcName !== "???" ? funcName : undefined;
+  const jumpHint =
+    node.dispatchStep === undefined && funcName !== "???"
+      ? { funcName, contractAddr: frame.to }
+      : undefined;
 
   const isSelected = selectedKey === key;
   // Flat rows (Tenderly-style): selection + hover + error drive the background;
@@ -124,7 +129,7 @@ export function CallFrameRow({
       <div
         data-node-key={key}
         className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs relative whitespace-nowrap"
-        onClick={() => { onJumpTo(jumpStep, searchName); onSelect?.(frame); onSelectKey?.(key); }}
+        onClick={() => { onJumpTo(jumpStep, jumpHint); onSelect?.(frame); onSelectKey?.(key); }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{

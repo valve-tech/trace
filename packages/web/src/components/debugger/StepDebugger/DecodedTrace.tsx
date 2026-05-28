@@ -41,7 +41,7 @@ export function DecodedTrace({
   sourceMappings: Record<number, SourceLocation | null>;
   callTrace?: CallFrame | null;
   contractNames: Record<string, string | null>;
-  onJumpTo: (step: number, funcName?: string) => void;
+  onJumpTo: (step: number, hint?: { funcName: string; contractAddr?: string }) => void;
 }) {
   const flatCalls = useMemo(
     () => callTrace ? flattenCallTree(callTrace) : [],

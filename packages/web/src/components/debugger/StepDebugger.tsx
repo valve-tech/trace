@@ -29,6 +29,7 @@ import { ResizablePanel } from "./StepDebugger/ResizablePanel";
 import { ControlsBar } from "./StepDebugger/ControlsBar";
 import { CallContextBreadcrumb } from "./StepDebugger/CallContextBreadcrumb";
 import { CallTreeFromOpcodes } from "./StepDebugger/CallTreeFromOpcodes";
+import { findFunctionLine } from "./StepDebugger/findFunctionLine";
 import { DecodedTrace } from "./StepDebugger/DecodedTrace";
 import { SourceOpcodeSplit } from "./StepDebugger/SourceOpcodeSplit";
 import { opcodeFrequencies } from "./StepDebugger/opcodeStats";
@@ -115,7 +116,16 @@ export default function StepDebugger({
   const [slitherLoading, setSlitherLoading] = useState(false);
   const [showFindings, setShowFindings] = useState(false);
   const [overrideLine, setOverrideLine] = useState<number | null>(null);
-  const [pendingFuncSearch, setPendingFuncSearch] = useState<string | null>(null);
+  // A queued function-name search that couldn't be resolved at click time
+  // because the target contract's source hadn't loaded yet. The resolver effect
+  // runs the (pure) findFunctionLine helper once sourcesByAddr catches up.
+  const [pendingSearch, setPendingSearch] = useState<
+    { funcName: string; contractAddr?: string } | null
+  >(null);
+  // User-visible error when a click asked for a function we couldn't locate
+  // (e.g. the search found nothing in the target contract's source). Auto-
+  // cleared on the next successful navigation.
+  const [navError, setNavError] = useState<string | null>(null);
   const [scrollKey, setScrollKey] = useState(0);
 
   const maxDepth = useMemo(() => {
@@ -233,22 +243,51 @@ export default function StepDebugger({
   // Jump to a step from the call tree. The debugger split shows source AND
   // the opcode trace, so the click always visibly navigates: the opcode pane
   // auto-scrolls to the step even when there's no verified source, and the
-  // source pane scrolls to the function when one exists. A funcName is only
-  // passed for value transfers (receive/fallback), whose unmapped bodies need
-  // the text search; the pending-search effect waits for source to load.
+  // source pane scrolls to the function when one exists.
+  //
+  // The optional `hint` carries a target function name (and the contract it
+  // lives in). It's only supplied for rows whose source-map JUMPDEST the
+  // optimizer dropped — value transfers (receive/fallback) and bare selectors.
+  // We resolve the line synchronously here when the target contract's source is
+  // already loaded (the common case, since useTraceSources warms every contract
+  // in the trace up-front). A missed lookup raises a visible navError instead
+  // of silently falling back to the entry step's source map — which was the
+  // root of the "lands at contract base, then jumps" flicker.
   const jumpToAndShowSource = useCallback(
-    (step: number, funcName?: string) => {
-      // Always drop any prior text-search override. Function/dispatch rows let
-      // the source map drive the line, so a leftover override from an earlier
-      // receive/fallback click would otherwise stick and send every later click
-      // to the stale line.
+    (step: number, hint?: { funcName: string; contractAddr?: string }) => {
+      // Reset any prior nav state so a leftover override / error from an
+      // earlier click can't bleed into this one.
       setOverrideLine(null);
+      setNavError(null);
+      setPendingSearch(null);
       goTo(step);
       setContentView("debugger");
       setScrollKey((k) => k + 1);
-      if (funcName) setPendingFuncSearch(funcName);
+      if (!hint) return;
+
+      // Three explicit branches — no silent fall-through. useTraceSources
+      // returns a record keyed by every code-executing trace contract: missing
+      // key = still loading (defer), empty array = loaded but unverified (real
+      // error), populated = run the search and either land the line or report
+      // that the function wasn't found.
+      const addrKey = hint.contractAddr?.toLowerCase();
+      const files = addrKey ? sourcesByAddr[addrKey] : undefined;
+      const where = hint.contractAddr ? `${hint.contractAddr.slice(0, 8)}…` : "this contract";
+
+      if (files === undefined) {
+        setPendingSearch(hint); // not loaded yet — resolver effect will pick it up
+        return;
+      }
+      if (files.length === 0) {
+        setNavError(`No verified source for ${where} — can't locate \`${hint.funcName}()\`.`);
+        return;
+      }
+
+      const hit = findFunctionLine(files, hint.funcName);
+      if (hit) setOverrideLine(hit.line);
+      else setNavError(`Couldn't locate \`${hint.funcName}()\` in ${where}'s source.`);
     },
-    [goTo],
+    [goTo, sourcesByAddr],
   );
 
   const jumpToNext = useCallback(
@@ -407,73 +446,32 @@ export default function StepDebugger({
     uniquePcs,
   );
 
-  // Resolve a pending function-name search → line number when source loads.
-  // If not found in the active source (e.g. proxy contract), search all files;
-  // prefer matches inside contract{}/library{} over interface{}.
+  // Resolver for a click whose target contract's source wasn't loaded yet.
+  // Re-runs the pure helper once sourcesByAddr (or, for the no-addr fallback,
+  // sourceData) catches up. Mirrors the three-branch logic in the sync handler
+  // — missing key keeps waiting, empty array fails fast with navError, populated
+  // runs the search. The sync path handles the common case; this is "click
+  // landed before the network did".
   useEffect(() => {
-    if (!pendingFuncSearch || !sourceData) return;
+    if (!pendingSearch) return;
+    const addrKey = pendingSearch.contractAddr?.toLowerCase();
+    const files = addrKey ? sourcesByAddr[addrKey] : sourceData?.files;
+    if (files === undefined) return; // still loading — wait for another tick
 
-    // Solidity's special members (`receive() external payable`,
-    // `fallback() …`) are declared without the `function` keyword, so a
-    // `function NAME(` pattern would never match and we'd latch onto a stray
-    // token elsewhere. Match those by their own header form.
-    const isSpecial = pendingFuncSearch === "receive" || pendingFuncSearch === "fallback";
-    const funcPattern = isSpecial
-      ? new RegExp(`\\b${pendingFuncSearch}\\s*\\(\\s*\\)`)
-      : new RegExp(`function\\s+${pendingFuncSearch}\\s*\\(`);
-    const varPattern = new RegExp(`\\b${pendingFuncSearch}\\b`);
-
-    for (const file of sourceData.files ?? []) {
-      const lines = file.content.split("\n");
-
-      let inInterface = false;
-      let inContract = false;
-      let braceDepth = 0;
-      let interfaceMatch: number | null = null;
-      let contractMatch: number | null = null;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!;
-
-        if (/\binterface\s+\w+/.test(line)) inInterface = true;
-        if (/\bcontract\s+\w+/.test(line) || /\blibrary\s+\w+/.test(line)) {
-          inContract = true; inInterface = false;
-        }
-
-        for (const ch of line) {
-          if (ch === "{") braceDepth++;
-          if (ch === "}") {
-            braceDepth--;
-            if (braceDepth === 0) { inInterface = false; inContract = false; }
-          }
-        }
-
-        if (funcPattern.test(line)) {
-          if (inContract && !inInterface) {
-            contractMatch = i + 1;
-          } else if (inInterface && interfaceMatch === null) {
-            interfaceMatch = i + 1;
-          } else if (contractMatch === null && interfaceMatch === null) {
-            contractMatch = i + 1;
-          }
-        }
-
-        if (varPattern.test(line) && /\bpublic\b/.test(line) && !/^\s*\/\//.test(line)) {
-          if (inContract && contractMatch === null) contractMatch = i + 1;
-        }
-      }
-
-      const bestMatch = contractMatch ?? interfaceMatch;
-      if (bestMatch !== null) {
-        setOverrideLine(bestMatch);
+    const where = pendingSearch.contractAddr ? `${pendingSearch.contractAddr.slice(0, 8)}…` : "this contract";
+    if (files.length === 0) {
+      setNavError(`No verified source for ${where} — can't locate \`${pendingSearch.funcName}()\`.`);
+    } else {
+      const hit = findFunctionLine(files, pendingSearch.funcName);
+      if (hit) {
+        setOverrideLine(hit.line);
         setScrollKey((k) => k + 1);
-        setPendingFuncSearch(null);
-        return;
+      } else {
+        setNavError(`Couldn't locate \`${pendingSearch.funcName}()\` in ${where}'s source.`);
       }
     }
-
-    setPendingFuncSearch(null);
-  }, [pendingFuncSearch, sourceData]);
+    setPendingSearch(null);
+  }, [pendingSearch, sourcesByAddr, sourceData]);
 
   const currentSourceLocation = step ? sourceMappings[step.pc] ?? null : null;
   const currentSourceFile = sourceData
@@ -482,7 +480,14 @@ export default function StepDebugger({
       : sourceData.files[0] ?? null
     : null;
 
-  const effectiveLine = overrideLine ?? currentSourceLocation?.line ?? null;
+  // While a navigation is mid-flight (waiting for source to load so the search
+  // can resolve), don't fall back to the entry step's source-map location —
+  // that's what produced the "lands at contract base, then jumps to receive"
+  // flicker. Show the previous line until the resolver lands the real one.
+  const navigationInFlight = pendingSearch !== null;
+  const effectiveLine = navigationInFlight
+    ? overrideLine
+    : overrideLine ?? currentSourceLocation?.line ?? null;
 
   // Exact sub-expression highlight from the source map. Suppressed when a
   // manual func-search override is active (those carry only a line), when the
@@ -638,6 +643,23 @@ export default function StepDebugger({
               contractNames={contractNames}
               onJumpTo={jumpToAndShowSource}
             />
+          )}
+
+          {navError && (
+            <div
+              role="alert"
+              onClick={() => setNavError(null)}
+              className="text-xs px-2 py-1 cursor-pointer"
+              style={{
+                color: "var(--color-danger)",
+                backgroundColor: "rgba(248, 81, 73, 0.08)",
+                boxShadow: "0 1px 0 0 var(--color-danger)",
+                fontFamily: "var(--font-mono)",
+              }}
+              title="Click to dismiss"
+            >
+              {navError}
+            </div>
           )}
 
           {contentView === "debugger" && (
