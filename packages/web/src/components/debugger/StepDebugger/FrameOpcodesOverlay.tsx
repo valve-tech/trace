@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { getOpcodeColor } from "@valve-tech/trace-sdk";
 import type { OpcodeStep } from "../../../api/debugger";
@@ -46,8 +46,21 @@ export function FrameOpcodesOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  useEffect(() => {
-    if (scrollerRef.current) setViewportH(scrollerRef.current.clientHeight);
+  // Measure the viewport AND scroll the current cursor's row into the middle
+  // in the same layout pass — useLayoutEffect runs before paint, so the list
+  // never visibly starts at the top when the cursor is 4,000 rows down.
+  // Mount-only: the overlay closes on every jump, so currentStep can't drift
+  // while it's open.
+  useLayoutEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const h = el.clientHeight;
+    setViewportH(h);
+    if (currentStep >= from && currentStep < to) {
+      const relIdx = currentStep - from;
+      el.scrollTop = Math.max(0, relIdx * ROW_HEIGHT - h / 2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const visibleStart = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
