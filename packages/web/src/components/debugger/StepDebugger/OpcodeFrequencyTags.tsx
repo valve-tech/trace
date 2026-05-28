@@ -19,7 +19,10 @@ export function OpcodeFrequencyTags({
 
   return (
     <div
-      className="flex flex-wrap gap-tight p-2 overflow-y-auto flex-shrink-0"
+      // No outer padding — chips have their own px-1.5/py-0.5 and the parent
+      // card supplies the surface chrome. The bottom shadow is the rail's
+      // separator from the opcode trace below.
+      className="flex flex-wrap gap-tight overflow-y-auto flex-shrink-0"
       style={{
         boxShadow: "0 1px 0 0 var(--color-border-muted)",
         // Cap the rail at ~3 rows; the rest scroll behind the custom bar so the
