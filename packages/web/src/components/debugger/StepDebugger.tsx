@@ -391,6 +391,30 @@ export default function StepDebugger({
     [recordingNavigate, steps, frameRanges, currentStep],
   );
 
+  // Whether a "next CALL / SSTORE / LOG" exists in the active frame from the
+  // current cursor onward. Drives the disabled state of the C/S/L hotkeys and
+  // toolbar buttons so the user gets feedback when they've reached the last
+  // one instead of silent no-op clicks. One forward scan covers all three
+  // predicates; we early-exit as soon as each is found.
+  const hasNext = useMemo(() => {
+    let end = steps.length;
+    let bestDepth = -1;
+    for (const f of frameRanges) {
+      if (f.entry <= currentStep && currentStep < f.end && f.depth > bestDepth) {
+        bestDepth = f.depth;
+        end = f.end;
+      }
+    }
+    let call = false, store = false, log = false;
+    for (let j = currentStep + 1; j < end && (!call || !store || !log); j++) {
+      const op = steps[j]!.op;
+      if (!call && isCallOp(op)) call = true;
+      if (!store && isStorageOp(op)) store = true;
+      if (!log && isLogOp(op)) log = true;
+    }
+    return { call, store, log };
+  }, [steps, frameRanges, currentStep]);
+
   // Go-to-definition: triggered when the user clicks any identifier token in
   // the source pane. Resolves the symbol in the active contract's flattened
   // sources and scrolls the source pane there. Falls back to a navError when
@@ -740,6 +764,7 @@ export default function StepDebugger({
         stepForward={stepForward}
         stepBackward={stepBackward}
         jumpToNext={jumpToNext}
+        hasNext={hasNext}
         opcodeFilter={opcodeFilter}
         setOpcodeFilter={setOpcodeFilter}
         filteredCount={filteredIndices?.size ?? null}

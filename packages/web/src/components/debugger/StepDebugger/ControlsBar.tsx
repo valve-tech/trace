@@ -15,6 +15,7 @@ export function ControlsBar({
   stepForward,
   stepBackward,
   jumpToNext,
+  hasNext,
   opcodeFilter,
   setOpcodeFilter,
   filteredCount,
@@ -38,6 +39,9 @@ export function ControlsBar({
   stepForward: () => void;
   stepBackward: () => void;
   jumpToNext: (predicate: (op: string) => boolean) => void;
+  /** Whether a next CALL / SSTORE / LOG exists in the active frame from the
+   *  cursor onward. Used to disable the corresponding buttons. */
+  hasNext: { call: boolean; store: boolean; log: boolean };
   opcodeFilter: string;
   setOpcodeFilter: (v: string) => void;
   filteredCount: number | null;
@@ -68,9 +72,9 @@ export function ControlsBar({
       <Divider />
 
       <div className="flex items-center gap-tight">
-        <ControlButton label="CALL" title="Next CALL (C)" onClick={() => jumpToNext(isCallOp)} small accent />
-        <ControlButton label="SSTORE" title="Next SSTORE (S)" onClick={() => jumpToNext(isStorageOp)} small accent />
-        <ControlButton label="LOG" title="Next LOG (L)" onClick={() => jumpToNext(isLogOp)} small accent />
+        <ControlButton label="CALL" title="Next CALL (C)" onClick={() => jumpToNext(isCallOp)} small accent disabled={!hasNext.call} />
+        <ControlButton label="SSTORE" title="Next SSTORE (S)" onClick={() => jumpToNext(isStorageOp)} small accent disabled={!hasNext.store} />
+        <ControlButton label="LOG" title="Next LOG (L)" onClick={() => jumpToNext(isLogOp)} small accent disabled={!hasNext.log} />
       </div>
 
       <Divider />
