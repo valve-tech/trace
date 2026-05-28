@@ -1,4 +1,6 @@
-/** Header card with tx-hash input + Debug button + inline validation hint. */
+/** Page header: title + description + tx-hash input. Rendered flat inside the
+ *  AppShell's outer padding — no card chrome, so we don't pay padding twice
+ *  (AppShell already gives the page its margin). */
 export function SearchBar({
   txHash,
   setTxHash,
@@ -13,12 +15,7 @@ export function SearchBar({
   onSubmit: () => void;
 }) {
   return (
-    <div
-      className="rounded-lg bs p-4"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
-    >
+    <div>
       <h2
         className="text-lg font-semibold mb-1"
         style={{ color: "var(--color-text-primary)" }}
