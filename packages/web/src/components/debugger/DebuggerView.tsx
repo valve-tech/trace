@@ -203,6 +203,11 @@ export default function DebuggerView() {
           {activeTab === "debugger" && (
             opcodeSteps.length > 0 ? (
               <StepDebugger
+                // Keying by txHash remounts the subtree on tx change so that
+                // navHistory, overrideLine, expandedFrame, pendingSearch and
+                // friends — all per-trace state — reset cleanly without an
+                // 8-setState useEffect chain.
+                key={validUrlHash}
                 steps={opcodeSteps}
                 contractAddress={targetAddress ?? undefined}
                 callTrace={callTrace}
