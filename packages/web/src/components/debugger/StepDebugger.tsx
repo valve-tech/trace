@@ -209,6 +209,39 @@ export default function StepDebugger({
     [callTrace, steps],
   );
 
+  // Step ranges of every frame that actually ran code, from the same
+  // frameStepMap the call tree uses. The previous approach counted CALL-family
+  // opcodes and paired them with the flattened tree in order; a codeless callee
+  // (EOA / precompile) or any call whose op/frame ordering didn't line up threw
+  // the count off by one and every later step resolved to the wrong contract
+  // ("fine until WPLS.balanceOf, then downhill"). Depth-bounded ranges don't
+  // drift: a frame owns [entry, end) where end is the first shallower step.
+  const frameRanges = useMemo(() => {
+    if (!callTrace) return [] as Array<{ addr: string | null; entry: number; end: number; depth: number }>;
+    const out: Array<{ addr: string | null; entry: number; end: number; depth: number }> = [];
+    const visit = (frame: CallFrame, parentDepth: number) => {
+      const entry = frameStepMap.get(frame);
+      if (entry === undefined) return;
+      const depth = steps[entry]?.depth ?? parentDepth + 1;
+      // A frame "ran code" only if it executed at a deeper depth than its
+      // parent; a codeless callee is mapped to the parent-depth CALL op and is
+      // skipped so it can't masquerade as the active contract.
+      const ranCode = depth > parentDepth;
+      if (ranCode) {
+        let end = steps.length;
+        for (let i = entry + 1; i < steps.length; i++) {
+          if (steps[i]!.depth < depth) { end = i; break; }
+        }
+        out.push({ addr: frame.to ?? null, entry, end, depth });
+        for (const c of frame.calls ?? []) visit(c, depth);
+      } else {
+        for (const c of frame.calls ?? []) visit(c, parentDepth);
+      }
+    };
+    visit(callTrace, 0);
+    return out;
+  }, [callTrace, frameStepMap, steps]);
+
   // Source maps for EVERY contract in the trace, so the call tree can trace
   // internal functions across all of them (Remix's model), not just the active
   // contract. Keyed by the pcs each contract actually executed.
@@ -290,12 +323,29 @@ export default function StepDebugger({
     [goTo, sourcesByAddr],
   );
 
+  // Jump to the next opcode satisfying `predicate`, but only within the active
+  // frame's [entry, end) — i.e. this frame and its descendants. Walking out of
+  // the frame would surface SSTOREs/CALLs/LOGs from unrelated code further
+  // down the trace; users almost always want "next thing in THIS execution".
   const jumpToNext = useCallback(
     (predicate: (op: string) => boolean): void => {
       setOverrideLine(null);
-      nav.jumpToNext(predicate);
+      let end = steps.length;
+      let bestDepth = -1;
+      for (const f of frameRanges) {
+        if (f.entry <= currentStep && currentStep < f.end && f.depth > bestDepth) {
+          bestDepth = f.depth;
+          end = f.end;
+        }
+      }
+      for (let j = currentStep + 1; j < end; j++) {
+        if (predicate(steps[j]!.op)) {
+          nav.jumpTo(j);
+          return;
+        }
+      }
     },
-    [nav],
+    [nav, steps, frameRanges, currentStep],
   );
 
   // Keyboard shortcuts
@@ -390,39 +440,6 @@ export default function StepDebugger({
     }
     return diffs;
   }, [currentDetail, prevDetail]);
-
-  // Step ranges of every frame that actually ran code, from the same
-  // frameStepMap the call tree uses. The previous approach counted CALL-family
-  // opcodes and paired them with the flattened tree in order; a codeless callee
-  // (EOA / precompile) or any call whose op/frame ordering didn't line up threw
-  // the count off by one and every later step resolved to the wrong contract
-  // ("fine until WPLS.balanceOf, then downhill"). Depth-bounded ranges don't
-  // drift: a frame owns [entry, end) where end is the first shallower step.
-  const frameRanges = useMemo(() => {
-    if (!callTrace) return [] as Array<{ addr: string | null; entry: number; end: number; depth: number }>;
-    const out: Array<{ addr: string | null; entry: number; end: number; depth: number }> = [];
-    const visit = (frame: CallFrame, parentDepth: number) => {
-      const entry = frameStepMap.get(frame);
-      if (entry === undefined) return;
-      const depth = steps[entry]?.depth ?? parentDepth + 1;
-      // A frame "ran code" only if it executed at a deeper depth than its
-      // parent; a codeless callee is mapped to the parent-depth CALL op and is
-      // skipped so it can't masquerade as the active contract.
-      const ranCode = depth > parentDepth;
-      if (ranCode) {
-        let end = steps.length;
-        for (let i = entry + 1; i < steps.length; i++) {
-          if (steps[i]!.depth < depth) { end = i; break; }
-        }
-        out.push({ addr: frame.to ?? null, entry, end, depth });
-        for (const c of frame.calls ?? []) visit(c, depth);
-      } else {
-        for (const c of frame.calls ?? []) visit(c, parentDepth);
-      }
-    };
-    visit(callTrace, 0);
-    return out;
-  }, [callTrace, frameStepMap, steps]);
 
   // The contract executing at the cursor = the deepest frame whose range covers
   // the current step. For DELEGATECALL the frame's `to` is the code contract,
