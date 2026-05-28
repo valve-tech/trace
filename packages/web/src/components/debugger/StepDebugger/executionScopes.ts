@@ -1,5 +1,6 @@
 import type { CallFrame, OpcodeStep } from "../../../api/debugger";
-import type { SourceLocation } from "../../../api/source";
+import type { SourceLocation, SourceFile } from "../../../api/source";
+import { buildFunctionIndex, classifyFn, type FileIndex } from "./functionIndex";
 
 /**
  * Unified execution tree, ported from Remix's InternalCallTree.
@@ -63,6 +64,10 @@ export type ExecNode =
        *  dispatch into a function body) rather than an internal call site.
        *  These are redundant with the frame and get hoisted away. */
       decl?: boolean;
+      /** True when the function is defined in a `library` block (e.g. SafeMath),
+       *  so the tree can show/hide library calls separately from a contract's
+       *  own internal functions. Requires source content; false otherwise. */
+      lib?: boolean;
     }
   /** A LOG0–LOG4 opcode — an emitted event. A leaf: it nests inside whatever
    *  function/frame was executing when it fired, so you see which function
@@ -188,6 +193,8 @@ type Event =
       fnFile?: string;
       fnStart?: number;
       fnEnd?: number;
+      /** Defined in a `library` block (from the source index, when available). */
+      lib?: boolean;
       /** Step at the function's first instruction (the entry JUMPDEST). */
       entryStep: number;
     }
@@ -236,7 +243,26 @@ export function buildExecutionTree(
    *  step becomes a leaf `op` node in the function/frame that ran it. Empty by
    *  default, so the tree carries no opcode rows unless asked. */
   opSet?: Set<string>,
+  /** Per-contract source files (lower-cased address keys). When present, used
+   *  to name internal functions exactly and flag library calls. */
+  sourcesByAddr?: Record<string, SourceFile[]>,
 ): ExecNode {
+  // Per-contract symbol index, built once and reused across that contract's
+  // frames (a contract recurs many times in a busy trace).
+  const indexCache = new Map<string, Map<string, FileIndex>>();
+  const indexFor = (addr: string | undefined): Map<string, FileIndex> | undefined => {
+    if (!addr || !sourcesByAddr) return undefined;
+    const key = addr.toLowerCase();
+    let idx = indexCache.get(key);
+    if (!idx) {
+      const files = sourcesByAddr[key];
+      if (!files) return undefined;
+      idx = buildFunctionIndex(files);
+      indexCache.set(key, idx);
+    }
+    return idx;
+  };
+
   const build = (frame: CallFrame): Extract<ExecNode, { kind: "call" }> => {
     const entry = frameStepMap.get(frame) ?? 0;
     const node: Extract<ExecNode, { kind: "call" }> = {
@@ -247,6 +273,7 @@ export function buildExecutionTree(
     };
     const { end, depth } = frameRange(entry, steps);
     const sm = frame.to ? sourceMapsByAddr[frame.to.toLowerCase()] : undefined;
+    const fnIndex = indexFor(frame.to);
 
     // The body range a function entered at `i` occupies — read from the entry
     // JUMPDEST it lands on, which Solidity maps to the whole FunctionDefinition.
@@ -292,10 +319,14 @@ export function buildExecutionTree(
       if (!loc) continue;
       if (loc.jumpType === "i") {
         const range = landingRange(i);
+        // The source index (when we have it) names the enclosing function
+        // exactly and flags library membership; fall back to the snippet
+        // heuristic otherwise.
+        const cls = classifyFn(fnIndex, range?.file, range?.start);
         events.push({
           step: i,
           t: "enter",
-          name: funcNameFromDefinition(range?.snippet, loc.sourceSnippet),
+          name: cls?.name ?? funcNameFromDefinition(range?.snippet, loc.sourceSnippet),
           // Show the definition line (where the body begins), not the call site.
           line: range?.start ?? loc.line,
           decl: /^\s*function\b/.test(loc.sourceSnippet),
@@ -304,6 +335,7 @@ export function buildExecutionTree(
           fnFile: range?.file,
           fnStart: range?.start,
           fnEnd: range?.end,
+          lib: cls?.isLibrary ?? false,
           entryStep: range?.step ?? i,
         });
       } else if (loc.jumpType === "o") {
@@ -391,6 +423,7 @@ export function buildExecutionTree(
           endStep: ev.step,
           children: [],
           decl: ev.decl,
+          lib: ev.lib,
         };
         top.children.push(fn);
         stack.push({ node: fn, file: ev.fnFile, start: ev.fnStart, end: ev.fnEnd });
@@ -435,9 +468,11 @@ export function buildExecutionTree(
 }
 
 /** Which node kinds the tree should show. Calls (the frame backbone) and any
- *  toggled-in `op` leaves are always kept; functions and events are toggleable. */
+ *  toggled-in `op` leaves are always kept; the rest are toggleable. Internal
+ *  and library functions split on the fn node's `lib` flag. */
 export interface TreeFilters {
-  functions: boolean;
+  internal: boolean;
+  library: boolean;
   events: boolean;
 }
 
@@ -459,9 +494,11 @@ export function filterExecutionTree(root: ExecNode, filters: TreeFilters): ExecN
       } else if (n.kind === "call") {
         out.push({ ...n, children: visit(n.children) });
       } else {
-        // fn: keep it (with filtered children) or promote its children up.
+        // fn: keep it (with filtered children) when its category is on, else
+        // promote its children up so what it contained stays visible.
         const kids = visit(n.children);
-        if (filters.functions) out.push({ ...n, children: kids });
+        const show = n.lib ? filters.library : filters.internal;
+        if (show) out.push({ ...n, children: kids });
         else out.push(...kids);
       }
     }

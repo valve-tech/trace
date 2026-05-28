@@ -23,6 +23,7 @@ import { computePcsByContract } from "./StepDebugger/executionScopes";
 import { buildLogsByStep } from "./StepDebugger/logsByStep";
 import { publishNavContext, publishNavState } from "./StepDebugger/navDiagnostics";
 import { useTraceSourceMaps } from "../../hooks/useTraceSourceMaps";
+import { useTraceSources } from "../../hooks/useTraceSources";
 import { CollapsiblePanel } from "./StepDebugger/CollapsiblePanel";
 import { ResizablePanel } from "./StepDebugger/ResizablePanel";
 import { ControlsBar } from "./StepDebugger/ControlsBar";
@@ -206,6 +207,10 @@ export default function StepDebugger({
     [callTrace, frameStepMap, steps],
   );
   const { data: traceSourceMaps = {} } = useTraceSourceMaps(pcsByContract);
+  // Source files per contract, so the tree can name internal functions exactly
+  // and split library calls from a contract's own internals.
+  const traceSourceAddrs = useMemo(() => Object.keys(pcsByContract), [pcsByContract]);
+  const { data: sourcesByAddr = {} } = useTraceSources(traceSourceAddrs);
 
   // Decoded events keyed by the LOG opcode's step, so the call tree can show
   // each emitted event nested in the function that fired it.
@@ -554,7 +559,7 @@ export default function StepDebugger({
   const callTreeProps = {
     steps, onJumpTo: jumpToAndShowSource, signatureMap, frameStepMap,
     traceSourceMaps, callTrace, contractNames, abiSelectors, logsByStep,
-    treeStateKey: txHash, onExpandFrame,
+    sourcesByAddr, treeStateKey: txHash, onExpandFrame,
   };
 
   return (

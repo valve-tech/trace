@@ -180,26 +180,36 @@ describe("filterExecutionTree", () => {
   const opNode: ExecNode = { kind: "op", step: 3, op: "SSTORE", pc: 10 };
   const logNode: ExecNode = { kind: "log", step: 2, name: "E()", topicCount: 1 };
   const childCall: ExecNode = { kind: "call", frame: frame("0xBBB"), startStep: 4, children: [] };
+  // An internal fn that contains a library (SafeMath-style) fn.
+  const libFn: ExecNode = { kind: "fn", name: "mul", line: 5, startStep: 6, entryStep: 6, endStep: 8, children: [opNode], lib: true };
   const fnNode: ExecNode = {
     kind: "fn", name: "f", line: 1, startStep: 1, entryStep: 1, endStep: 9,
-    children: [logNode, opNode, childCall],
+    children: [logNode, libFn, childCall],
   };
   const root: ExecNode = { kind: "call", frame: frame("0xAAA"), startStep: 0, children: [fnNode] };
+  const ALL = { internal: true, library: true, events: true };
 
-  it("drops a hidden function but promotes its children in place", () => {
-    const out = filterExecutionTree(root, { functions: false, events: true });
-    expect(kids(out).map((c) => c.kind)).toEqual(["log", "op", "call"]);
+  it("keeps everything when all categories are on", () => {
+    const fn = kids(filterExecutionTree(root, ALL))[0]!;
+    expect(kids(fn).map((c) => c.kind)).toEqual(["log", "fn", "call"]);
   });
 
-  it("drops events when off, keeping functions and opcodes", () => {
-    const out = filterExecutionTree(root, { functions: true, events: false });
-    const fn = kids(out)[0]!;
-    expect(kids(fn).map((c) => c.kind)).toEqual(["op", "call"]); // log gone
+  it("hides library functions but promotes their children", () => {
+    const fn = kids(filterExecutionTree(root, { ...ALL, library: false }))[0]!;
+    // mul (lib) dropped; its op child promoted next to the log and call.
+    expect(kids(fn).map((c) => c.kind)).toEqual(["log", "op", "call"]);
   });
 
-  it("keeps everything when both are on", () => {
-    const out = filterExecutionTree(root, { functions: true, events: true });
-    expect(kids(kids(out)[0]!).map((c) => c.kind)).toEqual(["log", "op", "call"]);
+  it("hides internal functions, promoting children (and surfacing the lib fn)", () => {
+    const out = filterExecutionTree(root, { ...ALL, internal: false });
+    // f (internal) dropped → its children promoted to root; mul (lib) kept.
+    expect(kids(out).map((c) => c.kind)).toEqual(["log", "fn", "call"]);
+    expect((kids(out)[1] as Extract<ExecNode, { kind: "fn" }>).name).toBe("mul");
+  });
+
+  it("drops events when off", () => {
+    const fn = kids(filterExecutionTree(root, { ...ALL, events: false }))[0]!;
+    expect(kids(fn).map((c) => c.kind)).toEqual(["fn", "call"]); // log gone
   });
 });
 

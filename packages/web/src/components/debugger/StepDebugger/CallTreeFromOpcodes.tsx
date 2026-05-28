@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { OpcodeStep, CallFrame } from "../../../api/debugger";
-import type { SourceLocation } from "../../../api/source";
+import type { SourceLocation, SourceFile } from "../../../api/source";
 import type { SignatureMatch } from "../../../api/signatures";
 import { PanelHeader } from "./PanelHeader";
 import { TreeNode, type TreeShared } from "./TreeNode";
@@ -31,6 +31,7 @@ export function CallTreeFromOpcodes({
   contractNames,
   abiSelectors,
   logsByStep,
+  sourcesByAddr,
   treeStateKey,
   onExpandFrame,
   inline,
@@ -44,6 +45,9 @@ export function CallTreeFromOpcodes({
   contractNames: Record<string, string | null>;
   abiSelectors: Record<string, Record<string, string>>;
   logsByStep?: LogsByStep;
+  /** Per-contract source files (lower-cased address keys) for naming internal
+   *  functions and distinguishing library calls. */
+  sourcesByAddr?: Record<string, SourceFile[]>;
   /** Stable key (the tx hash) the persisted expand/collapse state is scoped to. */
   treeStateKey?: string | null;
   onExpandFrame?: (frame: CallFrame, entryStep: number, label: string) => void;
@@ -52,10 +56,11 @@ export function CallTreeFromOpcodes({
   const [selectedFrame, setSelectedFrame] = useState<CallFrame | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  // Tree filters: whole-kind toggles (functions, events) plus the set of
-  // opcodes to surface as leaves. Opcodes default off — the tree stays lean
-  // until you ask for them.
-  const [showFunctions, setShowFunctions] = useState(true);
+  // Tree filters: node-kind toggles (internal fns, library fns, events) plus
+  // the set of opcodes to surface as leaves. Opcodes default off — the tree
+  // stays lean until you ask for them.
+  const [showInternal, setShowInternal] = useState(true);
+  const [showLibrary, setShowLibrary] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
   const [enabledOps, setEnabledOps] = useState<Set<string>>(() => new Set());
   const toggleOp = useCallback((op: string) => {
@@ -96,13 +101,16 @@ export function CallTreeFromOpcodes({
   const builtTree = useMemo(
     () =>
       callTrace
-        ? buildExecutionTree(callTrace, frameStepMap, steps, traceSourceMaps, logsByStep, enabledOps)
+        ? buildExecutionTree(callTrace, frameStepMap, steps, traceSourceMaps, logsByStep, enabledOps, sourcesByAddr)
         : null,
-    [callTrace, frameStepMap, steps, traceSourceMaps, logsByStep, enabledOps],
+    [callTrace, frameStepMap, steps, traceSourceMaps, logsByStep, enabledOps, sourcesByAddr],
   );
   const tree = useMemo(
-    () => (builtTree ? filterExecutionTree(builtTree, { functions: showFunctions, events: showEvents }) : null),
-    [builtTree, showFunctions, showEvents],
+    () =>
+      builtTree
+        ? filterExecutionTree(builtTree, { internal: showInternal, library: showLibrary, events: showEvents })
+        : null,
+    [builtTree, showInternal, showLibrary, showEvents],
   );
 
   // Expose the filtered (rendered) tree for the dev nav audit (stripped from prod).
@@ -179,9 +187,11 @@ export function CallTreeFromOpcodes({
       <div className="card overflow-hidden flex flex-col h-full">
         <PanelHeader title="Call Tree" count={callTrace.calls?.length ?? 0} suffix="calls" />
         <TreeFilterBar
-          functions={showFunctions}
+          internal={showInternal}
+          library={showLibrary}
           events={showEvents}
-          onToggleFunctions={() => setShowFunctions((v) => !v)}
+          onToggleInternal={() => setShowInternal((v) => !v)}
+          onToggleLibrary={() => setShowLibrary((v) => !v)}
           onToggleEvents={() => setShowEvents((v) => !v)}
           enabledOps={enabledOps}
           onToggleOp={toggleOp}

@@ -42,16 +42,20 @@ function Chip({ label, active, onClick, title }: {
  * always reflects exactly what's on.
  */
 export function TreeFilterBar({
-  functions,
+  internal,
+  library,
   events,
-  onToggleFunctions,
+  onToggleInternal,
+  onToggleLibrary,
   onToggleEvents,
   enabledOps,
   onToggleOp,
 }: {
-  functions: boolean;
+  internal: boolean;
+  library: boolean;
   events: boolean;
-  onToggleFunctions: () => void;
+  onToggleInternal: () => void;
+  onToggleLibrary: () => void;
   onToggleEvents: () => void;
   enabledOps: Set<string>;
   onToggleOp: (op: string) => void;
@@ -70,7 +74,8 @@ export function TreeFilterBar({
       className="flex flex-wrap items-center gap-1 p-2"
       style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
     >
-      <Chip label="ƒ functions" active={functions} onClick={onToggleFunctions} title="Internal/library functions" />
+      <Chip label="ƒ internal" active={internal} onClick={onToggleInternal} title="A contract's own internal functions" />
+      <Chip label="📚 library" active={library} onClick={onToggleLibrary} title="Library calls (e.g. SafeMath)" />
       <Chip label="◈ events" active={events} onClick={onToggleEvents} title="Emitted events (LOG)" />
       <span className="mx-1 self-stretch" style={{ width: 1, boxShadow: "inset 1px 0 0 0 var(--color-border-muted)" }} />
       {COMMON_OPS.map((op) => (
