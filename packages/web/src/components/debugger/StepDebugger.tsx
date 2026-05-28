@@ -371,11 +371,13 @@ export default function StepDebugger({
   const jumpToDefinition = useCallback(
     (name: string) => {
       let addr: string | null = null;
+      let frame: { entry: number; end: number } | null = null;
       let bestDepth = -1;
       for (const f of frameRanges) {
         if (f.entry <= currentStep && currentStep < f.end && f.depth > bestDepth) {
           bestDepth = f.depth;
           addr = f.addr;
+          frame = { entry: f.entry, end: f.end };
         }
       }
       const addrKey = addr?.toLowerCase();
@@ -389,12 +391,36 @@ export default function StepDebugger({
         setNavError(`No definition of \`${name}\` in this contract's source.`);
         return;
       }
+
+      // Couple the execution cursor: find the first opcode in the active frame
+      // that maps to the target source line. Walk only within [frame.entry,
+      // frame.end) so we don't jump out of the execution context the user is
+      // currently inspecting. If no opcode maps to that line in this frame
+      // (e.g. clicking a contract NAME at the contract declaration line — no
+      // opcode lives there), the source pane still moves but the cursor stays.
+      let targetStep: number | null = null;
+      if (addrKey && frame) {
+        const pcMap = traceSourceMaps[addrKey];
+        if (pcMap) {
+          for (let j = frame.entry; j < frame.end; j++) {
+            const loc = pcMap[steps[j]!.pc];
+            if (loc && loc.file === hit.file && loc.line === hit.line) {
+              targetStep = j;
+              break;
+            }
+          }
+        }
+      }
+
       setNavError(null);
       setOverrideLine(hit.line);
       setScrollKey((k) => k + 1);
-      setNavHistory((h) => pushHistoryEntry(h, { step: currentStep, overrideLine: hit.line }));
+      if (targetStep !== null) goTo(targetStep);
+      setNavHistory((h) =>
+        pushHistoryEntry(h, { step: targetStep ?? currentStep, overrideLine: hit.line }),
+      );
     },
-    [frameRanges, currentStep, sourcesByAddr],
+    [frameRanges, currentStep, sourcesByAddr, traceSourceMaps, steps, goTo],
   );
 
   // Apply a history entry (back/forward). Same shape as the other navigators
