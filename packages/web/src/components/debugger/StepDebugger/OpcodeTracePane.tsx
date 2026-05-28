@@ -34,12 +34,23 @@ export function OpcodeTracePane({
     setScrollTop(e.currentTarget.scrollTop);
   }, []);
 
-  // Keep the active step centered as navigation moves it.
+  // Bring the active step into view when navigation moves it OUT of the
+  // visible window — but leave scroll alone if it's already visible. Forcing
+  // a recenter on every step would yank the list during arrow-stepping and
+  // fight the user when they've scrolled ahead to look at upcoming opcodes.
+  // The list is virtualized, so the active row may not exist in the DOM;
+  // we compute its absolute position from currentStep * ROW_HEIGHT instead
+  // of calling scrollIntoView.
   useEffect(() => {
     const container = listRef.current;
     if (!container) return;
-    const targetScroll = currentStep * ROW_HEIGHT - container.clientHeight / 2 + ROW_HEIGHT / 2;
-    container.scrollTop = Math.max(0, targetScroll);
+    const rowTop = currentStep * ROW_HEIGHT;
+    const rowBottom = rowTop + ROW_HEIGHT;
+    const viewTop = container.scrollTop;
+    const viewBottom = viewTop + container.clientHeight;
+    if (rowTop < viewTop || rowBottom > viewBottom) {
+      container.scrollTop = Math.max(0, rowTop - container.clientHeight / 2 + ROW_HEIGHT / 2);
+    }
   }, [currentStep]);
 
   return (
