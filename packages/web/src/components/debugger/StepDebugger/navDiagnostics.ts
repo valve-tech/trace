@@ -4,9 +4,9 @@ import type { SourceLocation } from "../../../api/source";
 /**
  * Dev-only navigation instrumentation. Lets a headless check verify that a
  * call-tree row lands on the source location it *should* — by exposing the
- * same step→contract→source-map resolution the UI uses, plus a buffer of
- * actual click outcomes. Gated behind `import.meta.env.DEV` at every call site
- * so it never ships in a production bundle.
+ * same step→contract→source-map resolution the UI uses, plus the built tree.
+ * Everything here is pure derived data published on a window handle; gated
+ * behind `import.meta.env.DEV` at every call site so it never ships in prod.
  */
 
 export interface FrameRange {
@@ -48,26 +48,21 @@ export function locAt(
   return loc ? { ...loc, addr } : null;
 }
 
-/** One recorded UI navigation: what was clicked vs. where it actually landed. */
-export interface NavRecord {
-  intentStep: number | null;
-  intentFuncName: string | null;
+/** Where the source pane is currently resolved — pure derived state, published
+ *  so a headless check can read where a click actually landed. */
+export interface NavState {
   currentStep: number;
   activeContract: string | null;
   file: string | null;
   effectiveLine: number | null;
-  overrideLine: number | null;
-  sourceMapLine: number | null;
-  snippet: string | null;
 }
 
 interface TraceNavWindow {
   ctx?: NavContext;
   tree?: unknown;
+  state?: NavState;
   activeContractAt?: (step: number) => string | null;
   locAt?: (step: number) => (SourceLocation & { addr: string | null }) | null;
-  records?: NavRecord[];
-  last?: NavRecord;
 }
 
 export function publishNavContext(ctx: NavContext): void {
@@ -77,7 +72,6 @@ export function publishNavContext(ctx: NavContext): void {
     ctx,
     activeContractAt: (step) => activeContractAt(ctx, step),
     locAt: (step) => locAt(ctx, step),
-    records: w.__traceNav?.records ?? [],
   };
 }
 
@@ -86,9 +80,7 @@ export function publishNavTree(tree: unknown): void {
   w.__traceNav = { ...(w.__traceNav ?? {}), tree };
 }
 
-export function recordNav(rec: NavRecord): void {
+export function publishNavState(state: NavState): void {
   const w = window as unknown as { __traceNav?: TraceNavWindow };
-  if (!w.__traceNav) w.__traceNav = {};
-  w.__traceNav.last = rec;
-  (w.__traceNav.records ??= []).push(rec);
+  w.__traceNav = { ...(w.__traceNav ?? {}), state };
 }

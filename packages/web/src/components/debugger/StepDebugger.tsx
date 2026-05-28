@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   isCallOp,
@@ -21,7 +21,7 @@ import { walkCallTree } from "./StepDebugger/callTreeHelpers";
 import { mapFramesToSteps } from "./StepDebugger/callTreeModel";
 import { computePcsByContract } from "./StepDebugger/executionScopes";
 import { buildLogsByStep } from "./StepDebugger/logsByStep";
-import { publishNavContext, recordNav } from "./StepDebugger/navDiagnostics";
+import { publishNavContext, publishNavState } from "./StepDebugger/navDiagnostics";
 import { useTraceSourceMaps } from "../../hooks/useTraceSourceMaps";
 import { CollapsiblePanel } from "./StepDebugger/CollapsiblePanel";
 import { ResizablePanel } from "./StepDebugger/ResizablePanel";
@@ -225,24 +225,23 @@ export default function StepDebugger({
   const stepForward = useCallback(() => { setOverrideLine(null); nav.goForward(); }, [nav]);
   const stepBackward = useCallback(() => { setOverrideLine(null); nav.goBack(); }, [nav]);
 
-  // Tracks whether verified source is available, so a call-tree click can pick
-  // a view that actually shows movement. Updated by an effect once source loads.
-  const hasSourceRef = useRef(false);
-
   // Jump to a step from the call tree. The debugger split shows source AND
   // the opcode trace, so the click always visibly navigates: the opcode pane
   // auto-scrolls to the step even when there's no verified source, and the
-  // source pane scrolls to the function when one exists.
-  // Records the latest call-tree click so the dev nav instrumentation can pair
-  // "what was clicked" with "where it landed" once resolution settles.
-  const navIntentRef = useRef<{ step: number; funcName: string | null } | null>(null);
+  // source pane scrolls to the function when one exists. A funcName is only
+  // passed for value transfers (receive/fallback), whose unmapped bodies need
+  // the text search; the pending-search effect waits for source to load.
   const jumpToAndShowSource = useCallback(
     (step: number, funcName?: string) => {
-      navIntentRef.current = { step, funcName: funcName ?? null };
+      // Always drop any prior text-search override. Function/dispatch rows let
+      // the source map drive the line, so a leftover override from an earlier
+      // receive/fallback click would otherwise stick and send every later click
+      // to the stale line.
+      setOverrideLine(null);
       goTo(step);
       setContentView("debugger");
       setScrollKey((k) => k + 1);
-      if (funcName && hasSourceRef.current) setPendingFuncSearch(funcName);
+      if (funcName) setPendingFuncSearch(funcName);
     },
     [goTo],
   );
@@ -395,9 +394,6 @@ export default function StepDebugger({
 
   const { data: sourceData = null, isLoading: sourceLoading } = useContractSource(activeContractAddress);
 
-  useEffect(() => {
-    hasSourceRef.current = sourceData != null;
-  }, [sourceData]);
   const { data: sourceMappings = {} } = useSourceMappings(
     sourceData?.hasSourceMap ? activeContractAddress : null,
     uniquePcs,
@@ -502,34 +498,23 @@ export default function StepDebugger({
       : null;
 
   // ---- Dev nav instrumentation (stripped from prod bundles) ----
-  // Publishes the step→contract→source-map resolver and a buffer of click
-  // outcomes on window.__traceNav, so a headless check can compare what a tree
-  // row jumps to against where the source pane actually lands.
+  // Publishes the step→contract→source-map resolver and the built tree on
+  // window.__traceNav, so a headless check can verify, for any tree node, that
+  // its jump target resolves to the source location it should. Pure derived
+  // data — no click-time bookkeeping.
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     publishNavContext({ steps, frameRanges, traceSourceMaps });
   }, [steps, frameRanges, traceSourceMaps]);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    recordNav({
-      intentStep: navIntentRef.current?.step ?? null,
-      intentFuncName: navIntentRef.current?.funcName ?? null,
+    publishNavState({
       currentStep,
       activeContract: activeContractAddress,
       file: currentSourceFile?.name ?? null,
       effectiveLine,
-      overrideLine,
-      sourceMapLine: currentSourceLocation?.line ?? null,
-      snippet: currentSourceLocation?.sourceSnippet ?? null,
     });
-  }, [
-    currentStep,
-    effectiveLine,
-    overrideLine,
-    activeContractAddress,
-    currentSourceFile,
-    currentSourceLocation,
-  ]);
+  }, [currentStep, activeContractAddress, currentSourceFile, effectiveLine]);
 
   // Reverse link: which source lines have an opcode (so their gutter is a
   // clickable jump target), and the first step that lands on each line. Built
