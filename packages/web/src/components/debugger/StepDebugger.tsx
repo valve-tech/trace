@@ -149,14 +149,17 @@ export default function StepDebugger({
 
   // Exact opcode match: filtering to "ADD" should not also catch "ADDRESS",
   // and the highlighted count must equal the frequency tag's count.
-  const filteredIndices = useMemo(() => {
+  // Returns a Set so per-row membership checks in the virtualized trace pane
+  // are O(1) — an array .includes() per visible row used to scale with the
+  // filter size during scroll.
+  const filteredIndices = useMemo<Set<number> | null>(() => {
     if (!opcodeFilter) return null;
     const upper = opcodeFilter.toUpperCase();
-    const indices: number[] = [];
+    const set = new Set<number>();
     for (let i = 0; i < steps.length; i++) {
-      if (steps[i]!.op === upper) indices.push(i);
+      if (steps[i]!.op === upper) set.add(i);
     }
-    return indices;
+    return set;
   }, [opcodeFilter, steps]);
 
   const opcodeFreqs = useMemo(() => opcodeFrequencies(steps), [steps]);
@@ -720,7 +723,7 @@ export default function StepDebugger({
         jumpToNext={jumpToNext}
         opcodeFilter={opcodeFilter}
         setOpcodeFilter={setOpcodeFilter}
-        filteredCount={filteredIndices?.length ?? null}
+        filteredCount={filteredIndices?.size ?? null}
         contractAddress={contractAddress}
         contentView={contentView}
         setContentView={setContentView}

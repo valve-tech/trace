@@ -20,7 +20,7 @@ export function OpcodeTracePane({
   steps: OpcodeStep[];
   currentStep: number;
   goTo: (step: number) => void;
-  filteredIndices: number[] | null;
+  filteredIndices: Set<number> | null;
   maxDepth: number;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -62,7 +62,7 @@ export function OpcodeTracePane({
           const idx = visibleStart + i;
           const s = steps[idx]!;
           const isActive = idx === currentStep;
-          const matchesFilter = !filteredIndices || filteredIndices.includes(idx);
+          const matchesFilter = !filteredIndices || filteredIndices.has(idx);
           const depthFraction = maxDepth > 1 ? (s.depth - 1) / (maxDepth - 1) : 0;
           const depthHue = 260 - depthFraction * 200;
           return (

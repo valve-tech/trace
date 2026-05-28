@@ -53,7 +53,7 @@ export function SourceOpcodeSplit({
   steps: OpcodeStep[];
   currentStep: number;
   goTo: (step: number) => void;
-  filteredIndices: number[] | null;
+  filteredIndices: Set<number> | null;
   maxDepth: number;
   opcodeFreqs: OpcodeFrequency[];
   opcodeFilter: string;
