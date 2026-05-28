@@ -143,11 +143,20 @@ export function DecodedTrace({
               ? `${entry.targetAddress.slice(0, 6)}...${entry.targetAddress.slice(-4)}`
               : "";
 
+            // External rows have a decoded function signature (from the
+            // signature DB or 4byte) — pass it as a hint so the parent
+            // surfaces the function declaration in the source pane, not just
+            // wherever the step's source map happens to land. Internal rows
+            // come from source-snippet parsing and may not be real
+            // identifiers, so they fall back to the source-map flow.
+            const hint = !entry.isInternal && entry.decodedName
+              ? { funcName: funcNameOnly, contractAddr: entry.targetAddress }
+              : undefined;
             return (
               <div
                 key={i}
                 ref={isActive ? activeRowRef : null}
-                onClick={() => onJumpTo(entry.step)}
+                onClick={() => onJumpTo(entry.step, hint)}
                 className="flex items-center gap-tight px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
                 title={entry.decodedName ? `${entry.targetAddress ?? ""}.${funcSig}` : entry.selector}
                 style={{
