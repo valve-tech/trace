@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { isCallOp } from "@valve-tech/trace-sdk/hooks";
 import type { OpcodeStep, CallFrame } from "../../../api/debugger";
 import type { SourceLocation } from "../../../api/source";
@@ -47,6 +47,18 @@ export function DecodedTrace({
     () => callTrace ? flattenCallTree(callTrace) : [],
     [callTrace],
   );
+
+  // The currently-active row sets this ref; everything else passes null.
+  // React clears the old node before setting the new one in the same render
+  // pass, so the ref always points to the row that *is* active right now.
+  const activeRowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    // `nearest` means: only scroll if the row is out of view. The user's
+    // manual scroll position is respected when the cursor is already on
+    // screen, which matters because they'll often scroll back to compare
+    // earlier calls against the live cursor.
+    activeRowRef.current?.scrollIntoView({ block: "nearest" });
+  }, [currentStep]);
 
   const entries = useMemo(() => {
     const result: DecodedEntry[] = [];
@@ -134,6 +146,7 @@ export function DecodedTrace({
             return (
               <div
                 key={i}
+                ref={isActive ? activeRowRef : null}
                 onClick={() => onJumpTo(entry.step)}
                 className="flex items-center gap-tight px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
                 title={entry.decodedName ? `${entry.targetAddress ?? ""}.${funcSig}` : entry.selector}
