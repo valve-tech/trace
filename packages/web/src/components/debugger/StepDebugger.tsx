@@ -286,6 +286,19 @@ export default function StepDebugger({
   const stepForward = useCallback(() => { setOverrideLine(null); nav.goForward(); }, [nav]);
   const stepBackward = useCallback(() => { setOverrideLine(null); nav.goBack(); }, [nav]);
 
+  // Recording navigate: every explicit user-initiated jump (button click,
+  // C/S/L hotkey, source-line click, opcode-row click) routes through here so
+  // it lands in nav history and is reversible with Cmd+[. Arrow-stepping and
+  // the slider intentionally bypass this — they'd flood the history.
+  const recordingNavigate = useCallback(
+    (step: number, overrideLine: number | null = null) => {
+      setOverrideLine(overrideLine);
+      goTo(step);
+      setNavHistory((h) => pushHistoryEntry(h, { step, overrideLine }));
+    },
+    [goTo],
+  );
+
   // Jump to a step from the call tree. The debugger split shows source AND
   // the opcode trace, so the click always visibly navigates: the opcode pane
   // auto-scrolls to the step even when there's no verified source, and the
@@ -342,7 +355,6 @@ export default function StepDebugger({
   // down the trace; users almost always want "next thing in THIS execution".
   const jumpToNext = useCallback(
     (predicate: (op: string) => boolean): void => {
-      setOverrideLine(null);
       let end = steps.length;
       let bestDepth = -1;
       for (const f of frameRanges) {
@@ -353,12 +365,12 @@ export default function StepDebugger({
       }
       for (let j = currentStep + 1; j < end; j++) {
         if (predicate(steps[j]!.op)) {
-          nav.jumpTo(j);
+          recordingNavigate(j);
           return;
         }
       }
     },
-    [nav, steps, frameRanges, currentStep],
+    [recordingNavigate, steps, frameRanges, currentStep],
   );
 
   // Go-to-definition: triggered when the user clicks any identifier token in
@@ -468,9 +480,9 @@ export default function StepDebugger({
         case "ArrowLeft":
           e.preventDefault(); stepBackward(); break;
         case "Home":
-          e.preventDefault(); goTo(0); break;
+          e.preventDefault(); recordingNavigate(0); break;
         case "End":
-          e.preventDefault(); goTo(totalSteps - 1); break;
+          e.preventDefault(); recordingNavigate(totalSteps - 1); break;
         case "c": case "C":
           e.preventDefault(); jumpToNext(isCallOp); break;
         case "s": case "S":
@@ -489,7 +501,7 @@ export default function StepDebugger({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [stepForward, stepBackward, goTo, totalSteps, jumpToNext, navGoBack, navGoForward]);
+  }, [stepForward, stepBackward, recordingNavigate, totalSteps, jumpToNext, navGoBack, navGoForward]);
 
   const step = steps[currentStep];
 
@@ -680,12 +692,9 @@ export default function StepDebugger({
   const jumpToLine = useCallback(
     (line: number) => {
       const idx = lineToFirstStep.get(line);
-      if (idx !== undefined) {
-        setOverrideLine(null);
-        goTo(idx);
-      }
+      if (idx !== undefined) recordingNavigate(idx);
     },
-    [lineToFirstStep, goTo],
+    [lineToFirstStep, recordingNavigate],
   );
 
   // All hooks are above this point; the early return is safe here (the cursor
@@ -704,6 +713,8 @@ export default function StepDebugger({
         currentStep={currentStep}
         totalSteps={totalSteps}
         goTo={goTo}
+        jumpToStart={() => recordingNavigate(0)}
+        jumpToEnd={() => recordingNavigate(totalSteps - 1)}
         stepForward={stepForward}
         stepBackward={stepBackward}
         jumpToNext={jumpToNext}
@@ -838,7 +849,7 @@ export default function StepDebugger({
               onIdentifierClick={jumpToDefinition}
               steps={steps}
               currentStep={currentStep}
-              goTo={goTo}
+              goTo={recordingNavigate}
               filteredIndices={filteredIndices}
               maxDepth={maxDepth}
               opcodeFreqs={opcodeFreqs}
@@ -878,7 +889,7 @@ export default function StepDebugger({
           label={expandedFrame.label}
           frameType={expandedFrame.frame.type}
           currentStep={currentStep}
-          onJumpTo={(s) => { goTo(s); setContentView("debugger"); setScrollKey((k) => k + 1); }}
+          onJumpTo={(s) => { recordingNavigate(s); setContentView("debugger"); setScrollKey((k) => k + 1); }}
           onClose={() => setExpandedFrame(null)}
         />
       )}

@@ -28,14 +28,27 @@ export const emptyHistory: NavHistoryState = { entries: [], index: -1 };
 const sameEntry = (a: NavEntry, b: NavEntry) =>
   a.step === b.step && a.overrideLine === b.overrideLine;
 
+/** The implicit initial entry — what a freshly-loaded trace shows before any
+ *  user navigation. Synthesized by the first push so back can return here. */
+const initialEntry: NavEntry = { step: 0, overrideLine: null };
+
 /**
  * Append a new entry, truncating anything ahead of the current index — i.e.,
  * starting fresh forward history from this point on. A no-op if the entry is
  * identical to the current one (avoids history growing when the user clicks
  * the same place repeatedly).
+ *
+ * On the first push (empty history), implicitly seeds `initialEntry` ahead of
+ * the new entry so `canGoBack` becomes true and `goBack` returns to step 0 —
+ * matching a fresh browser tab whose blank page is in history.
  */
 export function pushEntry(state: NavHistoryState, entry: NavEntry): NavHistoryState {
-  const current = state.index >= 0 ? state.entries[state.index] : undefined;
+  if (state.entries.length === 0) {
+    return sameEntry(initialEntry, entry)
+      ? { entries: [initialEntry], index: 0 }
+      : { entries: [initialEntry, entry], index: 1 };
+  }
+  const current = state.entries[state.index];
   if (current && sameEntry(current, entry)) return state;
   const kept = state.entries.slice(0, state.index + 1);
   return { entries: [...kept, entry], index: kept.length };

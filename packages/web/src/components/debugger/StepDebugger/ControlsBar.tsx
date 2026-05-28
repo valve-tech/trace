@@ -10,6 +10,8 @@ export function ControlsBar({
   currentStep,
   totalSteps,
   goTo,
+  jumpToStart,
+  jumpToEnd,
   stepForward,
   stepBackward,
   jumpToNext,
@@ -27,7 +29,12 @@ export function ControlsBar({
 }: {
   currentStep: number;
   totalSteps: number;
+  /** Raw setter used by the slider — does NOT push nav history. */
   goTo: (step: number) => void;
+  /** Recording navigators — Home/End buttons go through these so the jump is
+   *  reversible via Cmd+[ . */
+  jumpToStart: () => void;
+  jumpToEnd: () => void;
   stepForward: () => void;
   stepBackward: () => void;
   jumpToNext: (predicate: (op: string) => boolean) => void;
@@ -52,10 +59,10 @@ export function ControlsBar({
       style={{ backgroundColor: "var(--color-bg-card)" }}
     >
       <div className="flex items-center gap-tight">
-        <ControlButton label="|<" title="Jump to start (Home)" onClick={() => goTo(0)} />
+        <ControlButton label="|<" title="Jump to start (Home)" onClick={jumpToStart} />
         <ControlButton label="<" title="Step back (Left arrow)" onClick={stepBackward} />
         <ControlButton label=">" title="Step forward (Right arrow / Space)" onClick={stepForward} />
-        <ControlButton label=">|" title="Jump to end (End)" onClick={() => goTo(totalSteps - 1)} />
+        <ControlButton label=">|" title="Jump to end (End)" onClick={jumpToEnd} />
       </div>
 
       <Divider />
