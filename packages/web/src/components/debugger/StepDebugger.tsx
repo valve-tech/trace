@@ -508,6 +508,15 @@ export default function StepDebugger({
   const canBack = historyCanGoBack(navHistory);
   const canForward = historyCanGoForward(navHistory);
 
+  // Dev-only: publish nav history under window.__traceNav.history so we can
+  // verify whether multiple jumps are actually accumulating entries. Read in
+  // the browser console: `__traceNav.history`.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as { __traceNav?: Record<string, unknown> };
+    w.__traceNav = { ...(w.__traceNav ?? {}), history: navHistory };
+  }, [navHistory]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
