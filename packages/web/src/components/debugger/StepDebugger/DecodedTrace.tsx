@@ -106,14 +106,11 @@ export function DecodedTrace({
   }, [steps, signatureMap, sourceMappings, flatCalls]);
 
   return (
-    <div
-      className="card overflow-hidden"
-      style={{ backgroundColor: "var(--color-bg-card)", boxShadow: "0 0 0 1px var(--color-border-default)" }}
-    >
+    <div className="card overflow-hidden theme-card-bg">
       <PanelHeader title="Decoded Trace" count={entries.length} suffix="calls" />
       <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>
         {entries.length === 0 ? (
-          <div className="px-3 py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+          <div className="px-3 py-4 text-xs text-center theme-text-muted">
             No function calls detected in this trace
           </div>
         ) : (
@@ -157,13 +154,12 @@ export function DecodedTrace({
                 key={i}
                 ref={isActive ? activeRowRef : null}
                 onClick={() => onJumpTo(entry.step, hint)}
-                className="flex items-center gap-tight px-3 py-1.5 cursor-pointer text-xs hover:opacity-80"
+                className="flex items-center gap-tight px-3 py-1.5 cursor-pointer text-xs hover:opacity-80 theme-mono"
                 title={entry.decodedName ? `${entry.targetAddress ?? ""}.${funcSig}` : entry.selector}
                 style={{
                   paddingLeft: `${12 + (entry.depth - 1) * 16}px`,
                   backgroundColor: isActive ? "rgba(139, 92, 246, 0.12)" : bgColor,
                   borderLeft: `3px solid ${borderColor}`,
-                  fontFamily: "var(--font-mono)",
                   opacity: entry.isInternal ? 0.6 : 1,
                 }}
               >
@@ -174,29 +170,29 @@ export function DecodedTrace({
                   return (
                     <>
                       {displayLabel ? (
-                        <span style={{ color: contractName ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
+                        <span className={contractName ? "theme-accent" : "theme-text-secondary"}>
                           {displayLabel}
                         </span>
                       ) : null}
-                      <span style={{ color: "var(--color-text-muted)" }} title={entry.targetAddress}>
+                      <span className="theme-text-muted" title={entry.targetAddress}>
                         ({addrShort})
                       </span>
-                      <span style={{ color: "var(--color-text-muted)" }}>.</span>
+                      <span className="theme-text-muted">.</span>
                     </>
                   );
                 })()}
-                <span style={{ color: "var(--color-text-primary)", fontWeight: isActive ? 600 : 400 }}>
+                <span className="theme-text" style={{ fontWeight: isActive ? 600 : 400 }}>
                   {funcNameOnly}
                 </span>
-                <span style={{ color: "var(--color-text-muted)" }}>
+                <span className="theme-text-muted">
                   {funcArgs}
                 </span>
                 {entry.sourceLocation && (
-                  <span className="ml-2" style={{ color: "var(--color-text-muted)" }}>
+                  <span className="ml-2 theme-text-muted">
                     {entry.sourceLocation.file}:{entry.sourceLocation.line}
                   </span>
                 )}
-                <span className="ml-auto flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                <span className="ml-auto flex-shrink-0 theme-text-muted">
                   {entry.step}
                 </span>
               </div>

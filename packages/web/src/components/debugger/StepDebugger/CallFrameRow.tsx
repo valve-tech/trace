@@ -172,18 +172,17 @@ export function CallFrameRow({
         {displayLabel && (
           <>
             <span
-              style={{ color: contractName ? "var(--color-accent)" : "var(--color-text-secondary)" }}
+              className={contractName ? "theme-accent" : "theme-text-secondary"}
               title={frame.to ?? ""}
             >
               {displayLabel}
             </span>
-            <span style={{ color: "var(--color-text-muted)" }}>.</span>
+            <span className="theme-text-muted">.</span>
           </>
         )}
 
         <span
-          className="font-semibold"
-          style={{ color: frame.error ? "var(--color-danger)" : "var(--color-text-primary)" }}
+          className={`font-semibold ${frame.error ? "theme-danger" : "theme-text"}`}
           title={frame.to ?? ""}
         >
           {funcName}
@@ -191,8 +190,8 @@ export function CallFrameRow({
 
         {frame.error && (
           <span
-            className="flex-shrink-0 px-1"
-            style={{ color: "var(--color-danger)", fontSize: "9px", fontWeight: 700 }}
+            className="flex-shrink-0 px-1 theme-danger"
+            style={{ fontSize: "9px", fontWeight: 700 }}
             title={frame.error}
           >
             REVERT
@@ -212,9 +211,8 @@ export function CallFrameRow({
                 `${displayLabel ? `${displayLabel}.` : ""}${funcName}`,
               );
             }}
-            className="flex-shrink-0 flex items-center transition-opacity"
+            className="flex-shrink-0 flex items-center transition-opacity theme-text-muted"
             style={{
-              color: "var(--color-text-muted)",
               opacity: hovered ? 1 : 0,
               pointerEvents: hovered ? "auto" : "none",
             }}
@@ -227,35 +225,32 @@ export function CallFrameRow({
         )}
 
         {valuePLS && (
-          <span className="flex-shrink-0" style={{ color: "var(--color-warning)" }}>
+          <span className="flex-shrink-0 theme-warning">
             {valuePLS} PLS
           </span>
         )}
 
         {/* Gas used, right-aligned — the at-a-glance cost per call. */}
         {gas && (
-          <span className="ml-auto flex-shrink-0 pl-3" style={{ color: "var(--color-text-muted)" }}>
+          <span className="ml-auto flex-shrink-0 pl-3 theme-text-muted">
             {gas}
           </span>
         )}
 
         {hovered && (
           <div
-            className="absolute left-full ml-2 z-20 px-3 py-2 shadow-lg text-xs whitespace-nowrap"
+            className="absolute left-full ml-2 z-20 px-3 py-2 shadow-lg text-xs whitespace-nowrap theme-secondary-bg theme-text theme-mono"
             style={{
-              backgroundColor: "var(--color-bg-secondary)",
               boxShadow: "0 0 0 1px var(--color-border-default)",
-              color: "var(--color-text-primary)",
-              fontFamily: "var(--font-mono)",
               top: "50%",
               transform: "translateY(-50%)",
             }}
           >
-            <div style={{ color: "var(--color-danger)" }}>{frame.type}</div>
+            <div className="theme-danger">{frame.type}</div>
             {resolvedSig && <div>{resolvedSig}</div>}
-            {frame.to && <div style={{ color: "var(--color-text-muted)" }}>{frame.to}</div>}
-            <div style={{ color: "var(--color-text-muted)" }}>gas: {frame.gasUsed}</div>
-            {frame.error && <div style={{ color: "var(--color-danger)" }}>error: {frame.error}</div>}
+            {frame.to && <div className="theme-text-muted">{frame.to}</div>}
+            <div className="theme-text-muted">gas: {frame.gasUsed}</div>
+            {frame.error && <div className="theme-danger">error: {frame.error}</div>}
           </div>
         )}
       </div>

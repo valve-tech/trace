@@ -92,17 +92,17 @@ export function FrameOpcodesOverlay({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="flex items-center gap-row px-3 py-2 card-divider"
-          style={{ backgroundColor: "var(--color-bg-secondary)" }}
-        >
-          <span className="text-[9px] font-semibold tracking-wide px-1 py-0.5" style={{ color: "var(--color-danger)", boxShadow: "inset 0 0 0 1px var(--color-danger)" }}>
+        <div className="flex items-center gap-row px-3 py-2 card-divider theme-secondary-bg">
+          <span
+            className="text-[9px] font-semibold tracking-wide px-1 py-0.5 theme-danger"
+            style={{ boxShadow: "inset 0 0 0 1px var(--color-danger)" }}
+          >
             {frameType}
           </span>
-          <span className="text-xs font-semibold truncate" style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-primary)" }}>
+          <span className="text-xs font-semibold truncate theme-mono theme-text">
             {label}
           </span>
-          <span className="text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+          <span className="text-xs theme-text-muted theme-mono">
             {count.toLocaleString()} ops · steps {from.toLocaleString()}–{(to - 1).toLocaleString()}
           </span>
           {/* When the cursor walks outside the frame (e.g. via Cmd+[ nav
@@ -111,18 +111,14 @@ export function FrameOpcodesOverlay({
               their current position. */}
           {(currentStep < from || currentStep >= to) && (
             <span
-              className="text-[10px] font-semibold tracking-wide px-1.5 py-0.5"
+              className="text-[10px] font-semibold tracking-wide px-1.5 py-0.5 theme-warning theme-mono"
               title={`Cursor is at step ${currentStep.toLocaleString()}, outside this frame's range.`}
-              style={{
-                color: "var(--color-warning)",
-                boxShadow: "inset 0 0 0 1px var(--color-warning)",
-                fontFamily: "var(--font-mono)",
-              }}
+              style={{ boxShadow: "inset 0 0 0 1px var(--color-warning)" }}
             >
               cursor outside · step {currentStep.toLocaleString()}
             </span>
           )}
-          <button onClick={onClose} className="ml-auto flex-shrink-0" style={{ color: "var(--color-text-muted)" }} title="Close (Esc)">
+          <button onClick={onClose} className="ml-auto flex-shrink-0 theme-text-muted" title="Close (Esc)">
             <Icon icon="heroicons:x-mark" className="w-4 h-4" />
           </button>
         </div>
@@ -140,24 +136,22 @@ export function FrameOpcodesOverlay({
                 <div
                   key={idx}
                   onClick={() => { onJumpTo(idx); onClose(); }}
-                  className="flex items-center cursor-pointer text-xs"
+                  className={`flex items-center cursor-pointer text-xs theme-mono${isActive ? " theme-accent-bg" : ""}`}
                   style={{
                     position: "absolute",
                     top: (idx - from) * ROW_HEIGHT,
                     height: ROW_HEIGHT,
                     width: "100%",
-                    fontFamily: "var(--font-mono)",
                     paddingLeft: `${8 + (s.depth - baseDepth) * 12}px`,
                     paddingRight: "12px",
-                    backgroundColor: isActive ? "var(--color-accent-muted)" : "transparent",
                     boxShadow: isActive ? "inset 2px 0 0 0 var(--color-accent)" : undefined,
                   }}
                 >
-                  <span className="w-16 text-right mr-3 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{idx}</span>
-                  <span className="w-10 text-right mr-3 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{s.pc}</span>
+                  <span className="w-16 text-right mr-3 flex-shrink-0 theme-text-muted">{idx}</span>
+                  <span className="w-10 text-right mr-3 flex-shrink-0 theme-text-muted">{s.pc}</span>
                   <span className="font-semibold mr-3 flex-shrink-0" style={{ color: getOpcodeColor(s.op) }}>{s.op}</span>
                   {s.depth > baseDepth && (
-                    <span className="flex-shrink-0 text-[9px]" style={{ color: "var(--color-text-muted)" }}>
+                    <span className="flex-shrink-0 text-[9px] theme-text-muted">
                       ↳ depth {s.depth}
                     </span>
                   )}
