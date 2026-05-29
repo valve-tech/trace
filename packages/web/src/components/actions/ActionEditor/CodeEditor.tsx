@@ -53,14 +53,11 @@ export function CodeEditor({ code, setCode }: Props) {
       >
         <div
           ref={lineNumRef}
-          className="select-none text-right py-3 overflow-hidden flex-shrink-0"
+          className="select-none text-right py-3 overflow-hidden flex-shrink-0 theme-text-muted theme-mono theme-secondary-bg"
           style={{
-            color: "var(--color-text-muted)",
-            fontFamily: "var(--font-mono)",
             fontSize: "13px",
             lineHeight: "1.5",
             width: "3.5rem",
-            backgroundColor: "var(--color-bg-secondary)",
             boxShadow: "1px 0 0 0 var(--color-border-muted)",
           }}
         >
@@ -77,11 +74,9 @@ export function CodeEditor({ code, setCode }: Props) {
           onChange={(e) => setCode(e.target.value)}
           onKeyDown={handleKeyDown}
           spellCheck={false}
-          className="flex-1 p-3 resize-none outline-none"
+          className="flex-1 p-3 resize-none outline-none theme-text theme-mono"
           style={{
             backgroundColor: "transparent",
-            color: "var(--color-text-primary)",
-            fontFamily: "var(--font-mono)",
             fontSize: "13px",
             lineHeight: "1.5",
             minHeight: "300px",
