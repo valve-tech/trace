@@ -57,33 +57,17 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
   );
 
   return (
-    <div
-      className="rounded-lg bs overflow-hidden"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
-    >
+    <div className="rounded-lg bs overflow-hidden theme-card-bg">
       {/* Header with severity pills */}
-      <div
-        className="flex items-center justify-between px-3 py-2 bs-b"
-        style={{
-          backgroundColor: "var(--color-bg-secondary)",
-        }}
-      >
-        <span
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
+      <div className="flex items-center justify-between px-3 py-2 bs-b theme-secondary-bg">
+        <span className="text-xs font-semibold uppercase tracking-wider theme-text-secondary">
           Slither Findings
         </span>
         <div className="flex items-center gap-tight">
           <button
             onClick={() => setFilterSeverity(null)}
-            className="text-xs px-2 py-0.5 rounded"
-            style={{
-              backgroundColor: !filterSeverity ? "var(--color-accent-muted)" : "transparent",
-              color: !filterSeverity ? "var(--color-accent)" : "var(--color-text-muted)",
-            }}
+            className={`text-xs px-2 py-0.5 rounded ${!filterSeverity ? "theme-accent-bg theme-accent" : "theme-text-muted"}`}
+            style={{ backgroundColor: !filterSeverity ? undefined : "transparent" }}
           >
             All ({findings.length})
           </button>
@@ -91,9 +75,9 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
             <button
               key={severity}
               onClick={() => setFilterSeverity(filterSeverity === severity ? null : severity)}
-              className="text-xs px-2 py-0.5 rounded"
+              className={`text-xs px-2 py-0.5 rounded ${filterSeverity === severity ? "theme-accent-bg" : ""}`}
               style={{
-                backgroundColor: filterSeverity === severity ? "var(--color-accent-muted)" : "transparent",
+                backgroundColor: filterSeverity === severity ? undefined : "transparent",
                 color: SEVERITY_COLORS[severity] ?? "var(--color-text-muted)",
               }}
             >
@@ -106,10 +90,7 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
       {/* Findings list */}
       <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>
         {filtered.length === 0 ? (
-          <div
-            className="px-3 py-4 text-xs text-center"
-            style={{ color: "var(--color-text-muted)" }}
-          >
+          <div className="px-3 py-4 text-xs text-center theme-text-muted">
             {findings.length === 0 ? "No findings detected" : "No findings match filter"}
           </div>
         ) : (
@@ -120,11 +101,7 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
               .filter((l, idx, arr) => arr.indexOf(l) === idx);
 
             return (
-              <div
-                key={i}
-                className="bs-b last:shadow-none"
-                style={{}}
-              >
+              <div key={i} className="bs-b last:shadow-none">
                 {/* Finding header */}
                 <button
                   onClick={() => setExpandedIndex(isExpanded ? null : i)}
@@ -136,77 +113,40 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-inline">
-                      <span
-                        className="text-xs font-semibold"
-                        style={{ color: "var(--color-text-primary)" }}
-                      >
-                        {finding.check}
-                      </span>
-                      <span
-                        className="text-xs"
-                        style={{ color: SEVERITY_COLORS[finding.impact] }}
-                      >
+                      <span className="text-xs font-semibold theme-text">{finding.check}</span>
+                      <span className="text-xs" style={{ color: SEVERITY_COLORS[finding.impact] }}>
                         {finding.impact}
                       </span>
-                      <span
-                        className="text-xs"
-                        style={{ color: "var(--color-text-muted)" }}
-                      >
+                      <span className="text-xs theme-text-muted">
                         ({finding.confidence} confidence)
                       </span>
                     </div>
-                    <p
-                      className="text-xs mt-0.5 truncate"
-                      style={{ color: "var(--color-text-secondary)" }}
-                    >
+                    <p className="text-xs mt-0.5 truncate theme-text-secondary">
                       {finding.description.split("\n")[0]}
                     </p>
                   </div>
-                  <span
-                    className="text-xs flex-shrink-0"
-                    style={{ color: "var(--color-text-muted)" }}
-                  >
+                  <span className="text-xs flex-shrink-0 theme-text-muted">
                     {isExpanded ? "▼" : "▶"}
                   </span>
                 </button>
 
                 {/* Expanded detail */}
                 {isExpanded && (
-                  <div
-                    className="px-3 pb-3 space-y-2"
-                    style={{ paddingLeft: "24px" }}
-                  >
+                  <div className="px-3 pb-3 space-y-2" style={{ paddingLeft: "24px" }}>
                     {/* Full description */}
-                    <pre
-                      className="text-xs whitespace-pre-wrap p-2 rounded"
-                      style={{
-                        backgroundColor: "var(--color-bg-primary)",
-                        color: "var(--color-text-primary)",
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
+                    <pre className="text-xs whitespace-pre-wrap p-2 rounded theme-primary-bg theme-text theme-mono">
                       {finding.description}
                     </pre>
 
                     {/* Affected elements */}
                     {finding.elements.length > 0 && (
                       <div>
-                        <span
-                          className="text-xs font-semibold"
-                          style={{ color: "var(--color-text-secondary)" }}
-                        >
-                          Affected:
-                        </span>
+                        <span className="text-xs font-semibold theme-text-secondary">Affected:</span>
                         <div className="flex flex-wrap gap-tight mt-1">
                           {finding.elements.map((el, j) => (
                             <span
                               key={j}
-                              className="text-xs px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80"
-                              style={{
-                                backgroundColor: "var(--color-bg-secondary)",
-                                color: "var(--color-text-primary)",
-                                fontFamily: "var(--font-mono)",
-                              }}
+                              className="text-xs px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 theme-secondary-bg theme-text theme-mono"
                               onClick={() => {
                                 if (el.sourceMapping?.lines[0] && el.sourceMapping.filename_relative && onJumpToLine) {
                                   onJumpToLine(el.sourceMapping.filename_relative, el.sourceMapping.lines[0]);
@@ -224,12 +164,7 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
                     {/* Source lines */}
                     {lines.length > 0 && onJumpToLine && (
                       <div className="flex items-center gap-tight flex-wrap">
-                        <span
-                          className="text-xs"
-                          style={{ color: "var(--color-text-muted)" }}
-                        >
-                          Lines:
-                        </span>
+                        <span className="text-xs theme-text-muted">Lines:</span>
                         {lines.slice(0, 10).map((line) => (
                           <button
                             key={line}
@@ -237,18 +172,13 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
                               const file = finding.elements[0]?.sourceMapping?.filename_relative;
                               if (file) onJumpToLine(file, line);
                             }}
-                            className="text-xs px-1 rounded hover:opacity-80"
-                            style={{
-                              backgroundColor: "var(--color-accent-muted)",
-                              color: "var(--color-accent)",
-                              fontFamily: "var(--font-mono)",
-                            }}
+                            className="text-xs px-1 rounded hover:opacity-80 theme-accent-bg theme-accent theme-mono"
                           >
                             {line}
                           </button>
                         ))}
                         {lines.length > 10 && (
-                          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                          <span className="text-xs theme-text-muted">
                             +{lines.length - 10} more
                           </span>
                         )}
@@ -257,14 +187,7 @@ export default function FindingsPanel({ findings, onJumpToLine }: FindingsPanelP
 
                     {/* Markdown (Slither's detailed description) */}
                     {finding.markdown && (
-                      <pre
-                        className="text-xs whitespace-pre-wrap p-2 rounded"
-                        style={{
-                          backgroundColor: "var(--color-bg-primary)",
-                          color: "var(--color-text-secondary)",
-                          fontFamily: "var(--font-mono)",
-                        }}
-                      >
+                      <pre className="text-xs whitespace-pre-wrap p-2 rounded theme-primary-bg theme-text-secondary theme-mono">
                         {finding.markdown}
                       </pre>
                     )}

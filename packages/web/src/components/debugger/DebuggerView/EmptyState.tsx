@@ -26,43 +26,29 @@ export function EmptyState() {
 
   return (
     <div className="space-y-stack">
-      <div
-        className="rounded-lg bs p-12 flex flex-col items-center justify-center text-center"
-        style={{ backgroundColor: "var(--color-bg-card)" }}
-      >
+      <div className="rounded-lg bs p-12 flex flex-col items-center justify-center text-center theme-card-bg">
         <Icon
           icon="heroicons:bug-ant"
           className="w-16 h-16 mb-4"
           style={{ color: "var(--color-border-default)" }}
         />
-        <p className="text-sm mb-1" style={{ color: "var(--color-text-secondary)" }}>
-          Enter a transaction hash to debug
-        </p>
-        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-          Inspect call trees, gas usage, and opcode execution
-        </p>
+        <p className="text-sm mb-1 theme-text-secondary">Enter a transaction hash to debug</p>
+        <p className="text-xs theme-text-muted">Inspect call trees, gas usage, and opcode execution</p>
       </div>
 
       {recent.length > 0 && (
         <div className="card overflow-hidden">
           <div className="bs-b-muted flex items-center justify-between px-4 py-2.5">
             <div className="flex items-center gap-inline">
-              <Icon
-                icon="heroicons:clock"
-                className="w-4 h-4"
-                style={{ color: "var(--color-accent)" }}
-              />
-              <h3
-                className="text-xs font-semibold uppercase tracking-widest"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
+              <Icon icon="heroicons:clock" className="w-4 h-4 theme-accent" />
+              <h3 className="text-xs font-semibold uppercase tracking-widest theme-text-secondary">
                 Recently debugged
               </h3>
             </div>
             <button
               onClick={clearDebuggerTxs}
-              className="text-[11px] transition-opacity hover:opacity-100"
-              style={{ color: "var(--color-text-muted)", backgroundColor: "transparent" }}
+              className="text-[11px] transition-opacity hover:opacity-100 theme-text-muted"
+              style={{ backgroundColor: "transparent" }}
             >
               Clear
             </button>
@@ -75,16 +61,13 @@ export function EmptyState() {
                 onClick={() => navigate(`/debugger/${t.hash}`)}
               >
                 <span
-                  className="font-mono text-xs truncate"
-                  style={{ color: "var(--color-accent)" }}
+                  className="font-mono text-xs truncate theme-accent"
                   title={t.hash}
                 >
                   {short(t.hash)}
                 </span>
                 <div className="flex items-center gap-row shrink-0">
-                  <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-                    {ago(t.lastSeen)}
-                  </span>
+                  <span className="text-[11px] theme-text-muted">{ago(t.lastSeen)}</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -92,8 +75,8 @@ export function EmptyState() {
                     }}
                     title="Remove"
                     aria-label="Remove"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-5 h-5"
-                    style={{ color: "var(--color-text-muted)", backgroundColor: "transparent" }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-5 h-5 theme-text-muted"
+                    style={{ backgroundColor: "transparent" }}
                   >
                     <Icon icon="heroicons:x-mark" className="w-3.5 h-3.5" />
                   </button>
