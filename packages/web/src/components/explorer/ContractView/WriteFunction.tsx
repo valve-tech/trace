@@ -35,11 +35,8 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
         </div>
         <Icon
           icon="heroicons:chevron-down"
-          className="w-3.5 h-3.5 transition-transform"
-          style={{
-            color: "var(--color-text-muted)",
-            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-          }}
+          className="w-3.5 h-3.5 transition-transform theme-text-muted"
+          style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
         />
       </button>
 
@@ -64,13 +61,8 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
                     type="text"
                     placeholder={inp.type}
                     disabled
-                    className="w-full px-2.5 py-1.5 rounded bs text-xs"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      backgroundColor: "var(--color-bg-input)",
-                      color: "var(--color-text-muted)",
-                      opacity: 0.6,
-                    }}
+                    className="w-full px-2.5 py-1.5 rounded bs text-xs theme-mono theme-input-bg theme-text-muted"
+                    style={{ opacity: 0.6 }}
                   />
                 </div>
               ))}

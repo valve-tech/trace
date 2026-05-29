@@ -39,11 +39,8 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium"
-        style={{
-          color: "var(--color-text-primary)",
-          backgroundColor: "transparent",
-        }}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium theme-text"
+        style={{ backgroundColor: "transparent" }}
       >
         <span className="flex items-center gap-inline">
           <Icon
@@ -99,14 +96,11 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
                 onChange={(e) => onChange(e.target.value)}
                 placeholder='[{"type":"function","name":"transfer","inputs":[...]}]'
                 rows={6}
-                className="w-full px-3 py-2 rounded-md text-sm resize-y"
+                className="w-full px-3 py-2 rounded-md text-sm resize-y theme-mono theme-input-bg theme-text"
                 style={{
-                  fontFamily: "var(--font-mono)",
-                  backgroundColor: "var(--color-bg-input)",
                   borderColor: valid
                     ? "var(--color-border-default)"
                     : "var(--color-danger)",
-                  color: "var(--color-text-primary)",
                 }}
               />
               {!valid && (

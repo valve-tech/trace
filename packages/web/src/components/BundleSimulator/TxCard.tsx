@@ -1,14 +1,11 @@
 import { isAddress } from "viem";
 import type { BundleTxEntry } from "../../types";
 
-const inputStyle = {
-  fontFamily: "var(--font-mono)",
-  backgroundColor: "var(--color-bg-input)",
-  boxShadow: "0 0 0 1px var(--color-border-default)",
-  color: "var(--color-text-primary)",
-};
-
-const labelStyle = { color: "var(--color-text-secondary)" };
+// Theme-token bits compose via className; only the borderless box-shadow
+// outline stays as an inline style because there's no utility for it.
+const inputClass = "theme-mono theme-input-bg theme-text";
+const inputStyle = { boxShadow: "0 0 0 1px var(--color-border-default)" };
+const labelClass = "theme-text-secondary";
 
 interface Props {
   tx: BundleTxEntry;
@@ -51,8 +48,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
       <div className="grid grid-cols-2 gap-row">
         <div>
           <label
-            className="flex items-center gap-inline text-xs font-medium mb-1"
-            style={labelStyle}
+            className={`flex items-center gap-inline text-xs font-medium mb-1 ${labelClass}`}
           >
             From
             <span
@@ -76,10 +72,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
           />
         </div>
         <div>
-          <label
-            className="text-xs font-medium mb-1 block"
-            style={labelStyle}
-          >
+          <label className={`text-xs font-medium mb-1 block ${labelClass}`}>
             To
           </label>
           <input
@@ -87,9 +80,8 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
             value={tx.to}
             onChange={(e) => onChange(tx.id, "to", e.target.value)}
             placeholder="0x..."
-            className="w-full px-2 py-1.5 rounded text-sm"
+            className={`w-full px-2 py-1.5 rounded text-sm ${inputClass}`}
             style={{
-              ...inputStyle,
               boxShadow: !toValid
                 ? "0 0 0 1px var(--color-danger)"
                 : inputStyle.boxShadow,
@@ -100,10 +92,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
 
       <div className="grid grid-cols-3 gap-row">
         <div>
-          <label
-            className="text-xs font-medium mb-1 block"
-            style={labelStyle}
-          >
+          <label className={`text-xs font-medium mb-1 block ${labelClass}`}>
             Value (PLS)
           </label>
           <input
@@ -111,15 +100,12 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
             value={tx.value}
             onChange={(e) => onChange(tx.id, "value", e.target.value)}
             placeholder="0.0"
-            className="w-full px-2 py-1.5 rounded text-sm"
+            className={`w-full px-2 py-1.5 rounded text-sm ${inputClass}`}
             style={inputStyle}
           />
         </div>
         <div>
-          <label
-            className="text-xs font-medium mb-1 block"
-            style={labelStyle}
-          >
+          <label className={`text-xs font-medium mb-1 block ${labelClass}`}>
             Gas Limit
           </label>
           <input
@@ -127,7 +113,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
             value={tx.gasLimit}
             onChange={(e) => onChange(tx.id, "gasLimit", e.target.value)}
             placeholder="8000000"
-            className="w-full px-2 py-1.5 rounded text-sm"
+            className={`w-full px-2 py-1.5 rounded text-sm ${inputClass}`}
             style={inputStyle}
           />
         </div>
@@ -135,10 +121,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
       </div>
 
       <div>
-        <label
-          className="text-xs font-medium mb-1 block"
-          style={labelStyle}
-        >
+        <label className={`text-xs font-medium mb-1 block ${labelClass}`}>
           Calldata (hex)
         </label>
         <textarea
@@ -146,7 +129,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
           onChange={(e) => onChange(tx.id, "data", e.target.value)}
           placeholder="0x..."
           rows={2}
-          className="w-full px-2 py-1.5 rounded text-sm resize-y"
+          className={`w-full px-2 py-1.5 rounded text-sm resize-y ${inputClass}`}
           style={inputStyle}
         />
       </div>
