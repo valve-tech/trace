@@ -215,3 +215,38 @@ textarea::placeholder {
   box-shadow: 0 1px 0 0 var(--color-border-default);
   margin-bottom: 1px;
 }
+
+/*
+ * Theme utility classes — small, opt-in replacements for the inline
+ * `style={{ color: "var(--color-foo)" }}` pattern that has accreted across
+ * the debugger and explorer panels. Prefix with `theme-` so they read as
+ * a deliberate token reference rather than a Tailwind utility (avoids
+ * shadowing names like `bg-card` or `text-primary` that Tailwind v4
+ * generates from any future @theme renames).
+ *
+ * Migrate inline style → utility class on touch:
+ *   style={{ color: "var(--color-text-primary)" }}  →  className="theme-text"
+ *   style={{ backgroundColor: "var(--color-bg-card)" }}  →  className="theme-card-bg"
+ *   style={{ fontFamily: "var(--font-mono)" }}      →  className="theme-mono"
+ *
+ * Compose freely with Tailwind layout/spacing utilities. The classes only
+ * set the tokenized property — colors, fonts — never layout.
+ */
+.theme-text          { color: var(--color-text-primary); }
+.theme-text-secondary{ color: var(--color-text-secondary); }
+.theme-text-muted    { color: var(--color-text-muted); }
+.theme-accent        { color: var(--color-accent); }
+.theme-danger        { color: var(--color-danger); }
+.theme-warning       { color: var(--color-warning); }
+.theme-success       { color: var(--color-success); }
+
+.theme-card-bg       { background-color: var(--color-bg-card); }
+.theme-secondary-bg  { background-color: var(--color-bg-secondary); }
+.theme-tertiary-bg   { background-color: var(--color-bg-tertiary); }
+.theme-input-bg      { background-color: var(--color-bg-input); }
+.theme-accent-bg     { background-color: var(--color-accent-muted); }
+.theme-danger-bg     { background-color: var(--color-danger-muted); }
+.theme-warning-bg    { background-color: var(--color-warning-muted); }
+.theme-success-bg    { background-color: var(--color-success-muted); }
+
+.theme-mono          { font-family: var(--font-mono); }

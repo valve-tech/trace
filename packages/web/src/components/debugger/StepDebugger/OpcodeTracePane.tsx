@@ -58,8 +58,8 @@ export function OpcodeTracePane({
       {/* Column header — without it the step-index and program-counter columns
           read like two unlabeled numbers and get mistaken for gas figures. */}
       <div
-        className="flex items-center text-[10px] uppercase tracking-wider flex-shrink-0 bs-b-muted py-1"
-        style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-muted)", paddingLeft: 8, paddingRight: 12 }}
+        className="flex items-center text-[10px] uppercase tracking-wider flex-shrink-0 bs-b-muted py-1 theme-mono theme-text-muted"
+        style={{ paddingLeft: 8, paddingRight: 12 }}
       >
         <span className="w-14 text-right mr-3 flex-shrink-0" title="Execution step index">Step</span>
         <span className="w-10 text-right mr-3 flex-shrink-0" title="Program counter — byte offset of this opcode within the contract's bytecode">Offset</span>
@@ -80,14 +80,12 @@ export function OpcodeTracePane({
             <div
               key={idx}
               onClick={() => goTo(idx)}
-              className="flex items-center cursor-pointer text-xs"
+              className={`flex items-center cursor-pointer text-xs theme-mono${isActive ? " theme-accent-bg" : ""}`}
               style={{
                 position: "absolute",
                 top: idx * ROW_HEIGHT,
                 height: ROW_HEIGHT,
                 width: "100%",
-                fontFamily: "var(--font-mono)",
-                backgroundColor: isActive ? "var(--color-accent-muted)" : "transparent",
                 borderLeft: isActive
                   ? "3px solid var(--color-accent)"
                   : `3px solid hsla(${depthHue}, 60%, 50%, ${s.depth > 1 ? 0.5 : 0})`,
@@ -96,18 +94,17 @@ export function OpcodeTracePane({
                 paddingRight: "12px",
               }}
             >
-              <span className="w-14 text-right mr-3 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+              <span className="w-14 text-right mr-3 flex-shrink-0 theme-text-muted">
                 {idx}
               </span>
-              <span className="w-10 text-right mr-3 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+              <span className="w-10 text-right mr-3 flex-shrink-0 theme-text-muted">
                 {s.pc}
               </span>
               <span className="w-28 font-semibold mr-3 flex-shrink-0" style={{ color: getOpcodeColor(s.op) }}>
                 {s.op}
               </span>
               <span
-                className="flex-shrink-0"
-                style={{ color: s.gasCost > 100 ? "var(--color-warning)" : "var(--color-text-muted)" }}
+                className={`flex-shrink-0 ${s.gasCost > 100 ? "theme-warning" : "theme-text-muted"}`}
               >
                 {s.gasCost}
               </span>
