@@ -78,6 +78,27 @@ interface StepDebuggerProps {
 // TanStack Query cache each chunk.
 const DETAIL_CHUNK = 512;
 
+// Identifiers the Solidity compiler exposes globally — they have no user-source
+// declaration to navigate to, so clicking them in the source pane should be a
+// silent no-op. Covers value/data globals (msg/tx/block/abi), keyword-ish names
+// (this/super, true/false), math/crypto helpers (keccak256, ecrecover, addmod),
+// control-flow helpers (require/assert/revert), and the elementary type names
+// the tokenizer flags as identifiers in casts (`address(0)`, `uint256(...)`).
+const SOLIDITY_GLOBALS = new Set<string>([
+  "msg", "tx", "block", "abi",
+  "this", "super",
+  "true", "false",
+  "now",
+  "require", "assert", "revert",
+  "keccak256", "sha256", "sha3", "ripemd160", "ecrecover",
+  "addmod", "mulmod", "blockhash", "gasleft", "selfdestruct", "suicide",
+  "type",
+  "address", "bool", "string", "bytes",
+  "uint", "uint8", "uint16", "uint32", "uint64", "uint128", "uint256",
+  "int", "int8", "int16", "int32", "int64", "int128", "int256",
+  "bytes1", "bytes2", "bytes4", "bytes8", "bytes16", "bytes20", "bytes32",
+]);
+
 export default function StepDebugger({
   steps,
   contractAddress,
@@ -417,13 +438,20 @@ export default function StepDebugger({
 
   // Go-to-definition: triggered when the user clicks any identifier token in
   // the source pane. Resolves the symbol in the active contract's flattened
-  // sources and scrolls the source pane there. Falls back to a navError when
-  // we can't find the definition (the symbol may live in an external library
-  // whose source isn't loaded, or be a Solidity built-in like `block.timestamp`).
-  // Computes activeContractAddress inline (the memo is defined further down)
-  // so we don't have to reshuffle file order for this one consumer.
+  // sources and scrolls the source pane there.
+  //
+  // Misses are SILENT — many clicked identifiers are things we can't
+  // navigate to: Solidity globals (msg, tx, block, abi), function parameters,
+  // local variables, member-access right-hand sides (`x.sender`), inherited
+  // symbols from external libs. Firing a red error banner for every one of
+  // those felt like "the tool is broken." Silent no-op matches what an IDE
+  // does when you cmd-click something it can't resolve.
   const jumpToDefinition = useCallback(
     (name: string) => {
+      // Solidity globals never have a declaration in user source. Bail before
+      // even searching so we never even render a flash.
+      if (SOLIDITY_GLOBALS.has(name)) return;
+
       let addr: string | null = null;
       let frame: { entry: number; end: number } | null = null;
       let bestDepth = -1;
@@ -436,15 +464,9 @@ export default function StepDebugger({
       }
       const addrKey = addr?.toLowerCase();
       const files = addrKey ? sourcesByAddr[addrKey] : undefined;
-      if (!files || files.length === 0) {
-        setNavError(`Can't navigate — no verified source loaded for the active contract.`);
-        return;
-      }
+      if (!files || files.length === 0) return; // no source — silent
       const hit = findDefinitionLine(files, name);
-      if (!hit) {
-        setNavError(`No definition of \`${name}\` in this contract's source.`);
-        return;
-      }
+      if (!hit) return; // unresolved — silent
 
       // Couple the execution cursor: find the first opcode in the active frame
       // that maps to the target source line. Walk only within [frame.entry,

@@ -72,8 +72,14 @@ export function findDefinitionLine(
     ? new RegExp(`\\b${name}\\s*\\(\\s*\\)`)
     : null;
 
-  // For public-state-var auto-getter fallback.
+  // State variable / constant / immutable declarations at contract scope.
+  // We use two cheap signals together: the name appears as a whole word on
+  // the line, AND the line carries a visibility/storage modifier that
+  // distinguishes a declaration from a use. The older heuristic required
+  // `public` specifically, which missed `uint256 constant FOO = 1;` and
+  // `address immutable owner = msg.sender;`.
   const varRe = new RegExp(`\\b${esc}\\b`);
+  const stateVarModifierRe = /\b(?:public|constant|immutable)\b/;
 
   for (const file of files) {
     const lines = file.content.split("\n");
@@ -146,7 +152,7 @@ export function findDefinitionLine(
         varGetterHit === null &&
         inContract &&
         varRe.test(line) &&
-        /\bpublic\b/.test(line) &&
+        stateVarModifierRe.test(line) &&
         !/^\s*\/\//.test(line)
       ) {
         varGetterHit = { file: file.name, line: lineNum, kind: "state-var-getter" };
