@@ -52,6 +52,12 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: "heroicons:document-duplicate",
         desc: "Compare two contracts' verified source.",
       },
+      {
+        to: "/verify",
+        label: "Verify",
+        icon: "heroicons:check-badge",
+        desc: "Verify a contract's source via Sourcify.",
+      },
     ],
   },
   {

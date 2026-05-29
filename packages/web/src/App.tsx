@@ -18,6 +18,7 @@ import ForkSimulator from "./components/ForkSimulator";
 import TransactionBuilder from "./components/TransactionBuilder";
 import ContractDiff from "./components/ContractDiff";
 import StorageLayoutViewer from "./components/StorageLayoutViewer";
+import VerifyContract from "./components/VerifyContract";
 import DraftsIndex from "./components/drafts/DraftsIndex";
 import SettingsPanel from "./components/drafts/SettingsPanel";
 
@@ -100,6 +101,7 @@ export default function App() {
           <Route path="/debugger/:txHash" element={<DebuggerView />} />
           <Route path="/actions" element={<ActionsDashboard />} />
           <Route path="/storage" element={<StorageLayoutViewer />} />
+          <Route path="/verify" element={<VerifyContract />} />
           <Route path="/diff" element={<ContractDiff />} />
           <Route path="/settings" element={<SettingsPanel />} />
           <Route path="/ui" element={<ComponentGallery />} />
