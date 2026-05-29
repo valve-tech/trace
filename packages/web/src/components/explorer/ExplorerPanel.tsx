@@ -223,8 +223,8 @@ function Breadcrumb({
           onClick={onBack}
           title="Back"
           aria-label="Back"
-          className="flex items-center justify-center w-6 h-6 mr-1 transition-colors hover:opacity-100"
-          style={{ color: "var(--color-text-muted)", backgroundColor: "transparent" }}
+          className="flex items-center justify-center w-6 h-6 mr-1 transition-colors hover:opacity-100 theme-text-muted"
+          style={{ backgroundColor: "transparent" }}
         >
           <Icon icon="heroicons:chevron-left" className="w-4 h-4" />
         </button>
@@ -241,8 +241,8 @@ function Breadcrumb({
               <button
                 onClick={() => setExpanded(true)}
                 title="Show full trail"
-                className="px-1.5 py-1 font-mono transition-colors hover:opacity-100"
-                style={{ color: "var(--color-text-muted)", backgroundColor: "transparent" }}
+                className="px-1.5 py-1 font-mono transition-colors hover:opacity-100 theme-text-muted"
+                style={{ backgroundColor: "transparent" }}
               >
                 …
               </button>
@@ -280,11 +280,8 @@ function CrumbNode({
     return (
       <span
         aria-current="page"
-        style={{
-          color: "var(--color-text-primary)",
-          backgroundColor: "var(--color-bg-tertiary)",
-          boxShadow: "inset 0 0 0 1px var(--color-border-muted)",
-        }}
+        className="theme-text theme-tertiary-bg"
+        style={{ boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }}
       >
         {content}
       </span>
@@ -294,8 +291,8 @@ function CrumbNode({
   return (
     <button
       onClick={() => onJump(node.index)}
-      className="transition-colors hover:opacity-100 cursor-pointer"
-      style={{ color: "var(--color-text-secondary)", backgroundColor: "transparent" }}
+      className="transition-colors hover:opacity-100 cursor-pointer theme-text-secondary"
+      style={{ backgroundColor: "transparent" }}
     >
       {content}
     </button>

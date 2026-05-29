@@ -112,13 +112,10 @@ export function SourceOpcodeSplit({
         <button
           onClick={toggleCollapsed}
           title="Show opcode pane"
-          className="hidden lg:flex items-start justify-center pt-3 flex-shrink-0 cursor-pointer transition-opacity hover:opacity-80"
+          className="hidden lg:flex items-start justify-center pt-3 flex-shrink-0 cursor-pointer transition-opacity hover:opacity-80 theme-card-bg theme-text-muted theme-mono"
           style={{
             width: "20px",
-            backgroundColor: "var(--color-bg-card)",
             boxShadow: "0 0 0 1px var(--color-border-default)",
-            color: "var(--color-text-muted)",
-            fontFamily: "var(--font-mono)",
             fontSize: "11px",
           }}
         >
@@ -140,11 +137,9 @@ export function SourceOpcodeSplit({
             <button
               onClick={toggleCollapsed}
               title="Hide opcode pane"
-              className="hidden lg:flex items-center justify-center self-stretch flex-shrink-0 cursor-pointer transition-opacity hover:opacity-80"
+              className="hidden lg:flex items-center justify-center self-stretch flex-shrink-0 cursor-pointer transition-opacity hover:opacity-80 theme-text-muted theme-mono"
               style={{
                 width: "20px",
-                color: "var(--color-text-muted)",
-                fontFamily: "var(--font-mono)",
                 fontSize: "11px",
                 boxShadow: "inset 1px 0 0 0 var(--color-border-default)",
               }}
