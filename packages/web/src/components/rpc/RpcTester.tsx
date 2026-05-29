@@ -184,12 +184,9 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
     }
   };
 
-  const cardStyle = {
-    backgroundColor: "var(--color-bg-card)",
-    boxShadow: "0 0 0 1px var(--color-border-default)",
-  };
-
-  const labelStyle = { color: "var(--color-text-secondary)" };
+  // Card surface: theme-card-bg + bs class composes background + outline.
+  // Use as a className alongside the layout/rounded classes.
+  const cardClass = "theme-card-bg bs";
 
   // Format the response JSON with syntax coloring via a simple pre block
   const responseText = response
@@ -205,8 +202,8 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
   return (
     <div className="space-y-stack">
       {/* Template selector */}
-      <div className="rounded-lg bs p-4" style={cardStyle}>
-        <div className="text-xs font-medium mb-2" style={labelStyle}>
+      <div className={`rounded-lg p-4 ${cardClass}`}>
+        <div className="text-xs font-medium mb-2 theme-text-secondary">
           Templates
         </div>
         <div className="flex flex-wrap gap-inline">
@@ -214,13 +211,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
             <button
               key={t.label}
               onClick={() => handleTemplateSelect(t)}
-              className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80"
-              style={{
-                color: t.label.startsWith("valve_")
-                  ? "var(--color-accent)"
-                  : "var(--color-text-secondary)",
-                backgroundColor: "var(--color-bg-secondary)",
-              }}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors hover:opacity-80 theme-secondary-bg ${t.label.startsWith("valve_") ? "theme-accent" : "theme-text-secondary"}`}
             >
               {t.label}
             </button>
@@ -229,15 +220,12 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
       </div>
 
       {/* Request editor */}
-      <div className="rounded-lg overflow-hidden" style={cardStyle}>
-        <div
-          className="px-4 py-2.5 bs-b flex items-center justify-between"
-          style={{}}
-        >
+      <div className={`rounded-lg overflow-hidden ${cardClass}`}>
+        <div className="px-4 py-2.5 bs-b flex items-center justify-between">
           <span className="text-sm font-semibold theme-text">
             Request
           </span>
-          <span className="text-xs" style={labelStyle}>
+          <span className="text-xs theme-text-secondary">
             Ctrl+Enter to send
           </span>
         </div>
@@ -247,17 +235,10 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
           onKeyDown={handleKeyDown}
           rows={12}
           spellCheck={false}
-          className="w-full px-4 py-3 text-sm font-mono resize-y border-none outline-none"
-          style={{
-            backgroundColor: "var(--color-bg-secondary)",
-            color: "var(--color-text-primary)",
-            minHeight: "120px",
-          }}
+          className="w-full px-4 py-3 text-sm font-mono resize-y border-none outline-none theme-secondary-bg theme-text"
+          style={{ minHeight: "120px" }}
         />
-        <div
-          className="px-4 py-3 bs-t flex items-center gap-row"
-          style={{}}
-        >
+        <div className="px-4 py-3 bs-t flex items-center gap-row">
           <button
             onClick={handleSend}
             disabled={sending}
@@ -274,7 +255,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
             {sending ? "Sending..." : "Send Request"}
           </button>
           {response && (
-            <span className="text-xs" style={labelStyle}>
+            <span className="text-xs theme-text-secondary">
               {response.latencyMs}ms
             </span>
           )}
@@ -284,12 +265,8 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
       {/* Error */}
       {error && (
         <div
-          className="rounded-lg p-4 text-sm"
-          style={{
-            borderColor: "var(--color-danger)",
-            color: "var(--color-danger)",
-            backgroundColor: "var(--color-bg-card)",
-          }}
+          className="rounded-lg p-4 text-sm theme-card-bg theme-danger"
+          style={{ borderColor: "var(--color-danger)" }}
         >
           {error}
         </div>
@@ -297,53 +274,35 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
 
       {/* Response */}
       {responseText && (
-        <div className="rounded-lg overflow-hidden" style={cardStyle}>
-          <div
-            className="px-4 py-2.5 bs-b flex items-center justify-between"
-            style={{}}
-          >
-            <span
-              className="text-sm font-semibold theme-text"
-            >
+        <div className={`rounded-lg overflow-hidden ${cardClass}`}>
+          <div className="px-4 py-2.5 bs-b flex items-center justify-between">
+            <span className="text-sm font-semibold theme-text">
               Response
             </span>
             <div className="flex items-center gap-row">
               {hasError ? (
                 <span
-                  className="text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{
-                    backgroundColor: "rgba(239,68,68,0.15)",
-                    color: "var(--color-danger)",
-                  }}
+                  className="text-xs px-2 py-0.5 rounded-full font-medium theme-danger"
+                  style={{ backgroundColor: "rgba(239,68,68,0.15)" }}
                 >
                   Error
                 </span>
               ) : (
                 <span
-                  className="text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{
-                    backgroundColor: "rgba(34,197,94,0.15)",
-                    color: "var(--color-success)",
-                  }}
+                  className="text-xs px-2 py-0.5 rounded-full font-medium theme-success"
+                  style={{ backgroundColor: "rgba(34,197,94,0.15)" }}
                 >
                   Success
                 </span>
               )}
-              <span className="text-xs font-medium" style={labelStyle}>
+              <span className="text-xs font-medium theme-text-secondary">
                 {response!.latencyMs}ms
               </span>
             </div>
           </div>
           <pre
-            className="px-4 py-3 text-xs font-mono overflow-x-auto"
-            style={{
-              backgroundColor: "var(--color-bg-secondary)",
-              color: hasError
-                ? "var(--color-danger)"
-                : "var(--color-text-primary)",
-              maxHeight: "400px",
-              overflowY: "auto",
-            }}
+            className={`px-4 py-3 text-xs font-mono overflow-x-auto theme-secondary-bg ${hasError ? "theme-danger" : "theme-text"}`}
+            style={{ maxHeight: "400px", overflowY: "auto" }}
           >
             {responseText}
           </pre>
