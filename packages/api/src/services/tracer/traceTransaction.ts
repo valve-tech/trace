@@ -3,11 +3,26 @@ import { getCachedTrace, setCachedTrace } from "./cache.js";
 import { isDebugUnavailable, makeDebugRpc } from "./debugRpc.js";
 import { traceViaAnvilFork } from "./anvilFallback.js";
 import { traceViaBlockScout } from "./blockscoutFallback.js";
+import { dedupePromise } from "../../lib/dedupePromise.js";
+
+/**
+ * In-flight call-tree traces, keyed by lowercased tx hash. The Postgres
+ * cache write inside `runTrace` is fire-and-forget, so concurrent
+ * callers (e.g. /trace and /gas-profile firing in parallel from the
+ * debugger view) would each miss the DB cache and issue a redundant
+ * `debug_traceTransaction` RPC. Sharing one promise per hash collapses
+ * those into a single trace; the entry is released on settle so the
+ * next call hits the now-populated Postgres cache.
+ */
+const inFlight = new Map<string, Promise<CallTraceResult>>();
 
 /**
  * Trace a mined transaction and return a callTracer-shaped tree. Walks
  * three sources in order: cache → live debug_ RPC → anvil-fork replay →
  * BlockScout reconstruction. Cache hits short-circuit everything else.
+ *
+ * Concurrent calls for the same hash share one in-flight promise (see
+ * `inFlight` above) so the RPC is only issued once per burst.
  *
  * `debugAvailable` on the result tells the caller whether the data came
  * from a debug-capable source; clients use this to gate features like
@@ -16,6 +31,10 @@ import { traceViaBlockScout } from "./blockscoutFallback.js";
 export async function traceTransaction(
   hash: string,
 ): Promise<CallTraceResult> {
+  return dedupePromise(inFlight, hash.toLowerCase(), () => runTrace(hash));
+}
+
+async function runTrace(hash: string): Promise<CallTraceResult> {
   const cached = await getCachedTrace<CallFrame>(hash, "calltree");
   if (cached) {
     return { trace: cached, error: null, debugAvailable: true };
