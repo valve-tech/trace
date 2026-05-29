@@ -1,11 +1,21 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { HashRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createIdbPersister } from "./lib/idbPersister";
 import App from "./App";
 import "./index.css";
+
+// One-time HashRouter → BrowserRouter rewrite. We switched routers to
+// satisfy EIP-3091 (wallets and dApps generate canonical URLs like
+// /tx/0xabc, not /#/tx/0xabc). This keeps existing bookmarks alive: a
+// landing hit at /#/foo gets rewritten to /foo before the router mounts.
+// The check runs before render so React Router never sees the hash form.
+if (window.location.hash.startsWith("#/")) {
+  const newPath = window.location.hash.slice(1) + window.location.search;
+  window.history.replaceState(null, "", newPath);
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,9 +46,9 @@ createRoot(rootEl).render(
       // staleTime Infinity, so old clients kept serving the stale trace + tree.
       persistOptions={{ persister, maxAge: Infinity, buster: "2026-05-26-skeleton-events" }}
     >
-      <HashRouter>
+      <BrowserRouter>
         <App />
-      </HashRouter>
+      </BrowserRouter>
     </PersistQueryClientProvider>
   </StrictMode>,
 );

@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { copyToClipboard } from "../../lib/clipboard";
 import { scanPath } from "../../lib/scanRoutes";
@@ -25,11 +26,26 @@ export default function TxRowActions({
   compact = false,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handle = (e: React.MouseEvent, fn: () => void) => {
     e.stopPropagation();
     e.preventDefault();
     fn();
+  };
+
+  /**
+   * Navigate within the SPA. We can't use <Link> here because the
+   * component is reused inside table cells whose clicks would
+   * conflict with the link. Use react-router's `navigate()` directly
+   * so we stay in the SPA (no full reload, no cache discard).
+   */
+  const goto = (href: string): void => {
+    if (href.startsWith("/")) {
+      navigate(href);
+    } else {
+      window.location.href = href;
+    }
   };
 
   return (
@@ -41,14 +57,14 @@ export default function TxRowActions({
         title="Debug this transaction"
         icon="heroicons:bug-ant"
         compact={compact}
-        onClick={(e) => handle(e, () => goto(`/#/debugger/${hash}`))}
+        onClick={(e) => handle(e, () => goto(`/debugger/${hash}`))}
       />
       <ActionIcon
         title="Simulate a fork from this transaction"
         icon="heroicons:arrows-right-left"
         compact={compact}
         onClick={(e) =>
-          handle(e, () => goto(`/#/fork?fromTx=${hash}`))
+          handle(e, () => goto(`/fork?fromTx=${hash}`))
         }
       />
       <ActionIcon
@@ -113,6 +129,14 @@ function ActionMenu({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const goto = (href: string): void => {
+    if (href.startsWith("/")) {
+      navigate(href);
+    } else {
+      window.location.href = href;
+    }
+  };
 
   // Close on outside click + Escape.
   useEffect(() => {
@@ -150,7 +174,7 @@ function ActionMenu({
       icon: "heroicons:magnifying-glass",
       enabled: true,
       onClick: () => {
-        goto(`/#${scanPath("tx", hash)}`);
+        goto(scanPath("tx", hash));
         onClose();
       },
     },
@@ -159,7 +183,7 @@ function ActionMenu({
       icon: "heroicons:rectangle-stack",
       enabled: Boolean(contractAddress),
       onClick: () => {
-        if (contractAddress) goto(`/#/storage?address=${contractAddress}`);
+        if (contractAddress) goto(`/storage?address=${contractAddress}`);
         onClose();
       },
     },
@@ -214,16 +238,3 @@ function ActionMenu({
   );
 }
 
-/**
- * Navigate within the SPA. We can't use react-router's <Link> here because
- * the component is reused inside table cells whose clicks would conflict
- * with the link, so we just push to location.hash and let the HashRouter
- * pick it up.
- */
-function goto(href: string): void {
-  if (href.startsWith("/#/")) {
-    window.location.hash = href.slice(2);
-  } else {
-    window.location.href = href;
-  }
-}

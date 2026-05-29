@@ -5,6 +5,7 @@
  * outside any single feature's navigation context.
  */
 
+import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useRecentEntities } from "../hooks/useRecentEntities";
 import { togglePin, type RecentEntity } from "../lib/recentEntities";
@@ -71,8 +72,9 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 }
 
 function Row({ entity }: { entity: RecentEntity }) {
+  const navigate = useNavigate();
   const go = () => {
-    window.location.hash = hrefFor(entity);
+    navigate(hrefFor(entity));
   };
 
   return (

@@ -11,6 +11,7 @@
  * Navigation uses the hash router, matching the row-action components.
  */
 
+import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { Tooltip } from "./primitives/Tooltip";
 import { CopyButton } from "./primitives/CopyButton";
@@ -24,11 +25,6 @@ interface Action {
   icon: string;
   href: string;
   primary?: boolean;
-}
-
-function goto(href: string): void {
-  // Hash router: location.hash drives the SPA route.
-  window.location.hash = href;
 }
 
 function actionsFor(
@@ -76,6 +72,7 @@ export function EntityActionBar({
   omit?: string[];
   className?: string;
 }) {
+  const navigate = useNavigate();
   const actions = actionsFor(kind, value, contractAddress).filter(
     (a) => !omit.includes(a.id),
   );
@@ -90,7 +87,7 @@ export function EntityActionBar({
           <Tooltip key={a.id} label={a.label}>
             <button
               type="button"
-              onClick={() => goto(a.href)}
+              onClick={() => navigate(a.href)}
               aria-label={a.label}
               className="flex items-center justify-center w-7 h-7 transition-colors theme-text-muted"
               style={{
@@ -117,7 +114,7 @@ export function EntityActionBar({
           <button
             key={a.id}
             type="button"
-            onClick={() => goto(a.href)}
+            onClick={() => navigate(a.href)}
             className={`inline-flex items-center gap-tight text-xs px-3 py-1.5 transition-colors ${
               isPrimary ? "" : "theme-tertiary-bg theme-text-secondary"
             }`}

@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useRecentEntities } from "../hooks/useRecentEntities";
 import { togglePin, clearRecent, type RecentEntity } from "../lib/recentEntities";
@@ -137,8 +138,9 @@ function Row({
   entity: RecentEntity;
   onNavigate: () => void;
 }) {
+  const navigate = useNavigate();
   const go = () => {
-    window.location.hash = hrefFor(entity);
+    navigate(hrefFor(entity));
     onNavigate();
   };
 
