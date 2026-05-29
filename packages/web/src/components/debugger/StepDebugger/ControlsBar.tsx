@@ -58,10 +58,7 @@ export function ControlsBar({
     // bg-card supplies the surface; bs-b draws ONE bottom border that
     // connects to the cards in the content row below (instead of stacking
     // two card borders separated by their margins).
-    <div
-      className="flex items-center gap-row px-4 py-2 bs-b"
-      style={{ backgroundColor: "var(--color-bg-card)" }}
-    >
+    <div className="flex items-center gap-row px-4 py-2 bs-b theme-card-bg">
       <div className="flex items-center gap-tight">
         <ControlButton label="|<" title="Jump to start (Home)" onClick={jumpToStart} />
         <ControlButton label="<" title="Step back (Left arrow)" onClick={stepBackward} />
@@ -84,16 +81,11 @@ export function ControlsBar({
         placeholder="Filter..."
         value={opcodeFilter}
         onChange={(e) => setOpcodeFilter(e.target.value)}
-        className="w-24 px-2 py-1 rounded text-xs"
-        style={{
-          backgroundColor: "var(--color-bg-input)",
-          boxShadow: "0 0 0 1px var(--color-border-default)",
-          color: "var(--color-text-primary)",
-          fontFamily: "var(--font-mono)",
-        }}
+        className="w-24 px-2 py-1 rounded text-xs theme-input-bg theme-text theme-mono"
+        style={{ boxShadow: "0 0 0 1px var(--color-border-default)" }}
       />
       {filteredCount !== null && (
-        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+        <span className="text-xs theme-text-muted">
           {filteredCount} matches
         </span>
       )}
@@ -103,12 +95,10 @@ export function ControlsBar({
           <Divider />
           <button
             onClick={() => setContentView("debugger")}
-            className="rounded font-mono font-semibold transition-colors text-xs px-2 py-1"
+            className={`rounded font-mono font-semibold transition-colors text-xs px-2 py-1 ${contentView === "debugger" ? "" : "theme-secondary-bg theme-text"}`}
             style={{
-              backgroundColor: contentView === "debugger"
-                ? "var(--color-accent)"
-                : "var(--color-bg-secondary)",
-              color: contentView === "debugger" ? "#fff" : "var(--color-text-primary)",
+              backgroundColor: contentView === "debugger" ? "var(--color-accent)" : undefined,
+              color: contentView === "debugger" ? "#fff" : undefined,
             }}
           >
             {sourceLoading ? "Loading..." : "Debugger"}
@@ -116,12 +106,10 @@ export function ControlsBar({
           <button
             onClick={handleAnalyze}
             disabled={slitherLoading}
-            className="rounded font-mono font-semibold transition-colors text-xs px-2 py-1"
+            className={`rounded font-mono font-semibold transition-colors text-xs px-2 py-1 ${showFindings ? "" : "theme-secondary-bg theme-text"}`}
             style={{
-              backgroundColor: showFindings
-                ? "var(--color-danger)"
-                : "var(--color-bg-secondary)",
-              color: showFindings ? "#fff" : "var(--color-text-primary)",
+              backgroundColor: showFindings ? "var(--color-danger)" : undefined,
+              color: showFindings ? "#fff" : undefined,
               boxShadow: "0 0 0 1px var(--color-border-default)",
               opacity: slitherLoading ? 0.5 : 1,
             }}

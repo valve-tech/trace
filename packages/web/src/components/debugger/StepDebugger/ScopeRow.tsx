@@ -26,11 +26,9 @@ export function ScopeRow({
     <div>
       <div
         data-node-key={key}
-        className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap"
+        className={`flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap theme-mono${isSelected ? " theme-accent-bg" : ""}`}
         onClick={() => { shared.onJumpTo(node.entryStep); shared.onSelectKey?.(key); }}
         style={{
-          fontFamily: "var(--font-mono)",
-          backgroundColor: isSelected ? "var(--color-accent-muted)" : undefined,
           boxShadow: isSelected ? "inset 2px 0 0 0 var(--color-accent)" : undefined,
         }}
       >
@@ -45,20 +43,19 @@ export function ScopeRow({
         {hasChildren ? (
           <button
             onClick={(e) => { e.stopPropagation(); shared.onToggleExpand?.(key, !expanded); }}
-            className="w-4 flex items-center justify-center flex-shrink-0"
-            style={{ color: "var(--color-text-muted)" }}
+            className="w-4 flex items-center justify-center flex-shrink-0 theme-text-muted"
           >
             <Icon icon={expanded ? "heroicons:chevron-down" : "heroicons:chevron-right"} className="w-3 h-3" />
           </button>
         ) : (
-          <span className="w-4 flex items-center justify-center flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+          <span className="w-4 flex items-center justify-center flex-shrink-0 theme-text-muted">
             <Icon icon="heroicons:arrow-turn-down-right" className="w-3 h-3" />
           </span>
         )}
 
-        <span style={{ color: "var(--color-text-secondary)", fontStyle: "italic" }}>{node.name}</span>
+        <span className="theme-text-secondary" style={{ fontStyle: "italic" }}>{node.name}</span>
         {node.line > 0 && (
-          <span style={{ color: "var(--color-text-muted)" }}>L{node.line}</span>
+          <span className="theme-text-muted">L{node.line}</span>
         )}
       </div>
 

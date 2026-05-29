@@ -409,11 +409,11 @@ export default function SourceViewer({
   return (
     <div className="relative h-full">
       {findOpen && (
-        <div
-          className="absolute top-2 right-3 z-20 flex items-center gap-tight px-2 py-1 card"
-          style={{ backgroundColor: "var(--color-bg-secondary)" }}
-        >
-          <Icon icon="heroicons:magnifying-glass" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--color-text-muted)" }} />
+        <div className="absolute top-2 right-3 z-20 flex items-center gap-tight px-2 py-1 card theme-secondary-bg">
+          <Icon
+            icon="heroicons:magnifying-glass"
+            className="w-3.5 h-3.5 flex-shrink-0 theme-text-muted"
+          />
           <input
             ref={findInputRef}
             value={findQuery}
@@ -423,34 +423,44 @@ export default function SourceViewer({
               else if (e.key === "Escape") { e.preventDefault(); closeFind(); }
             }}
             placeholder="Find in source"
-            className="bare-input bg-transparent outline-none text-xs"
-            style={{ width: 180, color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}
+            className="bare-input bg-transparent outline-none text-xs theme-text theme-mono"
+            style={{ width: 180 }}
             autoFocus
           />
-          <span className="text-xs tabular-nums flex-shrink-0" style={{ color: "var(--color-text-muted)", minWidth: 44, textAlign: "right" }}>
+          <span
+            className="text-xs tabular-nums flex-shrink-0 theme-text-muted"
+            style={{ minWidth: 44, textAlign: "right" }}
+          >
             {matchLines.length ? `${activeMatch + 1}/${matchLines.length}` : findQuery ? "0/0" : ""}
           </span>
-          <button onClick={() => stepMatch(-1)} title="Previous match (Shift+Enter)" className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }} disabled={!matchLines.length}>
+          <button
+            onClick={() => stepMatch(-1)}
+            title="Previous match (Shift+Enter)"
+            className="flex-shrink-0 theme-text-muted"
+            disabled={!matchLines.length}
+          >
             <Icon icon="heroicons:chevron-up" className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => stepMatch(1)} title="Next match (Enter)" className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }} disabled={!matchLines.length}>
+          <button
+            onClick={() => stepMatch(1)}
+            title="Next match (Enter)"
+            className="flex-shrink-0 theme-text-muted"
+            disabled={!matchLines.length}
+          >
             <Icon icon="heroicons:chevron-down" className="w-3.5 h-3.5" />
           </button>
-          <button onClick={closeFind} title="Close (Esc)" className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+          <button onClick={closeFind} title="Close (Esc)" className="flex-shrink-0 theme-text-muted">
             <Icon icon="heroicons:x-mark" className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
       <div
         ref={containerRef}
-        className="overflow-auto text-xs h-full"
-        style={{ fontFamily: "var(--font-mono)", maxHeight: "100%" }}
+        className="overflow-auto text-xs h-full theme-mono"
+        style={{ maxHeight: "100%" }}
       >
       {/* File name header */}
-      <div
-        className="sticky top-0 z-10 px-3 py-1.5 card-divider text-xs font-semibold"
-        style={{ backgroundColor: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}
-      >
+      <div className="sticky top-0 z-10 px-3 py-1.5 card-divider text-xs font-semibold theme-secondary-bg theme-text-secondary">
         {file.name}
       </div>
 

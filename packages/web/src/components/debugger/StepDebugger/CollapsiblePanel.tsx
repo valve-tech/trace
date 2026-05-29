@@ -18,25 +18,19 @@ export function CollapsiblePanel({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div
-      className="card overflow-hidden"
-      style={{ backgroundColor: "var(--color-bg-card)", boxShadow: "0 0 0 1px var(--color-border-default)" }}
-    >
+    <div className="card overflow-hidden theme-card-bg">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-3 py-2 card-divider cursor-pointer"
-        style={{ backgroundColor: "var(--color-bg-secondary)" }}
+        className="w-full flex items-center justify-between px-3 py-2 card-divider cursor-pointer theme-secondary-bg"
       >
         <span className="flex items-center gap-inline">
-          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-            {open ? "▼" : "▶"}
-          </span>
-          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+          <span className="text-xs theme-text-muted">{open ? "▼" : "▶"}</span>
+          <span className="text-xs font-semibold uppercase tracking-wider theme-text-secondary">
             {title}
           </span>
         </span>
         {count !== undefined && (
-          <span className="text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+          <span className="text-xs theme-text-muted theme-mono">
             {count.toLocaleString()} {suffix ?? "items"}
           </span>
         )}

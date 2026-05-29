@@ -10,33 +10,29 @@ import { truncateWord } from "./format";
  */
 export function OperandBar({ op, operands }: { op: string; operands: OperandInfo | null }) {
   return (
-    <div
-      className="card-divider px-3 py-1.5 text-xs flex items-center gap-row flex-wrap"
-      style={{ backgroundColor: "var(--color-bg-secondary)", fontFamily: "var(--font-mono)" }}
-    >
+    <div className="card-divider px-3 py-1.5 text-xs flex items-center gap-row flex-wrap theme-secondary-bg theme-mono">
       <span className="font-semibold" style={{ color: getOpcodeColor(op) }}>{op}</span>
 
       {!operands && (
-        <span style={{ color: "var(--color-text-muted)" }}>no modeled operands</span>
+        <span className="theme-text-muted">no modeled operands</span>
       )}
 
       {operands?.args.map((a) => (
         <span key={a.name} className="flex items-center gap-tight">
-          <span style={{ color: "var(--color-text-muted)" }}>{a.name}</span>
-          <span style={{ color: "var(--color-text-muted)" }}>=</span>
-          <span title={a.value} style={{ color: "var(--color-text-primary)" }}>{truncateWord(a.value)}</span>
+          <span className="theme-text-muted">{a.name}</span>
+          <span className="theme-text-muted">=</span>
+          <span title={a.value} className="theme-text">{truncateWord(a.value)}</span>
         </span>
       ))}
 
       {operands && operands.args.length === 0 && operands.outputs > 0 && (
-        <span style={{ color: "var(--color-text-muted)" }}>→ pushes {operands.outputs}</span>
+        <span className="theme-text-muted">→ pushes {operands.outputs}</span>
       )}
 
       {operands?.memory && operands.memory.size > 0 && (
         <span
-          className="px-1.5 py-0.5"
+          className={`px-1.5 py-0.5 ${operands.memory.kind === "write" ? "theme-warning" : "theme-text-secondary"}`}
           style={{
-            color: operands.memory.kind === "write" ? "var(--color-warning)" : "var(--color-text-secondary)",
             boxShadow: `inset 0 0 0 1px ${operands.memory.kind === "write" ? "var(--color-warning)" : "var(--color-border-default)"}`,
           }}
           title={`mem ${operands.memory.kind}`}
@@ -47,8 +43,8 @@ export function OperandBar({ op, operands }: { op: string; operands: OperandInfo
 
       {operands?.storageSlot && (
         <span
-          className="px-1.5 py-0.5"
-          style={{ color: "var(--color-warning)", boxShadow: "inset 0 0 0 1px var(--color-warning)" }}
+          className="px-1.5 py-0.5 theme-warning"
+          style={{ boxShadow: "inset 0 0 0 1px var(--color-warning)" }}
           title="storage slot"
         >
           slot {truncateWord(operands.storageSlot)}
