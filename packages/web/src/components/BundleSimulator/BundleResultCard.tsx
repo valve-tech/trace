@@ -10,10 +10,7 @@ export function BundleResultCard({
 }) {
   return (
     <div
-      className="rounded-lg bs p-4"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-4 theme-card-bg"
     >
       <div className="flex items-center justify-between mb-3">
         <h4

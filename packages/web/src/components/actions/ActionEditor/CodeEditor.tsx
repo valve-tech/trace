@@ -49,10 +49,7 @@ export function CodeEditor({ code, setCode }: Props) {
         Code
       </label>
       <div
-        className="rounded-lg bs overflow-hidden flex"
-        style={{
-          backgroundColor: "var(--color-bg-primary)",
-        }}
+        className="rounded-lg bs overflow-hidden flex theme-primary-bg"
       >
         <div
           ref={lineNumRef}

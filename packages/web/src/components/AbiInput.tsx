@@ -34,10 +34,7 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
 
   return (
     <div
-      className="rounded-lg bs overflow-hidden"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs overflow-hidden theme-card-bg"
     >
       <button
         type="button"

@@ -32,10 +32,7 @@ export function ReadFunction({
 
   return (
     <div
-      className="rounded-md bs-muted"
-      style={{
-        backgroundColor: "var(--color-bg-secondary)",
-      }}
+      className="rounded-md bs-muted theme-secondary-bg"
     >
       <button
         onClick={() => setExpanded(!expanded)}

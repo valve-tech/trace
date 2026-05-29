@@ -116,10 +116,7 @@ function SingleOverride({
 
   return (
     <div
-      className="rounded-md bs-muted p-3 space-y-3"
-      style={{
-        backgroundColor: "var(--color-bg-tertiary)",
-      }}
+      className="rounded-md bs-muted p-3 space-y-3 theme-tertiary-bg"
     >
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium theme-text-secondary">
@@ -261,10 +258,7 @@ export default function StateOverrides({ overrides, onChange }: StateOverridesPr
 
   return (
     <div
-      className="rounded-lg bs overflow-hidden"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs overflow-hidden theme-card-bg"
     >
       <button
         type="button"

@@ -3,10 +3,7 @@
 export function NoDataPanel({ message }: { message: string }) {
   return (
     <div
-      className="rounded-lg bs p-8 text-center"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-8 text-center theme-card-bg"
     >
       <p className="text-sm theme-text-secondary">
         {message}

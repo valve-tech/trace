@@ -47,10 +47,7 @@ function SectionHeader({
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between px-3 py-2 bs-b text-left hover:opacity-80"
-      style={{
-        backgroundColor: "var(--color-bg-secondary)",
-      }}
+      className="w-full flex items-center justify-between px-3 py-2 bs-b text-left hover:opacity-80 theme-secondary-bg"
     >
       <span
         className="text-xs font-semibold uppercase tracking-wider theme-text-secondary"
@@ -406,10 +403,7 @@ export default function StateDiffPanel({ stateDiff }: StateDiffPanelProps) {
 
   return (
     <div
-      className="rounded-lg bs overflow-hidden"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs overflow-hidden theme-card-bg"
     >
       {balanceChanges.length > 0 && (
         <BalanceChangesSection changes={balanceChanges} />

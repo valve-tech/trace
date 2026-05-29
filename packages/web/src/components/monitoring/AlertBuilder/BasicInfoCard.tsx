@@ -27,10 +27,7 @@ export function BasicInfoCard({
   return (
     <div className="rounded-lg p-4 space-y-stack" style={cardStyle}>
       <h3
-        className="text-sm font-semibold pb-3 bs-b-muted"
-        style={{
-          color: "var(--color-text-primary)",
-        }}
+        className="text-sm font-semibold pb-3 bs-b-muted theme-text"
       >
         Basic Info
       </h3>

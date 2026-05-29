@@ -204,10 +204,7 @@ function StatCard({
 }) {
   return (
     <div
-      className="rounded-lg bs p-4"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-4 theme-card-bg"
     >
       <div
         className="text-xs font-medium mb-1 theme-text-secondary"
@@ -230,10 +227,7 @@ function StatCard({
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div
-      className="rounded-lg bs p-12 text-center"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-12 text-center theme-card-bg"
     >
       <div
         className="text-4xl mb-4 theme-text-muted"

@@ -82,10 +82,7 @@ export default function BlockView({
   if (loading) {
     return (
       <div
-        className="rounded-lg bs p-8 flex flex-col items-center justify-center min-h-[300px]"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-        }}
+        className="rounded-lg bs p-8 flex flex-col items-center justify-center min-h-[300px] theme-card-bg"
       >
         <div
           className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mb-3"
@@ -129,10 +126,7 @@ export default function BlockView({
     <div className="space-y-stack">
       {/* Block Info */}
       <div
-        className="rounded-lg bs p-4"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-        }}
+        className="rounded-lg bs p-4 theme-card-bg"
       >
         <div className="flex items-center gap-row mb-3 pb-3 bs-b-muted" style={{}}>
           <h2
@@ -257,10 +251,7 @@ export default function BlockView({
 
       {/* Transactions */}
       <div
-        className="rounded-lg bs overflow-hidden"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-        }}
+        className="rounded-lg bs overflow-hidden theme-card-bg"
       >
         <div
           className="px-4 py-3 bs-b-muted"
@@ -292,10 +283,7 @@ export default function BlockView({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr
-                  style={{
-                    backgroundColor: "var(--color-bg-secondary)",
-                  }}
+                <tr className="theme-secondary-bg"
                 >
                   <th
                     className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"

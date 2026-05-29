@@ -116,10 +116,7 @@ export default function TestNetDashboard() {
       {/* Empty State */}
       {!loading && forks.length === 0 && !error && (
         <div
-          className="text-center py-16 rounded-lg bs"
-          style={{
-            backgroundColor: "var(--color-bg-card)",
-          }}
+          className="text-center py-16 rounded-lg bs theme-card-bg"
         >
           <div
             className="text-4xl mb-3 theme-text-muted"

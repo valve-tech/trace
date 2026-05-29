@@ -24,10 +24,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
 
   return (
     <div
-      className="rounded-lg bs p-4 space-y-3"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-4 space-y-3 theme-card-bg"
     >
       <div className="flex items-center justify-between">
         <h3

@@ -80,10 +80,7 @@ export function SnapshotsPanel({ forkId, onReverted }: Props) {
           {snapshots.map((snap) => (
             <div
               key={snap.id}
-              className="flex items-center justify-between text-xs px-2 py-1.5 rounded bs"
-              style={{
-                backgroundColor: "var(--color-bg-input)",
-              }}
+              className="flex items-center justify-between text-xs px-2 py-1.5 rounded bs theme-input-bg"
             >
               <span className="theme-text-secondary">
                 <span

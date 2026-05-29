@@ -83,16 +83,10 @@ export default function SimulationForm({
     <form onSubmit={handleSubmit} className="space-y-stack">
       {/* Main fields card */}
       <div
-        className="rounded-lg bs p-4 space-y-stack"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-        }}
+        className="rounded-lg bs p-4 space-y-stack theme-card-bg"
       >
         <h2
-          className="text-sm font-semibold pb-3 bs-b-muted"
-          style={{
-            color: "var(--color-text-primary)",
-          }}
+          className="text-sm font-semibold pb-3 bs-b-muted theme-text"
         >
           Transaction Parameters
         </h2>

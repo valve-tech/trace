@@ -4,10 +4,7 @@ import type { SimulationResult } from "../../types";
 export function LoadingPanel({ count }: { count: number }) {
   return (
     <div
-      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center theme-card-bg"
     >
       <div className="spinner mb-4" />
       <p className="text-sm theme-text-secondary">
@@ -55,10 +52,7 @@ export function ErrorPanel({ message }: { message: string }) {
 export function EmptyPanel() {
   return (
     <div
-      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center min-h-[300px]"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center min-h-[300px] theme-card-bg"
     >
       <Icon
         icon="heroicons:calculator"
@@ -84,10 +78,7 @@ export function SummaryBar({ results }: { results: SimulationResult[] }) {
 
   return (
     <div
-      className="rounded-lg bs p-3 flex items-center justify-between"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-3 flex items-center justify-between theme-card-bg"
     >
       <div className="flex items-center gap-4 text-xs">
         <span className="theme-text-secondary">

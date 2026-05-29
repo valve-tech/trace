@@ -1,10 +1,7 @@
 export function LoadingPanel() {
   return (
     <div
-      className="rounded-lg bs p-8 flex flex-col items-center"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-8 flex flex-col items-center theme-card-bg"
     >
       <div className="spinner mb-3" />
       <p
@@ -74,10 +71,7 @@ export function RevertReasonBlock({ reason }: { reason: string }) {
 export function NoStateChangesPanel() {
   return (
     <div
-      className="rounded-lg bs p-4 text-center"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-4 text-center theme-card-bg"
     >
       <p className="text-sm theme-text-muted">
         No state changes detected (view-only call or no storage writes)

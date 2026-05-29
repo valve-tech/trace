@@ -185,10 +185,7 @@ export default function RpcDashboard() {
       {/* Method breakdown table */}
       <div className="rounded-lg overflow-hidden" style={cardStyle}>
         <div
-          className="px-4 py-3 bs-b text-sm font-semibold"
-          style={{
-            color: "var(--color-text-primary)",
-          }}
+          className="px-4 py-3 bs-b text-sm font-semibold theme-text"
         >
           Method Breakdown
         </div>

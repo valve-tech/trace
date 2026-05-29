@@ -63,10 +63,7 @@ export function SectionCard({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div
-      className="rounded-lg bs"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs theme-card-bg"
     >
       <button
         onClick={() => setOpen(!open)}

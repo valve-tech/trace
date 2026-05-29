@@ -13,10 +13,7 @@ export function ContractHeader({
 }) {
   return (
     <div
-      className="rounded-lg bs p-4"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-4 theme-card-bg"
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-row justify-between">
         <div className="flex items-center gap-row min-w-0">

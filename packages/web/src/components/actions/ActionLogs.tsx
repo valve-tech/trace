@@ -85,10 +85,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
 
       {/* Table */}
       <div
-        className="rounded-lg bs overflow-hidden"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-        }}
+        className="rounded-lg bs overflow-hidden theme-card-bg"
       >
         <table className="w-full text-sm">
           <thead>

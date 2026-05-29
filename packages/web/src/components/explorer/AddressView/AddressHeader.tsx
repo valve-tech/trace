@@ -13,10 +13,7 @@ export function AddressHeader({
 }) {
   return (
     <div
-      className="rounded-lg bs p-4"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-4 theme-card-bg"
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-row">
         <div>

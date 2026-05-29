@@ -23,10 +23,7 @@ export function TransactionsTab({
 }: Props) {
   return (
     <div
-      className="rounded-lg bs overflow-hidden"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs overflow-hidden theme-card-bg"
     >
       {txs.length === 0 ? (
         <div

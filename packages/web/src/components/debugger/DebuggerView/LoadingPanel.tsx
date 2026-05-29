@@ -2,10 +2,7 @@
 export function LoadingPanel() {
   return (
     <div
-      className="rounded-lg bs p-12 flex flex-col items-center justify-center"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-12 flex flex-col items-center justify-center theme-card-bg"
     >
       <div className="spinner mb-4" />
       <p

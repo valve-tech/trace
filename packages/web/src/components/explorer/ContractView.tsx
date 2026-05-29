@@ -70,10 +70,7 @@ export default function ContractView({
   if (loading) {
     return (
       <div
-        className="rounded-lg bs p-8 flex flex-col items-center justify-center min-h-[300px]"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-        }}
+        className="rounded-lg bs p-8 flex flex-col items-center justify-center min-h-[300px] theme-card-bg"
       >
         <div
           className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mb-3"

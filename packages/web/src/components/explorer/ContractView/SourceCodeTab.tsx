@@ -1,10 +1,7 @@
 function CodeBox({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="rounded-lg bs overflow-hidden"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs overflow-hidden theme-card-bg"
     >
       {children}
     </div>

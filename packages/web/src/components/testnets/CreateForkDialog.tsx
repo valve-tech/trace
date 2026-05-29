@@ -46,10 +46,7 @@ export default function CreateForkDialog({
       }}
     >
       <div
-        className="rounded-lg bs p-4 w-full max-w-md"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-        }}
+        className="rounded-lg bs p-4 w-full max-w-md theme-card-bg"
       >
         <h2
           className="text-lg font-semibold mb-4 theme-text"

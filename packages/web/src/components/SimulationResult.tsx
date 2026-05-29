@@ -41,10 +41,7 @@ function DataRow({
 function EmptyState() {
   return (
     <div
-      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center min-h-[400px]"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center min-h-[400px] theme-card-bg"
     >
       <Icon
         icon="heroicons:document-chart-bar"
@@ -64,10 +61,7 @@ function EmptyState() {
 function LoadingState() {
   return (
     <div
-      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center min-h-[400px]"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-8 flex flex-col items-center justify-center text-center min-h-[400px] theme-card-bg"
     >
       <div className="spinner mb-4" />
       <h3 className="text-sm font-medium mb-1 theme-text-secondary">
@@ -126,10 +120,7 @@ export default function SimulationResultPanel({
     <div className="space-y-stack">
       {/* Status card */}
       <div
-        className="rounded-lg bs p-4"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-        }}
+        className="rounded-lg bs p-4 theme-card-bg"
       >
         <div className="flex items-center justify-between mb-4">
           <h2
@@ -173,16 +164,10 @@ export default function SimulationResultPanel({
       {/* Decoded function call */}
       {result.decodedCall && (
         <div
-          className="rounded-lg bs p-4"
-          style={{
-            backgroundColor: "var(--color-bg-card)",
-          }}
+          className="rounded-lg bs p-4 theme-card-bg"
         >
           <h3
-            className="text-sm font-semibold mb-3 pb-2 bs-b-muted"
-            style={{
-              color: "var(--color-text-primary)",
-            }}
+            className="text-sm font-semibold mb-3 pb-2 bs-b-muted theme-text"
           >
             Decoded Function Call
           </h3>
@@ -229,16 +214,10 @@ export default function SimulationResultPanel({
       {/* Decoded return value */}
       {result.decodedReturn && result.decodedReturn.values.length > 0 && (
         <div
-          className="rounded-lg bs p-4"
-          style={{
-            backgroundColor: "var(--color-bg-card)",
-          }}
+          className="rounded-lg bs p-4 theme-card-bg"
         >
           <h3
-            className="text-sm font-semibold mb-3 pb-2 bs-b-muted"
-            style={{
-              color: "var(--color-text-primary)",
-            }}
+            className="text-sm font-semibold mb-3 pb-2 bs-b-muted theme-text"
           >
             Decoded Return Value
           </h3>
@@ -271,16 +250,10 @@ export default function SimulationResultPanel({
       {/* Event logs */}
       {result.logs && result.logs.length > 0 && (
         <div
-          className="rounded-lg bs p-4"
-          style={{
-            backgroundColor: "var(--color-bg-card)",
-          }}
+          className="rounded-lg bs p-4 theme-card-bg"
         >
           <h3
-            className="text-sm font-semibold mb-3 pb-2 bs-b-muted"
-            style={{
-              color: "var(--color-text-primary)",
-            }}
+            className="text-sm font-semibold mb-3 pb-2 bs-b-muted theme-text"
           >
             Event Logs ({result.logs.length})
           </h3>
@@ -288,10 +261,7 @@ export default function SimulationResultPanel({
             {result.logs.map((log, i) => (
               <div
                 key={i}
-                className="rounded-md bs-muted p-3"
-                style={{
-                  backgroundColor: "var(--color-bg-tertiary)",
-                }}
+                className="rounded-md bs-muted p-3 theme-tertiary-bg"
               >
                 {log.decoded ? (
                   <div>

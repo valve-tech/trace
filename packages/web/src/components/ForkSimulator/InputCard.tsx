@@ -38,10 +38,7 @@ export function InputCard({
 }: Props) {
   return (
     <div
-      className="rounded-lg bs p-4"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs p-4 theme-card-bg"
     >
       <h2
         className="text-lg font-semibold mb-1 theme-text"

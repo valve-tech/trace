@@ -21,10 +21,7 @@ export function EventsSection({
           return (
             <div
               key={i}
-              className="rounded-md bs-muted p-3"
-              style={{
-                backgroundColor: "var(--color-bg-secondary)",
-              }}
+              className="rounded-md bs-muted p-3 theme-secondary-bg"
             >
               <div className="flex items-center gap-inline mb-2">
                 <span

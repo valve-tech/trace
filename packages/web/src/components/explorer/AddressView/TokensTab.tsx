@@ -11,10 +11,7 @@ export function TokensTab({
 }) {
   return (
     <div
-      className="rounded-lg bs overflow-hidden"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-      }}
+      className="rounded-lg bs overflow-hidden theme-card-bg"
     >
       {tokens.length === 0 ? (
         <div

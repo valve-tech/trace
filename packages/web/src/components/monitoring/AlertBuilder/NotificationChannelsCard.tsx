@@ -82,10 +82,7 @@ function ChannelEditor({
 }) {
   return (
     <div
-      className="rounded-md bs-muted p-3 space-y-3"
-      style={{
-        backgroundColor: "var(--color-bg-primary)",
-      }}
+      className="rounded-md bs-muted p-3 space-y-3 theme-primary-bg"
     >
       <div className="flex items-center justify-between">
         <Dropdown<NotificationChannel["type"]>
