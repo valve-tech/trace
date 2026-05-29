@@ -177,15 +177,21 @@ export default function StepDebugger({
   const handleAnalyze = useCallback(async () => {
     if (!contractAddress || slitherLoading) return;
     setSlitherLoading(true);
+    setNavError(null);
     try {
       const res = await analyzeContract(contractAddress);
       if (res.ok && res.analysis) {
+        // Always reveal the panel — its own empty-state message handles the
+        // 0-findings case, which used to render nothing and looked like the
+        // analysis had silently failed.
         setSlitherFindings(res.analysis.findings);
         setShowFindings(true);
         setContentView("debugger");
+      } else {
+        setNavError(res.error ?? "Slither analysis failed.");
       }
     } catch (err) {
-      console.error("[StepDebugger] Slither analysis error:", err);
+      setNavError(`Slither analysis failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSlitherLoading(false);
     }
@@ -774,7 +780,7 @@ export default function StepDebugger({
 
       <CallContextBreadcrumb step={step} currentSourceLocation={currentSourceLocation} />
 
-      {showFindings && slitherFindings.length > 0 && (
+      {showFindings && (
         <FindingsPanel findings={slitherFindings} />
       )}
 
