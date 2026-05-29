@@ -941,22 +941,18 @@ export default function StepDebugger({
                     }}
                   />
                   <div
-                    className="absolute right-0 top-full mt-1 overflow-y-auto"
+                    className="absolute right-0 top-full mt-1 overflow-y-auto theme-card-bg"
                     style={{
                       zIndex: 50,
                       minWidth: "240px",
                       maxWidth: "360px",
                       maxHeight: "320px",
-                      backgroundColor: "var(--color-bg-card)",
                       boxShadow: "0 0 0 1px var(--color-border-default), 0 8px 24px rgba(0,0,0,0.4)",
                     }}
                   >
                     <div
-                      className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest"
-                      style={{
-                        color: "var(--color-text-muted)",
-                        boxShadow: "0 1px 0 0 var(--color-border-muted)",
-                      }}
+                      className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest theme-text-muted"
+                      style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
                     >
                       Recent jumps · {recents.length}
                     </div>
@@ -967,19 +963,14 @@ export default function StepDebugger({
                           applyHistoryEntry({ step: r.step, overrideLine: r.overrideLine });
                           setRecentsOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-xs flex items-center gap-inline transition-colors hover:opacity-90"
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          color: "var(--color-text-primary)",
-                          backgroundColor: r.step === currentStep ? "var(--color-accent-muted)" : "transparent",
-                          boxShadow: "0 1px 0 0 var(--color-border-muted)",
-                        }}
+                        className={`w-full text-left px-3 py-2 text-xs flex items-center gap-inline transition-colors hover:opacity-90 theme-mono theme-text${r.step === currentStep ? " theme-accent-bg" : ""}`}
+                        style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
                       >
-                        <span style={{ color: r.kind === "function" ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
+                        <span className={r.kind === "function" ? "theme-accent" : "theme-text-secondary"}>
                           {r.kind === "function" ? "ƒ" : "›"}
                         </span>
                         <span className="flex-1 truncate">{r.label}</span>
-                        <span style={{ color: "var(--color-text-muted)" }}>step {r.step.toLocaleString()}</span>
+                        <span className="theme-text-muted">step {r.step.toLocaleString()}</span>
                       </button>
                     ))}
                   </div>
@@ -1004,12 +995,10 @@ export default function StepDebugger({
             <div
               role="alert"
               onClick={() => setNavError(null)}
-              className="text-xs px-2 py-1 cursor-pointer"
+              className="text-xs px-2 py-1 cursor-pointer theme-danger theme-mono"
               style={{
-                color: "var(--color-danger)",
                 backgroundColor: "rgba(248, 81, 73, 0.08)",
                 boxShadow: "0 1px 0 0 var(--color-danger)",
-                fontFamily: "var(--font-mono)",
               }}
               title="Click to dismiss"
             >
