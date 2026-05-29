@@ -14,7 +14,7 @@ import {
 } from "../services/tracer.js";
 import { profileGas, profileOpcodes } from "../services/gasProfiler.js";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
-import { traceCallSchema } from "./debugger/schemas.js";
+import { traceCallSchema, opcodeDetailQuerySchema } from "./debugger/schemas.js";
 
 const router = Router();
 
@@ -112,14 +112,14 @@ router.get(
   "/tx/:hash/opcodes/detail",
   asyncRoute(async (req: Request, res: Response) => {
     const hash = requireHash(req.params.hash);
-    const from = Math.max(0, parseInt(req.query.from as string, 10) || 0);
-    const rawTo = parseInt(req.query.to as string, 10);
-    // Default to a small window; cap the span so a bad query can't ask for
-    // the whole 100k-step trace's stacks at once.
-    const to = Math.min(
-      Number.isFinite(rawTo) ? rawTo : from + 1,
-      from + 2000,
-    );
+    const parsed = opcodeDetailQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      throw new ApiError(400, parsed.error.issues[0]?.message ?? "Invalid query");
+    }
+    const from = parsed.data.from ?? 0;
+    // Default `to` to a single-step request and cap the span so a bad query
+    // can't ask for the whole 100k-step trace's stacks at once.
+    const to = Math.min(parsed.data.to ?? from + 1, from + 2000);
 
     const result = await getOpcodeDetail(hash, from, to);
 
