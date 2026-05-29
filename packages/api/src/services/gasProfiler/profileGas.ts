@@ -45,18 +45,22 @@ async function buildGasEntry(
   depth: number,
 ): Promise<GasEntry> {
   const gasUsed = parseGas(frame.gasUsed);
-  const childEntries: GasEntry[] = [];
 
-  if (frame.calls) {
-    for (const child of frame.calls) {
-      childEntries.push(await buildGasEntry(child, totalTxGas, depth + 1));
-    }
-  }
+  // Walk children AND resolve this frame's function name in parallel. The
+  // serial-await loop this replaced was the cause of "gas profile never
+  // finishes" on traces with many unverified contracts — each fetchAbi has
+  // a 10s timeout, and a chain of 100 frames waiting one-by-one compounds
+  // into minutes. With parallelism, the wall-clock is bounded by the
+  // depth-weighted longest serial path plus one fetchAbi window.
+  const [childEntries, funcName] = await Promise.all([
+    frame.calls
+      ? Promise.all(frame.calls.map((c) => buildGasEntry(c, totalTxGas, depth + 1)))
+      : Promise.resolve([] as GasEntry[]),
+    decodeFunctionName(frame.input, frame.to),
+  ]);
 
   const childrenGas = childEntries.reduce((sum, c) => sum + c.totalGas, 0);
   const selfGas = Math.max(0, gasUsed - childrenGas);
-
-  const funcName = await decodeFunctionName(frame.input, frame.to);
 
   return {
     function: funcName,
