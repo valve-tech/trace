@@ -20,9 +20,9 @@ export function MemoryPanel({
     <CollapsiblePanel title="Memory" count={memorySize} suffix="bytes" defaultOpen={false}>
       <div className="overflow-y-auto px-3 py-1" style={{ maxHeight: "200px" }}>
         {loading ? (
-          <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Loading memory…</div>
+          <div className="py-4 text-xs text-center theme-text-muted">Loading memory…</div>
         ) : memorySize === 0 ? (
-          <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Memory is empty</div>
+          <div className="py-4 text-xs text-center theme-text-muted">Memory is empty</div>
         ) : (
           <>
             {Array.from({ length: memoryRows }, (_, i) => {
@@ -37,9 +37,8 @@ export function MemoryPanel({
               return (
                 <div
                   key={i}
-                  className="flex items-center text-xs py-0.5"
+                  className="flex items-center text-xs py-0.5 theme-mono"
                   style={{
-                    fontFamily: "var(--font-mono)",
                     backgroundColor: touched
                       ? highlight!.kind === "write"
                         ? "rgba(210, 153, 34, 0.12)"
@@ -50,16 +49,16 @@ export function MemoryPanel({
                       : undefined,
                   }}
                 >
-                  <span className="w-12 text-right mr-2 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                  <span className="w-12 text-right mr-2 flex-shrink-0 theme-text-muted">
                     {offset.toString(16).padStart(4, "0")}
                   </span>
-                  <span className="flex-1 mr-3" style={{ color: "var(--color-text-primary)" }}>{hex}</span>
-                  <span className="flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{ascii}</span>
+                  <span className="flex-1 mr-3 theme-text">{hex}</span>
+                  <span className="flex-shrink-0 theme-text-muted">{ascii}</span>
                 </div>
               );
             })}
             {memorySize > 1024 && (
-              <div className="text-xs py-1 text-center" style={{ color: "var(--color-text-muted)" }}>
+              <div className="text-xs py-1 text-center theme-text-muted">
                 Showing first 1KB of {memorySize.toLocaleString()} bytes
               </div>
             )}

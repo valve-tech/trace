@@ -20,37 +20,37 @@ export function FrameDetailPanel({
 
   return (
     <div
-      className="card-divider px-3 py-2 text-xs space-y-1 overflow-auto"
-      style={{ backgroundColor: "var(--color-bg-secondary)", maxHeight: "120px" }}
+      className="card-divider px-3 py-2 text-xs space-y-1 overflow-auto theme-secondary-bg"
+      style={{ maxHeight: "120px" }}
     >
-      <div className="flex gap-4">
+      <div className="flex gap-row">
         <div>
-          <span style={{ color: "var(--color-text-muted)" }}>type </span>
-          <span style={{ color: "var(--color-danger)" }}>{frame.type}</span>
+          <span className="theme-text-muted">type </span>
+          <span className="theme-danger">{frame.type}</span>
         </div>
         <div>
-          <span style={{ color: "var(--color-text-muted)" }}>gas </span>
-          <span style={{ fontFamily: "var(--font-mono)" }}>{parseInt(frame.gasUsed).toLocaleString()}</span>
+          <span className="theme-text-muted">gas </span>
+          <span className="theme-mono">{parseInt(frame.gasUsed).toLocaleString()}</span>
         </div>
         {frame.value && frame.value !== "0x0" && frame.value !== "0" && (
           <div>
-            <span style={{ color: "var(--color-text-muted)" }}>value </span>
-            <span style={{ color: "var(--color-warning)", fontFamily: "var(--font-mono)" }}>{frame.value}</span>
+            <span className="theme-text-muted">value </span>
+            <span className="theme-warning theme-mono">{frame.value}</span>
           </div>
         )}
       </div>
 
       {frame.from && (
         <div>
-          <span style={{ color: "var(--color-text-muted)" }}>from </span>
-          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-primary)" }}>{frame.from}</span>
+          <span className="theme-text-muted">from </span>
+          <span className="theme-mono theme-text">{frame.from}</span>
         </div>
       )}
 
       {frame.to && (
         <div>
-          <span style={{ color: "var(--color-text-muted)" }}>to </span>
-          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-accent)" }}>
+          <span className="theme-text-muted">to </span>
+          <span className="theme-mono theme-accent">
             {contractName ? `${contractName} ` : ""}{frame.to}
           </span>
         </div>
@@ -58,15 +58,15 @@ export function FrameDetailPanel({
 
       {resolvedSig && (
         <div>
-          <span style={{ color: "var(--color-text-muted)" }}>sig </span>
-          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-primary)" }}>{resolvedSig}</span>
+          <span className="theme-text-muted">sig </span>
+          <span className="theme-mono theme-text">{resolvedSig}</span>
         </div>
       )}
 
       {frame.input && frame.input.length > 10 && (
         <div>
-          <span style={{ color: "var(--color-text-muted)" }}>input </span>
-          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-secondary)", wordBreak: "break-all" }}>
+          <span className="theme-text-muted">input </span>
+          <span className="theme-mono theme-text-secondary" style={{ wordBreak: "break-all" }}>
             {frame.input}
           </span>
         </div>
@@ -74,8 +74,8 @@ export function FrameDetailPanel({
 
       {frame.output && (
         <div>
-          <span style={{ color: "var(--color-text-muted)" }}>output </span>
-          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-secondary)", wordBreak: "break-all" }}>
+          <span className="theme-text-muted">output </span>
+          <span className="theme-mono theme-text-secondary" style={{ wordBreak: "break-all" }}>
             {frame.output}
           </span>
         </div>
@@ -83,8 +83,8 @@ export function FrameDetailPanel({
 
       {frame.error && (
         <div>
-          <span style={{ color: "var(--color-danger)" }}>error </span>
-          <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-danger)" }}>{frame.error}</span>
+          <span className="theme-danger">error </span>
+          <span className="theme-mono theme-danger">{frame.error}</span>
         </div>
       )}
     </div>

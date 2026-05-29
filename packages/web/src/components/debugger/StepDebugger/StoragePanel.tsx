@@ -27,15 +27,15 @@ export function StoragePanel({
       <PanelHeader title="Storage" count={diffs.length} suffix="changes" />
       <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
         {loading ? (
-          <div className="px-3 py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+          <div className="px-3 py-4 text-xs text-center theme-text-muted">
             Loading storage…
           </div>
         ) : diffs.length === 0 ? (
-          <div className="px-3 py-3 text-xs" style={{ color: "var(--color-text-muted)" }}>
+          <div className="px-3 py-3 text-xs theme-text-muted">
             {highlightSlot ? (
-              <span className="flex items-center gap-tight" style={{ fontFamily: "var(--font-mono)" }}>
+              <span className="flex items-center gap-tight theme-mono">
                 <span>{isStorageOp(currentOp) ? "reads slot" : "slot"}</span>
-                <span title={formatWord(highlightSlot)} style={{ color: "var(--color-warning)" }}>
+                <span className="theme-warning" title={formatWord(highlightSlot)}>
                   {truncateWord(highlightSlot)}
                 </span>
                 <span>(no change)</span>
@@ -49,24 +49,24 @@ export function StoragePanel({
         ) : (
           <div className="px-3 py-1 space-y-2">
             {diffs.map((d, i) => (
-              <div key={i} className="text-xs" style={{ fontFamily: "var(--font-mono)" }}>
+              <div key={i} className="text-xs theme-mono">
                 <div className="flex items-center gap-tight">
-                  <span style={{ color: "var(--color-text-muted)" }}>slot:</span>
-                  <span className="truncate" title={formatWord(d.slot)} style={{ color: "var(--color-warning)" }}>
+                  <span className="theme-text-muted">slot:</span>
+                  <span className="truncate theme-warning" title={formatWord(d.slot)}>
                     {truncateWord(d.slot)}
                   </span>
                 </div>
                 {d.oldValue !== null && (
                   <div className="flex items-center gap-tight pl-4">
-                    <span style={{ color: "var(--color-danger)" }}>-</span>
-                    <span className="truncate" title={formatWord(d.oldValue)} style={{ color: "var(--color-text-secondary)" }}>
+                    <span className="theme-danger">-</span>
+                    <span className="truncate theme-text-secondary" title={formatWord(d.oldValue)}>
                       {truncateWord(d.oldValue)}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center gap-tight pl-4">
-                  <span style={{ color: "var(--color-success)" }}>+</span>
-                  <span className="truncate" title={formatWord(d.newValue)} style={{ color: "var(--color-accent)" }}>
+                  <span className="theme-success">+</span>
+                  <span className="truncate theme-accent" title={formatWord(d.newValue)}>
                     {truncateWord(d.newValue)}
                   </span>
                 </div>

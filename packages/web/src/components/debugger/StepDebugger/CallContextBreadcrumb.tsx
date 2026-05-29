@@ -12,30 +12,22 @@ export function CallContextBreadcrumb({
   currentSourceLocation: SourceLocation | null;
 }) {
   return (
-    <div
-      className="px-4 py-2 card text-xs flex items-center gap-tight overflow-x-auto"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-        boxShadow: "0 0 0 1px var(--color-border-default)",
-        fontFamily: "var(--font-mono)",
-        color: "var(--color-text-secondary)",
-      }}
-    >
-      <span style={{ color: "var(--color-text-muted)" }}>Depth:</span>
-      <span style={{ color: "var(--color-accent)" }}>{step.depth}</span>
-      <span style={{ color: "var(--color-text-muted)" }}>|</span>
-      <span style={{ color: "var(--color-text-muted)" }}>PC:</span>
+    <div className="px-4 py-2 card text-xs flex items-center gap-tight overflow-x-auto theme-mono theme-text-secondary">
+      <span className="theme-text-muted">Depth:</span>
+      <span className="theme-accent">{step.depth}</span>
+      <span className="theme-text-muted">|</span>
+      <span className="theme-text-muted">PC:</span>
       <span>{step.pc}</span>
-      <span style={{ color: "var(--color-text-muted)" }}>|</span>
-      <span style={{ color: getOpcodeColor(step.op), fontWeight: 600 }}>{step.op}</span>
-      <span style={{ color: "var(--color-text-muted)" }}>|</span>
-      <span style={{ color: "var(--color-text-muted)" }}>Gas:</span>
+      <span className="theme-text-muted">|</span>
+      <span className="font-semibold" style={{ color: getOpcodeColor(step.op) }}>{step.op}</span>
+      <span className="theme-text-muted">|</span>
+      <span className="theme-text-muted">Gas:</span>
       <span>{step.gas.toLocaleString()}</span>
-      <span style={{ color: "var(--color-warning)" }}>(-{step.gasCost})</span>
+      <span className="theme-warning">(-{step.gasCost})</span>
       {currentSourceLocation && (
         <>
-          <span style={{ color: "var(--color-text-muted)" }}>|</span>
-          <span style={{ color: "var(--color-success)" }}>
+          <span className="theme-text-muted">|</span>
+          <span className="theme-success">
             {currentSourceLocation.file}:{currentSourceLocation.line}
           </span>
         </>
