@@ -174,17 +174,6 @@ export default function StepDebugger({
     [],
   );
 
-  // Reset on new trace. The opcode-cursor reset is handled inside
-  // useOpcodeNavigation (it watches `steps` identity); this effect only owns
-  // the web-specific state that doesn't belong to the SDK hook.
-  useEffect(() => {
-    setOpcodeFilter("");
-    setSlitherFindings([]);
-    setShowFindings(false);
-    setContentView("debugger");
-    setExpandedFrame(null);
-  }, [steps]);
-
   const handleAnalyze = useCallback(async () => {
     if (!contractAddress || slitherLoading) return;
     setSlitherLoading(true);
