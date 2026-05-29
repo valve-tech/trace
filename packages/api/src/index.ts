@@ -37,6 +37,7 @@ import diffRouter from "./routes/diff.js";
 import gasRouter from "./routes/gas.js";
 import mempoolRouter from "./routes/mempool.js";
 import chifraRouter from "./routes/chifra.js";
+import etherscanRouter from "./routes/etherscan.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { startMonitor } from "./services/monitor.js";
 import { initScheduler } from "./services/actionScheduler.js";
@@ -91,6 +92,13 @@ app.use("/api/diff", diffRouter);
 app.use("/api", chifraRouter);
 app.use("/api/gas", gasRouter);
 app.use("/api/mempool", mempoolRouter);
+
+// Etherscan-shaped dispatcher at the bare /api root. Matches GET/POST /api
+// with a `module` + `action` query/body — handlers under routes/etherscan/
+// reuse the same service functions as the REST routes above, so the two
+// surfaces stay in sync without duplication. Mounted last because the
+// bare-root path can't collide with any of the /api/* prefixes above.
+app.use("/api", etherscanRouter);
 
 // ---------------------------------------------------------------------------
 // Static frontend — when packages/web/dist exists (production / Docker build),

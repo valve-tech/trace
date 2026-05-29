@@ -12,3 +12,11 @@
 export type { SourceFile, VerifiedSource } from "./sourceCode/types.js";
 export { UpstreamError } from "./sourceCode/types.js";
 export { getVerifiedSource } from "./sourceCode/getVerifiedSource.js";
+export {
+  submitToSourcify,
+  type SourcifyMatch,
+  type SourcifyVerifyResult,
+  type SourcifyVerifySuccess,
+  type SourcifyVerifyFailure,
+  type SubmitToSourcifyRequest,
+} from "./sourceCode/sourcify.js";
