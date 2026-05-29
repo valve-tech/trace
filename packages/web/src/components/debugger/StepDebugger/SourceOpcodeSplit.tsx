@@ -22,6 +22,7 @@ type ContractSourceFile = ContractSource["files"][number];
 export function SourceOpcodeSplit({
   // source pane
   currentSourceFile,
+  allFiles,
   effectiveLine,
   highlightSpan,
   scrollKey,
@@ -42,6 +43,8 @@ export function SourceOpcodeSplit({
   onToggleOpcode,
 }: {
   currentSourceFile: ContractSourceFile | null;
+  /** Every file in the active contract's source tree — drives the tab strip. */
+  allFiles: ContractSourceFile[];
   effectiveLine: number | null;
   highlightSpan: HighlightSpan | null;
   scrollKey: number;
@@ -89,6 +92,7 @@ export function SourceOpcodeSplit({
       >
         <SourceTabContent
           currentSourceFile={currentSourceFile}
+          allFiles={allFiles}
           effectiveLine={effectiveLine}
           highlightSpan={highlightSpan}
           scrollKey={scrollKey}

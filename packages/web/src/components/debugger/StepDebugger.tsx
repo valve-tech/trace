@@ -1020,6 +1020,7 @@ export default function StepDebugger({
           {contentView === "debugger" && (
             <SourceOpcodeSplit
               currentSourceFile={currentSourceFile}
+              allFiles={sourceData?.files ?? []}
               effectiveLine={effectiveLine}
               highlightSpan={highlightSpan}
               scrollKey={scrollKey}
