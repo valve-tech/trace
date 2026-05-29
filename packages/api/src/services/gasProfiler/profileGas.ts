@@ -62,13 +62,21 @@ async function buildGasEntry(
   const childrenGas = childEntries.reduce((sum, c) => sum + c.totalGas, 0);
   const selfGas = Math.max(0, gasUsed - childrenGas);
 
+  // Clamp percentages to [0, 100]. The trace's per-frame gasUsed numbers
+  // occasionally aggregate differently than the root's (reverted sub-calls
+  // and refund accounting can produce a child whose inclusive gas exceeds
+  // the root's reported total), which would otherwise surface as >100%
+  // levels in the gas bar chart and look like a UI bug.
+  const rawPct = totalTxGas > 0 ? (gasUsed / totalTxGas) * 100 : 0;
+  const percentage = Math.min(100, Math.max(0, rawPct));
+
   return {
     function: funcName,
     address: frame.to,
     callType: frame.type ?? "CALL",
     gasUsed: selfGas,
     totalGas: gasUsed,
-    percentage: totalTxGas > 0 ? (gasUsed / totalTxGas) * 100 : 0,
+    percentage,
     depth,
     children: childEntries,
   };

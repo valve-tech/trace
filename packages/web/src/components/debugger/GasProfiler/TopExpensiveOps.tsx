@@ -21,7 +21,7 @@ export function TopExpensiveOps({
             <tr
               style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
             >
-              {["Step", "PC", "Opcode", "Gas Cost"].map((h, i) => (
+              {["Step", "Offset", "Opcode", "Gas Cost"].map((h, i) => (
                 <th
                   key={h}
                   className={`py-1.5 px-2 font-medium ${

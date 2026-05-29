@@ -62,7 +62,7 @@ export function OpcodeTracePane({
         style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-muted)", paddingLeft: 8, paddingRight: 12 }}
       >
         <span className="w-14 text-right mr-3 flex-shrink-0" title="Execution step index">Step</span>
-        <span className="w-10 text-right mr-3 flex-shrink-0" title="Program counter (byte offset in the contract's code)">PC</span>
+        <span className="w-10 text-right mr-3 flex-shrink-0" title="Program counter — byte offset of this opcode within the contract's bytecode">Offset</span>
         <span className="w-28 mr-3 flex-shrink-0">Opcode</span>
         <span className="flex-shrink-0" title="Gas this opcode costs (not cumulative)">Gas cost</span>
       </div>
