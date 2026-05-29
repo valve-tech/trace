@@ -21,7 +21,8 @@ export interface ContractMeta {
 
 const cache = new Map<string, ContractMeta>();
 
-function buildSelectorMap(abi: unknown): Record<string, string> {
+// Exported for unit tests; also safe for callers that already hold a parsed ABI.
+export function buildSelectorMap(abi: unknown): Record<string, string> {
   const map: Record<string, string> = {};
   if (!Array.isArray(abi)) return map;
   for (const item of abi) {
@@ -37,7 +38,8 @@ function buildSelectorMap(abi: unknown): Record<string, string> {
   return map;
 }
 
-function buildEventMap(abi: unknown): Record<string, string> {
+// Exported for unit tests; also safe for callers that already hold a parsed ABI.
+export function buildEventMap(abi: unknown): Record<string, string> {
   const map: Record<string, string> = {};
   if (!Array.isArray(abi)) return map;
   for (const item of abi) {
