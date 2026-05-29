@@ -1,6 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { formatEther } from "viem";
+import { useQuery } from "@tanstack/react-query";
 import type { StateDiff, BalanceChange, StorageChange, NonceChange } from "../api/simulate";
+import {
+  buildSlotIndex,
+  decodeChangeAtSlot,
+  formatDecodedValue,
+  type DecodedRow,
+  type StorageLayout,
+} from "../lib/storageDecode";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -152,6 +160,20 @@ function BalanceChangesSection({ changes }: { changes: BalanceChange[] }) {
 // Storage Changes
 // ---------------------------------------------------------------------------
 
+/**
+ * Format a typed-decoded value for inline display, truncating
+ * long-form bytes/addresses. Decoded values render in the row's
+ * primary cell; the raw hex stays available via the `title` tooltip.
+ */
+function formatDecodedShort(decoded: DecodedRow["before"]): string | null {
+  const text = formatDecodedValue(decoded);
+  if (text === null) return null;
+  if (decoded.kind === "address" || decoded.kind === "bytes") {
+    return truncateHex(text, 8, 6);
+  }
+  return text;
+}
+
 function StorageGroup({
   address,
   contractName,
@@ -167,11 +189,32 @@ function StorageGroup({
     ? `${contractName} (${truncateHex(address)})`
     : truncateHex(address);
 
+  // Per-contract storage layout. TanStack Query dedupes across
+  // simultaneously-mounted StorageGroups for the same address (e.g. a
+  // proxy + impl pair) and the IndexedDB persistor (configured in main.tsx)
+  // keeps the layout warm across reloads. The 404 case is benign — many
+  // contracts have no verified source, and the panel just falls through to
+  // raw hex.
+  const { data: layout } = useQuery({
+    queryKey: ["storage-layout", address.toLowerCase()],
+    queryFn: async (): Promise<StorageLayout | null> => {
+      const res = await fetch(`/api/source/${address}/storage-layout`);
+      if (!res.ok) return null;
+      const body = (await res.json()) as {
+        ok: boolean;
+        storageLayout?: StorageLayout;
+      };
+      return body.storageLayout ?? null;
+    },
+  });
+
+  const slotIndex = useMemo(
+    () => (layout ? buildSlotIndex(layout) : null),
+    [layout],
+  );
+
   return (
-    <div
-      className="bs-b-muted last:shadow-none"
-      style={{}}
-    >
+    <div className="bs-b-muted last:shadow-none">
       <button
         onClick={() => setExpanded((v) => !v)}
         className="w-full flex items-center justify-between px-3 py-2 text-left hover:opacity-80 theme-secondary-bg"
@@ -198,35 +241,101 @@ function StorageGroup({
           <table className="w-full text-xs">
             <TableHeader cols={["Slot", "Variable", "Before", "After"]} />
             <tbody>
-              {rows.map((row, i) => (
-                <tr
-                  key={i}
-                  className="bs-b-muted last:shadow-none"
-                  style={{}}
-                >
-                  <td
-                    className="px-3 py-2 theme-mono theme-text-muted"
-                    title={row.slot}
-                  >
-                    {truncateHex(row.slot)}
-                  </td>
-                  <td className="px-3 py-2 theme-text-secondary">
-                    {row.decodedName ?? "—"}
-                  </td>
-                  <td
-                    className="px-3 py-2 theme-mono theme-text-muted"
-                    title={row.before}
-                  >
-                    {truncateHex(row.before)}
-                  </td>
-                  <td
-                    className="px-3 py-2 theme-mono theme-accent"
-                    title={row.after}
-                  >
-                    {truncateHex(row.after)}
-                  </td>
-                </tr>
-              ))}
+              {rows.flatMap((row, i) => {
+                const decoded = slotIndex
+                  ? decodeChangeAtSlot(slotIndex, row.slot, row.before, row.after)
+                  : null;
+
+                // Fall back to a raw row when the slot doesn't match a known
+                // inplace layout entry (mappings, dynamic arrays, missing
+                // layout). `row.decodedName` may still carry a hint from the
+                // backend even when the SDK decoder can't decode the value.
+                if (!decoded) {
+                  return [
+                    <tr
+                      key={i}
+                      className="bs-b-muted last:shadow-none"
+                    >
+                      <td
+                        className="px-3 py-2 theme-mono theme-text-muted"
+                        title={row.slot}
+                      >
+                        {truncateHex(row.slot)}
+                      </td>
+                      <td className="px-3 py-2 theme-text-secondary">
+                        {row.decodedName ?? "—"}
+                      </td>
+                      <td
+                        className="px-3 py-2 theme-mono theme-text-muted"
+                        title={row.before}
+                      >
+                        {truncateHex(row.before)}
+                      </td>
+                      <td
+                        className="px-3 py-2 theme-mono theme-accent"
+                        title={row.after}
+                      >
+                        {truncateHex(row.after)}
+                      </td>
+                    </tr>,
+                  ];
+                }
+
+                // One row per packed variable. The slot column is rendered on
+                // the FIRST packed variable only so groups stay visually
+                // connected; subsequent rows show the variable's offset suffix
+                // (e.g. "+12") instead.
+                return decoded.map((dec, j) => {
+                  const beforeShort = formatDecodedShort(dec.before);
+                  const afterShort = formatDecodedShort(dec.after);
+                  const isFirst = j === 0;
+                  return (
+                    <tr
+                      key={`${i}-${j}`}
+                      className="bs-b-muted last:shadow-none"
+                    >
+                      <td
+                        className="px-3 py-2 theme-mono theme-text-muted align-top"
+                        title={row.slot}
+                      >
+                        {isFirst ? truncateHex(row.slot) : `+${dec.entry.offset}`}
+                      </td>
+                      <td className="px-3 py-2 theme-text align-top">
+                        <div>{dec.entry.label}</div>
+                        <div className="text-xs theme-text-muted theme-mono">
+                          {dec.type.label}
+                        </div>
+                      </td>
+                      <td
+                        className="px-3 py-2 theme-text-muted align-top"
+                        title={row.before}
+                      >
+                        <div className="theme-text">
+                          {beforeShort ?? truncateHex(row.before)}
+                        </div>
+                        {beforeShort !== null && (
+                          <div className="text-xs theme-mono theme-text-muted">
+                            {truncateHex(row.before)}
+                          </div>
+                        )}
+                      </td>
+                      <td
+                        className="px-3 py-2 align-top"
+                        title={row.after}
+                      >
+                        <div className="theme-accent">
+                          {afterShort ?? truncateHex(row.after)}
+                        </div>
+                        {afterShort !== null && (
+                          <div className="text-xs theme-mono theme-text-muted">
+                            {truncateHex(row.after)}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                });
+              })}
             </tbody>
           </table>
         </div>
