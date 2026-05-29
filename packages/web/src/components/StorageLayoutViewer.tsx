@@ -159,10 +159,10 @@ export default function StorageLayoutViewer() {
     <div className="flex flex-col gap-0">
       {/* Address input */}
       <div className="card p-4">
-        <h2 className="text-sm font-semibold mb-2" style={{ color: "var(--color-text-primary)" }}>
+        <h2 className="text-sm font-semibold mb-2 theme-text">
           Storage Layout Viewer
         </h2>
-        <p className="text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>
+        <p className="text-xs mb-3 theme-text-secondary">
           Enter a verified contract address to see its storage slot layout. Click a variable to compute its slot hash and read its on-chain value.
         </p>
         <input
@@ -174,18 +174,13 @@ export default function StorageLayoutViewer() {
             setComputedSlot(null);
           }}
           placeholder="0x... contract address"
-          className="w-full px-3 py-2 text-sm card"
-          style={{
-            backgroundColor: "var(--color-bg-input)",
-            color: "var(--color-text-primary)",
-            fontFamily: "var(--font-mono)",
-          }}
+          className="w-full px-3 py-2 text-sm card theme-input-bg theme-text theme-mono"
         />
         {validAddress && isLoading && (
-          <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)" }}>Compiling to extract storage layout...</p>
+          <p className="text-xs mt-2 theme-text-muted">Compiling to extract storage layout...</p>
         )}
         {validAddress && data && !data.ok && (
-          <p className="text-xs mt-2" style={{ color: "var(--color-warning)" }}>{data.error}</p>
+          <p className="text-xs mt-2 theme-warning">{data.error}</p>
         )}
       </div>
 
@@ -194,14 +189,14 @@ export default function StorageLayoutViewer() {
         <div className="flex gap-0" style={{ minHeight: "400px" }}>
           {/* Variable list */}
           <div className="card flex-1 overflow-auto">
-            <div className="card-divider px-3 py-2" style={{ backgroundColor: "var(--color-bg-secondary)" }}>
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+            <div className="card-divider px-3 py-2 theme-secondary-bg">
+              <span className="text-xs font-semibold uppercase tracking-wider theme-text-secondary">
                 Storage Variables ({layout.storage.length})
               </span>
             </div>
-            <table className="w-full text-xs" style={{ fontFamily: "var(--font-mono)" }}>
+            <table className="w-full text-xs theme-mono">
               <thead>
-                <tr style={{ color: "var(--color-text-muted)" }}>
+                <tr className="theme-text-muted">
                   <th className="text-left px-3 py-1.5">Slot</th>
                   <th className="text-left px-3 py-1.5">Variable</th>
                   <th className="text-left px-3 py-1.5">Type</th>
@@ -213,7 +208,7 @@ export default function StorageLayoutViewer() {
                   <>
                     {grouped.size > 1 && (
                       <tr key={`header-${contract}`}>
-                        <td colSpan={4} className="px-3 py-1 text-xs font-semibold" style={{ color: "var(--color-accent)", backgroundColor: "var(--color-bg-secondary)" }}>
+                        <td colSpan={4} className="px-3 py-1 text-xs font-semibold theme-accent theme-secondary-bg">
                           {contract}
                         </td>
                       </tr>
@@ -228,23 +223,20 @@ export default function StorageLayoutViewer() {
                         <tr
                           key={`${contract}-${i}`}
                           onClick={() => handleComputeSlot(entry)}
-                          className="cursor-pointer"
-                          style={{
-                            backgroundColor: isSelected ? "var(--color-accent-muted)" : "transparent",
-                          }}
+                          className={`cursor-pointer${isSelected ? " theme-accent-bg" : ""}`}
                         >
-                          <td className="px-3 py-1.5" style={{ color: "var(--color-text-muted)" }}>
+                          <td className="px-3 py-1.5 theme-text-muted">
                             {entry.slot}
                           </td>
-                          <td className="px-3 py-1.5" style={{ color: "var(--color-text-primary)" }}>
+                          <td className="px-3 py-1.5 theme-text">
                             {entry.label}
-                            {isMapping && <span style={{ color: "var(--color-accent)" }}> [map]</span>}
-                            {isArray && <span style={{ color: "var(--color-accent)" }}> [arr]</span>}
+                            {isMapping && <span className="theme-accent"> [map]</span>}
+                            {isArray && <span className="theme-accent"> [arr]</span>}
                           </td>
-                          <td className="px-3 py-1.5" style={{ color: "var(--color-text-secondary)" }}>
+                          <td className="px-3 py-1.5 theme-text-secondary">
                             {typeInfo?.label ?? entry.type}
                           </td>
-                          <td className="px-3 py-1.5" style={{ color: "var(--color-text-muted)" }}>
+                          <td className="px-3 py-1.5 theme-text-muted">
                             {typeInfo?.numberOfBytes ?? "?"}B
                           </td>
                         </tr>
@@ -258,32 +250,32 @@ export default function StorageLayoutViewer() {
 
           {/* Slot inspector */}
           <div className="card overflow-auto" style={{ width: "380px", flexShrink: 0 }}>
-            <div className="card-divider px-3 py-2" style={{ backgroundColor: "var(--color-bg-secondary)" }}>
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+            <div className="card-divider px-3 py-2 theme-secondary-bg">
+              <span className="text-xs font-semibold uppercase tracking-wider theme-text-secondary">
                 Slot Inspector
               </span>
             </div>
             {!selectedEntry ? (
-              <div className="px-3 py-8 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+              <div className="px-3 py-8 text-xs text-center theme-text-muted">
                 Click a variable to inspect its storage slot
               </div>
             ) : (
               <div className="p-3 space-y-3">
                 <div>
-                  <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>Variable</label>
-                  <div className="text-sm font-semibold" style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}>
+                  <label className="text-xs block mb-1 theme-text-secondary">Variable</label>
+                  <div className="text-sm font-semibold theme-text theme-mono">
                     {selectedEntry.label}
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>Type</label>
-                  <div className="text-xs" style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}>
+                  <label className="text-xs block mb-1 theme-text-secondary">Type</label>
+                  <div className="text-xs theme-text theme-mono">
                     {layout.types[selectedEntry.type]?.label ?? selectedEntry.type}
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>Base Slot</label>
-                  <div className="text-xs" style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}>
+                  <label className="text-xs block mb-1 theme-text-secondary">Base Slot</label>
+                  <div className="text-xs theme-text theme-mono">
                     {selectedEntry.slot} (offset: {selectedEntry.offset})
                   </div>
                 </div>
@@ -291,8 +283,8 @@ export default function StorageLayoutViewer() {
                 {/* Mapping/Array key input */}
                 {layout.types[selectedEntry.type]?.encoding === "mapping" && (
                   <div>
-                    <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>
-                      Mapping Key <span style={{ color: "var(--color-text-muted)" }}>(address or uint)</span>
+                    <label className="text-xs block mb-1 theme-text-secondary">
+                      Mapping Key <span className="theme-text-muted">(address or uint)</span>
                     </label>
                     <div className="flex gap-tight">
                       <input
@@ -300,12 +292,7 @@ export default function StorageLayoutViewer() {
                         value={lookupKey}
                         onChange={(e) => setLookupKey(e.target.value.trim())}
                         placeholder="0x... or number"
-                        className="flex-1 px-2 py-1.5 text-xs card"
-                        style={{
-                          backgroundColor: "var(--color-bg-input)",
-                          color: "var(--color-text-primary)",
-                          fontFamily: "var(--font-mono)",
-                        }}
+                        className="flex-1 px-2 py-1.5 text-xs card theme-input-bg theme-text theme-mono"
                         onKeyDown={(e) => e.key === "Enter" && handleLookupMapping()}
                       />
                       <button
@@ -316,7 +303,7 @@ export default function StorageLayoutViewer() {
                         Read
                       </button>
                     </div>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                    <p className="text-xs mt-1 theme-text-muted">
                       slot = keccak256(abi.encode(key, {selectedEntry.slot}))
                     </p>
                   </div>
@@ -324,7 +311,7 @@ export default function StorageLayoutViewer() {
 
                 {layout.types[selectedEntry.type]?.encoding === "dynamic_array" && (
                   <div>
-                    <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>
+                    <label className="text-xs block mb-1 theme-text-secondary">
                       Array Index
                     </label>
                     <div className="flex gap-tight">
@@ -333,12 +320,7 @@ export default function StorageLayoutViewer() {
                         value={lookupKey}
                         onChange={(e) => setLookupKey(e.target.value.trim())}
                         placeholder="0"
-                        className="flex-1 px-2 py-1.5 text-xs card"
-                        style={{
-                          backgroundColor: "var(--color-bg-input)",
-                          color: "var(--color-text-primary)",
-                          fontFamily: "var(--font-mono)",
-                        }}
+                        className="flex-1 px-2 py-1.5 text-xs card theme-input-bg theme-text theme-mono"
                         onKeyDown={(e) => e.key === "Enter" && handleLookupMapping()}
                       />
                       <button
@@ -349,7 +331,7 @@ export default function StorageLayoutViewer() {
                         Read
                       </button>
                     </div>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                    <p className="text-xs mt-1 theme-text-muted">
                       slot = keccak256({selectedEntry.slot}) + index * elemSize
                     </p>
                   </div>
@@ -389,15 +371,8 @@ export default function StorageLayoutViewer() {
                 {/* Computed slot hash */}
                 {computedSlot && (
                   <div>
-                    <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>Computed Slot</label>
-                    <div
-                      className="text-xs p-2 break-all"
-                      style={{
-                        backgroundColor: "var(--color-bg-primary)",
-                        color: "var(--color-accent)",
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
+                    <label className="text-xs block mb-1 theme-text-secondary">Computed Slot</label>
+                    <div className="text-xs p-2 break-all theme-primary-bg theme-accent theme-mono">
                       {computedSlot}
                     </div>
                   </div>
@@ -405,23 +380,16 @@ export default function StorageLayoutViewer() {
 
                 {/* Value */}
                 {loadingValue && (
-                  <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Reading from chain...</p>
+                  <p className="text-xs theme-text-muted">Reading from chain...</p>
                 )}
                 {slotValue && (
                   <div>
-                    <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>Current Value</label>
-                    <div
-                      className="text-xs p-2 break-all"
-                      style={{
-                        backgroundColor: "var(--color-bg-primary)",
-                        color: "var(--color-success)",
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
+                    <label className="text-xs block mb-1 theme-text-secondary">Current Value</label>
+                    <div className="text-xs p-2 break-all theme-primary-bg theme-success theme-mono">
                       {slotValue}
                     </div>
                     {/* Decoded value */}
-                    <div className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                    <div className="text-xs mt-1 theme-text-muted">
                       Decimal: {BigInt(slotValue).toString()}
                     </div>
                   </div>
