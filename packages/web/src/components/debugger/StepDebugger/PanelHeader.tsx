@@ -11,8 +11,7 @@ export function PanelHeader({
 }) {
   return (
     <div
-      className="flex items-center justify-between px-3 py-2 card-divider"
-      style={{ backgroundColor: "var(--color-bg-secondary)" }}
+      className="flex items-center justify-between px-3 py-2 card-divider theme-secondary-bg"
     >
       <span
         className="text-xs font-semibold uppercase tracking-wider theme-text-secondary"

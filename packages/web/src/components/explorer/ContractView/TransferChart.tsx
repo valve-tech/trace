@@ -41,7 +41,7 @@ export function TransferChart({ address }: Props) {
   }, [records, fromBlock, headBlock]);
 
   return (
-    <div className="rounded-lg bs p-5" style={{ backgroundColor: "var(--color-bg-card)" }}>
+    <div className="rounded-lg bs p-5 theme-card-bg">
       <div className="flex items-center justify-between mb-stack">
         <span className="text-sm font-medium theme-text">
           Transfers

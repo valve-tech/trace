@@ -110,8 +110,7 @@ export default function AppShell({
 
   return (
     <div
-      className="h-full flex flex-col min-h-0"
-      style={{ backgroundColor: "var(--color-bg-primary)" }}
+      className="h-full flex flex-col min-h-0 theme-primary-bg"
     >
       <TopBar
         collapsed={collapsed}
@@ -185,8 +184,7 @@ function TopBar({
 
   return (
     <div
-      className="bs-b flex items-stretch h-12 shrink-0"
-      style={{ backgroundColor: "var(--color-bg-secondary)" }}
+      className="bs-b flex items-stretch h-12 shrink-0 theme-secondary-bg"
     >
       <button
         onClick={onToggleCollapse}

@@ -149,8 +149,7 @@ export default function SimulationResultPanel({
 
           {result.revertReason && (
             <div
-              className="mt-3 p-3 rounded-md"
-              style={{ backgroundColor: "var(--color-danger-muted)" }}
+              className="mt-3 p-3 rounded-md theme-danger-bg"
             >
               <span
                 className="text-xs font-medium block mb-1 theme-danger"

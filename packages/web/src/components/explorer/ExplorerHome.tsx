@@ -148,8 +148,7 @@ function StatTile({
 }) {
   return (
     <div
-      className="card p-3"
-      style={{ backgroundColor: "var(--color-bg-card)" }}
+      className="card p-3 theme-card-bg"
     >
       <div
         className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest mb-1 theme-text-muted"
@@ -193,8 +192,7 @@ function BlocksCard({
 }) {
   return (
     <div
-      className="card"
-      style={{ backgroundColor: "var(--color-bg-card)" }}
+      className="card theme-card-bg"
     >
       <CardHeader title="Latest blocks" icon="heroicons:cube" />
       {loading && blocks.length === 0 ? (
@@ -254,8 +252,7 @@ function TxsCard({
 }) {
   return (
     <div
-      className="card"
-      style={{ backgroundColor: "var(--color-bg-card)" }}
+      className="card theme-card-bg"
     >
       <CardHeader title="Latest transactions" icon="heroicons:arrow-path" />
       {loading && txs.length === 0 ? (

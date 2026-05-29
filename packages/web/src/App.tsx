@@ -72,8 +72,7 @@ export default function App() {
 
   return (
     <div
-      className="h-screen flex flex-col"
-      style={{ backgroundColor: "var(--color-bg-primary)" }}
+      className="h-screen flex flex-col theme-primary-bg"
     >
       {appToast !== null && (
         <AlertToast alert={appToast.data.alert} match={appToast.data.match} />

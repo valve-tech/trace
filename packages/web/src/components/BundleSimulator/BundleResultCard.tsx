@@ -71,8 +71,7 @@ export function BundleResultCard({
 
         {result.revertReason && (
           <div
-            className="p-2 rounded-md mt-2"
-            style={{ backgroundColor: "var(--color-danger-muted)" }}
+            className="p-2 rounded-md mt-2 theme-danger-bg"
           >
             <span
               className="text-xs font-medium block mb-0.5 theme-danger"

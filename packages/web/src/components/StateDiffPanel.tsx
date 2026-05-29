@@ -193,8 +193,7 @@ function StorageGroup({
     >
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-3 py-2 text-left hover:opacity-80"
-        style={{ backgroundColor: "var(--color-bg-secondary)" }}
+        className="w-full flex items-center justify-between px-3 py-2 text-left hover:opacity-80 theme-secondary-bg"
       >
         <span
           className="text-xs font-medium"

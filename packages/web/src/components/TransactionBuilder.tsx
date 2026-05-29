@@ -218,7 +218,7 @@ export default function TransactionBuilder() {
         <div className="flex gap-0" style={{ minHeight: "400px" }}>
           {/* Function list sidebar */}
           <div className="card overflow-hidden flex flex-col" style={{ width: "260px", flexShrink: 0 }}>
-            <div className="card-divider flex" style={{ backgroundColor: "var(--color-bg-secondary)" }}>
+            <div className="card-divider flex theme-secondary-bg">
               <button
                 onClick={() => setShowRead(false)}
                 className="flex-1 px-3 py-2 text-xs font-medium"
