@@ -58,8 +58,7 @@ export function Dropdown<T extends string>({
         aria-expanded={open}
         aria-label={ariaLabel}
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-inline px-2.5 py-1.5 text-xs transition-colors theme-input-bg theme-text-secondary ${buttonClassName}`}
-        style={{ boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }}
+        className={`flex items-center gap-inline px-2.5 py-1.5 text-xs transition-colors theme-input-bg theme-text-secondary bs-in-muted ${buttonClassName}`}
       >
         <span className="truncate">{current?.label ?? value}</span>
         <Icon
@@ -86,13 +85,7 @@ export function Dropdown<T extends string>({
                   onChange(o.value);
                   setOpen(false);
                 }}
-                className="w-full flex items-center gap-inline px-3 py-1.5 text-xs text-left whitespace-nowrap transition-colors"
-                style={{
-                  color: selected
-                    ? "var(--color-accent)"
-                    : "var(--color-text-primary)",
-                  backgroundColor: "transparent",
-                }}
+                className={`w-full flex items-center gap-inline px-3 py-1.5 text-xs text-left whitespace-nowrap transition-colors bg-transparent ${selected ? "theme-accent" : "theme-text"}`}
               >
                 <Icon
                   icon="heroicons:check"

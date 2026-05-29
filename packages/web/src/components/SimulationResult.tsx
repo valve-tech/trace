@@ -18,20 +18,11 @@ function DataRow({
   mono?: boolean;
 }) {
   return (
-    <div
-      className="flex flex-col gap-tight py-2.5 bs-b-muted last:shadow-none"
-      style={{}}
-    >
+    <div className="flex flex-col gap-tight py-2.5 bs-b-muted last:shadow-none">
       <span className="text-xs font-medium theme-text-secondary">
         {label}
       </span>
-      <span
-        className={`text-sm break-all ${mono ? "" : ""}`}
-        style={{
-          fontFamily: mono ? "var(--font-mono)" : "inherit",
-          color: "var(--color-text-primary)",
-        }}
-      >
+      <span className={`text-sm break-all theme-text ${mono ? "theme-mono" : ""}`}>
         {value}
       </span>
     </div>
@@ -77,11 +68,8 @@ function LoadingState() {
 function ErrorState({ message }: { message: string }) {
   return (
     <div
-      className="rounded-lg p-4"
-      style={{
-        backgroundColor: "var(--color-bg-card)",
-        borderColor: "var(--color-danger)",
-      }}
+      className="rounded-lg p-4 theme-card-bg"
+      style={{ borderColor: "var(--color-danger)" }}
     >
       <div className="flex items-start gap-row">
         <Icon

@@ -87,7 +87,6 @@ export function FrameOpcodesOverlay({
         style={{
           width: "min(720px, 92vw)",
           height: "min(80vh, 720px)",
-          backgroundColor: "var(--color-bg-card)",
           boxShadow: "0 0 0 1px var(--color-border-default), 0 12px 40px rgba(0,0,0,0.5)",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -136,7 +135,7 @@ export function FrameOpcodesOverlay({
                 <div
                   key={idx}
                   onClick={() => { onJumpTo(idx); onClose(); }}
-                  className={`flex items-center cursor-pointer text-xs theme-mono${isActive ? " theme-accent-bg" : ""}`}
+                  className={`flex items-center cursor-pointer text-xs theme-mono${isActive ? " theme-accent-bg bs-l-accent-in" : ""}`}
                   style={{
                     position: "absolute",
                     top: (idx - from) * ROW_HEIGHT,
@@ -144,7 +143,6 @@ export function FrameOpcodesOverlay({
                     width: "100%",
                     paddingLeft: `${8 + (s.depth - baseDepth) * 12}px`,
                     paddingRight: "12px",
-                    boxShadow: isActive ? "inset 2px 0 0 0 var(--color-accent)" : undefined,
                   }}
                 >
                   <span className="w-16 text-right mr-3 flex-shrink-0 theme-text-muted">{idx}</span>

@@ -79,8 +79,8 @@ export function TrackedTxPanel({
         {hasResolved && (
           <button
             onClick={clearResolved}
-            className="text-[11px] transition-colors hover:opacity-100"
-            style={{ color: "var(--color-text-muted)", backgroundColor: "transparent" }}
+            className="text-[11px] transition-colors hover:opacity-100 theme-text-muted"
+            style={{ backgroundColor: "transparent" }}
           >
             Clear resolved
           </button>
@@ -167,13 +167,7 @@ function TrackedRow({
       <span className="flex-1" />
 
       <span
-        className="text-xs font-mono tabular-nums shrink-0"
-        style={{
-          color:
-            tx.status === "pending"
-              ? "var(--color-warning)"
-              : "var(--color-text-secondary)",
-        }}
+        className={`text-xs font-mono tabular-nums shrink-0 ${tx.status === "pending" ? "theme-warning" : "theme-text-secondary"}`}
         title={tx.status === "pending" ? "elapsed since pinned" : "time to resolve"}
       >
         {tx.status === "pending" ? "" : "took "}
@@ -184,8 +178,8 @@ function TrackedRow({
         onClick={() => untrackTx(tx.hash)}
         title="Stop tracking"
         aria-label="Stop tracking"
-        className="shrink-0 flex items-center justify-center w-6 h-6 transition-colors"
-        style={{ color: "var(--color-text-muted)", backgroundColor: "transparent" }}
+        className="shrink-0 flex items-center justify-center w-6 h-6 transition-colors theme-text-muted"
+        style={{ backgroundColor: "transparent" }}
       >
         <Icon icon="heroicons:x-mark" className="w-3.5 h-3.5" />
       </button>

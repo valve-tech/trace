@@ -302,10 +302,7 @@ export default function JourneyDraft() {
           <Icon icon="heroicons:chevron-left" className="w-3 h-3" />
           Back to drafts
         </Link>
-        <div
-          className="flex text-xs"
-          style={{ boxShadow: "inset 0 0 0 1px var(--color-border-default)" }}
-        >
+        <div className="flex text-xs bs-in">
           {[
             { key: "revert", label: "Reverted swap" },
             { key: "success", label: "Successful swap" },
@@ -457,11 +454,10 @@ export default function JourneyDraft() {
                 <div className="flex items-start gap-2.5">
                   <Icon
                     icon={s.icon}
-                    className="w-4 h-4 mt-0.5 shrink-0"
-                    style={{ color: s.primary ? "var(--color-accent)" : "var(--color-text-secondary)" }}
+                    className={`w-4 h-4 mt-0.5 shrink-0 ${s.primary ? "theme-accent" : "theme-text-secondary"}`}
                   />
                   <div className="min-w-0">
-                    <div className="text-sm font-medium leading-snug mb-1" style={{ color: s.primary ? "var(--color-accent)" : "var(--color-text-primary)" }}>
+                    <div className={`text-sm font-medium leading-snug mb-1 ${s.primary ? "theme-accent" : "theme-text"}`}>
                       {s.label}
                     </div>
                     <div className="text-xs leading-snug theme-text-muted">

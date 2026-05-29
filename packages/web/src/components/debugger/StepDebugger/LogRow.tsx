@@ -28,19 +28,14 @@ export function LogRow({
   return (
     <div
       data-node-key={key}
-      className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap"
+      className={`flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap theme-mono${isSelected ? " theme-accent-bg bs-l-accent-in" : ""}`}
       onClick={() => { shared.onJumpTo(node.step); shared.onSelectKey?.(key); }}
-      style={{
-        fontFamily: "var(--font-mono)",
-        backgroundColor: isSelected ? "var(--color-accent-muted)" : undefined,
-        boxShadow: isSelected ? "inset 2px 0 0 0 var(--color-accent)" : undefined,
-      }}
     >
       {Array.from({ length: depth }, (_, g) => (
         <span
           key={g}
-          className="self-stretch flex-shrink-0"
-          style={{ width: "14px", boxShadow: "inset 1px 0 0 0 var(--color-border-muted)", marginLeft: g === 0 ? "6px" : 0 }}
+          className="self-stretch flex-shrink-0 bs-l-in-muted"
+          style={{ width: "14px", marginLeft: g === 0 ? "6px" : 0 }}
         />
       ))}
 
@@ -50,13 +45,12 @@ export function LogRow({
 
       <span className="theme-warning">{eventName}</span>
       {params && (
-        <span className="truncate" style={{ color: "var(--color-text-muted)", maxWidth: "320px" }}>
+        <span className="truncate theme-text-muted" style={{ maxWidth: "320px" }}>
           {params}
         </span>
       )}
       <span
-        className="flex-shrink-0 text-[9px] font-semibold tracking-wide px-1 py-0.5"
-        style={{ color: "var(--color-text-muted)", boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }}
+        className="flex-shrink-0 text-[9px] font-semibold tracking-wide px-1 py-0.5 theme-text-muted bs-in-muted"
         title={`${node.topicCount} indexed topic${node.topicCount === 1 ? "" : "s"}`}
       >
         LOG{node.topicCount}

@@ -21,14 +21,13 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className="px-4 py-2.5 text-sm font-medium transition-colors"
+      className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+        active ? "theme-text" : "theme-text-secondary"
+      }`}
       style={{
         boxShadow: active
           ? "0 2px 0 0 var(--color-accent)"
           : "0 2px 0 0 transparent",
-        color: active
-          ? "var(--color-text-primary)"
-          : "var(--color-text-secondary)",
         backgroundColor: "transparent",
       }}
     >
@@ -46,10 +45,7 @@ function TabButton({
 
 export function SubTabBar({ active, onSelect, txCount, tokenCount }: Props) {
   return (
-    <div
-      className="flex gap-0"
-      style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
-    >
+    <div className="flex gap-0 bs-b">
       <TabButton
         active={active === "transactions"}
         onClick={() => onSelect("transactions")}

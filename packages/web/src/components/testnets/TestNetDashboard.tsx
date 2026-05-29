@@ -84,8 +84,7 @@ export default function TestNetDashboard() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="px-4 py-2 rounded-md text-sm font-medium text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          className="px-4 py-2 rounded-md text-sm font-medium text-white theme-accent-solid"
         >
           + Create TestNet
         </button>
@@ -94,9 +93,8 @@ export default function TestNetDashboard() {
       {/* Error State */}
       {error && (
         <div
-          className="p-4 rounded-lg mb-4"
+          className="p-4 rounded-lg mb-4 theme-danger-bg"
           style={{
-            backgroundColor: "var(--color-danger-muted)",
             borderColor: "var(--color-danger)",
           }}
         >
@@ -135,8 +133,7 @@ export default function TestNetDashboard() {
           </p>
           <button
             onClick={() => setShowCreate(true)}
-            className="px-4 py-2 rounded-md text-sm font-medium text-white"
-            style={{ backgroundColor: "var(--color-accent)" }}
+            className="px-4 py-2 rounded-md text-sm font-medium text-white theme-accent-solid"
           >
             + Create Your First TestNet
           </button>
@@ -152,9 +149,8 @@ export default function TestNetDashboard() {
             return (
               <div
                 key={fork.id}
-                className="rounded-lg transition-colors"
+                className="rounded-lg transition-colors theme-card-bg"
                 style={{
-                  backgroundColor: "var(--color-bg-card)",
                   borderColor: isExpanded
                     ? "var(--color-accent)"
                     : "var(--color-border-default)",
@@ -172,8 +168,7 @@ export default function TestNetDashboard() {
                     <div className="flex items-center gap-row">
                       {/* Status dot */}
                       <div
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: "var(--color-success)" }}
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0 theme-success-solid"
                       />
                       <div>
                         <h3
@@ -215,9 +210,8 @@ export default function TestNetDashboard() {
                       </span>
                       <Icon
                         icon="heroicons:chevron-down-20-solid"
-                        className="w-4 h-4 transition-transform"
+                        className="w-4 h-4 transition-transform theme-text-muted"
                         style={{
-                          color: "var(--color-text-muted)",
                           transform: isExpanded
                             ? "rotate(180deg)"
                             : "rotate(0deg)",
@@ -231,7 +225,6 @@ export default function TestNetDashboard() {
                 {isExpanded && (
                   <div
                     className="px-4 pb-4 bs-t-muted"
-                    style={{}}
                   >
                     <ForkControls
                       fork={fork}

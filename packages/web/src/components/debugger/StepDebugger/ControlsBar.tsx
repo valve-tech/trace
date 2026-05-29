@@ -81,8 +81,7 @@ export function ControlsBar({
         placeholder="Filter..."
         value={opcodeFilter}
         onChange={(e) => setOpcodeFilter(e.target.value)}
-        className="w-24 px-2 py-1 rounded text-xs theme-input-bg theme-text theme-mono"
-        style={{ boxShadow: "0 0 0 1px var(--color-border-default)" }}
+        className="w-24 px-2 py-1 rounded text-xs theme-input-bg theme-text theme-mono bs"
       />
       {filteredCount !== null && (
         <span className="text-xs theme-text-muted">
@@ -95,22 +94,15 @@ export function ControlsBar({
           <Divider />
           <button
             onClick={() => setContentView("debugger")}
-            className={`rounded font-mono font-semibold transition-colors text-xs px-2 py-1 ${contentView === "debugger" ? "" : "theme-secondary-bg theme-text"}`}
-            style={{
-              backgroundColor: contentView === "debugger" ? "var(--color-accent)" : undefined,
-              color: contentView === "debugger" ? "#fff" : undefined,
-            }}
+            className={`rounded font-mono font-semibold transition-colors text-xs px-2 py-1 ${contentView === "debugger" ? "theme-accent-solid text-white" : "theme-secondary-bg theme-text"}`}
           >
             {sourceLoading ? "Loading..." : "Debugger"}
           </button>
           <button
             onClick={handleAnalyze}
             disabled={slitherLoading}
-            className={`rounded font-mono font-semibold transition-colors text-xs px-2 py-1 ${showFindings ? "" : "theme-secondary-bg theme-text"}`}
+            className={`rounded font-mono font-semibold transition-colors text-xs px-2 py-1 bs ${showFindings ? "theme-danger-solid text-white" : "theme-secondary-bg theme-text"}`}
             style={{
-              backgroundColor: showFindings ? "var(--color-danger)" : undefined,
-              color: showFindings ? "#fff" : undefined,
-              boxShadow: "0 0 0 1px var(--color-border-default)",
               opacity: slitherLoading ? 0.5 : 1,
             }}
           >

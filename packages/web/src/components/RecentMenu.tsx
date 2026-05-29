@@ -44,7 +44,6 @@ export function BackHistoryControl({
     };
   }, [open]);
 
-  const border = "1px 0 0 0 var(--color-border-muted)";
   const pinned = entities.filter((e) => e.pinned);
   const recent = entities.filter((e) => !e.pinned);
 
@@ -55,8 +54,7 @@ export function BackHistoryControl({
         disabled={!canGoBack}
         title="Back"
         aria-label="Go back"
-        className="flex items-center justify-center w-10 h-12 transition-opacity enabled:hover:opacity-80 disabled:opacity-30 disabled:cursor-default"
-        style={{ color: "var(--color-text-secondary)", backgroundColor: "transparent", boxShadow: border }}
+        className="flex items-center justify-center w-10 h-12 transition-opacity enabled:hover:opacity-80 disabled:opacity-30 disabled:cursor-default bs-r-muted bg-transparent theme-text-secondary"
       >
         <Icon icon="heroicons:arrow-left" className="w-4 h-4" />
       </button>
@@ -67,18 +65,12 @@ export function BackHistoryControl({
         aria-label="Recent and pinned history"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="relative flex items-center justify-center w-6 h-12 transition-opacity hover:opacity-100"
-        style={{
-          color: open ? "var(--color-accent)" : "var(--color-text-muted)",
-          backgroundColor: "transparent",
-          boxShadow: border,
-        }}
+        className={`relative flex items-center justify-center w-6 h-12 transition-opacity hover:opacity-100 bs-r-muted bg-transparent ${open ? "theme-accent" : "theme-text-muted"}`}
       >
         <Icon icon="heroicons:chevron-down" className="w-3.5 h-3.5" />
         {pinned.length > 0 && (
           <span
-            className="absolute top-2 right-1 w-1.5 h-1.5"
-            style={{ backgroundColor: "var(--color-warning)" }}
+            className="absolute top-2 right-1 w-1.5 h-1.5 theme-warning-solid"
           />
         )}
       </button>
@@ -86,8 +78,8 @@ export function BackHistoryControl({
       {open && (
         <div
           role="menu"
-          className="card absolute z-40 left-0 top-full mt-1"
-          style={{ backgroundColor: "var(--color-bg-card)", width: 320 }}
+          className="card absolute z-40 left-0 top-full mt-1 theme-card-bg"
+          style={{ width: 320 }}
         >
           <div className="bs-b-muted flex items-center justify-between px-3 py-2">
             <span
@@ -98,8 +90,7 @@ export function BackHistoryControl({
             {recent.length > 0 && (
               <button
                 onClick={clearRecent}
-                className="text-[10px] transition-opacity hover:opacity-100"
-                style={{ color: "var(--color-text-muted)", backgroundColor: "transparent" }}
+                className="text-[10px] transition-opacity hover:opacity-100 bg-transparent theme-text-muted"
               >
                 Clear recent
               </button>
@@ -174,13 +165,9 @@ function Row({
         }}
         title={entity.pinned ? "Unpin" : "Pin"}
         aria-label={entity.pinned ? "Unpin" : "Pin"}
-        className={`shrink-0 transition-opacity ${
-          entity.pinned ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        className={`shrink-0 transition-opacity bg-transparent ${
+          entity.pinned ? "opacity-100 theme-warning" : "opacity-0 group-hover:opacity-100 theme-text-muted"
         }`}
-        style={{
-          color: entity.pinned ? "var(--color-warning)" : "var(--color-text-muted)",
-          backgroundColor: "transparent",
-        }}
       >
         <Icon
           icon={entity.pinned ? "heroicons:star-solid" : "heroicons:star"}

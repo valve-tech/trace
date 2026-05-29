@@ -111,7 +111,6 @@ export default function AlertHistory({
               <thead>
                 <tr
                   className="bs-b-muted"
-                  style={{}}
                 >
                   <th
                     className="text-left px-4 py-3 text-xs font-medium theme-text-secondary"
@@ -186,7 +185,6 @@ export default function AlertHistory({
           {pagination && pagination.totalPages > 1 && (
             <div
               className="flex items-center justify-between px-4 py-3 bs-t-muted"
-              style={{}}
             >
               <span
                 className="text-xs theme-text-muted"
@@ -198,12 +196,8 @@ export default function AlertHistory({
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="px-3 py-1 text-xs rounded-md bs"
+                  className={`px-3 py-1 text-xs rounded-md bs ${page <= 1 ? "theme-text-muted" : "theme-text-secondary"}`}
                   style={{
-                    color:
-                      page <= 1
-                        ? "var(--color-text-muted)"
-                        : "var(--color-text-secondary)",
                     backgroundColor: "transparent",
                     cursor: page <= 1 ? "not-allowed" : "pointer",
                     opacity: page <= 1 ? 0.5 : 1,
@@ -216,12 +210,8 @@ export default function AlertHistory({
                     setPage((p) => Math.min(pagination.totalPages, p + 1))
                   }
                   disabled={page >= pagination.totalPages}
-                  className="px-3 py-1 text-xs rounded-md bs"
+                  className={`px-3 py-1 text-xs rounded-md bs ${page >= pagination.totalPages ? "theme-text-muted" : "theme-text-secondary"}`}
                   style={{
-                    color:
-                      page >= pagination.totalPages
-                        ? "var(--color-text-muted)"
-                        : "var(--color-text-secondary)",
                     backgroundColor: "transparent",
                     cursor:
                       page >= pagination.totalPages ? "not-allowed" : "pointer",

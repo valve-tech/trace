@@ -28,24 +28,19 @@ export function SubTabBar({
   };
 
   return (
-    <div
-      className="flex gap-0"
-      style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
-    >
+    <div className="flex gap-0 bs-b">
       {tabs.map((tab) => (
         <button
           key={tab}
           onClick={() => onSelect(tab)}
-          className="px-4 py-2.5 text-sm font-medium transition-colors capitalize"
+          className={`px-4 py-2.5 text-sm font-medium transition-colors capitalize ${
+            active === tab ? "theme-text" : "theme-text-secondary"
+          }`}
           style={{
             boxShadow:
               active === tab
                 ? "0 2px 0 0 var(--color-accent)"
                 : "0 2px 0 0 transparent",
-            color:
-              active === tab
-                ? "var(--color-text-primary)"
-                : "var(--color-text-secondary)",
             backgroundColor: "transparent",
           }}
         >

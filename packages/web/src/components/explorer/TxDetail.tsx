@@ -65,24 +65,17 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
 
   if (error) {
     return (
-      <div
-        className="rounded-lg p-4 theme-card-bg"
-        style={{ borderColor: "var(--color-danger)" }}
-      >
+      <div className="rounded-lg p-4 theme-card-bg">
         <div className="flex items-start gap-row">
           <Icon
             icon="heroicons:exclamation-circle"
             className="w-5 h-5 mt-0.5 shrink-0 theme-danger"
           />
           <div>
-            <h3
-              className="text-sm font-semibold mb-1 theme-danger"
-            >
+            <h3 className="text-sm font-semibold mb-1 theme-danger">
               Error
             </h3>
-            <p
-              className="text-sm theme-mono theme-text-secondary"
-            >
+            <p className="text-sm theme-mono theme-text-secondary">
               {error}
             </p>
           </div>

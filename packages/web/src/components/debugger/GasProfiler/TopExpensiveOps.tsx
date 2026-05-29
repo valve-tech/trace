@@ -15,7 +15,7 @@ export function TopExpensiveOps({
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}>
+            <tr className="bs-b">
               {["Step", "Offset", "Opcode", "Gas Cost"].map((h, i) => (
                 <th
                   key={h}
@@ -30,10 +30,7 @@ export function TopExpensiveOps({
           </thead>
           <tbody>
             {ops.map((op, i) => (
-              <tr
-                key={i}
-                style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
-              >
+              <tr key={i} className="bs-b-muted">
                 <td className="py-1.5 px-2 font-mono theme-text-muted">
                   #{op.step}
                 </td>

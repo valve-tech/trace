@@ -52,8 +52,7 @@ export function ResizablePanel({
       {/* Drag handle — a hairline that widens its hit area on hover. */}
       <div
         onPointerDown={onPointerDown}
-        className="w-1 flex-shrink-0 cursor-col-resize"
-        style={{ boxShadow: "inset -1px 0 0 0 var(--color-border-default)" }}
+        className="w-1 flex-shrink-0 cursor-col-resize bs-r-in"
         title="Drag to resize"
       />
     </div>

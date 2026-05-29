@@ -110,20 +110,12 @@ export function SourceTabContent({
     return (
       <div
         className="card overflow-hidden h-full flex flex-col"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-          boxShadow: "0 0 0 1px var(--color-border-default)",
-          maxHeight,
-        }}
+        style={{ maxHeight }}
       >
         {allFiles.length > 1 && (
           <div
             ref={tabStripRef}
-            className="flex overflow-x-auto flex-shrink-0"
-            style={{
-              boxShadow: "0 1px 0 0 var(--color-border-default)",
-              backgroundColor: "var(--color-bg-secondary)",
-            }}
+            className="flex overflow-x-auto flex-shrink-0 bs-b theme-secondary-bg"
           >
             {allFiles.map((f) => {
               const isDisplayed = displayedFile.name === f.name;
@@ -134,15 +126,8 @@ export function SourceTabContent({
                   data-file-tab={f.name}
                   onClick={() => setManualFile(f.name === currentSourceFile?.name ? null : f.name)}
                   title={f.name}
-                  className="px-3 py-1.5 text-[11px] whitespace-nowrap transition-colors flex-shrink-0"
+                  className={`px-3 py-1.5 text-[11px] whitespace-nowrap transition-colors flex-shrink-0 theme-mono ${isDisplayed ? "theme-text theme-card-bg" : "theme-text-muted"}`}
                   style={{
-                    fontFamily: "var(--font-mono)",
-                    color: isDisplayed
-                      ? "var(--color-text-primary)"
-                      : "var(--color-text-muted)",
-                    backgroundColor: isDisplayed
-                      ? "var(--color-bg-card)"
-                      : "transparent",
                     boxShadow: isDisplayed
                       ? "inset 0 2px 0 0 var(--color-accent)"
                       : undefined,
@@ -153,7 +138,7 @@ export function SourceTabContent({
                       file the user is viewing — so they can spot where
                       execution actually is at a glance. */}
                   {isActive && !isDisplayed && (
-                    <span style={{ color: "var(--color-accent)", marginRight: 4 }}>●</span>
+                    <span className="theme-accent" style={{ marginRight: 4 }}>●</span>
                   )}
                   {basename(f.name)}
                 </button>

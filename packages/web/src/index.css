@@ -197,8 +197,42 @@ textarea::placeholder {
 .bs-r       { box-shadow: 1px 0 0 0 var(--color-border-default); margin-right: 1px; }
 .bs-r-muted { box-shadow: 1px 0 0 0 var(--color-border-muted);   margin-right: 1px; }
 
-/* Active-state left rail used on nav items */
+/* Active-state left rail used on nav items (outset — sits in the 1px gap) */
 .bs-l-accent { box-shadow: -2px 0 0 0 var(--color-accent); }
+
+/*
+ * Inset 1px outlines — mirrors of the `bs*` family but drawn INSIDE the
+ * element. Use these where the outline must sit fully within a fixed-size
+ * container (chips, breadcrumb pills, depth guides on tree rows) instead
+ * of around its perimeter. No companion margin is needed: insets paint
+ * within the element's own padding box.
+ */
+.bs-in        { box-shadow: inset 0 0 0 1px var(--color-border-default); }
+.bs-in-muted  { box-shadow: inset 0 0 0 1px var(--color-border-muted); }
+
+.bs-l-in        { box-shadow: inset  1px 0 0 0 var(--color-border-default); }
+.bs-l-in-muted  { box-shadow: inset  1px 0 0 0 var(--color-border-muted); }
+.bs-r-in        { box-shadow: inset -1px 0 0 0 var(--color-border-default); }
+.bs-r-in-muted  { box-shadow: inset -1px 0 0 0 var(--color-border-muted); }
+.bs-t-in        { box-shadow: inset 0  1px 0 0 var(--color-border-default); }
+.bs-t-in-muted  { box-shadow: inset 0  1px 0 0 var(--color-border-muted); }
+.bs-b-in        { box-shadow: inset 0 -1px 0 0 var(--color-border-default); }
+.bs-b-in-muted  { box-shadow: inset 0 -1px 0 0 var(--color-border-muted); }
+
+/*
+ * 2px accent rails — visible tab underlines and active-row indicators.
+ * Outset for elements that own their bottom margin (header tabs);
+ * inset for elements packed into fixed-height strips (sidebar nav,
+ * sub-tab bars) where there's no room for an outside shadow.
+ */
+.bs-b-accent      { box-shadow: 0 2px 0 0 var(--color-accent); }
+.bs-l-accent-in   { box-shadow: inset  2px 0 0 0 var(--color-accent); }
+.bs-b-accent-in   { box-shadow: inset 0 -2px 0 0 var(--color-accent); }
+.bs-t-accent-in   { box-shadow: inset 0  2px 0 0 var(--color-accent); }
+
+/* 1px status-color underlines for inline error/warning hints. */
+.bs-b-danger  { box-shadow: 0 1px 0 0 var(--color-danger); }
+.bs-b-warning { box-shadow: 0 1px 0 0 var(--color-warning); }
 
 /*
  * Card/panel component — outset perimeter outline plus card background.
@@ -251,3 +285,24 @@ textarea::placeholder {
 .theme-success-bg    { background-color: var(--color-success-muted); }
 
 .theme-mono          { font-family: var(--font-mono); }
+
+/*
+ * Solid status-color backgrounds. The default `theme-{status}-bg` family
+ * maps to the MUTED variants — soft tinted surfaces (banners, chips).
+ * The `-solid` family is the saturated token, intended for filled CTAs,
+ * 1px status indicator dots, and active badges. Pair with a foreground
+ * class (typically `text-white` on accent/danger, `theme-text` on
+ * warning/success where contrast permits).
+ */
+.theme-accent-solid  { background-color: var(--color-accent); }
+.theme-danger-solid  { background-color: var(--color-danger); }
+.theme-warning-solid { background-color: var(--color-warning); }
+.theme-success-solid { background-color: var(--color-success); }
+
+/*
+ * Border-color tokens AS backgrounds — for 1px hairline dividers
+ * implemented as `<div class="h-px w-full theme-border-bg" />` rather
+ * than a box-shadow on an adjacent element.
+ */
+.theme-border-bg       { background-color: var(--color-border-default); }
+.theme-border-bg-muted { background-color: var(--color-border-muted); }

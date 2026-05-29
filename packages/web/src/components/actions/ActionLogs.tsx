@@ -84,8 +84,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
         <table className="w-full text-sm">
           <thead>
             <tr
-              className="theme-tertiary-bg"
-              style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
+              className="theme-tertiary-bg bs-b"
             >
               <th
                 className="text-left px-4 py-2.5 font-medium theme-text-secondary"
@@ -193,10 +192,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                       {/* Expanded detail */}
                       {isExpanded && (
                         <div
-                          className="px-4 pb-3 space-y-2"
-                          style={{
-                            boxShadow: "0 1px 0 0 var(--color-border-muted)",
-                          }}
+                          className="px-4 pb-3 space-y-2 bs-b-muted"
                         >
                           {log.stdout && (
                             <div>
@@ -206,8 +202,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                                 stdout
                               </div>
                               <pre
-                                className="text-xs p-2 rounded overflow-x-auto theme-primary-bg theme-success theme-mono"
-                                style={{ boxShadow: "0 0 0 1px var(--color-border-muted)" }}
+                                className="text-xs p-2 rounded overflow-x-auto theme-primary-bg theme-success theme-mono bs-muted"
                               >
                                 {log.stdout}
                               </pre>
@@ -221,8 +216,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                                 stderr
                               </div>
                               <pre
-                                className="text-xs p-2 rounded overflow-x-auto theme-primary-bg theme-danger theme-mono"
-                                style={{ boxShadow: "0 0 0 1px var(--color-border-muted)" }}
+                                className="text-xs p-2 rounded overflow-x-auto theme-primary-bg theme-danger theme-mono bs-muted"
                               >
                                 {log.stderr}
                               </pre>
@@ -236,8 +230,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                                 Trigger Data
                               </div>
                               <pre
-                                className="text-xs p-2 rounded overflow-x-auto theme-primary-bg theme-text-secondary theme-mono"
-                                style={{ boxShadow: "0 0 0 1px var(--color-border-muted)" }}
+                                className="text-xs p-2 rounded overflow-x-auto theme-primary-bg theme-text-secondary theme-mono bs-muted"
                               >
                                 {JSON.stringify(JSON.parse(log.trigger_data), null, 2)}
                               </pre>

@@ -47,8 +47,7 @@ export function EmptyState() {
             </div>
             <button
               onClick={clearDebuggerTxs}
-              className="text-[11px] transition-opacity hover:opacity-100 theme-text-muted"
-              style={{ backgroundColor: "transparent" }}
+              className="text-[11px] transition-opacity hover:opacity-100 theme-text-muted bg-transparent"
             >
               Clear
             </button>
@@ -75,8 +74,7 @@ export function EmptyState() {
                     }}
                     title="Remove"
                     aria-label="Remove"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-5 h-5 theme-text-muted"
-                    style={{ backgroundColor: "transparent" }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-5 h-5 theme-text-muted bg-transparent"
                   >
                     <Icon icon="heroicons:x-mark" className="w-3.5 h-3.5" />
                   </button>

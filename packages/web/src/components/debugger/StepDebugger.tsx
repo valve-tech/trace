@@ -865,18 +865,17 @@ export default function StepDebugger({
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col gap-0">
-          <div className="flex items-center" style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}>
+          <div className="flex items-center bs-b">
             {(["debugger", "trace"] as const).map((view) => (
               <button
                 key={view}
                 onClick={() => setContentView(view)}
-                className="px-4 py-2 text-xs font-medium transition-colors"
+                className={`px-4 py-2 text-xs font-medium transition-colors ${contentView === view ? "theme-text" : "theme-text-muted"}`}
                 style={{
                   boxShadow:
                     contentView === view
                       ? "0 2px 0 0 var(--color-accent)"
                       : "0 2px 0 0 transparent",
-                  color: contentView === view ? "var(--color-text-primary)" : "var(--color-text-muted)",
                   backgroundColor: "transparent",
                 }}
               >
@@ -894,9 +893,8 @@ export default function StepDebugger({
                 onClick={navGoBack}
                 disabled={!canBack}
                 title="Back (⌘[)"
-                className="px-2 py-1 text-xs font-mono transition-opacity"
+                className={`px-2 py-1 text-xs font-mono transition-opacity ${canBack ? "theme-text-secondary" : "theme-text-muted"}`}
                 style={{
-                  color: canBack ? "var(--color-text-secondary)" : "var(--color-text-muted)",
                   opacity: canBack ? 1 : 0.35,
                   cursor: canBack ? "pointer" : "not-allowed",
                 }}
@@ -907,9 +905,8 @@ export default function StepDebugger({
                 onClick={navGoForward}
                 disabled={!canForward}
                 title="Forward (⌘])"
-                className="px-2 py-1 text-xs font-mono transition-opacity"
+                className={`px-2 py-1 text-xs font-mono transition-opacity ${canForward ? "theme-text-secondary" : "theme-text-muted"}`}
                 style={{
-                  color: canForward ? "var(--color-text-secondary)" : "var(--color-text-muted)",
                   opacity: canForward ? 1 : 0.35,
                   cursor: canForward ? "pointer" : "not-allowed",
                 }}
@@ -920,9 +917,8 @@ export default function StepDebugger({
                 <button
                   onClick={() => setRecentsOpen((o) => !o)}
                   title="Recent jumps"
-                  className="px-2 py-1 text-xs font-mono transition-opacity"
+                  className={`px-2 py-1 text-xs font-mono transition-opacity ${recentsOpen ? "theme-accent" : "theme-text-secondary"}`}
                   style={{
-                    color: recentsOpen ? "var(--color-accent)" : "var(--color-text-secondary)",
                     cursor: "pointer",
                   }}
                 >
@@ -950,10 +946,7 @@ export default function StepDebugger({
                       boxShadow: "0 0 0 1px var(--color-border-default), 0 8px 24px rgba(0,0,0,0.4)",
                     }}
                   >
-                    <div
-                      className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest theme-text-muted"
-                      style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
-                    >
+                    <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest theme-text-muted bs-b-muted">
                       Recent jumps · {recents.length}
                     </div>
                     {recents.map((r, i) => (
@@ -963,8 +956,7 @@ export default function StepDebugger({
                           applyHistoryEntry({ step: r.step, overrideLine: r.overrideLine });
                           setRecentsOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-2 text-xs flex items-center gap-inline transition-colors hover:opacity-90 theme-mono theme-text${r.step === currentStep ? " theme-accent-bg" : ""}`}
-                        style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
+                        className={`w-full text-left px-3 py-2 text-xs flex items-center gap-inline transition-colors hover:opacity-90 theme-mono theme-text bs-b-muted${r.step === currentStep ? " theme-accent-bg" : ""}`}
                       >
                         <span className={r.kind === "function" ? "theme-accent" : "theme-text-secondary"}>
                           {r.kind === "function" ? "ƒ" : "›"}

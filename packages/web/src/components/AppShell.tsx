@@ -180,7 +180,6 @@ function TopBar({
   // the sidebar width animation since the bar spans the full window.
   const control =
     "flex items-center justify-center shrink-0 w-12 h-12 transition-opacity";
-  const controlBorder = "1px 0 0 0 var(--color-border-muted)";
 
   return (
     <div
@@ -190,8 +189,7 @@ function TopBar({
         onClick={onToggleCollapse}
         title={toggleTitle}
         aria-label={toggleTitle}
-        className={`${control} hover:opacity-80 theme-text-secondary`}
-        style={{ backgroundColor: "transparent", boxShadow: controlBorder }}
+        className={`${control} hover:opacity-80 theme-text-secondary bs-r-muted bg-transparent`}
       >
         <Icon
           icon={collapsed ? "heroicons:bars-3" : "heroicons:chevron-double-left"}
@@ -218,8 +216,7 @@ function TopBar({
       <div className="flex-1 flex items-center px-3 min-w-0">
         <button
           onClick={onOpenPalette}
-          className="w-full max-w-2xl flex items-center gap-inline px-3 h-8 text-sm text-left theme-input-bg theme-text-muted"
-          style={{ boxShadow: "0 0 0 1px var(--color-border-default)" }}
+          className="w-full max-w-2xl flex items-center gap-inline px-3 h-8 text-sm text-left theme-input-bg theme-text-muted bs"
         >
           <Icon
             icon="heroicons:magnifying-glass"
@@ -249,10 +246,9 @@ function TopBar({
 function Sidebar({ collapsed }: { collapsed: boolean }) {
   return (
     <aside
-      className="flex flex-col transition-[width] duration-150 shrink-0 theme-secondary-bg"
+      className="flex flex-col transition-[width] duration-150 shrink-0 theme-secondary-bg bs-r"
       style={{
         width: collapsed ? 56 : 240,
-        boxShadow: "1px 0 0 0 var(--color-border-default)",
       }}
     >
       <nav className="flex-1 overflow-y-auto py-4">
@@ -263,10 +259,7 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
                 icon rows below land at the same Y and don't jump on toggle. */}
             <div className="h-7 flex items-center px-3">
               {collapsed ? (
-                <div
-                  className="flex-1 h-px"
-                  style={{ backgroundColor: "var(--color-border-muted)" }}
-                />
+                <div className="flex-1 h-px theme-border-bg-muted" />
               ) : (
                 <div
                   className="flex items-center gap-tight px-1 text-[10px] uppercase tracking-widest font-semibold theme-text-muted"
@@ -343,9 +336,8 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
       </nav>
 
       <div
-        className="py-2 flex items-center theme-text-muted"
+        className="py-2 flex items-center theme-text-muted bs-t-muted"
         style={{
-          boxShadow: "0 -1px 0 0 var(--color-border-muted)",
           paddingLeft: collapsed ? 0 : 12,
           paddingRight: collapsed ? 0 : 12,
           gap: collapsed ? 0 : 8,
@@ -678,10 +670,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div className="card w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-        <div
-          className="palette-row relative flex items-center px-4 h-12"
-          style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
-        >
+        <div className="palette-row relative flex items-center px-4 h-12 bs-b">
           <Icon
             icon="heroicons:magnifying-glass"
             className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none theme-text-muted"
@@ -709,21 +698,14 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Scope tabs */}
-        <div
-          className="flex items-center gap-tight px-3 pt-2"
-          style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
-        >
+        <div className="flex items-center gap-tight px-3 pt-2 bs-b-muted">
           {TABS.map((t) => {
             const on = t.key === tab;
             return (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className="text-[11px] px-3 py-1.5 transition-colors"
-                style={{
-                  color: on ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                  boxShadow: on ? "inset 0 -2px 0 0 var(--color-accent)" : "none",
-                }}
+                className={`text-[11px] px-3 py-1.5 transition-colors ${on ? "theme-text bs-b-accent-in" : "theme-text-muted"}`}
               >
                 {t.label}
               </button>
@@ -750,18 +732,11 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                   <button
                     onClick={() => go(r.to)}
                     onMouseEnter={() => setSelected(i)}
-                    className="w-full flex items-center gap-row px-4 py-2.5 text-left transition-colors"
-                    style={{
-                      backgroundColor: isSel ? "var(--color-accent-muted)" : "transparent",
-                      boxShadow: isSel ? "inset 2px 0 0 0 var(--color-accent)" : "none",
-                    }}
+                    className={`w-full flex items-center gap-row px-4 py-2.5 text-left transition-colors ${isSel ? "theme-accent-bg bs-l-accent-in" : "bg-transparent"}`}
                   >
                     <Icon
                       icon={r.icon}
-                      className="w-4 h-4 shrink-0"
-                      style={{
-                        color: isSel ? "var(--color-accent)" : "var(--color-text-secondary)",
-                      }}
+                      className={`w-4 h-4 shrink-0 ${isSel ? "theme-accent" : "theme-text-secondary"}`}
                     />
                     <span
                       className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 shrink-0 theme-tertiary-bg theme-text-secondary"
@@ -800,10 +775,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        <div
-          className="flex items-center gap-row px-4 py-2 text-[10px] theme-text-muted"
-          style={{ boxShadow: "0 -1px 0 0 var(--color-border-muted)" }}
-        >
+        <div className="flex items-center gap-row px-4 py-2 text-[10px] theme-text-muted bs-t-muted">
           <span>
             <kbd className="font-mono">↑</kbd> <kbd className="font-mono">↓</kbd> navigate
           </span>

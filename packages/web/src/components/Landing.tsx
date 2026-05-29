@@ -136,8 +136,7 @@ function HeroTile({
           className="flex items-stretch gap-inline"
         >
           <div
-            className="flex-1 flex items-center gap-inline px-3 h-11 theme-input-bg"
-            style={{ boxShadow: "inset 0 0 0 1px var(--color-border-default)" }}
+            className="flex-1 flex items-center gap-inline px-3 h-11 theme-input-bg bs-in"
           >
             <Icon
               icon="heroicons:magnifying-glass"
@@ -155,8 +154,7 @@ function HeroTile({
           </div>
           <button
             type="submit"
-            className="px-5 text-sm font-medium shrink-0"
-            style={{ backgroundColor: "var(--color-accent)", color: "#fff" }}
+            className="px-5 text-sm font-medium shrink-0 theme-accent-solid text-white"
           >
             Go
           </button>

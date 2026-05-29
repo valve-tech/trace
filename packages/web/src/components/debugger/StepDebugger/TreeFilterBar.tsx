@@ -22,12 +22,9 @@ function Chip({ label, active, onClick, title }: {
     <button
       onClick={onClick}
       title={title}
-      className="text-[10px] font-semibold tracking-wide px-1.5 py-0.5 flex-shrink-0"
+      className={`text-[10px] font-semibold tracking-wide px-1.5 py-0.5 flex-shrink-0 theme-mono ${active ? "theme-accent theme-accent-bg" : "theme-text-muted"}`}
       style={{
-        fontFamily: "var(--font-mono)",
-        color: active ? "var(--color-accent)" : "var(--color-text-muted)",
         boxShadow: `inset 0 0 0 1px ${active ? "var(--color-accent)" : "var(--color-border-muted)"}`,
-        backgroundColor: active ? "var(--color-accent-muted)" : "transparent",
       }}
     >
       {label}
@@ -70,14 +67,11 @@ export function TreeFilterBar({
   };
 
   return (
-    <div
-      className="flex flex-wrap items-center gap-tight p-2"
-      style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
-    >
+    <div className="flex flex-wrap items-center gap-tight p-2 bs-b">
       <Chip label="ƒ internal" active={internal} onClick={onToggleInternal} title="A contract's own internal functions" />
       <Chip label="📚 library" active={library} onClick={onToggleLibrary} title="Library calls (e.g. SafeMath)" />
       <Chip label="◈ events" active={events} onClick={onToggleEvents} title="Emitted events (LOG)" />
-      <span className="mx-1 self-stretch" style={{ width: 1, boxShadow: "inset 1px 0 0 0 var(--color-border-muted)" }} />
+      <span className="mx-1 self-stretch bs-l-in-muted" style={{ width: 1 }} />
       {COMMON_OPS.map((op) => (
         <Chip key={op} label={op} active={enabledOps.has(op)} onClick={() => onToggleOp(op)} />
       ))}
@@ -90,14 +84,7 @@ export function TreeFilterBar({
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addDraft(); } }}
         placeholder="+ opcode"
         spellCheck={false}
-        className="text-[10px] px-1.5 py-0.5 w-20 flex-shrink-0"
-        style={{
-          fontFamily: "var(--font-mono)",
-          color: "var(--color-text-primary)",
-          backgroundColor: "transparent",
-          boxShadow: "inset 0 0 0 1px var(--color-border-muted)",
-          outline: "none",
-        }}
+        className="text-[10px] px-1.5 py-0.5 w-20 flex-shrink-0 theme-mono theme-text bg-transparent bs-in-muted outline-none"
       />
     </div>
   );

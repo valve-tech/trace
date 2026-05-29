@@ -297,8 +297,7 @@ export default function StorageLayoutViewer() {
                       />
                       <button
                         onClick={handleLookupMapping}
-                        className="px-3 py-1.5 text-xs font-medium"
-                        style={{ backgroundColor: "var(--color-accent)", color: "#fff" }}
+                        className="px-3 py-1.5 text-xs font-medium theme-accent-solid text-white"
                       >
                         Read
                       </button>
@@ -325,8 +324,7 @@ export default function StorageLayoutViewer() {
                       />
                       <button
                         onClick={handleLookupMapping}
-                        className="px-3 py-1.5 text-xs font-medium"
-                        style={{ backgroundColor: "var(--color-accent)", color: "#fff" }}
+                        className="px-3 py-1.5 text-xs font-medium theme-accent-solid text-white"
                       >
                         Read
                       </button>
@@ -361,8 +359,7 @@ export default function StorageLayoutViewer() {
                         setLoadingValue(false);
                       }
                     }}
-                    className="w-full py-1.5 text-xs font-medium"
-                    style={{ backgroundColor: "var(--color-accent)", color: "#fff" }}
+                    className="w-full py-1.5 text-xs font-medium theme-accent-solid text-white"
                   >
                     Read Current Value
                   </button>

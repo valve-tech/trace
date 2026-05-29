@@ -26,17 +26,14 @@ export function ScopeRow({
     <div>
       <div
         data-node-key={key}
-        className={`flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap theme-mono${isSelected ? " theme-accent-bg" : ""}`}
+        className={`flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs whitespace-nowrap theme-mono${isSelected ? " theme-accent-bg bs-l-accent-in" : ""}`}
         onClick={() => { shared.onJumpTo(node.entryStep); shared.onSelectKey?.(key); }}
-        style={{
-          boxShadow: isSelected ? "inset 2px 0 0 0 var(--color-accent)" : undefined,
-        }}
       >
         {Array.from({ length: depth }, (_, g) => (
           <span
             key={g}
-            className="self-stretch flex-shrink-0"
-            style={{ width: "14px", boxShadow: "inset 1px 0 0 0 var(--color-border-muted)", marginLeft: g === 0 ? "6px" : 0 }}
+            className="self-stretch flex-shrink-0 bs-l-in-muted"
+            style={{ width: "14px", marginLeft: g === 0 ? "6px" : 0 }}
           />
         ))}
 
@@ -53,7 +50,7 @@ export function ScopeRow({
           </span>
         )}
 
-        <span className="theme-text-secondary" style={{ fontStyle: "italic" }}>{node.name}</span>
+        <span className="theme-text-secondary italic">{node.name}</span>
         {node.line > 0 && (
           <span className="theme-text-muted">L{node.line}</span>
         )}

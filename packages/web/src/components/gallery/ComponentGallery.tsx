@@ -200,8 +200,7 @@ function Variant({
     <div className={`flex flex-col gap-tight ${full ? "w-full" : ""}`}>
       <IdChip id={id} small />
       <div
-        className={`flex items-center p-3 ${full ? "w-full" : ""}`}
-        style={{ boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }}
+        className={`flex items-center p-3 bs-in-muted ${full ? "w-full" : ""}`}
       >
         {children}
       </div>
@@ -212,8 +211,8 @@ function Variant({
 function IdChip({ id, small = false }: { id: string; small?: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-tight font-mono ${small ? "text-[10px]" : "text-[11px]"}`}
-      style={{ color: "var(--color-accent)", backgroundColor: "var(--color-accent-muted)", padding: "1px 6px" }}
+      className={`inline-flex items-center gap-tight font-mono theme-accent theme-accent-bg ${small ? "text-[10px]" : "text-[11px]"}`}
+      style={{ padding: "1px 6px" }}
     >
       {id}
       <CopyButton value={id} title={`Copy "${id}"`} size={16} />

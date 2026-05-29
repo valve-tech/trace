@@ -56,15 +56,15 @@ export function InputCard({
         }}
       >
         <span
+          className="theme-text"
           style={{
             fontSize: "13px",
             fontWeight: 600,
-            color: "var(--color-text-primary)",
           }}
         >
           Contract Diff
         </span>
-        <span style={{ color: "var(--color-text-muted)", fontSize: "12px" }}>
+        <span className="theme-text-muted" style={{ fontSize: "12px" }}>
           Compare verified source code between two contracts
         </span>
       </div>
@@ -122,7 +122,7 @@ export function InputCard({
         </button>
 
         {sameAddress && (
-          <span style={{ color: "var(--color-warning)", fontSize: "12px" }}>
+          <span className="theme-warning" style={{ fontSize: "12px" }}>
             Addresses must be different
           </span>
         )}
@@ -161,8 +161,8 @@ function AddressField({
       />
       {!isValid && (
         <div
+          className="theme-danger"
           style={{
-            color: "var(--color-danger)",
             fontSize: "11px",
             marginTop: "4px",
           }}

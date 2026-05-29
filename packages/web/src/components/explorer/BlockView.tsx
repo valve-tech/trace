@@ -35,10 +35,7 @@ function InfoRow({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="flex flex-col sm:flex-row sm:items-start gap-tight sm:gap-4 py-2.5 bs-b-muted last:shadow-none"
-      style={{}}
-    >
+    <div className="flex flex-col sm:flex-row sm:items-start gap-tight sm:gap-4 py-2.5 bs-b-muted last:shadow-none">
       <span
         className="text-xs font-medium shrink-0 sm:w-40 theme-text-secondary"
       >
@@ -97,13 +94,8 @@ export default function BlockView({
 
   if (error) {
     return (
-      <div
-        className="rounded-lg p-4 theme-card-bg"
-        style={{ borderColor: "var(--color-danger)" }}
-      >
-        <h3
-          className="text-sm font-semibold mb-1 theme-danger"
-        >
+      <div className="rounded-lg p-4 theme-card-bg">
+        <h3 className="text-sm font-semibold mb-1 theme-danger">
           Error
         </h3>
         <p className="text-sm theme-text-secondary">
@@ -125,7 +117,7 @@ export default function BlockView({
       <div
         className="rounded-lg bs p-4 theme-card-bg"
       >
-        <div className="flex items-center gap-row mb-3 pb-3 bs-b-muted" style={{}}>
+        <div className="flex items-center gap-row mb-3 pb-3 bs-b-muted">
           <h2
             className="text-sm font-semibold theme-text"
           >
@@ -242,10 +234,7 @@ export default function BlockView({
       <div
         className="rounded-lg bs overflow-hidden theme-card-bg"
       >
-        <div
-          className="px-4 py-3 bs-b-muted"
-          style={{}}
-        >
+        <div className="px-4 py-3 bs-b-muted">
           <h3
             className="text-sm font-semibold theme-text"
           >
@@ -308,8 +297,6 @@ export default function BlockView({
                   <tr
                     key={i}
                     className="bs-t-muted hover:opacity-80"
-                    style={{
-                    }}
                   >
                     <td className="px-3 py-2">
                       <ExplorerLink

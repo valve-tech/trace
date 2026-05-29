@@ -128,22 +128,20 @@ export function CallFrameRow({
     <div>
       <div
         data-node-key={key}
-        className="flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs relative whitespace-nowrap"
+        className={`flex items-center gap-tight pr-2 py-1 cursor-pointer text-xs relative whitespace-nowrap theme-mono${isSelected ? " bs-l-accent-in" : ""}`}
         onClick={() => { onJumpTo(jumpStep, jumpHint); onSelect?.(frame); onSelectKey?.(key); }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
           backgroundColor: bgColor,
-          boxShadow: isSelected ? "inset 2px 0 0 0 var(--color-accent)" : undefined,
-          fontFamily: "var(--font-mono)",
         }}
       >
         {/* Depth guide lines — one faint vertical rule per ancestor level. */}
         {Array.from({ length: depth }, (_, i) => (
           <span
             key={i}
-            className="self-stretch flex-shrink-0"
-            style={{ width: "14px", boxShadow: "inset 1px 0 0 0 var(--color-border-muted)", marginLeft: i === 0 ? "6px" : 0 }}
+            className="self-stretch flex-shrink-0 bs-l-in-muted"
+            style={{ width: "14px", marginLeft: i === 0 ? "6px" : 0 }}
           />
         ))}
 

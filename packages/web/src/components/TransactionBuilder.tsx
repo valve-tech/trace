@@ -211,21 +211,13 @@ export default function TransactionBuilder() {
             <div className="card-divider flex theme-secondary-bg">
               <button
                 onClick={() => setShowRead(false)}
-                className="flex-1 px-3 py-2 text-xs font-medium"
-                style={{
-                  color: !showRead ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                  backgroundColor: !showRead ? "var(--color-bg-card)" : "transparent",
-                }}
+                className={`flex-1 px-3 py-2 text-xs font-medium ${!showRead ? "theme-text theme-card-bg" : "theme-text-muted bg-transparent"}`}
               >
                 Write ({writeFunctions.length})
               </button>
               <button
                 onClick={() => setShowRead(true)}
-                className="flex-1 px-3 py-2 text-xs font-medium"
-                style={{
-                  color: showRead ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                  backgroundColor: showRead ? "var(--color-bg-card)" : "transparent",
-                }}
+                className={`flex-1 px-3 py-2 text-xs font-medium ${showRead ? "theme-text theme-card-bg" : "theme-text-muted bg-transparent"}`}
               >
                 Read ({readFunctions.length})
               </button>
@@ -237,16 +229,13 @@ export default function TransactionBuilder() {
                   <div
                     key={i}
                     onClick={() => handleSelectFn(fn)}
-                    className="px-3 py-2 text-xs cursor-pointer"
+                    className={`px-3 py-2 text-xs cursor-pointer theme-mono ${isSelected ? "theme-accent theme-accent-bg" : "theme-text bg-transparent"}`}
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      backgroundColor: isSelected ? "var(--color-accent-muted)" : "transparent",
-                      color: isSelected ? "var(--color-accent)" : "var(--color-text-primary)",
                       borderLeft: isSelected ? "3px solid var(--color-accent)" : "3px solid transparent",
                     }}
                   >
                     <div className="font-semibold">{fn.name}</div>
-                    <div style={{ color: "var(--color-text-muted)", fontSize: "10px" }}>
+                    <div className="theme-text-muted" style={{ fontSize: "10px" }}>
                       ({(fn.inputs ?? []).map((i) => i.type).join(", ")})
                     </div>
                   </div>
@@ -277,15 +266,11 @@ export default function TransactionBuilder() {
                     {selectedFn.name}({(selectedFn.inputs ?? []).map((i) => i.type).join(", ")})
                   </h3>
                   <span
-                    className="text-xs px-2 py-0.5"
-                    style={{
-                      backgroundColor: selectedFn.stateMutability === "payable"
-                        ? "var(--color-warning-muted)"
-                        : "var(--color-accent-muted)",
-                      color: selectedFn.stateMutability === "payable"
-                        ? "var(--color-warning)"
-                        : "var(--color-accent)",
-                    }}
+                    className={`text-xs px-2 py-0.5 ${
+                      selectedFn.stateMutability === "payable"
+                        ? "theme-warning-bg theme-warning"
+                        : "theme-accent-bg theme-accent"
+                    }`}
                   >
                     {selectedFn.stateMutability}
                   </span>
@@ -354,11 +339,11 @@ export default function TransactionBuilder() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-inline">
                       <span
-                        className="text-xs px-2 py-0.5 font-semibold"
-                        style={{
-                          backgroundColor: result.result.success ? "var(--color-success-muted)" : "var(--color-danger-muted)",
-                          color: result.result.success ? "var(--color-success)" : "var(--color-danger)",
-                        }}
+                        className={`text-xs px-2 py-0.5 font-semibold ${
+                          result.result.success
+                            ? "theme-success-bg theme-success"
+                            : "theme-danger-bg theme-danger"
+                        }`}
                       >
                         {result.result.success ? "SUCCESS" : "REVERTED"}
                       </span>
@@ -386,8 +371,7 @@ export default function TransactionBuilder() {
                     {result.result.txHash && (
                       <button
                         onClick={() => navigate(`/debugger/${result.result!.txHash}`)}
-                        className="text-xs px-3 py-1.5 font-medium"
-                        style={{ backgroundColor: "var(--color-accent)", color: "#fff" }}
+                        className="text-xs px-3 py-1.5 font-medium theme-accent-solid text-white"
                       >
                         Debug This Transaction
                       </button>

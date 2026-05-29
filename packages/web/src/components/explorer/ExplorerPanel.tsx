@@ -280,8 +280,7 @@ function CrumbNode({
     return (
       <span
         aria-current="page"
-        className="theme-text theme-tertiary-bg"
-        style={{ boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }}
+        className="theme-text theme-tertiary-bg bs-in-muted"
       >
         {content}
       </span>

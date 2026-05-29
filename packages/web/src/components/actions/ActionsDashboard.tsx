@@ -143,13 +143,12 @@ export default function ActionsDashboard() {
         </h2>
         <button
           onClick={() => setView({ type: "create" })}
-          className="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-          style={{ backgroundColor: "var(--color-accent)", color: "white" }}
+          className="px-4 py-2 rounded-md text-sm font-medium transition-colors theme-accent-solid text-white"
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = "var(--color-accent-hover)";
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--color-accent)";
+            e.currentTarget.style.backgroundColor = "";
           }}
         >
           + Create Action
@@ -212,10 +211,9 @@ function StatCard({
         {label}
       </div>
       <div
-        className="text-2xl font-bold"
+        className="text-2xl font-bold theme-mono"
         style={{
           color: color ?? "var(--color-text-primary)",
-          fontFamily: "var(--font-mono)",
         }}
       >
         {value}
@@ -246,13 +244,12 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       </p>
       <button
         onClick={onCreate}
-        className="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-        style={{ backgroundColor: "var(--color-accent)", color: "white" }}
+        className="px-4 py-2 rounded-md text-sm font-medium transition-colors theme-accent-solid text-white"
         onMouseOver={(e) => {
           e.currentTarget.style.backgroundColor = "var(--color-accent-hover)";
         }}
         onMouseOut={(e) => {
-          e.currentTarget.style.backgroundColor = "var(--color-accent)";
+          e.currentTarget.style.backgroundColor = "";
         }}
       >
         + Create Your First Action
@@ -283,9 +280,8 @@ function ActionCard({
 
   return (
     <div
-      className="rounded-lg bs p-4 transition-colors"
+      className="rounded-lg bs p-4 transition-colors theme-card-bg"
       style={{
-        backgroundColor: "var(--color-bg-card)",
         opacity: action.enabled ? 1 : 0.6,
       }}
     >
@@ -345,9 +341,8 @@ function ActionCard({
 
           <button
             onClick={onViewLogs}
-            className="px-2.5 py-1 text-xs rounded bs transition-colors"
+            className="px-2.5 py-1 text-xs rounded bs transition-colors theme-text-secondary"
             style={{
-              color: "var(--color-text-secondary)",
               backgroundColor: "transparent",
             }}
             onMouseOver={(e) => {
@@ -362,9 +357,8 @@ function ActionCard({
 
           <button
             onClick={onEdit}
-            className="px-2.5 py-1 text-xs rounded bs transition-colors"
+            className="px-2.5 py-1 text-xs rounded bs transition-colors theme-text-secondary"
             style={{
-              color: "var(--color-text-secondary)",
               backgroundColor: "transparent",
             }}
             onMouseOver={(e) => {
@@ -379,9 +373,8 @@ function ActionCard({
 
           <button
             onClick={onDelete}
-            className="px-2.5 py-1 text-xs rounded bs transition-colors"
+            className="px-2.5 py-1 text-xs rounded bs transition-colors theme-danger"
             style={{
-              color: "var(--color-danger)",
               backgroundColor: "transparent",
             }}
             onMouseOver={(e) => {

@@ -23,12 +23,11 @@ export function BalanceChangesTable({
           {changes.map((bc, i) => (
             <tr
               key={i}
-              style={{ boxShadow: "0 -1px 0 0 var(--color-border-default)" }}
+              className="bs-t"
             >
               <td
-                className="py-1.5 px-2"
+                className="py-1.5 px-2 theme-text"
                 title={bc.address}
-                style={{ color: "var(--color-text-primary)" }}
               >
                 {bc.address.slice(0, 8)}...{bc.address.slice(-6)}
               </td>
@@ -43,13 +42,11 @@ export function BalanceChangesTable({
                 {parseFloat(bc.after).toFixed(4)}
               </td>
               <td
-                className="text-right py-1.5 px-2 font-semibold"
-                style={{
-                  color:
-                    bc.delta.startsWith("+") || !bc.delta.startsWith("-")
-                      ? "var(--color-success)"
-                      : "var(--color-danger)",
-                }}
+                className={`text-right py-1.5 px-2 font-semibold ${
+                  bc.delta.startsWith("+") || !bc.delta.startsWith("-")
+                    ? "theme-success"
+                    : "theme-danger"
+                }`}
               >
                 {bc.delta.startsWith("-") || bc.delta.startsWith("+")
                   ? bc.delta
@@ -85,34 +82,30 @@ export function StorageChangesTable({
           {changes.map((sc, i) => (
             <tr
               key={i}
-              style={{ boxShadow: "0 -1px 0 0 var(--color-border-default)" }}
+              className="bs-t"
             >
               <td
-                className="py-1.5 px-2"
+                className="py-1.5 px-2 theme-text"
                 title={sc.address}
-                style={{ color: "var(--color-text-primary)" }}
               >
                 {sc.contractName ??
                   `${sc.address.slice(0, 8)}...${sc.address.slice(-4)}`}
               </td>
               <td
-                className="py-1.5 px-2"
+                className="py-1.5 px-2 theme-text-muted"
                 title={sc.slot}
-                style={{ color: "var(--color-text-muted)" }}
               >
                 {sc.decodedName ?? `${sc.slot.slice(0, 10)}...`}
               </td>
               <td
-                className="py-1.5 px-2"
+                className="py-1.5 px-2 theme-danger"
                 title={sc.before}
-                style={{ color: "var(--color-danger)" }}
               >
                 {sc.before.slice(0, 14)}...
               </td>
               <td
-                className="py-1.5 px-2"
+                className="py-1.5 px-2 theme-success"
                 title={sc.after}
-                style={{ color: "var(--color-success)" }}
               >
                 {sc.after.slice(0, 14)}...
               </td>

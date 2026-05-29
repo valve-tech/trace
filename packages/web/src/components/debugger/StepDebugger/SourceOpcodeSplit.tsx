@@ -112,10 +112,9 @@ export function SourceOpcodeSplit({
         <button
           onClick={toggleCollapsed}
           title="Show opcode pane"
-          className="hidden lg:flex items-start justify-center pt-3 flex-shrink-0 cursor-pointer transition-opacity hover:opacity-80 theme-card-bg theme-text-muted theme-mono"
+          className="hidden lg:flex items-start justify-center pt-3 flex-shrink-0 cursor-pointer transition-opacity hover:opacity-80 theme-card-bg theme-text-muted theme-mono bs"
           style={{
             width: "20px",
-            boxShadow: "0 0 0 1px var(--color-border-default)",
             fontSize: "11px",
           }}
         >
@@ -126,7 +125,7 @@ export function SourceOpcodeSplit({
         // the bg-card surface + outset border + 1px margin; no need to repeat
         // them inline.
         <div className="lg:flex-[2] lg:min-w-[340px] min-h-[240px] flex flex-col card overflow-hidden">
-          <div className="flex items-center" style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}>
+          <div className="flex items-center bs-b">
             <div className="flex-1 min-w-0">
               <OpcodeFrequencyTags
                 frequencies={opcodeFreqs}

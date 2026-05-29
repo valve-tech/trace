@@ -11,10 +11,7 @@ export function ErrorPanel({
   debugAvailable: boolean | null;
 }) {
   return (
-    <div
-      className="rounded-lg p-4 theme-danger-bg"
-      style={{ borderColor: "var(--color-danger)" }}
-    >
+    <div className="rounded-lg p-4 theme-danger-bg">
       <div className="flex items-start gap-row">
         <Icon
           icon="heroicons:exclamation-circle"

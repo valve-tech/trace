@@ -88,9 +88,9 @@ const CONTEXT_BLOCKS = [
     icon: "heroicons:signal",
     body: (
       <div className="text-xs space-y-1.5 theme-text-secondary">
-        <div className="flex justify-between"><span>Calls last 1h</span><span style={{ color: "var(--color-text-primary)" }} className="font-mono">612</span></div>
-        <div className="flex justify-between"><span>Revert rate 1h</span><span style={{ color: "var(--color-warning)" }} className="font-mono">3.1%</span></div>
-        <div className="flex justify-between"><span>Median gas</span><span style={{ color: "var(--color-text-primary)" }} className="font-mono">142k</span></div>
+        <div className="flex justify-between"><span>Calls last 1h</span><span className="font-mono theme-text">612</span></div>
+        <div className="flex justify-between"><span>Revert rate 1h</span><span className="font-mono theme-warning">3.1%</span></div>
+        <div className="flex justify-between"><span>Median gas</span><span className="font-mono theme-text">142k</span></div>
       </div>
     ),
   },
@@ -177,15 +177,13 @@ export default function WorkspaceDraft() {
                 Simulate a call
               </button>
               <button
-                className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 theme-text-secondary"
-                style={{ boxShadow: "inset 0 0 0 1px var(--color-border-default)" }}
+                className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 theme-text-secondary bs-in"
               >
                 <Icon icon="heroicons:bell-alert" className="w-3.5 h-3.5" />
                 Watch
               </button>
               <button
-                className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 theme-text-secondary"
-                style={{ boxShadow: "inset 0 0 0 1px var(--color-border-default)" }}
+                className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 theme-text-secondary bs-in"
               >
                 <Icon icon="heroicons:beaker" className="w-3.5 h-3.5" />
                 Fork to testnet
@@ -202,9 +200,8 @@ export default function WorkspaceDraft() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className="px-4 py-2.5 text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
+                className={`px-4 py-2.5 text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0 ${active ? "theme-text" : "theme-text-secondary"}`}
                 style={{
-                  color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
                   borderBottom: active
                     ? "2px solid var(--color-accent)"
                     : "2px solid transparent",
@@ -265,11 +262,7 @@ export default function WorkspaceDraft() {
                       <td className="theme-text-muted">{r.age}</td>
                       <td>
                         <span
-                          className="px-1.5 py-0.5 text-[10px] font-sans"
-                          style={{
-                            backgroundColor: r.ok ? "var(--color-success-muted)" : "var(--color-danger-muted)",
-                            color: r.ok ? "var(--color-success)" : "var(--color-danger)",
-                          }}
+                          className={`px-1.5 py-0.5 text-[10px] font-sans ${r.ok ? "theme-success-bg theme-success" : "theme-danger-bg theme-danger"}`}
                         >
                           {r.ok ? "ok" : "reverted"}
                         </span>
