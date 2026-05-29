@@ -102,11 +102,8 @@ export default function BundleSimulator() {
         <button
           type="button"
           onClick={addTransaction}
-          className="w-full py-2.5 rounded-lg bs border-dashed text-sm transition-colors hover:opacity-80"
-          style={{
-            color: "var(--color-text-secondary)",
-            backgroundColor: "transparent",
-          }}
+          className="w-full py-2.5 rounded-lg bs border-dashed text-sm transition-colors hover:opacity-80 theme-text-secondary"
+          style={{ backgroundColor: "transparent" }}
         >
           + Add Transaction
         </button>

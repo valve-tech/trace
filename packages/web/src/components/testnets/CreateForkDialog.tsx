@@ -108,11 +108,8 @@ export default function CreateForkDialog({
               type="button"
               onClick={onCancel}
               disabled={loading}
-              className="px-4 py-2 rounded-md text-sm bs"
-              style={{
-                color: "var(--color-text-secondary)",
-                backgroundColor: "transparent",
-              }}
+              className="px-4 py-2 rounded-md text-sm bs theme-text-secondary"
+              style={{ backgroundColor: "transparent" }}
             >
               Cancel
             </button>

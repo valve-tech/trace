@@ -50,11 +50,8 @@ function Index() {
           <Link
             key={d.slug}
             to={`/drafts/${d.slug}`}
-            className="card p-5 transition-colors hover:shadow-lg block group"
-            style={{
-              textDecoration: "none",
-              color: "var(--color-text-primary)",
-            }}
+            className="card p-5 transition-colors hover:shadow-lg block group theme-text"
+            style={{ textDecoration: "none" }}
           >
             <div className="flex items-start justify-between mb-4">
               <div

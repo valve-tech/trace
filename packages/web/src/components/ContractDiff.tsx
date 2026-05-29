@@ -56,11 +56,10 @@ export default function ContractDiff() {
 
       {error !== null && (
         <div
+          className="theme-danger-bg theme-danger"
           style={{
             padding: "12px 16px",
-            background: "var(--color-danger-muted)",
             boxShadow: "0 0 0 1px var(--color-danger)",
-            color: "var(--color-danger)",
             fontSize: "13px",
             marginBottom: "20px",
           }}
@@ -75,11 +74,10 @@ export default function ContractDiff() {
 
           {result.files.length === 0 && (
             <div
-              className="card"
+              className="card theme-text-secondary"
               style={{
                 padding: "32px 16px",
                 textAlign: "center",
-                color: "var(--color-text-secondary)",
                 fontSize: "14px",
               }}
             >

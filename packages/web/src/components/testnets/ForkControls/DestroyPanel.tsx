@@ -28,10 +28,9 @@ export function DestroyPanel({ forkId, onDestroyed }: Props) {
       {!confirm ? (
         <button
           onClick={() => setConfirm(true)}
-          className="px-3 py-1.5 text-xs rounded"
+          className="px-3 py-1.5 text-xs rounded theme-danger"
           style={{
             boxShadow: "0 0 0 1px var(--color-danger)",
-            color: "var(--color-danger)",
             backgroundColor: "transparent",
           }}
         >
@@ -57,10 +56,9 @@ export function DestroyPanel({ forkId, onDestroyed }: Props) {
           </button>
           <button
             onClick={() => setConfirm(false)}
-            className="px-3 py-1.5 text-xs rounded"
+            className="px-3 py-1.5 text-xs rounded theme-text-secondary"
             style={{
               boxShadow: "0 0 0 1px var(--color-border-default)",
-              color: "var(--color-text-secondary)",
               backgroundColor: "transparent",
             }}
           >

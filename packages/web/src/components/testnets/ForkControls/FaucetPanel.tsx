@@ -36,8 +36,8 @@ export function FaucetPanel({ forkId }: { forkId: string }) {
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="0x... address"
-          className="flex-1 px-2 py-1.5 rounded text-sm"
-          style={{ ...inputStyle, fontFamily: "var(--font-mono)" }}
+          className="flex-1 px-2 py-1.5 rounded text-sm theme-mono"
+          style={inputStyle}
         />
         <input
           type="text"
