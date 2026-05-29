@@ -92,9 +92,8 @@ export function EntityActionBar({
               type="button"
               onClick={() => goto(a.href)}
               aria-label={a.label}
-              className="flex items-center justify-center w-7 h-7 transition-colors"
+              className="flex items-center justify-center w-7 h-7 transition-colors theme-text-muted"
               style={{
-                color: "var(--color-text-muted)",
                 backgroundColor: "transparent",
                 boxShadow: "inset 0 0 0 1px var(--color-border-muted)",
               }}
@@ -119,15 +118,13 @@ export function EntityActionBar({
             key={a.id}
             type="button"
             onClick={() => goto(a.href)}
-            className="inline-flex items-center gap-tight text-xs px-3 py-1.5 transition-colors"
+            className={`inline-flex items-center gap-tight text-xs px-3 py-1.5 transition-colors ${
+              isPrimary ? "" : "theme-tertiary-bg theme-text-secondary"
+            }`}
             style={
               isPrimary
                 ? { backgroundColor: "var(--color-accent)", color: "#fff" }
-                : {
-                    backgroundColor: "var(--color-bg-tertiary)",
-                    color: "var(--color-text-secondary)",
-                    boxShadow: "inset 0 0 0 1px var(--color-border-muted)",
-                  }
+                : { boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }
             }
           >
             <Icon icon={a.icon} className="w-3.5 h-3.5" />

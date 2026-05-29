@@ -58,12 +58,8 @@ export function Dropdown<T extends string>({
         aria-expanded={open}
         aria-label={ariaLabel}
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-inline px-2.5 py-1.5 text-xs transition-colors ${buttonClassName}`}
-        style={{
-          backgroundColor: "var(--color-bg-input)",
-          color: "var(--color-text-secondary)",
-          boxShadow: "inset 0 0 0 1px var(--color-border-muted)",
-        }}
+        className={`flex items-center gap-inline px-2.5 py-1.5 text-xs transition-colors theme-input-bg theme-text-secondary ${buttonClassName}`}
+        style={{ boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }}
       >
         <span className="truncate">{current?.label ?? value}</span>
         <Icon
@@ -76,8 +72,7 @@ export function Dropdown<T extends string>({
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className={`card absolute z-30 mt-1 min-w-full ${align === "right" ? "right-0" : "left-0"}`}
-          style={{ backgroundColor: "var(--color-bg-card)" }}
+          className={`card absolute z-30 mt-1 min-w-full theme-card-bg ${align === "right" ? "right-0" : "left-0"}`}
         >
           {options.map((o) => {
             const selected = o.value === value;
