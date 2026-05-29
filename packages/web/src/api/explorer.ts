@@ -1,3 +1,5 @@
+import { formatEther } from "viem";
+
 const API_BASE = "/api";
 
 // ---------------------------------------------------------------------------
@@ -183,8 +185,73 @@ export async function fetchTransaction(hash: string): Promise<TransactionDetails
   return apiFetch<TransactionDetails>(`${API_BASE}/tx/${hash}`);
 }
 
+/**
+ * Address overview — balance (wei + formatted PLS) and whether the
+ * address holds code. Uses the Etherscan-shaped surface end-to-end:
+ *
+ *   - module=account&action=balance  → wei string
+ *   - module=proxy&action=eth_getCode → "0x" for EOAs, bytecode for contracts
+ *
+ * Issued in parallel so the two-action migration costs no extra wall
+ * time vs. the previous single REST call (the REST endpoint also fired
+ * two underlying RPCs).
+ *
+ * Trade-off vs. the legacy /api/address/:addr REST route: we format
+ * `balancePLS` client-side rather than having the server pre-format
+ * it. That's fine — `formatEther` is a viem helper, deterministic, and
+ * already a dependency.
+ */
 export async function fetchAddressInfo(address: string): Promise<AddressInfo> {
-  return apiFetch<AddressInfo>(`${API_BASE}/address/${address}`);
+  const [balanceRes, codeRes] = await Promise.all([
+    fetch(
+      `${API_BASE}?module=account&action=balance&address=${address}`,
+    ),
+    fetch(
+      `${API_BASE}?module=proxy&action=eth_getCode&address=${address}&tag=latest`,
+    ),
+  ]);
+
+  if (!balanceRes.ok || !codeRes.ok) {
+    throw new Error(`Address lookup failed (HTTP ${balanceRes.status} / ${codeRes.status})`);
+  }
+
+  const balanceBody = (await balanceRes.json()) as {
+    status?: string;
+    result?: string;
+  };
+  const codeBody = (await codeRes.json()) as {
+    jsonrpc?: string;
+    result?: string;
+    error?: { message?: string };
+  };
+
+  if (balanceBody.status !== "1") {
+    throw new Error(`balance: ${balanceBody.result ?? "unknown error"}`);
+  }
+  if (codeBody.error) {
+    throw new Error(`eth_getCode: ${codeBody.error.message ?? "unknown error"}`);
+  }
+
+  const balance = balanceBody.result ?? "0";
+  const code = codeBody.result ?? "0x";
+  // An address holds code iff eth_getCode returns more than the empty "0x".
+  const isContract = code.length > 2;
+
+  let balancePLS: string;
+  try {
+    balancePLS = formatEther(BigInt(balance));
+  } catch {
+    // Non-numeric balance string shouldn't happen via the dispatcher, but
+    // a malformed upstream response shouldn't crash the address page.
+    balancePLS = "0";
+  }
+
+  return {
+    address,
+    balance,
+    balancePLS,
+    isContract,
+  };
 }
 
 export async function fetchAddressTransactions(
