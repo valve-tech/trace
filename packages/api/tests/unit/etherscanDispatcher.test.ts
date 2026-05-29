@@ -131,7 +131,6 @@ describe("etherscan dispatcher — param merging (GET vs POST)", () => {
    * actually runs and we can observe its successful response shape.
    */
   it("body field wins over query string on collision", async () => {
-    const valid = "0x0000000000000000000000000000000000000001";
     // query has an invalid address, body overrides with valid — handler must
     // see the body value (and reach the network path, which we cannot test
     // here without mocking; we only assert the collision is resolved).

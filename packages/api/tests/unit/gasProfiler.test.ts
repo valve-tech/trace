@@ -17,7 +17,7 @@ import type { CallFrame } from "../../src/services/tracer/types.js";
 // ---------------------------------------------------------------------------
 
 function frame(
-  overrides: Partial<CallFrame> & { gasUsed: string | number },
+  overrides: Omit<Partial<CallFrame>, "gasUsed"> & { gasUsed: string | number },
 ): CallFrame {
   return {
     type: "CALL",
