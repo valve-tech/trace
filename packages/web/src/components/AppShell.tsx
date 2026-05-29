@@ -190,8 +190,8 @@ function TopBar({
         onClick={onToggleCollapse}
         title={toggleTitle}
         aria-label={toggleTitle}
-        className={`${control} hover:opacity-80`}
-        style={{ color: "var(--color-text-secondary)", backgroundColor: "transparent", boxShadow: controlBorder }}
+        className={`${control} hover:opacity-80 theme-text-secondary`}
+        style={{ backgroundColor: "transparent", boxShadow: controlBorder }}
       >
         <Icon
           icon={collapsed ? "heroicons:bars-3" : "heroicons:chevron-double-left"}
@@ -218,12 +218,8 @@ function TopBar({
       <div className="flex-1 flex items-center px-3 min-w-0">
         <button
           onClick={onOpenPalette}
-          className="w-full max-w-2xl flex items-center gap-inline px-3 h-8 text-sm text-left"
-          style={{
-            backgroundColor: "var(--color-bg-input)",
-            color: "var(--color-text-muted)",
-            boxShadow: "0 0 0 1px var(--color-border-default)",
-          }}
+          className="w-full max-w-2xl flex items-center gap-inline px-3 h-8 text-sm text-left theme-input-bg theme-text-muted"
+          style={{ boxShadow: "0 0 0 1px var(--color-border-default)" }}
         >
           <Icon
             icon="heroicons:magnifying-glass"
@@ -253,10 +249,9 @@ function TopBar({
 function Sidebar({ collapsed }: { collapsed: boolean }) {
   return (
     <aside
-      className="flex flex-col transition-[width] duration-150 shrink-0"
+      className="flex flex-col transition-[width] duration-150 shrink-0 theme-secondary-bg"
       style={{
         width: collapsed ? 56 : 240,
-        backgroundColor: "var(--color-bg-secondary)",
         boxShadow: "1px 0 0 0 var(--color-border-default)",
       }}
     >
@@ -348,10 +343,9 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
       </nav>
 
       <div
-        className="py-2 flex items-center"
+        className="py-2 flex items-center theme-text-muted"
         style={{
           boxShadow: "0 -1px 0 0 var(--color-border-muted)",
-          color: "var(--color-text-muted)",
           paddingLeft: collapsed ? 0 : 12,
           paddingRight: collapsed ? 0 : 12,
           gap: collapsed ? 0 : 8,
@@ -807,11 +801,8 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
         )}
 
         <div
-          className="flex items-center gap-row px-4 py-2 text-[10px]"
-          style={{
-            color: "var(--color-text-muted)",
-            boxShadow: "0 -1px 0 0 var(--color-border-muted)",
-          }}
+          className="flex items-center gap-row px-4 py-2 text-[10px] theme-text-muted"
+          style={{ boxShadow: "0 -1px 0 0 var(--color-border-muted)" }}
         >
           <span>
             <kbd className="font-mono">↑</kbd> <kbd className="font-mono">↓</kbd> navigate
