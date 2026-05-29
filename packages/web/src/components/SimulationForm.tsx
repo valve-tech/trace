@@ -68,16 +68,11 @@ export default function SimulationForm({
     }
   };
 
-  const inputStyle = {
-    fontFamily: "var(--font-mono)",
-    backgroundColor: "var(--color-bg-input)",
-    boxShadow: "0 0 0 1px var(--color-border-default)",
-    color: "var(--color-text-primary)",
-  };
-
-  const labelStyle = {
-    color: "var(--color-text-secondary)",
-  };
+  // Theme-token bits move to className composition; the boxShadow border
+  // stays in a small style object because it's not a token utility.
+  const inputClass = "theme-mono theme-input-bg theme-text";
+  const inputStyle = { boxShadow: "0 0 0 1px var(--color-border-default)" };
+  const labelClass = "theme-text-secondary";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-stack">
@@ -93,7 +88,7 @@ export default function SimulationForm({
 
         {/* From */}
         <div>
-          <label className="flex items-center gap-inline text-xs font-medium mb-1.5" style={labelStyle}>
+          <label className={`flex items-center gap-inline text-xs font-medium mb-1.5 ${labelClass}`}>
             From
             <span
               className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider theme-warning-bg theme-warning"
@@ -121,7 +116,7 @@ export default function SimulationForm({
 
         {/* To */}
         <div>
-          <label className="text-xs font-medium mb-1.5 block" style={labelStyle}>
+          <label className={`text-xs font-medium mb-1.5 block ${labelClass}`}>
             To (Contract Address)
           </label>
           <input
@@ -144,7 +139,7 @@ export default function SimulationForm({
 
         {/* Value */}
         <div>
-          <label className="text-xs font-medium mb-1.5 block" style={labelStyle}>
+          <label className={`text-xs font-medium mb-1.5 block ${labelClass}`}>
             Value (PLS)
           </label>
           <div className="relative">
@@ -153,7 +148,7 @@ export default function SimulationForm({
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="0.0"
-              className="w-full px-3 py-2 rounded-md text-sm pr-14"
+              className={`w-full px-3 py-2 rounded-md text-sm pr-14 ${inputClass}`}
               style={inputStyle}
             />
             <span
@@ -171,7 +166,7 @@ export default function SimulationForm({
 
         {/* Calldata */}
         <div>
-          <label className="text-xs font-medium mb-1.5 block" style={labelStyle}>
+          <label className={`text-xs font-medium mb-1.5 block ${labelClass}`}>
             Calldata (hex)
           </label>
           <textarea
@@ -179,7 +174,7 @@ export default function SimulationForm({
             onChange={(e) => setCalldata(e.target.value)}
             placeholder="0xa9059cbb000000000000000000000000..."
             rows={3}
-            className="w-full px-3 py-2 rounded-md text-sm resize-y"
+            className={`w-full px-3 py-2 rounded-md text-sm resize-y ${inputClass}`}
             style={inputStyle}
           />
         </div>
@@ -187,7 +182,7 @@ export default function SimulationForm({
         {/* Gas Limit & Block Number */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-medium mb-1.5 block" style={labelStyle}>
+            <label className={`text-xs font-medium mb-1.5 block ${labelClass}`}>
               Gas Limit
             </label>
             <input
@@ -195,12 +190,12 @@ export default function SimulationForm({
               value={gasLimit}
               onChange={(e) => setGasLimit(e.target.value)}
               placeholder="8000000"
-              className="w-full px-3 py-2 rounded-md text-sm"
+              className={`w-full px-3 py-2 rounded-md text-sm ${inputClass}`}
               style={inputStyle}
             />
           </div>
           <div>
-            <label className="text-xs font-medium mb-1.5 block" style={labelStyle}>
+            <label className={`text-xs font-medium mb-1.5 block ${labelClass}`}>
               Block Number
             </label>
             <input
@@ -208,7 +203,7 @@ export default function SimulationForm({
               value={blockNumber}
               onChange={(e) => setBlockNumber(e.target.value)}
               placeholder="latest"
-              className="w-full px-3 py-2 rounded-md text-sm"
+              className={`w-full px-3 py-2 rounded-md text-sm ${inputClass}`}
               style={inputStyle}
             />
           </div>

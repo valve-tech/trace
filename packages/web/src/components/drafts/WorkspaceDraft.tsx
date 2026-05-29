@@ -177,21 +177,15 @@ export default function WorkspaceDraft() {
                 Simulate a call
               </button>
               <button
-                className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5"
-                style={{
-                  color: "var(--color-text-secondary)",
-                  boxShadow: "inset 0 0 0 1px var(--color-border-default)",
-                }}
+                className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 theme-text-secondary"
+                style={{ boxShadow: "inset 0 0 0 1px var(--color-border-default)" }}
               >
                 <Icon icon="heroicons:bell-alert" className="w-3.5 h-3.5" />
                 Watch
               </button>
               <button
-                className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5"
-                style={{
-                  color: "var(--color-text-secondary)",
-                  boxShadow: "inset 0 0 0 1px var(--color-border-default)",
-                }}
+                className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 theme-text-secondary"
+                style={{ boxShadow: "inset 0 0 0 1px var(--color-border-default)" }}
               >
                 <Icon icon="heroicons:beaker" className="w-3.5 h-3.5" />
                 Fork to testnet
