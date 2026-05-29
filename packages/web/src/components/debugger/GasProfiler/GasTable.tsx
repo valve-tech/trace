@@ -21,8 +21,7 @@ export function GasTable({ flat }: { flat: FlatGasEntry[] }) {
             {HEADERS.map((h) => (
               <th
                 key={h.label}
-                className={`py-2 px-3 font-medium text-${h.align}`}
-                style={{ color: "var(--color-text-secondary)" }}
+                className={`py-2 px-3 font-medium theme-text-secondary text-${h.align}`}
               >
                 {h.label}
               </th>
@@ -35,24 +34,17 @@ export function GasTable({ flat }: { flat: FlatGasEntry[] }) {
               key={i}
               style={{ boxShadow: "0 1px 0 0 var(--color-border-muted)" }}
             >
-              <td
-                className="py-2 px-3 font-mono"
-                style={{ color: "var(--color-text-muted)" }}
-              >
+              <td className="py-2 px-3 font-mono theme-text-muted">
                 {entry.depth}
               </td>
               <td
-                className="py-2 px-3 font-mono"
-                style={{
-                  color: "var(--color-text-primary)",
-                  paddingLeft: `${entry.depth * 12 + 12}px`,
-                }}
+                className="py-2 px-3 font-mono theme-text"
+                style={{ paddingLeft: `${entry.depth * 12 + 12}px` }}
               >
                 {entry.function}
               </td>
               <td
-                className="py-2 px-3 font-mono"
-                style={{ color: "var(--color-accent)" }}
+                className="py-2 px-3 font-mono theme-accent"
                 title={entry.address}
               >
                 {truncateAddress(entry.address)}
@@ -68,16 +60,10 @@ export function GasTable({ flat }: { flat: FlatGasEntry[] }) {
                   {entry.callType}
                 </span>
               </td>
-              <td
-                className="py-2 px-3 text-right font-mono"
-                style={{ color: "var(--color-text-primary)" }}
-              >
+              <td className="py-2 px-3 text-right font-mono theme-text">
                 {formatGas(entry.gasUsed)}
               </td>
-              <td
-                className="py-2 px-3 text-right font-mono"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
+              <td className="py-2 px-3 text-right font-mono theme-text-secondary">
                 {entry.percentage.toFixed(1)}%
               </td>
             </tr>

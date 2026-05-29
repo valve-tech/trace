@@ -27,16 +27,12 @@ export function GasBarChart({ entries }: { entries: GasEntry[] }) {
             className="flex items-center gap-row"
           >
             <div
-              className="w-28 flex-shrink-0 text-xs truncate text-right font-mono"
-              style={{ color: "var(--color-text-primary)" }}
+              className="w-28 flex-shrink-0 text-xs truncate text-right font-mono theme-text"
               title={item.function}
             >
               {item.function}
             </div>
-            <div
-              className="flex-1 h-6 rounded overflow-hidden relative"
-              style={{ backgroundColor: "var(--color-bg-primary)" }}
-            >
+            <div className="flex-1 h-6 rounded overflow-hidden relative theme-primary-bg">
               <div
                 className="h-full rounded transition-all"
                 style={{
@@ -55,10 +51,7 @@ export function GasBarChart({ entries }: { entries: GasEntry[] }) {
                 {formatGas(item.totalGas)}
               </span>
             </div>
-            <span
-              className="w-14 text-xs text-right flex-shrink-0"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
+            <span className="w-14 text-xs text-right flex-shrink-0 theme-text-secondary">
               {item.percentage.toFixed(1)}%
             </span>
           </div>

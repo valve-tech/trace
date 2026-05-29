@@ -10,10 +10,7 @@ export function OpcodeCategoryBreakdown({
 
   return (
     <div>
-      <div
-        className="h-8 rounded-lg overflow-hidden flex mb-3"
-        style={{ backgroundColor: "var(--color-bg-primary)" }}
-      >
+      <div className="h-8 rounded-lg overflow-hidden flex mb-3 theme-primary-bg">
         {categories.map((cat) => {
           const pct = totalGas > 0 ? (cat.gas / totalGas) * 100 : 0;
           if (pct < 0.5) return null;
@@ -51,16 +48,10 @@ export function OpcodeCategoryBreakdown({
               <span className="font-medium" style={{ color }}>
                 {cat.category}
               </span>
-              <span
-                className="font-mono"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
+              <span className="font-mono theme-text-secondary">
                 {cat.percentage.toFixed(1)}%
               </span>
-              <span
-                className="font-mono"
-                style={{ color: "var(--color-text-muted)" }}
-              >
+              <span className="font-mono theme-text-muted">
                 ({cat.count})
               </span>
             </div>

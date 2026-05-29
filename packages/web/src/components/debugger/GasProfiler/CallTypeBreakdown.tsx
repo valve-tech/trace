@@ -32,16 +32,10 @@ export function CallTypeBreakdown({
             >
               {type}
             </span>
-            <span
-              className="text-xs font-mono"
-              style={{ color: "var(--color-text-primary)" }}
-            >
+            <span className="text-xs font-mono theme-text">
               {formatGas(gas)}
             </span>
-            <span
-              className="text-xs"
-              style={{ color: "var(--color-text-muted)" }}
-            >
+            <span className="text-xs theme-text-muted">
               ({pct.toFixed(1)}%)
             </span>
           </div>
