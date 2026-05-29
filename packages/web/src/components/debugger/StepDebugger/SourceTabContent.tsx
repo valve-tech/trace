@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { ContractSource, SlitherFinding } from "../../../api/source";
 import SourceViewer, { type HighlightSpan } from "../SoliditySourceViewer";
 
@@ -32,6 +33,26 @@ export function SourceTabContent({
   onIdentifierClick?: (identifier: string, line: number) => void;
   executableLines?: Set<number>;
 }) {
+  // Flatten Slither's nested findings/elements/lines structure into the
+  // per-line shape the viewer indexes. Memoized so it doesn't get rebuilt on
+  // every step — without this, the viewer's findingsByLine useMemo would see
+  // a new array reference each render and rebuild its Map on every cursor move.
+  const sourceViewerFindings = useMemo(
+    () =>
+      slitherFindings.flatMap((f) =>
+        f.elements
+          .filter((e) => e.sourceMapping?.lines?.length)
+          .flatMap((e) =>
+            (e.sourceMapping?.lines ?? []).map((line) => ({
+              line,
+              severity: f.impact,
+              message: `[${f.check}] ${f.description.split("\n")[0]}`,
+            })),
+          ),
+      ),
+    [slitherFindings],
+  );
+
   if (currentSourceFile) {
     return (
       <div
@@ -50,17 +71,7 @@ export function SourceTabContent({
           onLineClick={onLineClick}
           onIdentifierClick={onIdentifierClick}
           executableLines={executableLines}
-          findings={slitherFindings.flatMap((f) =>
-            f.elements
-              .filter((e) => e.sourceMapping?.lines?.length)
-              .flatMap((e) =>
-                (e.sourceMapping?.lines ?? []).map((line) => ({
-                  line,
-                  severity: f.impact,
-                  message: `[${f.check}] ${f.description.split("\n")[0]}`,
-                })),
-              ),
-          )}
+          findings={sourceViewerFindings}
         />
       </div>
     );
