@@ -90,6 +90,10 @@ export async function getTransactionDetails(
     }
 
     if (abi && receipt.logs.length > 0) {
+      // viem's receipt log type is narrower than decodeLogs' input — both
+      // share the {address, topics, data} shape, but viem layers branded
+      // types we'd have to mirror to match precisely.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const decoded = decodeLogs(receipt.logs as any, abi);
       decodedLogEntries = decoded.map((d, i) => ({
         eventName: d.eventName,
@@ -118,6 +122,8 @@ export async function getTransactionDetails(
       const logsForAddr = receipt.logs.filter(
         (l) => l.address.toLowerCase() === addr,
       );
+      // Same shape mismatch as the first decode pass above.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const decoded = decodeLogs(logsForAddr as any, abi);
       for (let i = 0; i < decoded.length; i++) {
         const decodedEntry = decoded[i];

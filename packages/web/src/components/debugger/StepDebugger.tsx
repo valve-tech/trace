@@ -78,6 +78,17 @@ interface StepDebuggerProps {
 // TanStack Query cache each chunk.
 const DETAIL_CHUNK = 512;
 
+// One row per remembered navigation. Tree-row clicks and identifier clicks
+// push these; the toolbar's Recent dropdown reads them out, newest first.
+interface RecentNav {
+  step: number;
+  overrideLine: number | null;
+  label: string;
+  kind: "function" | "definition";
+  timestamp: number;
+}
+const RECENT_CAP = 20;
+
 // Identifiers the Solidity compiler exposes globally — they have no user-source
 // declaration to navigate to, so clicking them in the source pane should be a
 // silent no-op. Covers value/data globals (msg/tx/block/abi), keyword-ish names
@@ -166,6 +177,22 @@ export default function StepDebugger({
   // Browser-style bidirectional navigation history. Tree-row clicks and source
   // identifier clicks push; back/forward (Cmd+[ / Cmd+]) walk without pushing.
   const [navHistory, setNavHistory] = useState(emptyHistory);
+  // List-style "recent navigation" — distinct from the linear back/forward
+  // history above. Records labeled jumps in time order so the user can pop a
+  // dropdown and skip back to anywhere they've been, not just one step. Per-
+  // mount (the parent keys this component by txHash, so a new tx starts fresh).
+  const [recents, setRecents] = useState<RecentNav[]>([]);
+  const [recentsOpen, setRecentsOpen] = useState(false);
+  const pushRecent = useCallback(
+    (nav: Omit<RecentNav, "timestamp">) => {
+      setRecents((prev) => {
+        const head = prev[0];
+        if (head && head.step === nav.step && head.label === nav.label) return prev;
+        return [{ ...nav, timestamp: Date.now() }, ...prev].slice(0, RECENT_CAP);
+      });
+    },
+    [],
+  );
 
   const maxDepth = useMemo(() => {
     let max = 1;
@@ -384,8 +411,11 @@ export default function StepDebugger({
         }
       }
       setNavHistory((h) => pushHistoryEntry(h, { step, overrideLine: resolvedLine }));
+      if (hint?.funcName) {
+        pushRecent({ step, overrideLine: resolvedLine, label: hint.funcName, kind: "function" });
+      }
     },
-    [goTo, sourcesByAddr],
+    [goTo, sourcesByAddr, pushRecent],
   );
 
   // Jump to the next opcode satisfying `predicate`, but only within the active
@@ -492,11 +522,13 @@ export default function StepDebugger({
       setOverrideLine(hit.line);
       setScrollKey((k) => k + 1);
       if (targetStep !== null) goTo(targetStep);
+      const landedStep = targetStep ?? currentStep;
       setNavHistory((h) =>
-        pushHistoryEntry(h, { step: targetStep ?? currentStep, overrideLine: hit.line }),
+        pushHistoryEntry(h, { step: landedStep, overrideLine: hit.line }),
       );
+      pushRecent({ step: landedStep, overrideLine: hit.line, label: name, kind: "definition" });
     },
-    [frameRanges, currentStep, sourcesByAddr, traceSourceMaps, steps, goTo],
+    [frameRanges, currentStep, sourcesByAddr, traceSourceMaps, steps, goTo, pushRecent],
   );
 
   // Apply a history entry (back/forward). Same shape as the other navigators
@@ -851,10 +883,13 @@ export default function StepDebugger({
                 {view === "debugger" ? "Source + Opcodes" : "Decoded Trace"}
               </button>
             ))}
-            {/* Back / forward through the nav history. Buttons are visible only
-                when the corresponding direction has somewhere to go — so an
-                untouched session never shows the controls at all. */}
-            <div className="ml-auto flex items-center gap-1 pr-2">
+            {/* Back / forward through the linear nav history (Cmd+[/]), plus
+                a list-style Recent dropdown that shows every labeled jump in
+                time order — same shape as the explorer's recents rail, scoped
+                to this tx. The two coexist because they answer different
+                questions: ← / → walks the browser-style trail; Recent jumps
+                anywhere you've been without losing your spot. */}
+            <div className="ml-auto flex items-center gap-tight pr-2 relative">
               <button
                 onClick={navGoBack}
                 disabled={!canBack}
@@ -881,6 +916,75 @@ export default function StepDebugger({
               >
                 →
               </button>
+              {recents.length > 0 && (
+                <button
+                  onClick={() => setRecentsOpen((o) => !o)}
+                  title="Recent jumps"
+                  className="px-2 py-1 text-xs font-mono transition-opacity"
+                  style={{
+                    color: recentsOpen ? "var(--color-accent)" : "var(--color-text-secondary)",
+                    cursor: "pointer",
+                  }}
+                >
+                  Recent
+                </button>
+              )}
+              {recentsOpen && recents.length > 0 && (
+                <>
+                  {/* Click-away overlay */}
+                  <div
+                    onClick={() => setRecentsOpen(false)}
+                    style={{
+                      position: "fixed",
+                      inset: 0,
+                      zIndex: 40,
+                    }}
+                  />
+                  <div
+                    className="absolute right-0 top-full mt-1 overflow-y-auto"
+                    style={{
+                      zIndex: 50,
+                      minWidth: "240px",
+                      maxWidth: "360px",
+                      maxHeight: "320px",
+                      backgroundColor: "var(--color-bg-card)",
+                      boxShadow: "0 0 0 1px var(--color-border-default), 0 8px 24px rgba(0,0,0,0.4)",
+                    }}
+                  >
+                    <div
+                      className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest"
+                      style={{
+                        color: "var(--color-text-muted)",
+                        boxShadow: "0 1px 0 0 var(--color-border-muted)",
+                      }}
+                    >
+                      Recent jumps · {recents.length}
+                    </div>
+                    {recents.map((r, i) => (
+                      <button
+                        key={`${r.timestamp}-${i}`}
+                        onClick={() => {
+                          applyHistoryEntry({ step: r.step, overrideLine: r.overrideLine });
+                          setRecentsOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs flex items-center gap-inline transition-colors hover:opacity-90"
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          color: "var(--color-text-primary)",
+                          backgroundColor: r.step === currentStep ? "var(--color-accent-muted)" : "transparent",
+                          boxShadow: "0 1px 0 0 var(--color-border-muted)",
+                        }}
+                      >
+                        <span style={{ color: r.kind === "function" ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
+                          {r.kind === "function" ? "ƒ" : "›"}
+                        </span>
+                        <span className="flex-1 truncate">{r.label}</span>
+                        <span style={{ color: "var(--color-text-muted)" }}>step {r.step.toLocaleString()}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

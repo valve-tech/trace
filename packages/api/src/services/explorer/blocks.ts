@@ -43,9 +43,9 @@ export interface BlockDetails {
 export async function getBlockDetails(
   numberOrHash: string,
 ): Promise<BlockDetails> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- viem's
-  // getBlock return type changes by `includeTransactions` literal; the
-  // upstream branch makes a precise type awkward without union narrowing.
+  // viem's getBlock return type changes by `includeTransactions` literal;
+  // the upstream branch makes a precise type awkward without union narrowing.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let block: any;
 
   if (numberOrHash.startsWith("0x") && numberOrHash.length === 66) {

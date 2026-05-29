@@ -71,7 +71,7 @@ export function TreeFilterBar({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-1 p-2"
+      className="flex flex-wrap items-center gap-tight p-2"
       style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
     >
       <Chip label="ƒ internal" active={internal} onClick={onToggleInternal} title="A contract's own internal functions" />

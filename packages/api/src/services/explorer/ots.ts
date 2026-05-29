@@ -43,9 +43,9 @@ function isOtsUnavailable(err: unknown): boolean {
 export async function otsCall<T>(method: string, params: unknown[]): Promise<T | null> {
   if (supportCache === false) return null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- viem's
-    // request() is generic over its own EIP-1474 union; we're stepping outside
-    // that union deliberately to call namespaced methods.
+    // viem's request() is generic over its own EIP-1474 union; we're stepping
+    // outside that union deliberately to call namespaced methods.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (publicClient.request as any)({ method, params });
     if (supportCache === null) supportCache = true;
     return result as T;

@@ -34,9 +34,14 @@ export async function callReadFunction(
     );
 
     const { encodeFunctionData } = await import("viem");
+    // viem's encodeFunctionData over-constrains the ABI fragment shape; we
+    // pass the raw selected fn and trust its declared name/inputs. argValues
+    // is similarly post-coercion typed as unknown[] here.
     const data = encodeFunctionData({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       abi: [fn] as any,
       functionName: fn.name!,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       args: argValues as any,
     });
 

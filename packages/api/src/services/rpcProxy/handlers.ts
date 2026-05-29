@@ -21,10 +21,10 @@ export async function handleSimulateTransaction(
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the
-    // simulator's input type is the route's Zod-validated shape; the RPC
-    // boundary accepts any object and lets the simulator throw on
-    // unknown fields. A precise type here would duplicate the schema.
+    // The simulator's input type is the route's Zod-validated shape; the RPC
+    // boundary accepts any object and lets the simulator throw on unknown
+    // fields. A precise type here would duplicate the schema.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await simulateTransaction(txParams as any);
     return makeResponse(id, serializeBigInts(result));
   } catch (err) {

@@ -55,11 +55,11 @@ export async function simulateTransaction(
   let errorMsg: string | null = null;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- viem's
-    // call() takes a strictly typed union; we're building params dynamically
-    // from optional user input so the dynamic shape doesn't match either
-    // branch precisely. Passing through with an `any` cast is the standard
-    // approach for proxy-style call constructors.
+    // viem's call() takes a strictly typed union; we're building params
+    // dynamically from optional user input so the dynamic shape doesn't match
+    // either branch precisely. Passing through with an `any` cast is the
+    // standard approach for proxy-style call constructors.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await publicClient.call(callParams as any);
     returnData = (result.data as Hex) ?? "0x";
     success = true;
