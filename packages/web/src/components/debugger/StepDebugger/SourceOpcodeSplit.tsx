@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import type { ContractSource, SlitherFinding } from "../../../api/source";
 import type { OpcodeStep } from "../../../api/debugger";
 import type { HighlightSpan } from "../SoliditySourceViewer";
@@ -5,6 +6,8 @@ import type { OpcodeFrequency } from "./opcodeStats";
 import { SourceTabContent } from "./SourceTabContent";
 import { OpcodeFrequencyTags } from "./OpcodeFrequencyTags";
 import { OpcodeTracePane } from "./OpcodeTracePane";
+
+const COLLAPSED_KEY = "debugger:opcodePaneCollapsed";
 
 type ContractSourceFile = ContractSource["files"][number];
 
@@ -59,10 +62,31 @@ export function SourceOpcodeSplit({
   opcodeFilter: string;
   onToggleOpcode: (op: string) => void;
 }) {
+  // Persist the collapsed state so reloads remember the user's preferred
+  // layout. Useful when reading mostly source code — the opcode rail can
+  // hide and give the source pane the full width, with a thin column
+  // remaining to toggle it back.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem(COLLAPSED_KEY) === "1";
+  });
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
+      return next;
+    });
+  }, []);
+
   return (
     <div className="flex flex-col lg:flex-row gap-0 h-[calc(100vh-260px)] min-h-[480px]">
-      {/* Source — the larger pane */}
-      <div className="lg:flex-[3] min-w-0 min-h-[240px] flex-1">
+      {/* Source — takes all remaining width when the opcode pane is hidden. */}
+      <div
+        className={
+          collapsed
+            ? "flex-1 min-w-0 min-h-[240px]"
+            : "lg:flex-[3] min-w-0 min-h-[240px] flex-1"
+        }
+      >
         <SourceTabContent
           currentSourceFile={currentSourceFile}
           effectiveLine={effectiveLine}
@@ -78,25 +102,63 @@ export function SourceOpcodeSplit({
         />
       </div>
 
-      {/* Opcode trace — synced companion. The `.card` class already provides
-          the bg-card surface + outset border + 1px margin; no need to repeat
-          them inline. */}
-      <div className="lg:flex-[2] lg:min-w-[340px] min-h-[240px] flex flex-col card overflow-hidden">
-        <OpcodeFrequencyTags
-          frequencies={opcodeFreqs}
-          activeOp={opcodeFilter}
-          onToggle={onToggleOpcode}
-        />
-        <div className="flex-1 min-h-0">
-          <OpcodeTracePane
-            steps={steps}
-            currentStep={currentStep}
-            goTo={goTo}
-            filteredIndices={filteredIndices}
-            maxDepth={maxDepth}
-          />
+      {collapsed ? (
+        // Collapsed rail: a thin column with a single button to restore the
+        // opcode pane. Persisted so the rail keeps showing on reload.
+        <button
+          onClick={toggleCollapsed}
+          title="Show opcode pane"
+          className="hidden lg:flex items-start justify-center pt-3 flex-shrink-0 cursor-pointer transition-opacity hover:opacity-80"
+          style={{
+            width: "20px",
+            backgroundColor: "var(--color-bg-card)",
+            boxShadow: "0 0 0 1px var(--color-border-default)",
+            color: "var(--color-text-muted)",
+            fontFamily: "var(--font-mono)",
+            fontSize: "11px",
+          }}
+        >
+          ‹
+        </button>
+      ) : (
+        // Opcode trace — synced companion. The `.card` class already provides
+        // the bg-card surface + outset border + 1px margin; no need to repeat
+        // them inline.
+        <div className="lg:flex-[2] lg:min-w-[340px] min-h-[240px] flex flex-col card overflow-hidden">
+          <div className="flex items-center" style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}>
+            <div className="flex-1 min-w-0">
+              <OpcodeFrequencyTags
+                frequencies={opcodeFreqs}
+                activeOp={opcodeFilter}
+                onToggle={onToggleOpcode}
+              />
+            </div>
+            <button
+              onClick={toggleCollapsed}
+              title="Hide opcode pane"
+              className="hidden lg:flex items-center justify-center self-stretch flex-shrink-0 cursor-pointer transition-opacity hover:opacity-80"
+              style={{
+                width: "20px",
+                color: "var(--color-text-muted)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "11px",
+                boxShadow: "inset 1px 0 0 0 var(--color-border-default)",
+              }}
+            >
+              ›
+            </button>
+          </div>
+          <div className="flex-1 min-h-0">
+            <OpcodeTracePane
+              steps={steps}
+              currentStep={currentStep}
+              goTo={goTo}
+              filteredIndices={filteredIndices}
+              maxDepth={maxDepth}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
