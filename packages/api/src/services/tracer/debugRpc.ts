@@ -10,6 +10,21 @@ export const DEBUG_RPC_URL =
   process.env.PULSECHAIN_RPC_URL ||
   "https://rpc.pulsechain.com";
 
+/**
+ * Optional bearer token attached as `Authorization: Bearer <token>` on
+ * every debug-rpc request. Empty/unset means "no auth header" (the
+ * common case for self-hosted Geth/Erigon on a private network).
+ *
+ * Why this exists: private RPC endpoints fronted by a header-auth
+ * gateway (e.g., the valve fleet's reth boxes — direct-{a,b}-evm-N-
+ * rpc.valve.city, which gate on `Authorization: Bearer <per-chain
+ * token>`) need the bearer on every request or they 401 before debug_*
+ * methods are even evaluated. Without this knob, the tracer code's
+ * fetch() falls into the "isDebugUnavailable" path on every call and
+ * eventually the trace surfaces as a BlockScout-fallback 5xx.
+ */
+export const DEBUG_RPC_BEARER = process.env.DEBUG_RPC_BEARER || "";
+
 export const UNAVAILABLE_MSG =
   "The debug API is not available on the connected RPC node. " +
   "To use the debugger, configure DEBUG_RPC_URL to point to a node with the debug namespace enabled " +
@@ -26,9 +41,14 @@ export async function makeDebugRpc(
 ): Promise<JsonRpcResponse> {
   const body = { jsonrpc: "2.0", id: 1, method, params };
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (DEBUG_RPC_BEARER) {
+    headers.Authorization = `Bearer ${DEBUG_RPC_BEARER}`;
+  }
+
   const res = await fetch(DEBUG_RPC_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(60_000),
   });
