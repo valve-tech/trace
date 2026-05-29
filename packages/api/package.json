@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && node dist/openapi/build.js",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/integration.test.ts",
-    "test:unit": "tsx --test tests/unit/*.test.ts"
+    "test:unit": "tsx --test \"tests/unit/**/*.test.ts\""
   },
   "dependencies": {
     "@valve-tech/gas-oracle": "^0.16.0",

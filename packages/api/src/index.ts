@@ -39,6 +39,7 @@ import mempoolRouter from "./routes/mempool.js";
 import chifraRouter from "./routes/chifra.js";
 import etherscanRouter from "./routes/etherscan.js";
 import { authMiddleware } from "./middleware/auth.js";
+import { docsHandler, openapiJsonHandler } from "./openapi/handlers.js";
 import { startMonitor } from "./services/monitor.js";
 import { initScheduler } from "./services/actionScheduler.js";
 import { initWebSocket } from "./services/wsServer.js";
@@ -62,6 +63,12 @@ app.get("/health", async (_req, res) => {
   const status = dbOk ? "ok" : "degraded";
   res.status(dbOk ? 200 : 503).json({ status, chain: "PulseChain", chainId: 369, db: dbOk });
 });
+
+// OpenAPI federation surface — public, no auth, CORS open on the JSON.
+// Federated from one.valve.city's root manifest at services[0].docs.openapi.
+// See packages/api/src/openapi/spec.ts for the design.
+app.get("/openapi.json", openapiJsonHandler);
+app.get("/docs", docsHandler);
 
 app.use("/rpc", rpcRouter);
 app.use("/api/rpc", rpcRouter);
