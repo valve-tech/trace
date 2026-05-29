@@ -1,4 +1,15 @@
 import "./env.js"; // must be first — loads root .env before services read process.env
+
+// tsx watch re-runs modules on file change without tearing down the previous
+// instance's process listeners, so SIGINT/SIGTERM/exit handlers accumulate
+// across reloads (3 per reload from forkManager + 2 from gracefulShutdown).
+// After a few saves we trip Node's default 10-listener "possible memory leak"
+// warning. Raise the ceiling — in production there's no hot reload so the
+// long-term count is bounded.
+if (process.env.NODE_ENV !== "production") {
+  process.setMaxListeners(50);
+}
+
 import express from "express";
 import cors from "cors";
 import path from "node:path";
