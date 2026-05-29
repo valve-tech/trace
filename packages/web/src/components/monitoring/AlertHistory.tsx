@@ -46,10 +46,9 @@ export default function AlertHistory({
     void fetchHistory();
   }, [fetchHistory]);
 
-  const cardStyle = {
-    backgroundColor: "var(--color-bg-card)",
-    boxShadow: "0 0 0 1px var(--color-border-default)",
-  };
+  // theme-card-bg is applied via className on the consuming elements;
+  // the bs class is what supplies the boxShadow outline.
+  const cardClass = "theme-card-bg bs";
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + "Z");
@@ -67,11 +66,8 @@ export default function AlertHistory({
       <div className="flex items-center gap-row">
         <button
           onClick={onBack}
-          className="text-sm px-3 py-1.5 rounded-md bs"
-          style={{
-            color: "var(--color-text-secondary)",
-            backgroundColor: "transparent",
-          }}
+          className="text-sm px-3 py-1.5 rounded-md bs theme-text-secondary"
+          style={{ backgroundColor: "transparent" }}
         >
           Back
         </button>
@@ -85,12 +81,8 @@ export default function AlertHistory({
       {/* Error */}
       {error && (
         <div
-          className="rounded-lg px-4 py-3 text-sm"
-          style={{
-            backgroundColor: "var(--color-danger-muted)",
-            borderColor: "var(--color-danger)",
-            color: "var(--color-danger)",
-          }}
+          className="rounded-lg px-4 py-3 text-sm theme-danger-bg theme-danger"
+          style={{ borderColor: "var(--color-danger)" }}
         >
           {error}
         </div>
@@ -105,10 +97,7 @@ export default function AlertHistory({
 
       {/* Table */}
       {!loading && history.length === 0 && (
-        <div
-          className="rounded-lg p-8 text-center"
-          style={cardStyle}
-        >
+        <div className={`rounded-lg p-8 text-center ${cardClass}`}>
           <p className="theme-text-muted">
             No alert history yet.
           </p>
@@ -116,7 +105,7 @@ export default function AlertHistory({
       )}
 
       {!loading && history.length > 0 && (
-        <div className="rounded-lg overflow-hidden" style={cardStyle}>
+        <div className={`rounded-lg overflow-hidden ${cardClass}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -164,12 +153,8 @@ export default function AlertHistory({
                           href={`https://scan.pulsechain.com/tx/${entry.tx_hash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="hover:underline"
-                          style={{
-                            color: "var(--color-accent)",
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "12px",
-                          }}
+                          className="hover:underline theme-accent theme-mono"
+                          style={{ fontSize: "12px" }}
                         >
                           {truncateHash(entry.tx_hash)}
                         </a>
@@ -180,12 +165,8 @@ export default function AlertHistory({
                       )}
                     </td>
                     <td
-                      className="px-4 py-3"
-                      style={{
-                        color: "var(--color-text-primary)",
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "12px",
-                      }}
+                      className="px-4 py-3 theme-text theme-mono"
+                      style={{ fontSize: "12px" }}
                     >
                       {entry.block_number?.toLocaleString() ?? "--"}
                     </td>
