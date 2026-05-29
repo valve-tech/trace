@@ -91,12 +91,17 @@ export default function StepDebugger({
 
   // Lazy per-step state for the chunk containing the cursor. The first fetch
   // for a tx warms a server-side full-trace cache (~seconds); later chunks are
-  // instant. Diffs read current + previous step out of the same chunk.
+  // instant. Diffs read current + previous step out of the same chunk — so
+  // every chunk after the first asks for one extra step at its front. Without
+  // that one-step overlap, landing on step 512 (or any DETAIL_CHUNK boundary)
+  // would show an empty storage diff because step 511's detail lives in the
+  // previous chunk that's no longer in cache.
   const chunkStart = Math.floor(currentStep / DETAIL_CHUNK) * DETAIL_CHUNK;
+  const fetchFrom = Math.max(0, chunkStart - 1);
   const detailQuery = useQuery({
-    queryKey: ["opcode-detail", txHash, chunkStart],
+    queryKey: ["opcode-detail", txHash, fetchFrom],
     queryFn: () =>
-      fetchOpcodeDetail(txHash!, chunkStart, chunkStart + DETAIL_CHUNK),
+      fetchOpcodeDetail(txHash!, fetchFrom, chunkStart + DETAIL_CHUNK),
     enabled: !!txHash && steps.length > 0,
     staleTime: Infinity,
     gcTime: Infinity,
