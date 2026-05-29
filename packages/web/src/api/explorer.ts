@@ -1,4 +1,4 @@
-import { formatEther } from "viem";
+import { formatEther, hexToBigInt, hexToNumber } from "viem";
 
 const API_BASE = "/api";
 
@@ -276,6 +276,144 @@ export async function fetchContractInfo(
   return apiFetch<ContractInfo>(`${API_BASE}/contract/${address}`);
 }
 
+// ---------------------------------------------------------------------------
+// Block — Etherscan-shaped proxy module
+// ---------------------------------------------------------------------------
+
+/**
+ * A block lookup key is either a 32-byte hash, a decimal block number,
+ * a hex-encoded block number, or one of the symbolic tags. We dispatch
+ * by shape rather than asking the caller which kind it is.
+ */
+function isHash(input: string): boolean {
+  return input.startsWith("0x") && input.length === 66;
+}
+
+function toBlockTag(input: string): string {
+  if (input.startsWith("0x")) return input;
+  if (input === "latest" || input === "earliest" || input === "pending") {
+    return input;
+  }
+  return `0x${BigInt(input).toString(16)}`;
+}
+
+/**
+ * Raw RPC tx shape we read off the block payload when `boolean=true`.
+ * Optional EIP-1559 fields (`maxFeePerGas`, `maxPriorityFeePerGas`) are
+ * only present on type-2 transactions.
+ */
+interface RpcBlockTx {
+  hash: string;
+  from: string;
+  to: string | null;
+  value: string;
+  gasPrice?: string | null;
+  maxFeePerGas?: string | null;
+  maxPriorityFeePerGas?: string | null;
+  type?: string;
+  input?: string;
+}
+
+interface RpcBlock {
+  number: string;
+  hash: string;
+  parentHash: string;
+  timestamp: string;
+  miner: string;
+  gasUsed: string;
+  gasLimit: string;
+  baseFeePerGas?: string | null;
+  size: string;
+  transactions: RpcBlockTx[];
+}
+
+/**
+ * Block details over the Etherscan-shaped surface:
+ *
+ *   - hash input   → module=proxy&action=eth_getBlockByHash&hash=0x..&boolean=true
+ *   - number input → module=proxy&action=eth_getBlockByNumber&tag=0x..&boolean=true
+ *
+ * We hex-encode decimal block numbers client-side because the dispatcher
+ * forwards `tag` straight to the RPC node, which only speaks hex/symbolic
+ * tags. The block payload arrives with hex everywhere; this function is
+ * the *only* place we convert hex → decimal-string for the rest of the
+ * app to consume.
+ *
+ * Trade-off vs. the legacy /api/block/:numberOrHash REST route: that
+ * endpoint fired N+1 receipt calls to populate per-tx `gasUsed`. Nothing
+ * in BlockView reads that field today, so the migration drops the
+ * receipt fan-out entirely. Per-tx `gasUsed` is `null` from now on; if a
+ * future consumer needs it, fetch receipts lazily at the row level.
+ */
 export async function fetchBlock(numberOrHash: string): Promise<BlockDetails> {
-  return apiFetch<BlockDetails>(`${API_BASE}/block/${numberOrHash}`);
+  const url = isHash(numberOrHash)
+    ? `${API_BASE}?module=proxy&action=eth_getBlockByHash&hash=${numberOrHash}&boolean=true`
+    : `${API_BASE}?module=proxy&action=eth_getBlockByNumber&tag=${toBlockTag(numberOrHash)}&boolean=true`;
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Block lookup failed (HTTP ${res.status})`);
+  }
+
+  const body = (await res.json()) as {
+    jsonrpc?: string;
+    result?: RpcBlock | null;
+    error?: { message?: string };
+  };
+
+  if (body.error) {
+    throw new Error(`eth_getBlockBy*: ${body.error.message ?? "unknown error"}`);
+  }
+  if (!body.result) {
+    throw new Error(`Block not found: ${numberOrHash}`);
+  }
+
+  const rpc = body.result;
+
+  // Per-tx mapping. methodId is derived from `input` (first 4 bytes), and
+  // valuePLS uses viem's formatEther — both moved client-side because the
+  // raw RPC payload doesn't include them.
+  const transactions: BlockDetails["transactions"] = rpc.transactions.map(
+    (tx) => {
+      let valuePLS: string;
+      try {
+        valuePLS = formatEther(hexToBigInt(tx.value as `0x${string}`));
+      } catch {
+        valuePLS = "0";
+      }
+      const methodId =
+        tx.input && tx.input.length >= 10 ? tx.input.slice(0, 10) : "0x";
+      return {
+        hash: tx.hash,
+        from: tx.from,
+        to: tx.to,
+        value: hexToBigInt(tx.value as `0x${string}`).toString(),
+        valuePLS,
+        // gasUsed is receipt-only data; we no longer fan out N+1 receipt
+        // calls just to fill this in. See trade-off note above.
+        gasUsed: null,
+        type: tx.type ?? "0x0",
+        gasPrice: tx.gasPrice ?? null,
+        maxFeePerGas: tx.maxFeePerGas ?? null,
+        maxPriorityFeePerGas: tx.maxPriorityFeePerGas ?? null,
+        methodId,
+      };
+    },
+  );
+
+  return {
+    number: hexToBigInt(rpc.number as `0x${string}`).toString(),
+    hash: rpc.hash,
+    parentHash: rpc.parentHash,
+    timestamp: hexToNumber(rpc.timestamp as `0x${string}`),
+    miner: rpc.miner,
+    gasUsed: hexToBigInt(rpc.gasUsed as `0x${string}`).toString(),
+    gasLimit: hexToBigInt(rpc.gasLimit as `0x${string}`).toString(),
+    baseFeePerGas: rpc.baseFeePerGas
+      ? hexToBigInt(rpc.baseFeePerGas as `0x${string}`).toString()
+      : null,
+    transactionCount: rpc.transactions.length,
+    size: hexToBigInt(rpc.size as `0x${string}`).toString(),
+    transactions,
+  };
 }

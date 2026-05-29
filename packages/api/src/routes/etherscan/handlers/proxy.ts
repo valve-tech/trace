@@ -88,6 +88,12 @@ export const ethGetBlockByNumberAction: ProxyAction = (params) => {
   return call(params, "eth_getBlockByNumber", [tag, txDetails]);
 };
 
+export const ethGetBlockByHashAction: ProxyAction = (params) => {
+  const hash = str(params, "hash");
+  const txDetails = str(params, "boolean") === "true";
+  return call(params, "eth_getBlockByHash", [hash, txDetails]);
+};
+
 export const ethGetBlockTransactionCountByNumberAction: ProxyAction = (
   params,
 ) => {
@@ -179,6 +185,7 @@ export const ethSendRawTransactionAction: ProxyAction = (params) => {
 export const proxyActions: Record<string, ProxyAction> = {
   eth_blockNumber: ethBlockNumberAction,
   eth_getBlockByNumber: ethGetBlockByNumberAction,
+  eth_getBlockByHash: ethGetBlockByHashAction,
   eth_getBlockTransactionCountByNumber:
     ethGetBlockTransactionCountByNumberAction,
   eth_getTransactionByHash: ethGetTransactionByHashAction,
