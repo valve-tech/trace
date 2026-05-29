@@ -220,11 +220,7 @@ export default function WorkspaceDraft() {
                 {t.label}
                 {t.badge && (
                   <span
-                    className="ml-1 px-1.5 py-0.5 text-[10px] font-mono"
-                    style={{
-                      backgroundColor: "var(--color-bg-tertiary)",
-                      color: "var(--color-text-muted)",
-                    }}
+                    className="ml-1 px-1.5 py-0.5 text-[10px] font-mono theme-tertiary-bg theme-text-muted"
                   >
                     {t.badge}
                   </span>

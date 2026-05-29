@@ -34,12 +34,7 @@ export function SearchBar({
           value={txHash}
           onChange={(e) => setTxHash(e.target.value.trim())}
           onKeyDown={(e) => { if (e.key === "Enter") onSubmit(); }}
-          className="flex-1 px-4 py-2.5 rounded-lg bs text-sm"
-          style={{
-            backgroundColor: "var(--color-bg-input)",
-            color: "var(--color-text-primary)",
-            fontFamily: "var(--font-mono)",
-          }}
+          className="flex-1 px-4 py-2.5 rounded-lg bs text-sm theme-input-bg theme-text theme-mono"
         />
         <button
           onClick={onSubmit}

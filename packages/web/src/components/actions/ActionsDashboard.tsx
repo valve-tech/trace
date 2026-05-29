@@ -309,11 +309,7 @@ function ActionCard({
             </span>
             {!action.enabled && (
               <span
-                className="inline-block px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0"
-                style={{
-                  backgroundColor: "var(--color-bg-tertiary)",
-                  color: "var(--color-text-muted)",
-                }}
+                className="inline-block px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 theme-tertiary-bg theme-text-muted"
               >
                 Disabled
               </span>

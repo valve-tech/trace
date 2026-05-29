@@ -23,11 +23,7 @@ export function AbiTab({ abi }: { abi: unknown }) {
     <CodeBox>
       {abi ? (
         <div
-          className="p-4 text-xs font-mono overflow-x-auto max-h-[600px] overflow-y-auto"
-          style={{
-            backgroundColor: "var(--color-bg-primary)",
-            color: "var(--color-text-primary)",
-          }}
+          className="p-4 text-xs font-mono overflow-x-auto max-h-[600px] overflow-y-auto theme-primary-bg theme-text"
         >
           <pre className="whitespace-pre-wrap break-all">
             {JSON.stringify(abi, null, 2)}
@@ -45,11 +41,7 @@ export function SourceTab({ sourceCode }: { sourceCode: string | null }) {
     <CodeBox>
       {sourceCode ? (
         <div
-          className="p-4 text-xs font-mono overflow-x-auto max-h-[600px] overflow-y-auto"
-          style={{
-            backgroundColor: "var(--color-bg-primary)",
-            color: "var(--color-text-primary)",
-          }}
+          className="p-4 text-xs font-mono overflow-x-auto max-h-[600px] overflow-y-auto theme-primary-bg theme-text"
         >
           <pre className="whitespace-pre-wrap">{sourceCode}</pre>
         </div>

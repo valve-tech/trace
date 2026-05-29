@@ -151,11 +151,7 @@ export default function ActionEditor({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="My Action"
-          className="w-full px-3 py-2 rounded-md bs text-sm"
-          style={{
-            backgroundColor: "var(--color-bg-input)",
-            color: "var(--color-text-primary)",
-          }}
+          className="w-full px-3 py-2 rounded-md bs text-sm theme-input-bg theme-text"
         />
       </div>
 
@@ -177,11 +173,7 @@ export default function ActionEditor({
 
       {error && (
         <div
-          className="p-3 rounded-md text-sm"
-          style={{
-            backgroundColor: "var(--color-danger-muted)",
-            color: "var(--color-danger)",
-          }}
+          className="p-3 rounded-md text-sm theme-danger-bg theme-danger"
         >
           {error}
         </div>

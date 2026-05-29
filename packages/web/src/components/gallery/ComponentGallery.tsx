@@ -74,8 +74,7 @@ export default function ComponentGallery() {
           <Variant id="tooltip/default">
             <Tooltip label="Themed, positioned, dismiss-on-leave">
               <span
-                className="text-xs px-2 py-1 font-mono"
-                style={{ backgroundColor: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)" }}
+                className="text-xs px-2 py-1 font-mono theme-tertiary-bg theme-text-secondary"
               >
                 hover me
               </span>

@@ -56,11 +56,7 @@ export function RevertReasonBlock({ reason }: { reason: string }) {
         Revert Reason
       </p>
       <pre
-        className="text-xs whitespace-pre-wrap"
-        style={{
-          color: "var(--color-text-primary)",
-          fontFamily: "var(--font-mono)",
-        }}
+        className="text-xs whitespace-pre-wrap theme-text theme-mono"
       >
         {reason}
       </pre>

@@ -209,11 +209,7 @@ function TopBar({
           PulseChain Dev Platform
         </h1>
         <span
-          className="text-[10px] uppercase tracking-wider px-2 py-0.5 font-semibold"
-          style={{
-            backgroundColor: "var(--color-accent-muted)",
-            color: "var(--color-accent)",
-          }}
+          className="text-[10px] uppercase tracking-wider px-2 py-0.5 font-semibold theme-accent-bg theme-accent"
         >
           Devnet
         </span>
@@ -237,11 +233,7 @@ function TopBar({
             Paste a tx hash, address, block, or function selector…
           </span>
           <span
-            className="text-[10px] px-1.5 py-0.5 font-mono shrink-0"
-            style={{
-              backgroundColor: "var(--color-bg-tertiary)",
-              color: "var(--color-text-secondary)",
-            }}
+            className="text-[10px] px-1.5 py-0.5 font-mono shrink-0 theme-tertiary-bg theme-text-secondary"
           >
             ⌘K
           </span>
@@ -295,11 +287,7 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
                     </button>
                     <span
                       role="tooltip"
-                      className="card pointer-events-none absolute top-full left-0 mt-1 z-50 hidden group-hover/info:block w-44 px-2 py-1.5 text-[11px] leading-snug normal-case tracking-normal font-normal"
-                      style={{
-                        backgroundColor: "var(--color-bg-card)",
-                        color: "var(--color-text-secondary)",
-                      }}
+                      className="card pointer-events-none absolute top-full left-0 mt-1 z-50 hidden group-hover/info:block w-44 px-2 py-1.5 text-[11px] leading-snug normal-case tracking-normal font-normal theme-card-bg theme-text-secondary"
                     >
                       {group.hint}
                     </span>
@@ -714,21 +702,13 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
           />
           {parsed.kind !== "unknown" && (
             <span
-              className="text-[10px] uppercase tracking-widest font-semibold px-2 py-1 shrink-0"
-              style={{
-                backgroundColor: "var(--color-accent-muted)",
-                color: "var(--color-accent)",
-              }}
+              className="text-[10px] uppercase tracking-widest font-semibold px-2 py-1 shrink-0 theme-accent-bg theme-accent"
             >
               {KIND_LABELS[parsed.kind]}
             </span>
           )}
           <kbd
-            className="text-[10px] px-2 py-1 font-mono shrink-0 ml-2"
-            style={{
-              backgroundColor: "var(--color-bg-tertiary)",
-              color: "var(--color-text-secondary)",
-            }}
+            className="text-[10px] px-2 py-1 font-mono shrink-0 ml-2 theme-tertiary-bg theme-text-secondary"
           >
             esc
           </kbd>
@@ -790,11 +770,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                       }}
                     />
                     <span
-                      className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 shrink-0"
-                      style={{
-                        backgroundColor: "var(--color-bg-tertiary)",
-                        color: "var(--color-text-secondary)",
-                      }}
+                      className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 shrink-0 theme-tertiary-bg theme-text-secondary"
                     >
                       {r.tag}
                     </span>
@@ -812,11 +788,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                     </div>
                     {isSel && (
                       <kbd
-                        className="text-[10px] px-2 py-1 font-mono shrink-0"
-                        style={{
-                          backgroundColor: "var(--color-bg-card)",
-                          color: "var(--color-text-secondary)",
-                        }}
+                        className="text-[10px] px-2 py-1 font-mono shrink-0 theme-card-bg theme-text-secondary"
                       >
                         ↵
                       </kbd>

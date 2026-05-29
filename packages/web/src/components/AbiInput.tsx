@@ -67,11 +67,7 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
         )}
         {autoFetch && (
           <span
-            className="text-xs px-2 py-0.5 rounded-full"
-            style={{
-              backgroundColor: "var(--color-accent-muted)",
-              color: "var(--color-accent)",
-            }}
+            className="text-xs px-2 py-0.5 rounded-full theme-accent-bg theme-accent"
           >
             Auto-fetch
           </span>

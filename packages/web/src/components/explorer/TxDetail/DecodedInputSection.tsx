@@ -9,12 +9,7 @@ export function DecodedInputSection({ decoded }: { decoded: DecodedInput }) {
     <SectionCard title="Decoded Function Call">
       <div className="pt-3">
         <div
-          className="px-3 py-2 rounded-md mb-3 text-sm"
-          style={{
-            fontFamily: "var(--font-mono)",
-            backgroundColor: "var(--color-accent-muted)",
-            color: "var(--color-accent)",
-          }}
+          className="px-3 py-2 rounded-md mb-3 text-sm theme-mono theme-accent-bg theme-accent"
         >
           {decoded.functionName}({decoded.args.map((p) => p.type).join(", ")})
         </div>

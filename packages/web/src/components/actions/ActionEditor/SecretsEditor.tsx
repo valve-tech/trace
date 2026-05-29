@@ -49,11 +49,7 @@ export function SecretsEditor({ secrets, setSecrets }: Props) {
                 setSecrets(updated);
               }}
               placeholder="KEY"
-              className="w-40 px-2 py-1.5 rounded bs text-xs font-mono"
-              style={{
-                backgroundColor: "var(--color-bg-input)",
-                color: "var(--color-text-primary)",
-              }}
+              className="w-40 px-2 py-1.5 rounded bs text-xs font-mono theme-input-bg theme-text"
             />
             <input
               type="password"
@@ -64,11 +60,7 @@ export function SecretsEditor({ secrets, setSecrets }: Props) {
                 setSecrets(updated);
               }}
               placeholder="value"
-              className="flex-1 px-2 py-1.5 rounded bs text-xs font-mono"
-              style={{
-                backgroundColor: "var(--color-bg-input)",
-                color: "var(--color-text-primary)",
-              }}
+              className="flex-1 px-2 py-1.5 rounded bs text-xs font-mono theme-input-bg theme-text"
             />
             <button
               onClick={() => setSecrets(secrets.filter((_, j) => j !== i))}

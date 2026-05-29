@@ -93,11 +93,7 @@ function ErrorState({ message }: { message: string }) {
             Simulation Error
           </h3>
           <p
-            className="text-sm break-all"
-            style={{
-              fontFamily: "var(--font-mono)",
-              color: "var(--color-text-secondary)",
-            }}
+            className="text-sm break-all theme-mono theme-text-secondary"
           >
             {message}
           </p>
@@ -148,11 +144,7 @@ export default function SimulationResultPanel({
                 Revert Reason
               </span>
               <span
-                className="text-sm break-all"
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--color-text-primary)",
-                }}
+                className="text-sm break-all theme-mono theme-text"
               >
                 {result.revertReason}
               </span>
@@ -172,12 +164,7 @@ export default function SimulationResultPanel({
             Decoded Function Call
           </h3>
           <div
-            className="px-3 py-2 rounded-md mb-3 text-sm"
-            style={{
-              fontFamily: "var(--font-mono)",
-              backgroundColor: "var(--color-accent-muted)",
-              color: "var(--color-accent)",
-            }}
+            className="px-3 py-2 rounded-md mb-3 text-sm theme-mono theme-accent-bg theme-accent"
           >
             {result.decodedCall.functionName}(
             {result.decodedCall.params.map((p) => p.type).join(", ")})
@@ -197,11 +184,7 @@ export default function SimulationResultPanel({
                   ({param.type})
                 </span>
                 <span
-                  className="break-all"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    color: "var(--color-text-primary)",
-                  }}
+                  className="break-all theme-mono theme-text"
                 >
                   {param.value}
                 </span>
@@ -233,11 +216,7 @@ export default function SimulationResultPanel({
                   ({val.type})
                 </span>
                 <span
-                  className="break-all"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    color: "var(--color-text-primary)",
-                  }}
+                  className="break-all theme-mono theme-text"
                 >
                   {val.value}
                 </span>
@@ -277,11 +256,7 @@ export default function SimulationResultPanel({
                             {p.name}:
                           </span>
                           <span
-                            className="break-all"
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              color: "var(--color-text-primary)",
-                            }}
+                            className="break-all theme-mono theme-text"
                           >
                             {p.value}
                           </span>

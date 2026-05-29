@@ -53,11 +53,7 @@ export function Tabs({
           {label}
           {count > 0 && (key === "opcodes" || key === "debugger") && (
             <span
-              className="ml-2 text-xs px-1.5 py-0.5 rounded"
-              style={{
-                backgroundColor: "var(--color-accent-muted)",
-                color: "var(--color-accent)",
-              }}
+              className="ml-2 text-xs px-1.5 py-0.5 rounded theme-accent-bg theme-accent"
             >
               {count.toLocaleString()}
             </span>

@@ -89,12 +89,7 @@ export function ReadFunction({
                       }))
                     }
                     placeholder={inp.type}
-                    className="w-full px-2.5 py-1.5 rounded bs text-xs"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      backgroundColor: "var(--color-bg-input)",
-                      color: "var(--color-text-primary)",
-                    }}
+                    className="w-full px-2.5 py-1.5 rounded bs text-xs theme-mono theme-input-bg theme-text"
                   />
                 </div>
               ))}
@@ -117,11 +112,7 @@ export function ReadFunction({
 
           {result !== null && (
             <div
-              className="mt-2 rounded-md p-2.5 text-xs font-mono break-all"
-              style={{
-                backgroundColor: "var(--color-bg-primary)",
-                color: "var(--color-success)",
-              }}
+              className="mt-2 rounded-md p-2.5 text-xs font-mono break-all theme-primary-bg theme-success"
             >
               {result}
             </div>
@@ -129,11 +120,7 @@ export function ReadFunction({
 
           {error && (
             <div
-              className="mt-2 rounded-md p-2.5 text-xs font-mono"
-              style={{
-                backgroundColor: "var(--color-danger-muted)",
-                color: "var(--color-danger)",
-              }}
+              className="mt-2 rounded-md p-2.5 text-xs font-mono theme-danger-bg theme-danger"
             >
               {error}
             </div>

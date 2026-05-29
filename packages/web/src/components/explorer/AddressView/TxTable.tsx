@@ -95,11 +95,7 @@ function TxRow({
       <td className="px-3 py-2">
         {isContractCreation ? (
           <span
-            className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider"
-            style={{
-              backgroundColor: "var(--color-accent-muted)",
-              color: "var(--color-accent)",
-            }}
+            className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider theme-accent-bg theme-accent"
           >
             Contract Creation
           </span>

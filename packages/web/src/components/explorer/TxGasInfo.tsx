@@ -61,11 +61,7 @@ export function TxGasInfo({
       style={{ color: "var(--color-text-muted)" }}
     >
       <span
-        className="px-1.5 py-0.5 uppercase tracking-wider font-semibold shrink-0"
-        style={{
-          backgroundColor: "var(--color-bg-tertiary)",
-          color: "var(--color-text-secondary)",
-        }}
+        className="px-1.5 py-0.5 uppercase tracking-wider font-semibold shrink-0 theme-tertiary-bg theme-text-secondary"
       >
         {typeLabel(type)}
       </span>

@@ -57,11 +57,7 @@ export function OverviewSection({
               <AddressLink address={tx.to} onNavigate={onNavigate} />
               {tx.contractAddress && (
                 <span
-                  className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                  style={{
-                    backgroundColor: "var(--color-success-muted)",
-                    color: "var(--color-success)",
-                  }}
+                  className="text-[10px] font-medium px-1.5 py-0.5 rounded theme-success-bg theme-success"
                 >
                   Contract Creation
                 </span>

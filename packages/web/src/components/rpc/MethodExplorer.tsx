@@ -183,11 +183,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
                           Parameters
                         </div>
                         <div
-                          className="text-sm font-mono px-3 py-2 rounded"
-                          style={{
-                            backgroundColor: "var(--color-bg-secondary)",
-                            color: "var(--color-text-primary)",
-                          }}
+                          className="text-sm font-mono px-3 py-2 rounded theme-secondary-bg theme-text"
                         >
                           {method.params}
                         </div>
@@ -201,11 +197,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
                           Example Request
                         </div>
                         <pre
-                          className="text-xs px-3 py-2 rounded overflow-x-auto"
-                          style={{
-                            backgroundColor: "var(--color-bg-secondary)",
-                            color: "var(--color-text-primary)",
-                          }}
+                          className="text-xs px-3 py-2 rounded overflow-x-auto theme-secondary-bg theme-text"
                         >
                           {JSON.stringify(method.example.request, null, 2)}
                         </pre>
@@ -219,11 +211,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
                           Example Response
                         </div>
                         <pre
-                          className="text-xs px-3 py-2 rounded overflow-x-auto"
-                          style={{
-                            backgroundColor: "var(--color-bg-secondary)",
-                            color: "var(--color-text-primary)",
-                          }}
+                          className="text-xs px-3 py-2 rounded overflow-x-auto theme-secondary-bg theme-text"
                         >
                           {JSON.stringify(method.example.response, null, 2)}
                         </pre>

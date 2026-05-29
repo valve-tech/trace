@@ -81,11 +81,7 @@ export default function BundleSimulator() {
           >
             Transaction Bundle
             <span
-              className="ml-2 text-xs px-2 py-0.5 rounded-full"
-              style={{
-                backgroundColor: "var(--color-accent-muted)",
-                color: "var(--color-accent)",
-              }}
+              className="ml-2 text-xs px-2 py-0.5 rounded-full theme-accent-bg theme-accent"
             >
               {transactions.length} tx{transactions.length !== 1 ? "s" : ""}
             </span>

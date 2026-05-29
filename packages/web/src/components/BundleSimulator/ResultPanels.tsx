@@ -35,11 +35,7 @@ export function ErrorPanel({ message }: { message: string }) {
             Bundle Simulation Error
           </h3>
           <p
-            className="text-sm break-all"
-            style={{
-              fontFamily: "var(--font-mono)",
-              color: "var(--color-text-secondary)",
-            }}
+            className="text-sm break-all theme-mono theme-text-secondary"
           >
             {message}
           </p>
@@ -97,11 +93,7 @@ export function SummaryBar({ results }: { results: SimulationResult[] }) {
         )}
       </div>
       <span
-        className="text-xs"
-        style={{
-          fontFamily: "var(--font-mono)",
-          color: "var(--color-text-muted)",
-        }}
+        className="text-xs theme-mono theme-text-muted"
       >
         {totalGas.toLocaleString()} total gas
       </span>

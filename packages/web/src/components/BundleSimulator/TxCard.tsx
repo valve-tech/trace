@@ -31,11 +31,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
           className="text-sm font-semibold theme-text"
         >
           <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-full mr-2 text-xs font-bold"
-            style={{
-              backgroundColor: "var(--color-accent-muted)",
-              color: "var(--color-accent)",
-            }}
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full mr-2 text-xs font-bold theme-accent-bg theme-accent"
           >
             {index + 1}
           </span>
@@ -45,11 +41,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
           <button
             type="button"
             onClick={() => onRemove(tx.id)}
-            className="text-xs px-2 py-1 rounded hover:opacity-80"
-            style={{
-              color: "var(--color-danger)",
-              backgroundColor: "var(--color-danger-muted)",
-            }}
+            className="text-xs px-2 py-1 rounded hover:opacity-80 theme-danger theme-danger-bg"
           >
             Remove
           </button>
@@ -64,11 +56,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
           >
             From
             <span
-              className="px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider"
-              style={{
-                backgroundColor: "var(--color-warning-muted)",
-                color: "var(--color-warning)",
-              }}
+              className="px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider theme-warning-bg theme-warning"
             >
               Impersonate
             </span>

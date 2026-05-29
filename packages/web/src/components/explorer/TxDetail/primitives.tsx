@@ -77,11 +77,7 @@ export function SectionCard({
           </h3>
           {count !== undefined && (
             <span
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-              style={{
-                backgroundColor: "var(--color-accent-muted)",
-                color: "var(--color-accent)",
-              }}
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full theme-accent-bg theme-accent"
             >
               {count}
             </span>

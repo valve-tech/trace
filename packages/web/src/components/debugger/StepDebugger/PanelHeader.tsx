@@ -20,8 +20,7 @@ export function PanelHeader({
       </span>
       {count !== undefined && (
         <span
-          className="text-xs"
-          style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+          className="text-xs theme-text-muted theme-mono"
         >
           {count.toLocaleString()} {suffix ?? "items"}
         </span>

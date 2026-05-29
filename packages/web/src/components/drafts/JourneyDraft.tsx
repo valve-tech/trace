@@ -205,11 +205,11 @@ function lensesFor(o: Outcome): Lens[] {
         body: (
           <div className="space-y-2">
             <div className="flex items-start gap-inline text-xs">
-              <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold" style={{ backgroundColor: "var(--color-warning-muted)", color: "var(--color-warning)" }}>warning</span>
+              <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold theme-warning-bg theme-warning">warning</span>
               <span className="theme-text-secondary">Slippage tolerance is 0 — any price move reverts.</span>
             </div>
             <div className="flex items-start gap-inline text-xs">
-              <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold" style={{ backgroundColor: "var(--color-danger-muted)", color: "var(--color-danger)" }}>danger</span>
+              <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold theme-danger-bg theme-danger">danger</span>
               <span className="theme-text-secondary">Missing token approval — sender allowance is 0 for WPLS → Router.</span>
             </div>
           </div>
@@ -266,7 +266,7 @@ function lensesFor(o: Outcome): Lens[] {
       icon: "heroicons:shield-check",
       body: (
         <div className="flex items-start gap-inline text-xs">
-          <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold" style={{ backgroundColor: "var(--color-success-muted)", color: "var(--color-success)" }}>clear</span>
+          <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold theme-success-bg theme-success">clear</span>
           <span className="theme-text-secondary">No findings. Slippage realised was within healthy bounds.</span>
         </div>
       ),
@@ -356,16 +356,14 @@ export default function JourneyDraft() {
             <StatusBadge success={!isRevert} size="lg" />
             {isRevert && (
               <div
-                className="text-xs font-mono px-2 py-1"
-                style={{ backgroundColor: "var(--color-danger-muted)", color: "var(--color-danger)" }}
+                className="text-xs font-mono px-2 py-1 theme-danger-bg theme-danger"
               >
                 {outcome.reason}
               </div>
             )}
             {!isRevert && (
               <div
-                className="text-xs font-mono px-2 py-1"
-                style={{ backgroundColor: "var(--color-success-muted)", color: "var(--color-success)" }}
+                className="text-xs font-mono px-2 py-1 theme-success-bg theme-success"
               >
                 1.0 WPLS → 12,488.21 HEX
               </div>

@@ -27,21 +27,13 @@ export function ContractHeader({
             </h2>
             {info.isVerified ? (
               <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                style={{
-                  backgroundColor: "var(--color-success-muted)",
-                  color: "var(--color-success)",
-                }}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider theme-success-bg theme-success"
               >
                 Verified
               </span>
             ) : (
               <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                style={{
-                  backgroundColor: "var(--color-warning-muted)",
-                  color: "var(--color-warning)",
-                }}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider theme-warning-bg theme-warning"
               >
                 Unverified
               </span>

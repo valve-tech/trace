@@ -100,12 +100,7 @@ export function DiffSection({
           {title}
         </span>
         <span
-          className="text-xs px-1.5 py-0.5 rounded"
-          style={{
-            backgroundColor: "var(--color-accent-muted)",
-            color: "var(--color-accent)",
-            fontFamily: "var(--font-mono)",
-          }}
+          className="text-xs px-1.5 py-0.5 rounded theme-accent-bg theme-accent theme-mono"
         >
           {count}
         </span>

@@ -58,20 +58,12 @@ function Index() {
           >
             <div className="flex items-start justify-between mb-4">
               <div
-                className="w-10 h-10 flex items-center justify-center"
-                style={{
-                  backgroundColor: "var(--color-accent-muted)",
-                  color: "var(--color-accent)",
-                }}
+                className="w-10 h-10 flex items-center justify-center theme-accent-bg theme-accent"
               >
                 <Icon icon={d.icon} className="w-5 h-5" />
               </div>
               <span
-                className="text-[10px] uppercase tracking-wider font-mono px-2 py-0.5"
-                style={{
-                  backgroundColor: "var(--color-bg-tertiary)",
-                  color: "var(--color-text-muted)",
-                }}
+                className="text-[10px] uppercase tracking-wider font-mono px-2 py-0.5 theme-tertiary-bg theme-text-muted"
               >
                 {d.pivot}
               </span>

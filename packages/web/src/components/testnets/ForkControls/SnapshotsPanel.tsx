@@ -83,11 +83,7 @@ export function SnapshotsPanel({ forkId, onReverted }: Props) {
               className="flex items-center justify-between text-xs px-2 py-1.5 rounded bs theme-input-bg"
             >
               <span className="theme-text-secondary">
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    color: "var(--color-text-primary)",
-                  }}
+                <span className="theme-mono theme-text"
                 >
                   {snap.id}
                 </span>
@@ -96,11 +92,7 @@ export function SnapshotsPanel({ forkId, onReverted }: Props) {
               <button
                 onClick={() => handleRevert(snap.id)}
                 disabled={loading}
-                className="px-2 py-0.5 rounded text-xs"
-                style={{
-                  backgroundColor: "var(--color-warning-muted)",
-                  color: "var(--color-warning)",
-                }}
+                className="px-2 py-0.5 rounded text-xs theme-warning-bg theme-warning"
               >
                 Revert
               </button>

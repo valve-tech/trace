@@ -132,8 +132,7 @@ export function ControlsBar({
       />
 
       <span
-        className="text-xs whitespace-nowrap"
-        style={{ color: "var(--color-text-secondary)", fontFamily: "var(--font-mono)" }}
+        className="text-xs whitespace-nowrap theme-text-secondary theme-mono"
       >
         {(currentStep + 1).toLocaleString()} / {totalSteps.toLocaleString()}
       </span>

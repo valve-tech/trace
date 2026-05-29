@@ -11,11 +11,7 @@ export function RawDataSection({ input }: { input: string }) {
             Input Data
           </span>
           <div
-            className="rounded-md p-3 text-xs font-mono break-all max-h-48 overflow-y-auto"
-            style={{
-              backgroundColor: "var(--color-bg-primary)",
-              color: "var(--color-text-primary)",
-            }}
+            className="rounded-md p-3 text-xs font-mono break-all max-h-48 overflow-y-auto theme-primary-bg theme-text"
           >
             {input || "0x"}
           </div>

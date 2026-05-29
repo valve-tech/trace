@@ -72,12 +72,7 @@ export function InputCard({
             value={txHash}
             onChange={(e) => setTxHash(e.target.value.trim())}
             onKeyDown={(e) => e.key === "Enter" && canSubmit && onSimulate()}
-            className="w-full px-4 py-2.5 rounded-lg bs text-sm"
-            style={{
-              backgroundColor: "var(--color-bg-input)",
-              color: "var(--color-text-primary)",
-              fontFamily: "var(--font-mono)",
-            }}
+            className="w-full px-4 py-2.5 rounded-lg bs text-sm theme-input-bg theme-text theme-mono"
           />
         </div>
       ) : (

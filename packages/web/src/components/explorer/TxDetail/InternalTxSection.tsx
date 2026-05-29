@@ -59,11 +59,7 @@ export function InternalTxSection({
                 >
                   <td className="px-3 py-2">
                     <span
-                      className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded"
-                      style={{
-                        backgroundColor: "var(--color-bg-primary)",
-                        color: "var(--color-text-secondary)",
-                      }}
+                      className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded theme-primary-bg theme-text-secondary"
                     >
                       {itx.type}
                     </span>

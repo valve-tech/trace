@@ -84,11 +84,7 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
               Error
             </h3>
             <p
-              className="text-sm"
-              style={{
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-text-secondary)",
-              }}
+              className="text-sm theme-mono theme-text-secondary"
             >
               {error}
             </p>

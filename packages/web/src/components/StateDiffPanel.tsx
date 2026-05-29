@@ -54,11 +54,7 @@ function SectionHeader({
       >
         {title}
         <span
-          className="ml-2 px-1.5 py-0.5 rounded text-xs font-mono"
-          style={{
-            backgroundColor: "var(--color-accent-muted)",
-            color: "var(--color-accent)",
-          }}
+          className="ml-2 px-1.5 py-0.5 rounded text-xs font-mono theme-accent-bg theme-accent"
         >
           {count}
         </span>
@@ -193,22 +189,14 @@ function StorageGroup({
         className="w-full flex items-center justify-between px-3 py-2 text-left hover:opacity-80 theme-secondary-bg"
       >
         <span
-          className="text-xs font-medium"
-          style={{
-            fontFamily: "var(--font-mono)",
-            color: "var(--color-text-primary)",
-          }}
+          className="text-xs font-medium theme-mono theme-text"
           title={address}
         >
           {label}
         </span>
         <div className="flex items-center gap-inline">
           <span
-            className="text-xs px-1.5 py-0.5 rounded"
-            style={{
-              backgroundColor: "var(--color-accent-muted)",
-              color: "var(--color-accent)",
-            }}
+            className="text-xs px-1.5 py-0.5 rounded theme-accent-bg theme-accent"
           >
             {rows.length} slot{rows.length !== 1 ? "s" : ""}
           </span>
@@ -390,11 +378,7 @@ export default function StateDiffPanel({ stateDiff }: StateDiffPanelProps) {
   if (!hasAnyChanges) {
     return (
       <div
-        className="rounded-lg bs p-4 text-center text-xs"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-          color: "var(--color-text-muted)",
-        }}
+        className="rounded-lg bs p-4 text-center text-xs theme-card-bg theme-text-muted"
       >
         No state changes detected.
       </div>

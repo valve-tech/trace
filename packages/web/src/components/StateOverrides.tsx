@@ -46,11 +46,7 @@ function StorageSlotEditor({
         <button
           type="button"
           onClick={addSlot}
-          className="text-xs px-2 py-0.5 rounded"
-          style={{
-            color: "var(--color-accent)",
-            backgroundColor: "var(--color-accent-muted)",
-          }}
+          className="text-xs px-2 py-0.5 rounded theme-accent theme-accent-bg"
         >
           + Add Slot
         </button>
@@ -62,12 +58,7 @@ function StorageSlotEditor({
             value={key}
             onChange={(e) => updateSlot(key, e.target.value, val)}
             placeholder="0x0 (slot)"
-            className="flex-1 px-2 py-1.5 rounded bs text-xs"
-            style={{
-              fontFamily: "var(--font-mono)",
-              backgroundColor: "var(--color-bg-input)",
-              color: "var(--color-text-primary)",
-            }}
+            className="flex-1 px-2 py-1.5 rounded bs text-xs theme-mono theme-input-bg theme-text"
           />
           <span className="theme-text-muted">=</span>
           <input
@@ -75,12 +66,7 @@ function StorageSlotEditor({
             value={val}
             onChange={(e) => updateSlot(key, key, e.target.value)}
             placeholder="0x... (value)"
-            className="flex-1 px-2 py-1.5 rounded bs text-xs"
-            style={{
-              fontFamily: "var(--font-mono)",
-              backgroundColor: "var(--color-bg-input)",
-              color: "var(--color-text-primary)",
-            }}
+            className="flex-1 px-2 py-1.5 rounded bs text-xs theme-mono theme-input-bg theme-text"
           />
           <button
             type="button"
@@ -125,11 +111,7 @@ function SingleOverride({
         <button
           type="button"
           onClick={() => onRemove(index)}
-          className="text-xs px-2 py-0.5 rounded hover:opacity-80"
-          style={{
-            color: "var(--color-danger)",
-            backgroundColor: "var(--color-danger-muted)",
-          }}
+          className="text-xs px-2 py-0.5 rounded hover:opacity-80 theme-danger theme-danger-bg"
         >
           Remove
         </button>
@@ -144,12 +126,7 @@ function SingleOverride({
           value={override.address}
           onChange={(e) => update("address", e.target.value)}
           placeholder="0x..."
-          className="w-full px-2 py-1.5 rounded bs text-sm"
-          style={{
-            fontFamily: "var(--font-mono)",
-            backgroundColor: "var(--color-bg-input)",
-            color: "var(--color-text-primary)",
-          }}
+          className="w-full px-2 py-1.5 rounded bs text-sm theme-mono theme-input-bg theme-text"
         />
       </div>
 
@@ -163,12 +140,7 @@ function SingleOverride({
             value={override.balance ?? ""}
             onChange={(e) => update("balance", e.target.value)}
             placeholder="0x..."
-            className="w-full px-2 py-1.5 rounded bs text-sm"
-            style={{
-              fontFamily: "var(--font-mono)",
-              backgroundColor: "var(--color-bg-input)",
-              color: "var(--color-text-primary)",
-            }}
+            className="w-full px-2 py-1.5 rounded bs text-sm theme-mono theme-input-bg theme-text"
           />
         </div>
         <div>
@@ -180,12 +152,7 @@ function SingleOverride({
             value={override.nonce ?? ""}
             onChange={(e) => update("nonce", e.target.value)}
             placeholder="0x0"
-            className="w-full px-2 py-1.5 rounded bs text-sm"
-            style={{
-              fontFamily: "var(--font-mono)",
-              backgroundColor: "var(--color-bg-input)",
-              color: "var(--color-text-primary)",
-            }}
+            className="w-full px-2 py-1.5 rounded bs text-sm theme-mono theme-input-bg theme-text"
           />
         </div>
       </div>
@@ -199,12 +166,7 @@ function SingleOverride({
           value={override.code ?? ""}
           onChange={(e) => update("code", e.target.value)}
           placeholder="0x608060..."
-          className="w-full px-2 py-1.5 rounded bs text-sm"
-          style={{
-            fontFamily: "var(--font-mono)",
-            backgroundColor: "var(--color-bg-input)",
-            color: "var(--color-text-primary)",
-          }}
+          className="w-full px-2 py-1.5 rounded bs text-sm theme-mono theme-input-bg theme-text"
         />
       </div>
 
@@ -278,11 +240,7 @@ export default function StateOverrides({ overrides, onChange }: StateOverridesPr
         </span>
         {overrides.length > 0 && (
           <span
-            className="text-xs px-2 py-0.5 rounded-full"
-            style={{
-              backgroundColor: "var(--color-accent-muted)",
-              color: "var(--color-accent)",
-            }}
+            className="text-xs px-2 py-0.5 rounded-full theme-accent-bg theme-accent"
           >
             {overrides.length} override{overrides.length !== 1 ? "s" : ""}
           </span>

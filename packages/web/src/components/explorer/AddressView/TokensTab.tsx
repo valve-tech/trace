@@ -71,11 +71,7 @@ export function TokensTab({
                 </td>
                 <td className="px-3 py-2">
                   <span
-                    className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                    style={{
-                      backgroundColor: "var(--color-bg-secondary)",
-                      color: "var(--color-text-secondary)",
-                    }}
+                    className="text-[10px] font-medium px-1.5 py-0.5 rounded theme-secondary-bg theme-text-secondary"
                   >
                     {token.type}
                   </span>

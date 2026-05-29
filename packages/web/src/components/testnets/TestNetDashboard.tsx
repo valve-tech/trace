@@ -186,11 +186,7 @@ export default function TestNetDashboard() {
                         >
                           <span>
                             Fork Block:{" "}
-                            <span
-                              style={{
-                                fontFamily: "var(--font-mono)",
-                                color: "var(--color-text-primary)",
-                              }}
+                            <span className="theme-mono theme-text"
                             >
                               {fork.blockNumber === "latest"
                                 ? "latest"
@@ -200,11 +196,7 @@ export default function TestNetDashboard() {
                           {fork.currentBlock != null && (
                             <span>
                               Current Block:{" "}
-                              <span
-                                style={{
-                                  fontFamily: "var(--font-mono)",
-                                  color: "var(--color-text-primary)",
-                                }}
+                              <span className="theme-mono theme-text"
                               >
                                 {fork.currentBlock.toLocaleString()}
                               </span>
@@ -217,11 +209,7 @@ export default function TestNetDashboard() {
                     </div>
                     <div className="flex items-center gap-inline">
                       <span
-                        className="text-xs px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: "var(--color-success-muted)",
-                          color: "var(--color-success)",
-                        }}
+                        className="text-xs px-2 py-0.5 rounded-full theme-success-bg theme-success"
                       >
                         Active
                       </span>

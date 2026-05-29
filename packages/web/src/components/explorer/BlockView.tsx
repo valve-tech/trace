@@ -147,11 +147,7 @@ export default function BlockView({
                 if (prevNum >= 0) onNavigate({ type: "block", value: String(prevNum) });
               }}
               disabled={Number(block.number) <= 0}
-              className="text-xs px-2 py-1 rounded hover:opacity-80 cursor-pointer"
-              style={{
-                backgroundColor: "var(--color-bg-secondary)",
-                color: "var(--color-text-secondary)",
-              }}
+              className="text-xs px-2 py-1 rounded hover:opacity-80 cursor-pointer theme-secondary-bg theme-text-secondary"
             >
               Prev
             </button>
@@ -162,11 +158,7 @@ export default function BlockView({
                   value: String(Number(block.number) + 1),
                 })
               }
-              className="text-xs px-2 py-1 rounded hover:opacity-80 cursor-pointer"
-              style={{
-                backgroundColor: "var(--color-bg-secondary)",
-                color: "var(--color-text-secondary)",
-              }}
+              className="text-xs px-2 py-1 rounded hover:opacity-80 cursor-pointer theme-secondary-bg theme-text-secondary"
             >
               Next
             </button>
@@ -262,11 +254,7 @@ export default function BlockView({
           >
             Transactions
             <span
-              className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-              style={{
-                backgroundColor: "var(--color-accent-muted)",
-                color: "var(--color-accent)",
-              }}
+              className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full theme-accent-bg theme-accent"
             >
               {block.transactionCount}
             </span>
@@ -339,21 +327,13 @@ export default function BlockView({
                     <td className="px-3 py-2">
                       {tx.methodId && tx.methodId !== "0x" ? (
                         <span
-                          className="text-[10px] font-mono px-1.5 py-0.5 rounded"
-                          style={{
-                            backgroundColor: "var(--color-bg-primary)",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="text-[10px] font-mono px-1.5 py-0.5 rounded theme-primary-bg theme-text-secondary"
                         >
                           {tx.methodId}
                         </span>
                       ) : (
                         <span
-                          className="text-[10px] px-1.5 py-0.5 rounded"
-                          style={{
-                            backgroundColor: "var(--color-success-muted)",
-                            color: "var(--color-success)",
-                          }}
+                          className="text-[10px] px-1.5 py-0.5 rounded theme-success-bg theme-success"
                         >
                           Transfer
                         </span>
@@ -389,11 +369,7 @@ export default function BlockView({
                         </ExplorerLink>
                       ) : (
                         <span
-                          className="text-[10px] px-1.5 py-0.5 rounded"
-                          style={{
-                            backgroundColor: "var(--color-accent-muted)",
-                            color: "var(--color-accent)",
-                          }}
+                          className="text-[10px] px-1.5 py-0.5 rounded theme-accent-bg theme-accent"
                         >
                           Create
                         </span>

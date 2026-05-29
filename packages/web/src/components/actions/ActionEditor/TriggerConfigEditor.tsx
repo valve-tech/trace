@@ -39,11 +39,7 @@ export function TriggerConfigEditor({
                 everyNthBlock: parseInt(e.target.value, 10) || 1,
               })
             }
-            className="w-40 px-3 py-2 rounded-md bs text-sm"
-            style={{
-              backgroundColor: "var(--color-bg-input)",
-              color: "var(--color-text-primary)",
-            }}
+            className="w-40 px-3 py-2 rounded-md bs text-sm theme-input-bg theme-text"
           />
         </div>
       )}
@@ -66,11 +62,7 @@ export function TriggerConfigEditor({
                 })
               }
               placeholder="0x..."
-              className="w-full px-3 py-2 rounded-md bs text-sm font-mono"
-              style={{
-                backgroundColor: "var(--color-bg-input)",
-                color: "var(--color-text-primary)",
-              }}
+              className="w-full px-3 py-2 rounded-md bs text-sm font-mono theme-input-bg theme-text"
             />
           </div>
           <div>
@@ -89,11 +81,7 @@ export function TriggerConfigEditor({
                 })
               }
               placeholder="0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-              className="w-full px-3 py-2 rounded-md bs text-sm font-mono"
-              style={{
-                backgroundColor: "var(--color-bg-input)",
-                color: "var(--color-text-primary)",
-              }}
+              className="w-full px-3 py-2 rounded-md bs text-sm font-mono theme-input-bg theme-text"
             />
           </div>
         </div>
@@ -116,11 +104,7 @@ export function TriggerConfigEditor({
                 intervalSeconds: parseInt(e.target.value, 10) || 60,
               })
             }
-            className="w-40 px-3 py-2 rounded-md bs text-sm"
-            style={{
-              backgroundColor: "var(--color-bg-input)",
-              color: "var(--color-text-primary)",
-            }}
+            className="w-40 px-3 py-2 rounded-md bs text-sm theme-input-bg theme-text"
           />
         </div>
       )}
@@ -138,11 +122,7 @@ export function TriggerConfigEditor({
                 type="text"
                 readOnly
                 value={`${window.location.origin}${webhookUrl}`}
-                className="flex-1 px-3 py-2 rounded-md bs text-sm font-mono"
-                style={{
-                  backgroundColor: "var(--color-bg-tertiary)",
-                  color: "var(--color-text-secondary)",
-                }}
+                className="flex-1 px-3 py-2 rounded-md bs text-sm font-mono theme-tertiary-bg theme-text-secondary"
               />
               <button
                 onClick={() => {

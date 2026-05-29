@@ -35,11 +35,7 @@ function TabButton({
       {label}
       {count > 0 && (
         <span
-          className="ml-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-          style={{
-            backgroundColor: "var(--color-accent-muted)",
-            color: "var(--color-accent)",
-          }}
+          className="ml-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full theme-accent-bg theme-accent"
         >
           {count}
         </span>

@@ -50,11 +50,7 @@ export default function GasProfiler({
         title="Gas Profile"
         trailing={
           <span
-            className="text-sm font-mono font-semibold px-3 py-1 rounded"
-            style={{
-              backgroundColor: "var(--color-accent-muted)",
-              color: "var(--color-accent)",
-            }}
+            className="text-sm font-mono font-semibold px-3 py-1 rounded theme-accent-bg theme-accent"
           >
             {formatGas(gasProfile.totalGas)} total gas
           </span>

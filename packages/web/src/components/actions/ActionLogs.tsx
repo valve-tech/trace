@@ -177,11 +177,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                           {triggerType}
                         </span>
                         <span
-                          className="flex-1 text-right px-4"
-                          style={{
-                            color: "var(--color-text-secondary)",
-                            fontFamily: "var(--font-mono)",
-                          }}
+                          className="flex-1 text-right px-4 theme-text-secondary theme-mono"
                         >
                           {log.duration_ms}ms
                         </span>

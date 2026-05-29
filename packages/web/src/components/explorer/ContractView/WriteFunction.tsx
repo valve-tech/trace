@@ -27,11 +27,7 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
           </span>
           {fn.stateMutability === "payable" && (
             <span
-              className="text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase"
-              style={{
-                backgroundColor: "var(--color-warning-muted)",
-                color: "var(--color-warning)",
-              }}
+              className="text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase theme-warning-bg theme-warning"
             >
               payable
             </span>
@@ -81,11 +77,7 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
             </div>
           )}
           <div
-            className="text-xs rounded-md p-2"
-            style={{
-              backgroundColor: "var(--color-warning-muted)",
-              color: "var(--color-warning)",
-            }}
+            className="text-xs rounded-md p-2 theme-warning-bg theme-warning"
           >
             Write functions require a connected wallet to execute. Use the
             Simulator tab to test this function.

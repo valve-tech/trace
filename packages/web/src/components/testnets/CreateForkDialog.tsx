@@ -67,11 +67,7 @@ export default function CreateForkDialog({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="My TestNet"
-              className="w-full px-3 py-2 rounded-md bs text-sm"
-              style={{
-                backgroundColor: "var(--color-bg-input)",
-                color: "var(--color-text-primary)",
-              }}
+              className="w-full px-3 py-2 rounded-md bs text-sm theme-input-bg theme-text"
             />
           </div>
 
@@ -93,22 +89,14 @@ export default function CreateForkDialog({
               onChange={(e) => setBlockNumber(e.target.value)}
               placeholder="latest"
               min={0}
-              className="w-full px-3 py-2 rounded-md bs text-sm"
-              style={{
-                backgroundColor: "var(--color-bg-input)",
-                color: "var(--color-text-primary)",
-              }}
+              className="w-full px-3 py-2 rounded-md bs text-sm theme-input-bg theme-text"
             />
           </div>
 
           {/* Error */}
           {error && (
             <div
-              className="text-sm p-3 rounded-md"
-              style={{
-                backgroundColor: "var(--color-danger-muted)",
-                color: "var(--color-danger)",
-              }}
+              className="text-sm p-3 rounded-md theme-danger-bg theme-danger"
             >
               {error}
             </div>

@@ -25,11 +25,7 @@ export function AddressHeader({
             </h2>
             {info?.isContract && (
               <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                style={{
-                  backgroundColor: "var(--color-accent-muted)",
-                  color: "var(--color-accent)",
-                }}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider theme-accent-bg theme-accent"
               >
                 Contract
               </span>

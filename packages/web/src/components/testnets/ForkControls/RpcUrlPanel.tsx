@@ -20,12 +20,7 @@ export function RpcUrlPanel({ rpcUrl }: { rpcUrl: string }) {
       </label>
       <div className="flex items-center gap-inline">
         <code
-          className="flex-1 text-sm px-2 py-1.5 rounded bs overflow-x-auto"
-          style={{
-            backgroundColor: "var(--color-bg-input)",
-            color: "var(--color-accent)",
-            fontFamily: "var(--font-mono)",
-          }}
+          className="flex-1 text-sm px-2 py-1.5 rounded bs overflow-x-auto theme-input-bg theme-accent theme-mono"
         >
           {rpcUrl}
         </code>

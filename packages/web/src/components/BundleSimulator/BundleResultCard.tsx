@@ -37,11 +37,7 @@ export function BundleResultCard({
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="theme-text-secondary">Gas Used</span>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              color: "var(--color-text-primary)",
-            }}
+          <span className="theme-mono theme-text"
           >
             {BigInt(result.gasUsed).toLocaleString()}
           </span>
@@ -55,11 +51,7 @@ export function BundleResultCard({
               Return Data
             </span>
             <span
-              className="text-xs break-all block"
-              style={{
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-text-primary)",
-              }}
+              className="text-xs break-all block theme-mono theme-text"
             >
               {result.returnData}
             </span>
@@ -76,11 +68,7 @@ export function BundleResultCard({
               Revert Reason
             </span>
             <span
-              className="text-xs break-all"
-              style={{
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-text-primary)",
-              }}
+              className="text-xs break-all theme-mono theme-text"
             >
               {result.revertReason}
             </span>
@@ -95,12 +83,7 @@ export function BundleResultCard({
               Function Call
             </span>
             <span
-              className="text-xs px-2 py-1 rounded inline-block"
-              style={{
-                fontFamily: "var(--font-mono)",
-                backgroundColor: "var(--color-accent-muted)",
-                color: "var(--color-accent)",
-              }}
+              className="text-xs px-2 py-1 rounded inline-block theme-mono theme-accent-bg theme-accent"
             >
               {result.decodedCall.functionName}(
               {result.decodedCall.params.map((p) => p.type).join(", ")})

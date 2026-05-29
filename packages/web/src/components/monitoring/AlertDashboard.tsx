@@ -427,11 +427,7 @@ export default function AlertDashboard() {
                   {/* Test */}
                   <button
                     onClick={() => void handleTest(a.id)}
-                    className="text-xs px-2.5 py-1 rounded-md"
-                    style={{
-                      backgroundColor: "var(--color-accent-muted)",
-                      color: "var(--color-accent)",
-                    }}
+                    className="text-xs px-2.5 py-1 rounded-md theme-accent-bg theme-accent"
                   >
                     Test
                   </button>
@@ -451,11 +447,7 @@ export default function AlertDashboard() {
                   {/* Delete */}
                   <button
                     onClick={() => void handleDelete(a.id)}
-                    className="text-xs px-2.5 py-1 rounded-md"
-                    style={{
-                      backgroundColor: "var(--color-danger-muted)",
-                      color: "var(--color-danger)",
-                    }}
+                    className="text-xs px-2.5 py-1 rounded-md theme-danger-bg theme-danger"
                   >
                     Delete
                   </button>

@@ -96,11 +96,7 @@ export default function SimulationForm({
           <label className="flex items-center gap-inline text-xs font-medium mb-1.5" style={labelStyle}>
             From
             <span
-              className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
-              style={{
-                backgroundColor: "var(--color-warning-muted)",
-                color: "var(--color-warning)",
-              }}
+              className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider theme-warning-bg theme-warning"
             >
               Impersonate
             </span>

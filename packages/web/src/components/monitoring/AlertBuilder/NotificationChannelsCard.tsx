@@ -40,11 +40,7 @@ export function NotificationChannelsCard({
         <button
           type="button"
           onClick={addChannel}
-          className="text-xs px-2.5 py-1 rounded-md font-medium"
-          style={{
-            backgroundColor: "var(--color-accent-muted)",
-            color: "var(--color-accent)",
-          }}
+          className="text-xs px-2.5 py-1 rounded-md font-medium theme-accent-bg theme-accent"
         >
           + Add Channel
         </button>
@@ -102,11 +98,7 @@ function ChannelEditor({
         <button
           type="button"
           onClick={onRemove}
-          className="text-xs px-2 py-1 rounded-md"
-          style={{
-            color: "var(--color-danger)",
-            backgroundColor: "var(--color-danger-muted)",
-          }}
+          className="text-xs px-2 py-1 rounded-md theme-danger theme-danger-bg"
         >
           Remove
         </button>

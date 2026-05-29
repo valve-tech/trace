@@ -171,11 +171,7 @@ function FunctionList({
   if (functions.length === 0) {
     return (
       <div
-        className="rounded-lg bs p-4 text-center text-sm"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-          color: "var(--color-text-muted)",
-        }}
+        className="rounded-lg bs p-4 text-center text-sm theme-card-bg theme-text-muted"
       >
         {emptyMessage}
       </div>

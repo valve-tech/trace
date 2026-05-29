@@ -171,12 +171,7 @@ export default function TransactionBuilder() {
                 setResult(null);
               }}
               placeholder="0x..."
-              className="w-full px-3 py-2 text-sm card"
-              style={{
-                backgroundColor: "var(--color-bg-input)",
-                color: "var(--color-text-primary)",
-                fontFamily: "var(--font-mono)",
-              }}
+              className="w-full px-3 py-2 text-sm card theme-input-bg theme-text theme-mono"
             />
           </div>
           <div className="flex-1">
@@ -188,12 +183,7 @@ export default function TransactionBuilder() {
               value={fromAddress}
               onChange={(e) => setFromAddress(e.target.value.trim())}
               placeholder="0x... impersonate any sender"
-              className="w-full px-3 py-2 text-sm card"
-              style={{
-                backgroundColor: "var(--color-bg-input)",
-                color: "var(--color-text-primary)",
-                fontFamily: "var(--font-mono)",
-              }}
+              className="w-full px-3 py-2 text-sm card theme-input-bg theme-text theme-mono"
             />
           </div>
         </div>
@@ -282,8 +272,7 @@ export default function TransactionBuilder() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3
-                    className="text-sm font-semibold"
-                    style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}
+                    className="text-sm font-semibold theme-text theme-mono"
                   >
                     {selectedFn.name}({(selectedFn.inputs ?? []).map((i) => i.type).join(", ")})
                   </h3>
@@ -308,7 +297,7 @@ export default function TransactionBuilder() {
                     <label className="text-xs block mb-1 theme-text-secondary">
                       <span className="theme-text">{input.name || `arg${i}`}</span>
                       {" "}
-                      <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-muted)" }}>
+                      <span className="theme-mono theme-text-muted">
                         {input.type}
                       </span>
                     </label>
@@ -317,12 +306,7 @@ export default function TransactionBuilder() {
                       value={args[input.name ?? ""] ?? ""}
                       onChange={(e) => setArgs((prev) => ({ ...prev, [input.name ?? ""]: e.target.value }))}
                       placeholder={getDefaultValue(input.type) || input.type}
-                      className="w-full px-3 py-2 text-sm card"
-                      style={{
-                        backgroundColor: "var(--color-bg-input)",
-                        color: "var(--color-text-primary)",
-                        fontFamily: "var(--font-mono)",
-                      }}
+                      className="w-full px-3 py-2 text-sm card theme-input-bg theme-text theme-mono"
                     />
                   </div>
                 ))}
@@ -338,12 +322,7 @@ export default function TransactionBuilder() {
                       value={value}
                       onChange={(e) => setValue(e.target.value)}
                       placeholder="0"
-                      className="w-full px-3 py-2 text-sm card"
-                      style={{
-                        backgroundColor: "var(--color-bg-input)",
-                        color: "var(--color-text-primary)",
-                        fontFamily: "var(--font-mono)",
-                      }}
+                      className="w-full px-3 py-2 text-sm card theme-input-bg theme-text theme-mono"
                     />
                   </div>
                 )}
@@ -364,7 +343,7 @@ export default function TransactionBuilder() {
 
                 {/* Error */}
                 {error && (
-                  <div className="p-3" style={{ backgroundColor: "var(--color-danger-muted)", color: "var(--color-danger)" }}>
+                  <div className="p-3 theme-danger-bg theme-danger">
                     <p className="text-xs font-semibold">Error</p>
                     <p className="text-xs mt-1">{error}</p>
                   </div>
@@ -383,19 +362,14 @@ export default function TransactionBuilder() {
                       >
                         {result.result.success ? "SUCCESS" : "REVERTED"}
                       </span>
-                      <span className="text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+                      <span className="text-xs theme-text-muted theme-mono">
                         Gas: {Number(result.result.gasUsed).toLocaleString()}
                       </span>
                     </div>
 
                     {result.result.revertReason && (
                       <pre
-                        className="text-xs p-2 whitespace-pre-wrap"
-                        style={{
-                          backgroundColor: "var(--color-bg-primary)",
-                          color: "var(--color-danger)",
-                          fontFamily: "var(--font-mono)",
-                        }}
+                        className="text-xs p-2 whitespace-pre-wrap theme-primary-bg theme-danger theme-mono"
                       >
                         {result.result.revertReason}
                       </pre>

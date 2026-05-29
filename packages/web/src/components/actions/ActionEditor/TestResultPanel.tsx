@@ -25,35 +25,21 @@ export function TestResultPanel({ result }: { result: ExecutionResult }) {
           Test {result.success ? "Passed" : "Failed"}
         </span>
         <span
-          className="text-xs"
-          style={{
-            color: "var(--color-text-secondary)",
-            fontFamily: "var(--font-mono)",
-          }}
+          className="text-xs theme-text-secondary theme-mono"
         >
           {result.duration_ms}ms
         </span>
       </div>
       {result.stdout && (
         <pre
-          className="text-xs p-2 rounded mt-2 overflow-x-auto"
-          style={{
-            backgroundColor: "var(--color-bg-primary)",
-            color: "var(--color-text-primary)",
-            fontFamily: "var(--font-mono)",
-          }}
+          className="text-xs p-2 rounded mt-2 overflow-x-auto theme-primary-bg theme-text theme-mono"
         >
           {result.stdout}
         </pre>
       )}
       {result.stderr && (
         <pre
-          className="text-xs p-2 rounded mt-2 overflow-x-auto"
-          style={{
-            backgroundColor: "var(--color-bg-primary)",
-            color: "var(--color-danger)",
-            fontFamily: "var(--font-mono)",
-          }}
+          className="text-xs p-2 rounded mt-2 overflow-x-auto theme-primary-bg theme-danger theme-mono"
         >
           {result.stderr}
         </pre>

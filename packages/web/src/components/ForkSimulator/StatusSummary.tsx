@@ -45,11 +45,7 @@ export function StatusSummary({ result, onViewContract, onDebug }: Props) {
         {result.contractAddress && (
           <button
             onClick={() => onViewContract(result.contractAddress!)}
-            className="text-xs px-3 py-1 rounded"
-            style={{
-              backgroundColor: "var(--color-accent-muted)",
-              color: "var(--color-accent)",
-            }}
+            className="text-xs px-3 py-1 rounded theme-accent-bg theme-accent"
           >
             View Contract
           </button>
