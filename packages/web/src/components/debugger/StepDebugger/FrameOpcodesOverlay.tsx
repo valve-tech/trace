@@ -102,9 +102,26 @@ export function FrameOpcodesOverlay({
           <span className="text-xs font-semibold truncate" style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-primary)" }}>
             {label}
           </span>
-          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-            {count.toLocaleString()} opcodes
+          <span className="text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
+            {count.toLocaleString()} ops · steps {from.toLocaleString()}–{(to - 1).toLocaleString()}
           </span>
+          {/* When the cursor walks outside the frame (e.g. via Cmd+[ nav
+              history), the active-row highlight disappears. Surface that
+              explicitly so the user understands why the list doesn't reflect
+              their current position. */}
+          {(currentStep < from || currentStep >= to) && (
+            <span
+              className="text-[10px] font-semibold tracking-wide px-1.5 py-0.5"
+              title={`Cursor is at step ${currentStep.toLocaleString()}, outside this frame's range.`}
+              style={{
+                color: "var(--color-warning)",
+                boxShadow: "inset 0 0 0 1px var(--color-warning)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              cursor outside · step {currentStep.toLocaleString()}
+            </span>
+          )}
           <button onClick={onClose} className="ml-auto flex-shrink-0" style={{ color: "var(--color-text-muted)" }} title="Close (Esc)">
             <Icon icon="heroicons:x-mark" className="w-4 h-4" />
           </button>
