@@ -332,11 +332,8 @@ function Skeleton({ rows }: { rows: number }) {
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="h-8"
-          style={{
-            backgroundColor: "var(--color-bg-tertiary)",
-            opacity: 0.4,
-          }}
+          className="h-8 theme-tertiary-bg"
+          style={{ opacity: 0.4 }}
         />
       ))}
     </div>

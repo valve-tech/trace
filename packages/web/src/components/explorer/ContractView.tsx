@@ -91,11 +91,8 @@ export default function ContractView({
   if (error) {
     return (
       <div
-        className="rounded-lg p-4"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-          borderColor: "var(--color-danger)",
-        }}
+        className="rounded-lg p-4 theme-card-bg"
+        style={{ borderColor: "var(--color-danger)" }}
       >
         <h3
           className="text-sm font-semibold mb-1 theme-danger"

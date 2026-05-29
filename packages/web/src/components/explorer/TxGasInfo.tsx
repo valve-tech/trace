@@ -57,8 +57,7 @@ export function TxGasInfo({
 
   return (
     <span
-      className={`inline-flex items-center gap-tight font-mono text-[10px] ${className}`}
-      style={{ color: "var(--color-text-muted)" }}
+      className={`inline-flex items-center gap-tight font-mono text-[10px] theme-text-muted ${className}`}
     >
       <span
         className="px-1.5 py-0.5 uppercase tracking-wider font-semibold shrink-0 theme-tertiary-bg theme-text-secondary"

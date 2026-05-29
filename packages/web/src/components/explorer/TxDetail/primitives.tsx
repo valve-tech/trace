@@ -85,11 +85,8 @@ export function SectionCard({
         </div>
         <Icon
           icon="heroicons:chevron-down"
-          className="w-4 h-4 transition-transform"
-          style={{
-            color: "var(--color-text-muted)",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-          }}
+          className="w-4 h-4 transition-transform theme-text-muted"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
         />
       </button>
       {open && (

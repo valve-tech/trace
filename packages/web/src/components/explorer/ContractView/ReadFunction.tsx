@@ -54,11 +54,8 @@ export function ReadFunction({
         </div>
         <Icon
           icon="heroicons:chevron-down"
-          className="w-3.5 h-3.5 transition-transform"
-          style={{
-            color: "var(--color-text-muted)",
-            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-          }}
+          className="w-3.5 h-3.5 transition-transform theme-text-muted"
+          style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
         />
       </button>
 
