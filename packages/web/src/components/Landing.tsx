@@ -51,13 +51,10 @@ export default function Landing() {
       {NAV_GROUPS.map((group) => (
         <section key={group.label} className="space-y-row">
           <div className="flex items-baseline gap-row">
-            <h2
-              className="text-sm font-semibold uppercase tracking-widest"
-              style={{ color: "var(--color-text-primary)" }}
-            >
+            <h2 className="text-sm font-semibold uppercase tracking-widest theme-text">
               {group.label}
             </h2>
-            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            <span className="text-xs theme-text-muted">
               {group.hint}
             </span>
           </div>
@@ -70,10 +67,7 @@ export default function Landing() {
       ))}
 
       <section className="space-y-row max-w-md">
-        <h2
-          className="text-sm font-semibold uppercase tracking-widest"
-          style={{ color: "var(--color-text-primary)" }}
-        >
+        <h2 className="text-sm font-semibold uppercase tracking-widest theme-text">
           Jump back in
         </h2>
         <RecentRail />
@@ -120,17 +114,14 @@ function HeroTile({
       <div className="relative space-y-tight">
         <div className="flex items-center gap-inline">
           <PulseLogo />
-          <span
-            className="text-[10px] uppercase tracking-widest font-semibold px-2 py-0.5"
-            style={{ backgroundColor: "var(--color-accent-muted)", color: "var(--color-accent)" }}
-          >
+          <span className="text-[10px] uppercase tracking-widest font-semibold px-2 py-0.5 theme-accent-bg theme-accent">
             Devnet · Chain 369
           </span>
         </div>
-        <h1 className="text-3xl font-semibold" style={{ color: "var(--color-text-primary)" }}>
+        <h1 className="text-3xl font-semibold theme-text">
           PulseChain Dev Platform
         </h1>
-        <p className="text-sm max-w-xl" style={{ color: "var(--color-text-secondary)" }}>
+        <p className="text-sm max-w-xl theme-text-secondary">
           Simulate before you broadcast, explore the chain and debug traces
           opcode-by-opcode, and automate on-chain workflows — one toolchain.
         </p>
@@ -145,28 +136,20 @@ function HeroTile({
           className="flex items-stretch gap-inline"
         >
           <div
-            className="flex-1 flex items-center gap-inline px-3 h-11"
-            style={{
-              backgroundColor: "var(--color-bg-input)",
-              boxShadow: "inset 0 0 0 1px var(--color-border-default)",
-            }}
+            className="flex-1 flex items-center gap-inline px-3 h-11 theme-input-bg"
+            style={{ boxShadow: "inset 0 0 0 1px var(--color-border-default)" }}
           >
             <Icon
               icon="heroicons:magnifying-glass"
-              className="w-4 h-4 shrink-0"
-              style={{ color: "var(--color-text-muted)" }}
+              className="w-4 h-4 shrink-0 theme-text-muted"
             />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Paste a tx hash, address, block, or 4byte selector…"
-              className="bare-input flex-1 bg-transparent outline-none text-sm font-mono"
-              style={{ color: "var(--color-text-primary)" }}
+              className="bare-input flex-1 bg-transparent outline-none text-sm font-mono theme-text"
             />
-            <kbd
-              className="hidden sm:block text-[10px] px-1.5 py-0.5 font-mono shrink-0"
-              style={{ backgroundColor: "var(--color-bg-tertiary)", color: "var(--color-text-secondary)" }}
-            >
+            <kbd className="hidden sm:block text-[10px] px-1.5 py-0.5 font-mono shrink-0 theme-tertiary-bg theme-text-secondary">
               ⌘K
             </kbd>
           </div>
@@ -179,7 +162,7 @@ function HeroTile({
           </button>
         </form>
         {hint && (
-          <p className="text-xs" style={{ color: "var(--color-warning)" }}>
+          <p className="text-xs theme-warning">
             Unrecognized — paste a tx hash (66 chars), address (42), block
             number, or 4byte selector.
           </p>
@@ -286,26 +269,17 @@ function StatTile({
       className="card p-4 flex flex-col justify-between transition-opacity hover:opacity-90"
       style={{ textDecoration: "none", minHeight: 72 }}
     >
-      <div
-        className="flex items-center gap-tight text-[10px] uppercase tracking-widest"
-        style={{ color: "var(--color-text-muted)" }}
-      >
+      <div className="flex items-center gap-tight text-[10px] uppercase tracking-widest theme-text-muted">
         <Icon icon={icon} className="w-3 h-3" />
         {label}
         {live && (
-          <span
-            className="glow-pulse ml-auto w-1.5 h-1.5"
-            style={{ backgroundColor: "var(--color-success)" }}
-          />
+          <span className="glow-pulse ml-auto w-1.5 h-1.5 theme-success-bg" />
         )}
       </div>
-      <div
-        className="font-mono text-2xl font-semibold tabular-nums mt-1"
-        style={{ color: "var(--color-text-primary)" }}
-      >
+      <div className="font-mono text-2xl font-semibold tabular-nums mt-1 theme-text">
         {value}
       </div>
-      <div className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+      <div className="text-[11px] theme-text-muted">
         {sub}
       </div>
     </Link>
@@ -330,24 +304,20 @@ function FeatureCard({ item }: { item: NavItem }) {
         e.currentTarget.style.boxShadow = "";
       }}
     >
-      <span
-        className="shrink-0 flex items-center justify-center w-9 h-9"
-        style={{ backgroundColor: "var(--color-accent-muted)", color: "var(--color-accent)" }}
-      >
+      <span className="shrink-0 flex items-center justify-center w-9 h-9 theme-accent-bg theme-accent">
         <Icon icon={item.icon} className="w-5 h-5" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-tight">
-          <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+          <span className="text-sm font-semibold theme-text">
             {item.label}
           </span>
           <Icon
             icon="heroicons:arrow-right"
-            className="w-3.5 h-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0"
-            style={{ color: "var(--color-accent)" }}
+            className="w-3.5 h-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0 theme-accent"
           />
         </div>
-        <div className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+        <div className="text-xs mt-0.5 theme-text-muted">
           {item.desc}
         </div>
       </div>
