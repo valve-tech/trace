@@ -66,27 +66,49 @@ export async function resolveContractMeta(
     else uncached.push(addr);
   }
 
-  // Modest concurrency — /api/source can recompile, so flooding it 500s.
+  // Modest concurrency — the upstream verification source may recompile,
+  // so flooding the endpoint 500s.
   const BATCH = 4;
   for (let i = 0; i < uncached.length; i += BATCH) {
     const batch = uncached.slice(i, i + BATCH);
     const fetched = await Promise.all(
       batch.map(async (addr): Promise<[string, ContractMeta]> => {
         try {
-          const res = await fetch(`/api/source/${addr}`, {
+          // Etherscan-shaped surface — `module=contract&action=getsourcecode`
+          // returns an array of one record; `ContractName === ""` and `ABI ===
+          // "Contract source code not verified"` signal the unverified case.
+          // We use this rather than `/api/source/:addr` directly because the
+          // module/action shape is what external tooling (hardhat-verify,
+          // foundry) will use, and exercising it from the in-app call tree
+          // gives us coverage of the same code path.
+          const url = `/api?module=contract&action=getsourcecode&address=${addr}`;
+          const res = await fetch(url, {
             signal: AbortSignal.timeout(8_000),
           });
           if (!res.ok) return [addr, { name: null, selectors: {}, events: {} }];
           const data = (await res.json()) as {
-            ok: boolean;
-            source?: { contractName?: string | null; abi?: unknown };
+            status?: string;
+            result?: Array<{ ContractName?: string; ABI?: string }>;
           };
+          if (data.status !== "1") {
+            return [addr, { name: null, selectors: {}, events: {} }];
+          }
+          const record = data.result?.[0];
+          const name = record?.ContractName ? record.ContractName : null;
+          let abi: unknown = [];
+          if (record?.ABI && record.ABI !== "Contract source code not verified") {
+            try {
+              abi = JSON.parse(record.ABI);
+            } catch {
+              // Malformed ABI string — fall through with no selectors.
+            }
+          }
           return [
             addr,
             {
-              name: data.source?.contractName ?? null,
-              selectors: buildSelectorMap(data.source?.abi),
-              events: buildEventMap(data.source?.abi),
+              name,
+              selectors: buildSelectorMap(abi),
+              events: buildEventMap(abi),
             },
           ];
         } catch {
