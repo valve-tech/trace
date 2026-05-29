@@ -108,9 +108,7 @@ function BalanceChangesSection({ changes }: { changes: BalanceChange[] }) {
             <tbody>
               {changes.map((change, i) => {
                 const positive = isDeltaPositive(change.delta);
-                const deltaColor = positive
-                  ? "var(--color-success)"
-                  : "var(--color-danger)";
+                const deltaClass = positive ? "theme-success" : "theme-danger";
                 const deltaPrefix = positive ? "+" : "";
 
                 return (
@@ -120,12 +118,8 @@ function BalanceChangesSection({ changes }: { changes: BalanceChange[] }) {
                     style={{}}
                   >
                     <td
-                      className="px-3 py-2"
+                      className="px-3 py-2 theme-mono theme-text"
                       title={change.address}
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        color: "var(--color-text-primary)",
-                      }}
                     >
                       {truncateHex(change.address)}
                     </td>
@@ -139,13 +133,7 @@ function BalanceChangesSection({ changes }: { changes: BalanceChange[] }) {
                     >
                       {formatPlsValue(change.after)}
                     </td>
-                    <td
-                      className="px-3 py-2 font-semibold"
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        color: deltaColor,
-                      }}
-                    >
+                    <td className={`px-3 py-2 font-semibold theme-mono ${deltaClass}`}>
                       {deltaPrefix}
                       {formatPlsValue(change.delta.replace(/^-/, ""))}
                     </td>
@@ -217,37 +205,23 @@ function StorageGroup({
                   style={{}}
                 >
                   <td
-                    className="px-3 py-2"
+                    className="px-3 py-2 theme-mono theme-text-muted"
                     title={row.slot}
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      color: "var(--color-text-muted)",
-                    }}
                   >
                     {truncateHex(row.slot)}
                   </td>
-                  <td
-                    className="px-3 py-2 theme-text-secondary"
-                  >
+                  <td className="px-3 py-2 theme-text-secondary">
                     {row.decodedName ?? "—"}
                   </td>
                   <td
-                    className="px-3 py-2"
+                    className="px-3 py-2 theme-mono theme-text-muted"
                     title={row.before}
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      color: "var(--color-text-muted)",
-                    }}
                   >
                     {truncateHex(row.before)}
                   </td>
                   <td
-                    className="px-3 py-2"
+                    className="px-3 py-2 theme-mono theme-accent"
                     title={row.after}
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      color: "var(--color-accent)",
-                    }}
                   >
                     {truncateHex(row.after)}
                   </td>
@@ -333,12 +307,8 @@ function NonceChangesSection({ changes }: { changes: NonceChange[] }) {
                   style={{}}
                 >
                   <td
-                    className="px-3 py-2"
+                    className="px-3 py-2 theme-mono theme-text"
                     title={change.address}
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      color: "var(--color-text-primary)",
-                    }}
                   >
                     {truncateHex(change.address)}
                   </td>

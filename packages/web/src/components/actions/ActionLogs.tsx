@@ -45,11 +45,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
       <div className="flex items-center gap-row mb-4">
         <button
           onClick={onBack}
-          className="px-3 py-1.5 text-sm rounded-md bs transition-colors"
-          style={{
-            color: "var(--color-text-secondary)",
-            backgroundColor: "transparent",
-          }}
+          className="px-3 py-1.5 text-sm rounded-md bs transition-colors theme-text-secondary"
+          style={{ backgroundColor: "transparent" }}
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = "var(--color-bg-tertiary)";
           }}
@@ -67,11 +64,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
         </span>
         <button
           onClick={() => void fetchLogs()}
-          className="ml-auto px-3 py-1.5 text-sm rounded-md bs transition-colors"
-          style={{
-            color: "var(--color-text-secondary)",
-            backgroundColor: "transparent",
-          }}
+          className="ml-auto px-3 py-1.5 text-sm rounded-md bs transition-colors theme-text-secondary"
+          style={{ backgroundColor: "transparent" }}
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = "var(--color-bg-tertiary)";
           }}
@@ -90,10 +84,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
         <table className="w-full text-sm">
           <thead>
             <tr
-              style={{
-                backgroundColor: "var(--color-bg-tertiary)",
-                boxShadow: "0 1px 0 0 var(--color-border-default)",
-              }}
+              className="theme-tertiary-bg"
+              style={{ boxShadow: "0 1px 0 0 var(--color-border-default)" }}
             >
               <th
                 className="text-left px-4 py-2.5 font-medium theme-text-secondary"
@@ -214,13 +206,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                                 stdout
                               </div>
                               <pre
-                                className="text-xs p-2 rounded overflow-x-auto"
-                                style={{
-                                  backgroundColor: "var(--color-bg-primary)",
-                                  color: "var(--color-success)",
-                                  fontFamily: "var(--font-mono)",
-                                  boxShadow: "0 0 0 1px var(--color-border-muted)",
-                                }}
+                                className="text-xs p-2 rounded overflow-x-auto theme-primary-bg theme-success theme-mono"
+                                style={{ boxShadow: "0 0 0 1px var(--color-border-muted)" }}
                               >
                                 {log.stdout}
                               </pre>
@@ -234,13 +221,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                                 stderr
                               </div>
                               <pre
-                                className="text-xs p-2 rounded overflow-x-auto"
-                                style={{
-                                  backgroundColor: "var(--color-bg-primary)",
-                                  color: "var(--color-danger)",
-                                  fontFamily: "var(--font-mono)",
-                                  boxShadow: "0 0 0 1px var(--color-border-muted)",
-                                }}
+                                className="text-xs p-2 rounded overflow-x-auto theme-primary-bg theme-danger theme-mono"
+                                style={{ boxShadow: "0 0 0 1px var(--color-border-muted)" }}
                               >
                                 {log.stderr}
                               </pre>
@@ -254,13 +236,8 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                                 Trigger Data
                               </div>
                               <pre
-                                className="text-xs p-2 rounded overflow-x-auto"
-                                style={{
-                                  backgroundColor: "var(--color-bg-primary)",
-                                  color: "var(--color-text-secondary)",
-                                  fontFamily: "var(--font-mono)",
-                                  boxShadow: "0 0 0 1px var(--color-border-muted)",
-                                }}
+                                className="text-xs p-2 rounded overflow-x-auto theme-primary-bg theme-text-secondary theme-mono"
+                                style={{ boxShadow: "0 0 0 1px var(--color-border-muted)" }}
                               >
                                 {JSON.stringify(JSON.parse(log.trigger_data), null, 2)}
                               </pre>
@@ -287,22 +264,16 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="px-3 py-1.5 text-sm rounded-md bs transition-colors disabled:opacity-40"
-              style={{
-                color: "var(--color-text-secondary)",
-                backgroundColor: "transparent",
-              }}
+              className="px-3 py-1.5 text-sm rounded-md bs transition-colors disabled:opacity-40 theme-text-secondary"
+              style={{ backgroundColor: "transparent" }}
             >
               Previous
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="px-3 py-1.5 text-sm rounded-md bs transition-colors disabled:opacity-40"
-              style={{
-                color: "var(--color-text-secondary)",
-                backgroundColor: "transparent",
-              }}
+              className="px-3 py-1.5 text-sm rounded-md bs transition-colors disabled:opacity-40 theme-text-secondary"
+              style={{ backgroundColor: "transparent" }}
             >
               Next
             </button>
