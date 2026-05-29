@@ -32,7 +32,7 @@ export function StatusSummary({ result, onViewContract, onDebug }: Props) {
           className="text-sm theme-text-secondary"
         >
           Gas:{" "}
-          <span style={{ fontFamily: "var(--font-mono)" }}>
+          <span className="theme-mono">
             {Number(result.gasUsed).toLocaleString()}
           </span>
         </span>

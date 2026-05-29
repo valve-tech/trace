@@ -25,7 +25,7 @@ export function DecodedInputSection({ decoded }: { decoded: DecodedInput }) {
           >
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
+                <tr className="theme-secondary-bg">
                   <th
                     className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                   >

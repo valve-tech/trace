@@ -48,7 +48,7 @@ export function LogRow({
         <Icon icon="heroicons:megaphone" className="w-3 h-3" />
       </span>
 
-      <span style={{ color: "var(--color-warning)" }}>{eventName}</span>
+      <span className="theme-warning">{eventName}</span>
       {params && (
         <span className="truncate" style={{ color: "var(--color-text-muted)", maxWidth: "320px" }}>
           {params}

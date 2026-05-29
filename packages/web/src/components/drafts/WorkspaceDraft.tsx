@@ -77,9 +77,9 @@ const CONTEXT_BLOCKS = [
     icon: "heroicons:check-badge",
     body: (
       <div className="text-xs space-y-1.5 theme-text-secondary">
-        <div className="flex justify-between"><span>BlockScout</span><span style={{ color: "var(--color-success)" }}>✓</span></div>
-        <div className="flex justify-between"><span>Sourcify (full match)</span><span style={{ color: "var(--color-success)" }}>✓</span></div>
-        <div className="flex justify-between"><span>Slither analysis</span><span style={{ color: "var(--color-text-muted)" }}>cached 4d ago</span></div>
+        <div className="flex justify-between"><span>BlockScout</span><span className="theme-success">✓</span></div>
+        <div className="flex justify-between"><span>Sourcify (full match)</span><span className="theme-success">✓</span></div>
+        <div className="flex justify-between"><span>Slither analysis</span><span className="theme-text-muted">cached 4d ago</span></div>
       </div>
     ),
   },
@@ -254,7 +254,7 @@ export default function WorkspaceDraft() {
               </div>
               <table className="w-full text-xs font-mono">
                 <thead>
-                  <tr style={{ color: "var(--color-text-muted)" }}>
+                  <tr className="theme-text-muted">
                     <th className="text-left pb-2 font-normal">Method</th>
                     <th className="text-left pb-2 font-normal">Hash</th>
                     <th className="text-left pb-2 font-normal">From</th>
@@ -270,9 +270,9 @@ export default function WorkspaceDraft() {
                       style={{ borderColor: "var(--color-border-muted)" }}
                     >
                       <td className="py-2.5 theme-text">{r.method}</td>
-                      <td style={{ color: "var(--color-accent)" }}>{r.hash}</td>
-                      <td style={{ color: "var(--color-text-secondary)" }}>{r.from}</td>
-                      <td style={{ color: "var(--color-text-muted)" }}>{r.age}</td>
+                      <td className="theme-accent">{r.hash}</td>
+                      <td className="theme-text-secondary">{r.from}</td>
+                      <td className="theme-text-muted">{r.age}</td>
                       <td>
                         <span
                           className="px-1.5 py-0.5 text-[10px] font-sans"

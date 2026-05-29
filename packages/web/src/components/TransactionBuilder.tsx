@@ -306,7 +306,7 @@ export default function TransactionBuilder() {
                 {(selectedFn.inputs ?? []).map((input, i) => (
                   <div key={i}>
                     <label className="text-xs block mb-1 theme-text-secondary">
-                      <span style={{ color: "var(--color-text-primary)" }}>{input.name || `arg${i}`}</span>
+                      <span className="theme-text">{input.name || `arg${i}`}</span>
                       {" "}
                       <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-muted)" }}>
                         {input.type}

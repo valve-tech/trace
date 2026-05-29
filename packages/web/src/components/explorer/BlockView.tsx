@@ -187,7 +187,7 @@ export default function BlockView({
           </span>
         </InfoRow>
         <InfoRow label="Timestamp">
-          <span style={{ color: "var(--color-text-primary)" }}>
+          <span className="theme-text">
             {formatTimestamp(block.timestamp)}
           </span>
         </InfoRow>
@@ -209,11 +209,11 @@ export default function BlockView({
           </ExplorerLink>
         </InfoRow>
         <InfoRow label="Gas Used / Limit">
-          <span style={{ color: "var(--color-text-primary)" }}>
+          <span className="theme-text">
             <span className="font-mono">
               {Number(block.gasUsed).toLocaleString()}
             </span>
-            <span style={{ color: "var(--color-text-muted)" }}> / </span>
+            <span className="theme-text-muted"> / </span>
             <span className="font-mono">
               {Number(block.gasLimit).toLocaleString()}
             </span>

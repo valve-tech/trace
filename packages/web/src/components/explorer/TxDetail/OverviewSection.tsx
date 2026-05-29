@@ -44,7 +44,7 @@ export function OverviewSection({
           </ExplorerLink>
         </InfoRow>
         <InfoRow label="Timestamp">
-          <span style={{ color: "var(--color-text-primary)" }}>
+          <span className="theme-text">
             {formatTimestamp(tx.timestamp)}
           </span>
         </InfoRow>
@@ -92,11 +92,11 @@ export function OverviewSection({
           </span>
         </InfoRow>
         <InfoRow label="Gas Used / Limit">
-          <span style={{ color: "var(--color-text-primary)" }}>
+          <span className="theme-text">
             <span className="font-mono">
               {Number(tx.gasUsed).toLocaleString()}
             </span>
-            <span style={{ color: "var(--color-text-muted)" }}> / </span>
+            <span className="theme-text-muted"> / </span>
             <span className="font-mono">
               {Number(tx.gas).toLocaleString()}
             </span>
@@ -122,7 +122,7 @@ export function OverviewSection({
           </span>
         </InfoRow>
         <InfoRow label="Type">
-          <span style={{ color: "var(--color-text-primary)" }}>{tx.type}</span>
+          <span className="theme-text">{tx.type}</span>
         </InfoRow>
       </div>
     </SectionCard>

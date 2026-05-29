@@ -33,7 +33,7 @@ export function SummaryBar({ result }: { result: DiffResult }) {
         >
           {result.contractA.name ?? shortAddr(result.contractA.address)}
         </code>
-        <span style={{ color: "var(--color-text-muted)" }}>vs</span>
+        <span className="theme-text-muted">vs</span>
         <code
           style={{
             fontSize: "12px",

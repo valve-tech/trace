@@ -25,7 +25,7 @@ export function TokensTab({
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
+            <tr className="theme-secondary-bg">
               {["Token", "Symbol", "Balance", "Contract", "Type"].map((h) => (
                 <th
                   key={h}

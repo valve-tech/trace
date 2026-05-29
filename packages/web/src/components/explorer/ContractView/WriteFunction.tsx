@@ -63,7 +63,7 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
                     className="text-xs font-medium block mb-1 theme-text-secondary"
                   >
                     {inp.name}{" "}
-                    <span style={{ color: "var(--color-text-muted)" }}>
+                    <span className="theme-text-muted">
                       ({inp.type})
                     </span>
                   </label>

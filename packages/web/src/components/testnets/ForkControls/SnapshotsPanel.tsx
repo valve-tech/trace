@@ -85,7 +85,7 @@ export function SnapshotsPanel({ forkId, onReverted }: Props) {
                 backgroundColor: "var(--color-bg-input)",
               }}
             >
-              <span style={{ color: "var(--color-text-secondary)" }}>
+              <span className="theme-text-secondary">
                 <span
                   style={{
                     fontFamily: "var(--font-mono)",

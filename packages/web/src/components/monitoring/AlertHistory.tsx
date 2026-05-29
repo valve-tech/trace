@@ -109,7 +109,7 @@ export default function AlertHistory({
           className="rounded-lg p-8 text-center"
           style={cardStyle}
         >
-          <p style={{ color: "var(--color-text-muted)" }}>
+          <p className="theme-text-muted">
             No alert history yet.
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function AlertHistory({
                           {truncateHash(entry.tx_hash)}
                         </a>
                       ) : (
-                        <span style={{ color: "var(--color-text-muted)" }}>
+                        <span className="theme-text-muted">
                           --
                         </span>
                       )}

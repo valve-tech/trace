@@ -18,7 +18,7 @@ export function TxTable({ txs, ownerAddress, onNavigate }: Props) {
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
+        <tr className="theme-secondary-bg">
           {HEADERS.map((h) => (
             <th
               key={h}

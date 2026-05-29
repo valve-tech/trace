@@ -60,7 +60,7 @@ export function EventsSection({
                       >
                         {arg.name || `arg${j}`}
                       </span>
-                      <span style={{ color: "var(--color-text-muted)" }}>
+                      <span className="theme-text-muted">
                         ({arg.type})
                       </span>
                       <span

@@ -208,7 +208,7 @@ export default function SimulationResultPanel({
                 >
                   {param.name || `param${i}`}
                 </span>
-                <span style={{ color: "var(--color-text-muted)" }}>
+                <span className="theme-text-muted">
                   ({param.type})
                 </span>
                 <span
@@ -250,7 +250,7 @@ export default function SimulationResultPanel({
                 >
                   {val.name || `output${i}`}
                 </span>
-                <span style={{ color: "var(--color-text-muted)" }}>
+                <span className="theme-text-muted">
                   ({val.type})
                 </span>
                 <span
@@ -303,7 +303,7 @@ export default function SimulationResultPanel({
                     <div className="mt-1 space-y-0.5">
                       {log.decoded.params.map((p, j) => (
                         <div key={j} className="text-xs flex gap-inline">
-                          <span style={{ color: "var(--color-text-secondary)" }}>
+                          <span className="theme-text-secondary">
                             {p.name}:
                           </span>
                           <span

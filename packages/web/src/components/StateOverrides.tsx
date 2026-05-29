@@ -69,7 +69,7 @@ function StorageSlotEditor({
               color: "var(--color-text-primary)",
             }}
           />
-          <span style={{ color: "var(--color-text-muted)" }}>=</span>
+          <span className="theme-text-muted">=</span>
           <input
             type="text"
             value={val}

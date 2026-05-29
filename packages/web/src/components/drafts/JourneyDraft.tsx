@@ -166,16 +166,16 @@ function decodedCallLens(): Lens {
     icon: "heroicons:code-bracket",
     body: (
       <div className="font-mono text-xs leading-relaxed theme-text">
-        <span style={{ color: "var(--color-accent)" }}>swapExactTokensForTokens</span>
-        <span style={{ color: "var(--color-text-muted)" }}>(</span>
+        <span className="theme-accent">swapExactTokensForTokens</span>
+        <span className="theme-text-muted">(</span>
         <div className="pl-4">
-          amountIn: <span style={{ color: "var(--color-warning)" }}>1000000000000000000</span>{" "}
-          <span style={{ color: "var(--color-text-muted)" }}>// 1.0</span>
+          amountIn: <span className="theme-warning">1000000000000000000</span>{" "}
+          <span className="theme-text-muted">// 1.0</span>
         </div>
-        <div className="pl-4">amountOutMin: <span style={{ color: "var(--color-warning)" }}>0</span></div>
-        <div className="pl-4">path: [<span style={{ color: "var(--color-success)" }}>WPLS</span>, <span style={{ color: "var(--color-success)" }}>HEX</span>]</div>
-        <div className="pl-4">to: <span style={{ color: "var(--color-text-primary)" }}>0xA1b2…C3d4</span></div>
-        <span style={{ color: "var(--color-text-muted)" }}>)</span>
+        <div className="pl-4">amountOutMin: <span className="theme-warning">0</span></div>
+        <div className="pl-4">path: [<span className="theme-success">WPLS</span>, <span className="theme-success">HEX</span>]</div>
+        <div className="pl-4">to: <span className="theme-text">0xA1b2…C3d4</span></div>
+        <span className="theme-text-muted">)</span>
       </div>
     ),
   };
@@ -191,7 +191,7 @@ function lensesFor(o: Outcome): Lens[] {
         icon: "heroicons:list-bullet",
         body: (
           <div className="font-mono text-xs leading-relaxed">
-            <div style={{ color: "var(--color-text-primary)" }}>→ Router.swapExactTokensForTokens</div>
+            <div className="theme-text">→ Router.swapExactTokensForTokens</div>
             <div className="pl-4 theme-text-secondary">→ WPLS.transferFrom(user, pair, 1e18)</div>
             <div className="pl-8 theme-danger">✗ REVERT: TRANSFER_FROM_FAILED</div>
             <div className="pl-4 theme-text-muted">(execution stops, gas refunded after 184,392)</div>
@@ -206,11 +206,11 @@ function lensesFor(o: Outcome): Lens[] {
           <div className="space-y-2">
             <div className="flex items-start gap-inline text-xs">
               <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold" style={{ backgroundColor: "var(--color-warning-muted)", color: "var(--color-warning)" }}>warning</span>
-              <span style={{ color: "var(--color-text-secondary)" }}>Slippage tolerance is 0 — any price move reverts.</span>
+              <span className="theme-text-secondary">Slippage tolerance is 0 — any price move reverts.</span>
             </div>
             <div className="flex items-start gap-inline text-xs">
               <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold" style={{ backgroundColor: "var(--color-danger-muted)", color: "var(--color-danger)" }}>danger</span>
-              <span style={{ color: "var(--color-text-secondary)" }}>Missing token approval — sender allowance is 0 for WPLS → Router.</span>
+              <span className="theme-text-secondary">Missing token approval — sender allowance is 0 for WPLS → Router.</span>
             </div>
           </div>
         ),
@@ -233,13 +233,13 @@ function lensesFor(o: Outcome): Lens[] {
       icon: "heroicons:arrows-right-left",
       body: (
         <div className="font-mono text-xs space-y-1.5">
-          <div style={{ color: "var(--color-text-secondary)" }}>
-            <span style={{ color: "var(--color-danger)" }}>−1.0 WPLS</span>{" "}
-            <span style={{ color: "var(--color-text-muted)" }}>from 0x77eE…aa12</span>
+          <div className="theme-text-secondary">
+            <span className="theme-danger">−1.0 WPLS</span>{" "}
+            <span className="theme-text-muted">from 0x77eE…aa12</span>
           </div>
-          <div style={{ color: "var(--color-text-secondary)" }}>
-            <span style={{ color: "var(--color-success)" }}>+12,488.21 HEX</span>{" "}
-            <span style={{ color: "var(--color-text-muted)" }}>to 0x77eE…aa12</span>
+          <div className="theme-text-secondary">
+            <span className="theme-success">+12,488.21 HEX</span>{" "}
+            <span className="theme-text-muted">to 0x77eE…aa12</span>
           </div>
           <div className="pt-1 theme-text-muted">
             Effective rate 12,488.21 HEX/WPLS · slippage 0.18%
@@ -253,10 +253,10 @@ function lensesFor(o: Outcome): Lens[] {
       icon: "heroicons:list-bullet",
       body: (
         <div className="font-mono text-xs space-y-1 theme-text-secondary">
-          <div>WPLS.balanceOf[Pair] <span style={{ color: "var(--color-success)" }}>+1e18</span></div>
-          <div>HEX.balanceOf[Pair] <span style={{ color: "var(--color-danger)" }}>−1.248e22</span></div>
-          <div>WPLS.balanceOf[User] <span style={{ color: "var(--color-danger)" }}>−1e18</span></div>
-          <div>HEX.balanceOf[User] <span style={{ color: "var(--color-success)" }}>+1.248e22</span></div>
+          <div>WPLS.balanceOf[Pair] <span className="theme-success">+1e18</span></div>
+          <div>HEX.balanceOf[Pair] <span className="theme-danger">−1.248e22</span></div>
+          <div>WPLS.balanceOf[User] <span className="theme-danger">−1e18</span></div>
+          <div>HEX.balanceOf[User] <span className="theme-success">+1.248e22</span></div>
         </div>
       ),
     },
@@ -267,7 +267,7 @@ function lensesFor(o: Outcome): Lens[] {
       body: (
         <div className="flex items-start gap-inline text-xs">
           <span className="px-1.5 py-0.5 text-[10px] uppercase font-semibold" style={{ backgroundColor: "var(--color-success-muted)", color: "var(--color-success)" }}>clear</span>
-          <span style={{ color: "var(--color-text-secondary)" }}>No findings. Slippage realised was within healthy bounds.</span>
+          <span className="theme-text-secondary">No findings. Slippage realised was within healthy bounds.</span>
         </div>
       ),
     },
@@ -345,8 +345,8 @@ export default function JourneyDraft() {
               {tx.hash}
             </div>
             <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs theme-text-secondary">
-              <span>From <code style={{ color: "var(--color-text-primary)" }}>{tx.from}</code></span>
-              <span>To <code style={{ color: "var(--color-text-primary)" }}>{tx.to}</code></span>
+              <span>From <code className="theme-text">{tx.from}</code></span>
+              <span>To <code className="theme-text">{tx.to}</code></span>
               <span>Block {tx.block.toLocaleString()}</span>
               <span>{tx.age}</span>
               <span>Gas {tx.gas}</span>

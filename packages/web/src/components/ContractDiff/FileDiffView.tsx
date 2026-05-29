@@ -50,7 +50,7 @@ export function FileDiffView({ file, isExpanded, onToggle }: Props) {
           >
             {STATUS_LABEL[file.status]}
           </span>
-          <span style={{ color: "var(--color-text-primary)" }}>
+          <span className="theme-text">
             {file.filename}
           </span>
         </div>

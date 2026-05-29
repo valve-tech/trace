@@ -21,7 +21,7 @@ export function TokenTransfersSection({
         >
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
+              <tr className="theme-secondary-bg">
                 <th
                   className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
@@ -53,7 +53,7 @@ export function TokenTransfersSection({
                 >
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1.5">
-                      <span style={{ color: "var(--color-text-primary)" }}>
+                      <span className="theme-text">
                         {tt.tokenName || "Unknown"}
                       </span>
                       <span

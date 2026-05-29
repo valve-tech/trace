@@ -39,7 +39,7 @@ export function BundleResultCard({
 
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
-          <span style={{ color: "var(--color-text-secondary)" }}>Gas Used</span>
+          <span className="theme-text-secondary">Gas Used</span>
           <span
             style={{
               fontFamily: "var(--font-mono)",

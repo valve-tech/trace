@@ -105,12 +105,12 @@ function Index() {
           <Icon icon="heroicons:light-bulb" className="w-4 h-4" />
           Reading these drafts
         </div>
-        These are <span style={{ color: "var(--color-text-primary)" }}>static visual companions</span> —
+        These are <span className="theme-text">static visual companions</span> —
         no API calls, no real data. They exist so we can argue about
         <em> shape </em>(navigation, hierarchy, what's next to what) before
         spending engineering hours wiring the real components. The existing
-        app at <code style={{ color: "var(--color-accent)" }}>/simulate</code>,
-        <code style={{ color: "var(--color-accent)" }}> /debugger</code>, etc.
+        app at <code className="theme-accent">/simulate</code>,
+        <code className="theme-accent"> /debugger</code>, etc.
         is untouched.
       </div>
     </div>

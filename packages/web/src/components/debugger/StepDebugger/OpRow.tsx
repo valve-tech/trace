@@ -50,7 +50,7 @@ export function OpRow({
       >
         {node.op}
       </span>
-      <span style={{ color: "var(--color-text-muted)" }}>@ pc {node.pc}</span>
+      <span className="theme-text-muted">@ pc {node.pc}</span>
     </div>
   );
 }

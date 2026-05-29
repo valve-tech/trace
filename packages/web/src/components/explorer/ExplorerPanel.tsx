@@ -233,7 +233,7 @@ function Breadcrumb({
       {collapsed.map((node, i) => (
         <span key={node.key} className="flex items-center gap-tight">
           {i > 0 && (
-            <span style={{ color: "var(--color-text-muted)" }}>›</span>
+            <span className="theme-text-muted">›</span>
           )}
           {/* Insert the "…" expander right after Home when collapsed. */}
           {hasGap && i === 1 && (
@@ -246,7 +246,7 @@ function Breadcrumb({
               >
                 …
               </button>
-              <span style={{ color: "var(--color-text-muted)" }}>›</span>
+              <span className="theme-text-muted">›</span>
             </>
           )}
           <CrumbNode node={node} onJump={onJump} />

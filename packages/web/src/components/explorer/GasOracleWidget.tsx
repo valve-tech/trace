@@ -101,13 +101,13 @@ export function GasOracleWidget() {
       </div>
 
       {status === "pending" && (
-        <span style={{ color: "var(--color-text-muted)" }}>
+        <span className="theme-text-muted">
           Loading gas tiers…
         </span>
       )}
 
       {status === "error" && (
-        <span style={{ color: "var(--color-danger)" }}>
+        <span className="theme-danger">
           Gas oracle unavailable
         </span>
       )}
@@ -117,13 +117,13 @@ export function GasOracleWidget() {
           <span
             className="flex items-center gap-tight font-mono shrink-0 theme-text-secondary"
           >
-            <span style={{ color: "var(--color-text-muted)" }}>base</span>
+            <span className="theme-text-muted">base</span>
             <span
               className="tabular-nums theme-text"
             >
               {gwei(data.baseFee)}
             </span>
-            <span style={{ color: "var(--color-text-muted)" }}>gwei</span>
+            <span className="theme-text-muted">gwei</span>
             <Icon
               icon={TREND[data.baseFeeTrend].icon}
               className="w-3 h-3"

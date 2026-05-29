@@ -166,7 +166,7 @@ export default function MempoolView() {
             className="flex items-center gap-row text-xs font-mono theme-text-secondary"
           >
             <span>{data.pendingCount.toLocaleString()} pending</span>
-            <span style={{ color: "var(--color-text-muted)" }}>
+            <span className="theme-text-muted">
               {data.queuedCount.toLocaleString()} queued
             </span>
           </div>
@@ -218,7 +218,7 @@ export default function MempoolView() {
         {status === "success" && filtered.length > 0 && (
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
+              <tr className="theme-secondary-bg">
                 {["", "#", "Tx Hash", "From", "Nonce", "Type", "Gas (tip / cap)"].map(
                   (h, idx) => (
                     <th
@@ -324,11 +324,11 @@ function GasCell({ tx }: { tx: PendingTx }) {
   if (tip != null || cap != null) {
     return (
       <span className="font-mono text-xs tabular-nums theme-text-secondary">
-        <span style={{ color: "var(--color-text-muted)" }}>tip </span>
+        <span className="theme-text-muted">tip </span>
         {tip ?? "—"}
-        <span style={{ color: "var(--color-text-muted)" }}> / cap </span>
+        <span className="theme-text-muted"> / cap </span>
         {cap ?? "—"}
-        <span style={{ color: "var(--color-text-muted)" }}> gwei</span>
+        <span className="theme-text-muted"> gwei</span>
       </span>
     );
   }
@@ -336,11 +336,11 @@ function GasCell({ tx }: { tx: PendingTx }) {
     return (
       <span className="font-mono text-xs tabular-nums theme-text-secondary">
         {legacy}
-        <span style={{ color: "var(--color-text-muted)" }}> gwei</span>
+        <span className="theme-text-muted"> gwei</span>
       </span>
     );
   }
-  return <span style={{ color: "var(--color-text-muted)" }}>—</span>;
+  return <span className="theme-text-muted">—</span>;
 }
 
 function Toolbar({

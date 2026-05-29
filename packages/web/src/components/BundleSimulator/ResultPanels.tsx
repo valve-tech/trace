@@ -90,17 +90,17 @@ export function SummaryBar({ results }: { results: SimulationResult[] }) {
       }}
     >
       <div className="flex items-center gap-4 text-xs">
-        <span style={{ color: "var(--color-text-secondary)" }}>
+        <span className="theme-text-secondary">
           Total:{" "}
-          <strong style={{ color: "var(--color-text-primary)" }}>
+          <strong className="theme-text">
             {results.length} txs
           </strong>
         </span>
-        <span style={{ color: "var(--color-success)" }}>
+        <span className="theme-success">
           {succeeded} succeeded
         </span>
         {reverted > 0 && (
-          <span style={{ color: "var(--color-danger)" }}>
+          <span className="theme-danger">
             {reverted} reverted
           </span>
         )}
