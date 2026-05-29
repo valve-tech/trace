@@ -10,8 +10,7 @@ export function SecretsEditor({ secrets, setSecrets }: Props) {
     <div>
       <div className="flex items-center justify-between mb-1.5">
         <label
-          className="text-sm font-medium"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-sm font-medium theme-text-secondary"
         >
           Secrets
         </label>
@@ -33,7 +32,7 @@ export function SecretsEditor({ secrets, setSecrets }: Props) {
         </button>
       </div>
       {secrets.length === 0 && (
-        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+        <p className="text-xs theme-text-muted">
           No secrets configured. Secrets are available as context.secrets in
           your code.
         </p>

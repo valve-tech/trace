@@ -23,26 +23,22 @@ export function TokenTransfersSection({
             <thead>
               <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
                 <th
-                  className="text-left px-3 py-2 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
                   Token
                 </th>
                 <th
-                  className="text-left px-3 py-2 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
                   From
                 </th>
                 <th
-                  className="text-left px-3 py-2 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
                   To
                 </th>
                 <th
-                  className="text-left px-3 py-2 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
                   Amount
                 </th>
@@ -61,8 +57,7 @@ export function TokenTransfersSection({
                         {tt.tokenName || "Unknown"}
                       </span>
                       <span
-                        className="text-[10px] font-medium"
-                        style={{ color: "var(--color-text-muted)" }}
+                        className="text-[10px] font-medium theme-text-muted"
                       >
                         {tt.tokenSymbol}
                       </span>
@@ -75,8 +70,7 @@ export function TokenTransfersSection({
                     <AddressLink address={tt.to} onNavigate={onNavigate} />
                   </td>
                   <td
-                    className="px-3 py-2 font-mono"
-                    style={{ color: "var(--color-text-primary)" }}
+                    className="px-3 py-2 font-mono theme-text"
                   >
                     {tt.formattedValue} {tt.tokenSymbol}
                   </td>

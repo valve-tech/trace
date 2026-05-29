@@ -22,7 +22,7 @@ function DataRow({
       className="flex flex-col gap-tight py-2.5 bs-b-muted last:shadow-none"
       style={{}}
     >
-      <span className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+      <span className="text-xs font-medium theme-text-secondary">
         {label}
       </span>
       <span
@@ -51,10 +51,10 @@ function EmptyState() {
         className="w-16 h-16 mb-4"
         style={{ color: "var(--color-border-default)" }}
       />
-      <h3 className="text-sm font-medium mb-1" style={{ color: "var(--color-text-secondary)" }}>
+      <h3 className="text-sm font-medium mb-1 theme-text-secondary">
         No Simulation Results
       </h3>
-      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+      <p className="text-xs theme-text-muted">
         Configure and run a transaction simulation to see results here.
       </p>
     </div>
@@ -70,10 +70,10 @@ function LoadingState() {
       }}
     >
       <div className="spinner mb-4" />
-      <h3 className="text-sm font-medium mb-1" style={{ color: "var(--color-text-secondary)" }}>
+      <h3 className="text-sm font-medium mb-1 theme-text-secondary">
         Simulating Transaction...
       </h3>
-      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+      <p className="text-xs theme-text-muted">
         Running against PulseChain state
       </p>
     </div>
@@ -92,11 +92,10 @@ function ErrorState({ message }: { message: string }) {
       <div className="flex items-start gap-row">
         <Icon
           icon="heroicons:exclamation-circle"
-          className="w-5 h-5 mt-0.5 shrink-0"
-          style={{ color: "var(--color-danger)" }}
+          className="w-5 h-5 mt-0.5 shrink-0 theme-danger"
         />
         <div>
-          <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--color-danger)" }}>
+          <h3 className="text-sm font-semibold mb-1 theme-danger">
             Simulation Error
           </h3>
           <p
@@ -134,8 +133,7 @@ export default function SimulationResultPanel({
       >
         <div className="flex items-center justify-between mb-4">
           <h2
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-sm font-semibold theme-text"
           >
             Simulation Result
           </h2>
@@ -155,8 +153,7 @@ export default function SimulationResultPanel({
               style={{ backgroundColor: "var(--color-danger-muted)" }}
             >
               <span
-                className="text-xs font-medium block mb-1"
-                style={{ color: "var(--color-danger)" }}
+                className="text-xs font-medium block mb-1 theme-danger"
               >
                 Revert Reason
               </span>
@@ -208,8 +205,7 @@ export default function SimulationResultPanel({
                 className="flex items-start gap-row py-1.5 text-sm"
               >
                 <span
-                  className="shrink-0 font-medium"
-                  style={{ color: "var(--color-accent)" }}
+                  className="shrink-0 font-medium theme-accent"
                 >
                   {param.name || `param${i}`}
                 </span>
@@ -251,8 +247,7 @@ export default function SimulationResultPanel({
             {result.decodedReturn.values.map((val, i) => (
               <div key={i} className="flex items-start gap-row py-1.5 text-sm">
                 <span
-                  className="shrink-0 font-medium"
-                  style={{ color: "var(--color-success)" }}
+                  className="shrink-0 font-medium theme-success"
                 >
                   {val.name || `output${i}`}
                 </span>
@@ -302,8 +297,7 @@ export default function SimulationResultPanel({
                 {log.decoded ? (
                   <div>
                     <span
-                      className="text-sm font-medium"
-                      style={{ color: "var(--color-warning)" }}
+                      className="text-sm font-medium theme-warning"
                     >
                       {log.decoded.eventName}
                     </span>

@@ -39,8 +39,7 @@ function TextField({
       />
       {hint && (
         <p
-          className="text-xs mt-1"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-xs mt-1 theme-text-muted"
         >
           {hint}
         </p>

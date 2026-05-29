@@ -72,14 +72,12 @@ export default function TestNetDashboard() {
       <div className="card p-4 flex items-center justify-between mb-6">
         <div>
           <h2
-            className="text-lg font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-lg font-semibold theme-text"
           >
             Virtual TestNets
           </h2>
           <p
-            className="text-sm mt-0.5"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="text-sm mt-0.5 theme-text-secondary"
           >
             Fork PulseChain into isolated test environments powered by Anvil
           </p>
@@ -102,7 +100,7 @@ export default function TestNetDashboard() {
             borderColor: "var(--color-danger)",
           }}
         >
-          <p className="text-sm" style={{ color: "var(--color-danger)" }}>
+          <p className="text-sm theme-danger">
             {error}
           </p>
         </div>
@@ -124,20 +122,17 @@ export default function TestNetDashboard() {
           }}
         >
           <div
-            className="text-4xl mb-3"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-4xl mb-3 theme-text-muted"
           >
             <Icon icon="heroicons:server-stack" className="w-12 h-12 mx-auto" />
           </div>
           <p
-            className="text-sm font-medium"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="text-sm font-medium theme-text-secondary"
           >
             No active testnets
           </p>
           <p
-            className="text-xs mt-1 mb-4"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-xs mt-1 mb-4 theme-text-muted"
           >
             Create a virtual testnet to fork PulseChain into an isolated environment
           </p>
@@ -185,14 +180,12 @@ export default function TestNetDashboard() {
                       />
                       <div>
                         <h3
-                          className="text-sm font-medium"
-                          style={{ color: "var(--color-text-primary)" }}
+                          className="text-sm font-medium theme-text"
                         >
                           {fork.label}
                         </h3>
                         <div
-                          className="flex items-center gap-row text-xs mt-0.5"
-                          style={{ color: "var(--color-text-secondary)" }}
+                          className="flex items-center gap-row text-xs mt-0.5 theme-text-secondary"
                         >
                           <span>
                             Fork Block:{" "}

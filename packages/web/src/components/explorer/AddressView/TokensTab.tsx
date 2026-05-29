@@ -18,8 +18,7 @@ export function TokensTab({
     >
       {tokens.length === 0 ? (
         <div
-          className="p-4 text-center text-sm"
-          style={{ color: "var(--color-text-muted)" }}
+          className="p-4 text-center text-sm theme-text-muted"
         >
           No tokens found
         </div>
@@ -30,8 +29,7 @@ export function TokensTab({
               {["Token", "Symbol", "Balance", "Contract", "Type"].map((h) => (
                 <th
                   key={h}
-                  className="text-left px-3 py-2.5 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"
                 >
                   {h}
                 </th>
@@ -46,20 +44,17 @@ export function TokensTab({
                 style={{}}
               >
                 <td
-                  className="px-3 py-2"
-                  style={{ color: "var(--color-text-primary)" }}
+                  className="px-3 py-2 theme-text"
                 >
                   {token.name || "Unknown"}
                 </td>
                 <td
-                  className="px-3 py-2 font-mono"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="px-3 py-2 font-mono theme-text-secondary"
                 >
                   {token.symbol}
                 </td>
                 <td
-                  className="px-3 py-2 font-mono"
-                  style={{ color: "var(--color-text-primary)" }}
+                  className="px-3 py-2 font-mono theme-text"
                 >
                   {token.formattedBalance}
                 </td>
@@ -71,8 +66,7 @@ export function TokensTab({
                         value: token.contractAddress,
                       })
                     }
-                    className="font-mono text-xs hover:underline cursor-pointer"
-                    style={{ color: "var(--color-accent)" }}
+                    className="font-mono text-xs hover:underline cursor-pointer theme-accent"
                     title={token.contractAddress}
                   >
                     {truncateAddr(token.contractAddress)}

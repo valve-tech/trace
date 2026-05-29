@@ -29,8 +29,7 @@ export function StatusSummary({ result, onViewContract, onDebug }: Props) {
           {result.success ? "SUCCESS" : "REVERTED"}
         </span>
         <span
-          className="text-sm"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-sm theme-text-secondary"
         >
           Gas:{" "}
           <span style={{ fontFamily: "var(--font-mono)" }}>
@@ -39,8 +38,7 @@ export function StatusSummary({ result, onViewContract, onDebug }: Props) {
         </span>
         {result.blockNumber > 0 && (
           <span
-            className="text-sm"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-sm theme-text-muted"
           >
             Block: {result.blockNumber.toLocaleString()}
           </span>

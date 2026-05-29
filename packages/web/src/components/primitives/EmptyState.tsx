@@ -22,19 +22,16 @@ export function EmptyState({
     <div className={`flex flex-col items-center text-center px-6 py-10 ${className}`}>
       <Icon
         icon={icon}
-        className="w-7 h-7"
-        style={{ color: "var(--color-text-muted)" }}
+        className="w-7 h-7 theme-text-muted"
       />
       <div
-        className="text-sm mt-3"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-sm mt-3 theme-text-secondary"
       >
         {title}
       </div>
       {subtitle && (
         <div
-          className="text-xs mt-1 max-w-[340px]"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-xs mt-1 max-w-[340px] theme-text-muted"
         >
           {subtitle}
         </div>

@@ -40,8 +40,7 @@ export function DestroyPanel({ forkId, onDestroyed }: Props) {
       ) : (
         <div className="flex items-center gap-inline">
           <span
-            className="text-xs"
-            style={{ color: "var(--color-danger)" }}
+            className="text-xs theme-danger"
           >
             Are you sure? This cannot be undone.
           </span>

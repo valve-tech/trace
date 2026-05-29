@@ -97,8 +97,7 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
           {!autoFetch && (
             <div>
               <label
-                className="block text-xs mb-1.5 font-medium"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="block text-xs mb-1.5 font-medium theme-text-secondary"
               >
                 Paste JSON ABI
               </label>
@@ -118,7 +117,7 @@ export default function AbiInput({ value, onChange }: AbiInputProps) {
                 }}
               />
               {!valid && (
-                <p className="text-xs mt-1" style={{ color: "var(--color-danger)" }}>
+                <p className="text-xs mt-1 theme-danger">
                   Invalid JSON. Please paste a valid ABI array.
                 </p>
               )}

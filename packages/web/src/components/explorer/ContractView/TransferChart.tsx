@@ -43,29 +43,29 @@ export function TransferChart({ address }: Props) {
   return (
     <div className="rounded-lg bs p-5" style={{ backgroundColor: "var(--color-bg-card)" }}>
       <div className="flex items-center justify-between mb-stack">
-        <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+        <span className="text-sm font-medium theme-text">
           Transfers
         </span>
-        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+        <span className="text-xs theme-text-muted">
           last {days} days
         </span>
       </div>
 
       {status === "loading" && (
-        <div className="h-[160px] flex items-center justify-center text-sm" style={{ color: "var(--color-text-muted)" }}>
+        <div className="h-[160px] flex items-center justify-center text-sm theme-text-muted">
           Loading transfers…
         </div>
       )}
 
       {status === "error" && (
-        <div className="h-[160px] flex flex-col items-center justify-center gap-tight text-sm" style={{ color: "var(--color-danger)" }}>
+        <div className="h-[160px] flex flex-col items-center justify-center gap-tight text-sm theme-danger">
           <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5" />
           {error ?? "Failed to load transfers"}
         </div>
       )}
 
       {status === "success" && total === 0 && (
-        <div className="h-[160px] flex items-center justify-center text-sm" style={{ color: "var(--color-text-muted)" }}>
+        <div className="h-[160px] flex items-center justify-center text-sm theme-text-muted">
           No transfers in this window.
         </div>
       )}
@@ -92,13 +92,12 @@ export function TransferChart({ address }: Props) {
       )}
 
       {status === "success" && (
-        <div className="mt-stack flex items-center gap-row text-xs" style={{ color: "var(--color-text-muted)" }}>
+        <div className="mt-stack flex items-center gap-row text-xs theme-text-muted">
           <span>{total.toLocaleString()} transfers</span>
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="flex items-center gap-tight hover:opacity-80 transition-opacity ml-auto disabled:opacity-50"
-            style={{ color: "var(--color-accent)" }}
+            className="flex items-center gap-tight hover:opacity-80 transition-opacity ml-auto disabled:opacity-50 theme-accent"
           >
             <Icon
               icon={loadingMore ? "heroicons:arrow-path" : "heroicons:plus"}

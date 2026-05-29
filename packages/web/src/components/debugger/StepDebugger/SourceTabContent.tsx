@@ -179,11 +179,11 @@ export function SourceTabContent({
 
   return (
     <div className="card p-8 text-center space-y-3">
-      <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+      <p className="text-sm theme-text-muted">
         {sourceLoading ? "Loading verified source..." : "No verified source available for this contract"}
       </p>
       {!sourceLoading && activeContractAddress && (
-        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+        <p className="text-xs theme-text-muted">
           {activeContractAddress.slice(0, 10)}...{activeContractAddress.slice(-6)} is not verified on BlockScout
         </p>
       )}

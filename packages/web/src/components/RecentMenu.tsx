@@ -91,8 +91,7 @@ export function BackHistoryControl({
         >
           <div className="bs-b-muted flex items-center justify-between px-3 py-2">
             <span
-              className="text-[10px] font-semibold uppercase tracking-widest"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="text-[10px] font-semibold uppercase tracking-widest theme-text-secondary"
             >
               Recent &amp; Pinned
             </span>
@@ -108,7 +107,7 @@ export function BackHistoryControl({
           </div>
 
           {entities.length === 0 ? (
-            <div className="px-3 py-4 text-center text-xs" style={{ color: "var(--color-text-muted)" }}>
+            <div className="px-3 py-4 text-center text-xs theme-text-muted">
               Nothing viewed yet. Transactions, addresses and blocks you open
               show up here.
             </div>
@@ -133,8 +132,7 @@ export function BackHistoryControl({
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="text-[9px] uppercase tracking-widest px-3 pt-2 pb-1"
-      style={{ color: "var(--color-text-muted)" }}
+      className="text-[9px] uppercase tracking-widest px-3 pt-2 pb-1 theme-text-muted"
     >
       {children}
     </div>
@@ -161,10 +159,10 @@ function Row({
     >
       <span className="shrink-0 w-1.5 h-1.5" style={{ backgroundColor: dotColor(entity) }} />
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-mono truncate" style={{ color: "var(--color-accent)" }}>
+        <div className="text-xs font-mono truncate theme-accent">
           {primaryLabel(entity)}
         </div>
-        <div className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+        <div className="text-[10px] mt-0.5 theme-text-muted">
           {secondaryLabel(entity)}
         </div>
       </div>

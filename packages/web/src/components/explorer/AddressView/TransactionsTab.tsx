@@ -30,8 +30,7 @@ export function TransactionsTab({
     >
       {txs.length === 0 ? (
         <div
-          className="p-4 text-center text-sm"
-          style={{ color: "var(--color-text-muted)" }}
+          className="p-4 text-center text-sm theme-text-muted"
         >
           No transactions found
         </div>
@@ -75,8 +74,7 @@ function Pagination({
         label="Previous"
       />
       <span
-        className="text-xs"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-xs theme-text-secondary"
       >
         Page {page}
       </span>

@@ -138,7 +138,7 @@ export default function ActionsDashboard() {
 
       {/* Header */}
       <div className="card p-4 flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
+        <h2 className="text-lg font-semibold theme-text">
           Actions
         </h2>
         <button
@@ -159,8 +159,7 @@ export default function ActionsDashboard() {
       {/* Loading */}
       {loading ? (
         <div
-          className="text-center py-12 text-sm"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-center py-12 text-sm theme-text-secondary"
         >
           Loading actions...
         </div>
@@ -211,8 +210,7 @@ function StatCard({
       }}
     >
       <div
-        className="text-xs font-medium mb-1"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-xs font-medium mb-1 theme-text-secondary"
       >
         {label}
       </div>
@@ -238,20 +236,17 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       }}
     >
       <div
-        className="text-4xl mb-4"
-        style={{ color: "var(--color-text-muted)" }}
+        className="text-4xl mb-4 theme-text-muted"
       >
         {"{ }"}
       </div>
       <h3
-        className="text-lg font-medium mb-2"
-        style={{ color: "var(--color-text-primary)" }}
+        className="text-lg font-medium mb-2 theme-text"
       >
         No actions yet
       </h3>
       <p
-        className="text-sm mb-4"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-sm mb-4 theme-text-secondary"
       >
         Create serverless functions that react to on-chain events, run on a schedule, or respond to webhooks.
       </p>
@@ -305,8 +300,7 @@ function ActionCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-inline mb-1">
             <h3
-              className="text-sm font-medium truncate"
-              style={{ color: "var(--color-text-primary)" }}
+              className="text-sm font-medium truncate theme-text"
             >
               {action.name}
             </h3>
@@ -332,8 +326,7 @@ function ActionCard({
             )}
           </div>
           <div
-            className="text-xs"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-xs theme-text-muted"
           >
             Updated {updatedDate}
           </div>

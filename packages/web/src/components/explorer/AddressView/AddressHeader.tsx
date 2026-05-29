@@ -22,8 +22,7 @@ export function AddressHeader({
         <div>
           <div className="flex items-center gap-inline mb-1">
             <h2
-              className="text-sm font-semibold"
-              style={{ color: "var(--color-text-primary)" }}
+              className="text-sm font-semibold theme-text"
             >
               Address
             </h2>
@@ -40,8 +39,7 @@ export function AddressHeader({
             )}
           </div>
           <span
-            className="font-mono text-sm break-all"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono text-sm break-all theme-text"
           >
             {address}
           </span>
@@ -55,14 +53,12 @@ export function AddressHeader({
         </div>
         <div className="text-right">
           <span
-            className="text-xs block mb-0.5"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="text-xs block mb-0.5 theme-text-secondary"
           >
             Balance
           </span>
           <span
-            className="font-mono text-lg font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono text-lg font-semibold theme-text"
           >
             {info ? formatPLS(info.balancePLS) : "..."}
           </span>
@@ -75,8 +71,7 @@ export function AddressHeader({
         >
           <button
             onClick={onViewContract}
-            className="text-xs font-medium hover:underline cursor-pointer"
-            style={{ color: "var(--color-accent)" }}
+            className="text-xs font-medium hover:underline cursor-pointer theme-accent"
           >
             View Contract Details
           </button>

@@ -43,14 +43,12 @@ export function ReadFunction({
       >
         <div className="flex items-center gap-inline">
           <span
-            className="text-sm font-medium"
-            style={{ color: "var(--color-accent)" }}
+            className="text-sm font-medium theme-accent"
           >
             {fn.name}
           </span>
           <span
-            className="text-[10px]"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-[10px] theme-text-muted"
           >
             ({inputs.map((i) => i.type).join(", ")})
             {outputs.length > 0 &&
@@ -77,8 +75,7 @@ export function ReadFunction({
               {inputs.map((inp, i) => (
                 <div key={i}>
                   <label
-                    className="text-xs font-medium block mb-1"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-xs font-medium block mb-1 theme-text-secondary"
                   >
                     {inp.name}{" "}
                     <span style={{ color: "var(--color-text-muted)" }}>

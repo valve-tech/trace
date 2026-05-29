@@ -40,8 +40,7 @@ function InfoRow({
       style={{}}
     >
       <span
-        className="text-xs font-medium shrink-0 sm:w-40"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-xs font-medium shrink-0 sm:w-40 theme-text-secondary"
       >
         {label}
       </span>
@@ -92,7 +91,7 @@ export default function BlockView({
           className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mb-3"
           style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }}
         />
-        <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+        <span className="text-sm theme-text-secondary">
           Loading block...
         </span>
       </div>
@@ -109,12 +108,11 @@ export default function BlockView({
         }}
       >
         <h3
-          className="text-sm font-semibold mb-1"
-          style={{ color: "var(--color-danger)" }}
+          className="text-sm font-semibold mb-1 theme-danger"
         >
           Error
         </h3>
-        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+        <p className="text-sm theme-text-secondary">
           {error}
         </p>
       </div>
@@ -138,14 +136,12 @@ export default function BlockView({
       >
         <div className="flex items-center gap-row mb-3 pb-3 bs-b-muted" style={{}}>
           <h2
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-sm font-semibold theme-text"
           >
             Block
           </h2>
           <span
-            className="font-mono text-sm font-semibold"
-            style={{ color: "var(--color-accent)" }}
+            className="font-mono text-sm font-semibold theme-accent"
           >
             #{Number(block.number).toLocaleString()}
           </span>
@@ -185,8 +181,7 @@ export default function BlockView({
 
         <InfoRow label="Block Hash">
           <span
-            className="font-mono break-all"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono break-all theme-text"
           >
             {block.hash}
           </span>
@@ -198,8 +193,7 @@ export default function BlockView({
         </InfoRow>
         <InfoRow label="Transactions">
           <span
-            className="font-mono"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono theme-text"
           >
             {block.transactionCount}
           </span>
@@ -208,8 +202,7 @@ export default function BlockView({
           <ExplorerLink
             target={{ type: "address", value: block.miner }}
             onNavigate={onNavigate}
-            className="font-mono text-sm hover:underline cursor-pointer"
-            style={{ color: "var(--color-accent)" }}
+            className="font-mono text-sm hover:underline cursor-pointer theme-accent"
             title={block.miner}
           >
             {truncateAddr(block.miner)}
@@ -225,8 +218,7 @@ export default function BlockView({
               {Number(block.gasLimit).toLocaleString()}
             </span>
             <span
-              className="ml-2 text-xs"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="ml-2 text-xs theme-text-secondary"
             >
               ({gasPercent}%)
             </span>
@@ -235,8 +227,7 @@ export default function BlockView({
         {block.baseFeePerGas && (
           <InfoRow label="Base Fee">
             <span
-              className="font-mono"
-              style={{ color: "var(--color-text-primary)" }}
+              className="font-mono theme-text"
             >
               {(Number(block.baseFeePerGas) / 1e9).toFixed(2)} Gwei
             </span>
@@ -244,8 +235,7 @@ export default function BlockView({
         )}
         <InfoRow label="Size">
           <span
-            className="font-mono"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono theme-text"
           >
             {Number(block.size).toLocaleString()} bytes
           </span>
@@ -258,8 +248,7 @@ export default function BlockView({
               value: String(Math.max(0, Number(block.number) - 1)),
             }}
             onNavigate={onNavigate}
-            className="font-mono text-sm break-all hover:underline cursor-pointer"
-            style={{ color: "var(--color-accent)" }}
+            className="font-mono text-sm break-all hover:underline cursor-pointer theme-accent"
           >
             {block.parentHash}
           </ExplorerLink>
@@ -278,8 +267,7 @@ export default function BlockView({
           style={{}}
         >
           <h3
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-sm font-semibold theme-text"
           >
             Transactions
             <span
@@ -296,8 +284,7 @@ export default function BlockView({
 
         {block.transactions.length === 0 ? (
           <div
-            className="p-4 text-center text-sm"
-            style={{ color: "var(--color-text-muted)" }}
+            className="p-4 text-center text-sm theme-text-muted"
           >
             No transactions in this block
           </div>
@@ -311,38 +298,32 @@ export default function BlockView({
                   }}
                 >
                   <th
-                    className="text-left px-3 py-2.5 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"
                   >
                     Tx Hash
                   </th>
                   <th
-                    className="text-left px-3 py-2.5 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"
                   >
                     Method
                   </th>
                   <th
-                    className="text-left px-3 py-2.5 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"
                   >
                     From
                   </th>
                   <th
-                    className="text-left px-3 py-2.5 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"
                   >
                     To
                   </th>
                   <th
-                    className="text-left px-3 py-2.5 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"
                   >
                     Value
                   </th>
                   <th
-                    className="text-left px-3 py-2.5 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"
                   >
                     Gas / Type
                   </th>
@@ -361,8 +342,7 @@ export default function BlockView({
                       <ExplorerLink
                         target={{ type: "tx", value: tx.hash }}
                         onNavigate={onNavigate}
-                        className="font-mono text-xs hover:underline cursor-pointer"
-                        style={{ color: "var(--color-accent)" }}
+                        className="font-mono text-xs hover:underline cursor-pointer theme-accent"
                         title={tx.hash}
                       >
                         {truncateAddr(tx.hash)}
@@ -396,16 +376,14 @@ export default function BlockView({
                         <ExplorerLink
                           target={{ type: "address", value: tx.from }}
                           onNavigate={onNavigate}
-                          className="font-mono text-xs hover:underline cursor-pointer"
-                          style={{ color: "var(--color-accent)" }}
+                          className="font-mono text-xs hover:underline cursor-pointer theme-accent"
                           title={tx.from}
                         >
                           {truncateAddr(tx.from)}
                         </ExplorerLink>
                       ) : (
                         <span
-                          className="text-xs"
-                          style={{ color: "var(--color-text-muted)" }}
+                          className="text-xs theme-text-muted"
                         >
                           -
                         </span>
@@ -416,8 +394,7 @@ export default function BlockView({
                         <ExplorerLink
                           target={{ type: "address", value: tx.to }}
                           onNavigate={onNavigate}
-                          className="font-mono text-xs hover:underline cursor-pointer"
-                          style={{ color: "var(--color-accent)" }}
+                          className="font-mono text-xs hover:underline cursor-pointer theme-accent"
                           title={tx.to}
                         >
                           {truncateAddr(tx.to)}
@@ -435,8 +412,7 @@ export default function BlockView({
                       )}
                     </td>
                     <td
-                      className="px-3 py-2 font-mono text-xs whitespace-nowrap"
-                      style={{ color: "var(--color-text-primary)" }}
+                      className="px-3 py-2 font-mono text-xs whitespace-nowrap theme-text"
                     >
                       {formatPLS(tx.valuePLS)}
                     </td>

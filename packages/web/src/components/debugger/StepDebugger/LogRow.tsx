@@ -44,7 +44,7 @@ export function LogRow({
         />
       ))}
 
-      <span className="w-4 flex items-center justify-center flex-shrink-0" style={{ color: "var(--color-warning)" }}>
+      <span className="w-4 flex items-center justify-center flex-shrink-0 theme-warning">
         <Icon icon="heroicons:megaphone" className="w-3 h-3" />
       </span>
 

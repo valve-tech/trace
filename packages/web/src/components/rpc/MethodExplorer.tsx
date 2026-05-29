@@ -65,7 +65,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
 
   if (error) {
     return (
-      <div className="text-sm p-8 text-center" style={{ color: "var(--color-danger)" }}>
+      <div className="text-sm p-8 text-center theme-danger">
         {error}
       </div>
     );
@@ -96,8 +96,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
               {ns}_
             </span>
             <span
-              className="text-sm font-semibold"
-              style={{ color: "var(--color-text-primary)" }}
+              className="text-sm font-semibold theme-text"
             >
               {ns === "valve"
                 ? "PulseDev Custom Methods"
@@ -170,8 +169,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
                           Description
                         </div>
                         <div
-                          className="text-sm"
-                          style={{ color: "var(--color-text-primary)" }}
+                          className="text-sm theme-text"
                         >
                           {method.description}
                         </div>

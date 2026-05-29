@@ -26,8 +26,7 @@ export function FaucetPanel({ forkId }: { forkId: string }) {
   return (
     <div className="rounded-md p-3" style={sectionStyle}>
       <label
-        className="block text-xs font-medium mb-1.5"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="block text-xs font-medium mb-1.5 theme-text-secondary"
       >
         Faucet
       </label>

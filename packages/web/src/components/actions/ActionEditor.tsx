@@ -118,8 +118,7 @@ export default function ActionEditor({
     <div className="space-y-stack">
       <div className="flex items-center justify-between">
         <h2
-          className="text-lg font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-lg font-semibold theme-text"
         >
           {isEdit ? "Edit Action" : "Create Action"}
         </h2>
@@ -143,8 +142,7 @@ export default function ActionEditor({
 
       <div>
         <label
-          className="block text-sm font-medium mb-1.5"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="block text-sm font-medium mb-1.5 theme-text-secondary"
         >
           Name
         </label>

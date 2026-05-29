@@ -56,8 +56,7 @@ export function SnapshotsPanel({ forkId, onReverted }: Props) {
     <div className="rounded-md p-3" style={sectionStyle}>
       <div className="flex items-center justify-between mb-1.5">
         <label
-          className="text-xs font-medium"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-xs font-medium theme-text-secondary"
         >
           Snapshots
         </label>

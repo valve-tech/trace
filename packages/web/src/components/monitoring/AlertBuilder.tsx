@@ -76,8 +76,7 @@ export default function AlertBuilder({
     <div className="space-y-stack">
       <div className="flex items-center justify-between">
         <h2
-          className="text-lg font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-lg font-semibold theme-text"
         >
           {isEdit ? "Edit Alert" : "Create Alert"}
         </h2>

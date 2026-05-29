@@ -19,8 +19,7 @@ export function AddressLink({
     <ExplorerLink
       target={{ type: "address" as const, value: address }}
       onNavigate={onNavigate}
-      className="font-mono text-sm hover:underline cursor-pointer"
-      style={{ color: "var(--color-accent)" }}
+      className="font-mono text-sm hover:underline cursor-pointer theme-accent"
       title={address}
     >
       {label || truncateAddr(address)}
@@ -41,8 +40,7 @@ export function InfoRow({
       style={{}}
     >
       <span
-        className="text-xs font-medium shrink-0 sm:w-40"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-xs font-medium shrink-0 sm:w-40 theme-text-secondary"
       >
         {label}
       </span>
@@ -76,8 +74,7 @@ export function SectionCard({
       >
         <div className="flex items-center gap-inline">
           <h3
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-sm font-semibold theme-text"
           >
             {title}
           </h3>

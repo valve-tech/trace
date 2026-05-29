@@ -123,7 +123,7 @@ export default function SimulationForm({
             }}
           />
           {!fromValid && (
-            <p className="text-xs mt-1" style={{ color: "var(--color-danger)" }}>
+            <p className="text-xs mt-1 theme-danger">
               Invalid Ethereum address
             </p>
           )}
@@ -146,7 +146,7 @@ export default function SimulationForm({
             }}
           />
           {!toValid && (
-            <p className="text-xs mt-1" style={{ color: "var(--color-danger)" }}>
+            <p className="text-xs mt-1 theme-danger">
               Invalid Ethereum address
             </p>
           )}
@@ -167,14 +167,13 @@ export default function SimulationForm({
               style={inputStyle}
             />
             <span
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"
-              style={{ color: "var(--color-text-muted)" }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium theme-text-muted"
             >
               PLS
             </span>
           </div>
           {value && !isNaN(parseFloat(value)) && (
-            <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+            <p className="text-xs mt-1 theme-text-muted">
               = {BigInt(Math.floor(parseFloat(value) * 1e18)).toLocaleString()} wei
             </p>
           )}

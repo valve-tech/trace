@@ -45,7 +45,7 @@ export function Checkbox({
         {checked && <Icon icon="heroicons:check" className="w-3 h-3" />}
       </span>
       {label != null && (
-        <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+        <span className="text-sm theme-text-secondary">
           {label}
         </span>
       )}

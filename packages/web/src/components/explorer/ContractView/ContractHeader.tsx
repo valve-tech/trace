@@ -24,8 +24,7 @@ export function ContractHeader({
           <div className="min-w-0">
           <div className="flex items-center gap-inline mb-1">
             <h2
-              className="text-sm font-semibold"
-              style={{ color: "var(--color-text-primary)" }}
+              className="text-sm font-semibold theme-text"
             >
               Contract
             </h2>
@@ -52,23 +51,20 @@ export function ContractHeader({
             )}
           </div>
           <span
-            className="font-mono text-sm break-all"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono text-sm break-all theme-text"
           >
             {address}
           </span>
           {info.contractName && (
             <div className="mt-1">
               <span
-                className="text-xs"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="text-xs theme-text-secondary"
               >
                 {info.contractName}
               </span>
               {info.compilerVersion && (
                 <span
-                  className="text-xs ml-2"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="text-xs ml-2 theme-text-muted"
                 >
                   ({info.compilerVersion})
                 </span>
@@ -82,8 +78,7 @@ export function ContractHeader({
         </div>
         <button
           onClick={onViewAddress}
-          className="text-xs font-medium hover:underline cursor-pointer shrink-0"
-          style={{ color: "var(--color-accent)" }}
+          className="text-xs font-medium hover:underline cursor-pointer shrink-0 theme-accent"
         >
           View Address
         </button>

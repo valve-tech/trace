@@ -19,14 +19,12 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
       >
         <div className="flex items-center gap-inline">
           <span
-            className="text-sm font-medium"
-            style={{ color: "var(--color-warning)" }}
+            className="text-sm font-medium theme-warning"
           >
             {fn.name}
           </span>
           <span
-            className="text-[10px]"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-[10px] theme-text-muted"
           >
             ({inputs.map((i) => i.type).join(", ")})
           </span>
@@ -62,8 +60,7 @@ export function WriteFunction({ fn }: { fn: AbiItem }) {
               {inputs.map((inp, i) => (
                 <div key={i}>
                   <label
-                    className="text-xs font-medium block mb-1"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-xs font-medium block mb-1 theme-text-secondary"
                   >
                     {inp.name}{" "}
                     <span style={{ color: "var(--color-text-muted)" }}>

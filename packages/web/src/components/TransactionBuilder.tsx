@@ -152,15 +152,14 @@ export default function TransactionBuilder() {
       {/* Contract address input */}
       <div className="card p-4">
         <h2
-          className="text-sm font-semibold mb-3"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-sm font-semibold mb-3 theme-text"
         >
           Transaction Builder
         </h2>
 
         <div className="flex gap-row mb-3">
           <div className="flex-1">
-            <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>
+            <label className="text-xs block mb-1 theme-text-secondary">
               Contract Address
             </label>
             <input
@@ -181,7 +180,7 @@ export default function TransactionBuilder() {
             />
           </div>
           <div className="flex-1">
-            <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>
+            <label className="text-xs block mb-1 theme-text-secondary">
               From Address (optional)
             </label>
             <input
@@ -200,15 +199,15 @@ export default function TransactionBuilder() {
         </div>
 
         {validAddress && sourceLoading && (
-          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Loading ABI...</p>
+          <p className="text-xs theme-text-muted">Loading ABI...</p>
         )}
         {validAddress && !sourceLoading && !sourceData && (
-          <p className="text-xs" style={{ color: "var(--color-warning)" }}>
+          <p className="text-xs theme-warning">
             Contract not verified — ABI not available. Paste raw calldata in Fork Sim instead.
           </p>
         )}
         {validAddress && sourceData && (
-          <p className="text-xs" style={{ color: "var(--color-success)" }}>
+          <p className="text-xs theme-success">
             {sourceData.contractName ?? "Contract"} — {writeFunctions.length} write, {readFunctions.length} read functions
           </p>
         )}
@@ -264,7 +263,7 @@ export default function TransactionBuilder() {
                 );
               })}
               {visibleFunctions.length === 0 && (
-                <div className="px-3 py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+                <div className="px-3 py-4 text-xs text-center theme-text-muted">
                   No {showRead ? "read" : "write"} functions
                 </div>
               )}
@@ -275,7 +274,7 @@ export default function TransactionBuilder() {
           <div className="card flex-1 p-4 overflow-y-auto">
             {!selectedFn ? (
               <div className="flex items-center justify-center h-full">
-                <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+                <p className="text-sm theme-text-muted">
                   Select a function from the list
                 </p>
               </div>
@@ -306,7 +305,7 @@ export default function TransactionBuilder() {
                 {/* Argument inputs */}
                 {(selectedFn.inputs ?? []).map((input, i) => (
                   <div key={i}>
-                    <label className="text-xs block mb-1" style={{ color: "var(--color-text-secondary)" }}>
+                    <label className="text-xs block mb-1 theme-text-secondary">
                       <span style={{ color: "var(--color-text-primary)" }}>{input.name || `arg${i}`}</span>
                       {" "}
                       <span style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-muted)" }}>
@@ -331,7 +330,7 @@ export default function TransactionBuilder() {
                 {/* Value input for payable */}
                 {selectedFn.stateMutability === "payable" && (
                   <div>
-                    <label className="text-xs block mb-1" style={{ color: "var(--color-warning)" }}>
+                    <label className="text-xs block mb-1 theme-warning">
                       Value (PLS)
                     </label>
                     <input
@@ -404,7 +403,7 @@ export default function TransactionBuilder() {
 
                     {/* State changes summary */}
                     {result.result.stateDiff.balanceChanges.length > 0 && (
-                      <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                      <div className="text-xs theme-text-secondary">
                         {result.result.stateDiff.balanceChanges.length} balance change(s),{" "}
                         {result.result.stateDiff.storageChanges.length} storage change(s)
                       </div>

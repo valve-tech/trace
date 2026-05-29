@@ -25,15 +25,13 @@ export function RecentRail() {
     <div className="card w-full">
       <div className="bs-b-muted flex items-center justify-between px-3 py-2">
         <h3
-          className="text-[11px] font-semibold uppercase tracking-widest"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-[11px] font-semibold uppercase tracking-widest theme-text-secondary"
         >
           Recent &amp; Pinned
         </h3>
         {entities.length > 0 && (
           <span
-            className="text-[11px] font-mono"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-[11px] font-mono theme-text-muted"
           >
             {entities.length}
           </span>
@@ -65,8 +63,7 @@ export function RecentRail() {
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="text-[9px] uppercase tracking-widest px-3 pt-2 pb-1"
-      style={{ color: "var(--color-text-muted)" }}
+      className="text-[9px] uppercase tracking-widest px-3 pt-2 pb-1 theme-text-muted"
     >
       {children}
     </div>
@@ -90,12 +87,11 @@ function Row({ entity }: { entity: RecentEntity }) {
       />
       <div className="min-w-0 flex-1">
         <div
-          className="text-xs font-mono truncate"
-          style={{ color: "var(--color-accent)" }}
+          className="text-xs font-mono truncate theme-accent"
         >
           {primaryLabel(entity)}
         </div>
-        <div className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+        <div className="text-[10px] mt-0.5 theme-text-muted">
           {secondaryLabel(entity)}
         </div>
       </div>

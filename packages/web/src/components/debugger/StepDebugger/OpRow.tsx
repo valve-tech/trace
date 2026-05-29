@@ -39,8 +39,7 @@ export function OpRow({
       ))}
 
       <span
-        className="w-4 flex items-center justify-center flex-shrink-0 text-[10px] font-semibold"
-        style={{ color: "var(--color-text-muted)" }}
+        className="w-4 flex items-center justify-center flex-shrink-0 text-[10px] font-semibold theme-text-muted"
       >
         ⛁
       </span>

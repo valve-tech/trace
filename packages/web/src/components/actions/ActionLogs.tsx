@@ -59,10 +59,10 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
         >
           Back
         </button>
-        <h2 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
+        <h2 className="text-lg font-semibold theme-text">
           Logs: {actionName}
         </h2>
-        <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+        <span className="text-sm theme-text-secondary">
           ({total} total)
         </span>
         <button
@@ -99,26 +99,22 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
               }}
             >
               <th
-                className="text-left px-4 py-2.5 font-medium"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="text-left px-4 py-2.5 font-medium theme-text-secondary"
               >
                 Timestamp
               </th>
               <th
-                className="text-left px-4 py-2.5 font-medium"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="text-left px-4 py-2.5 font-medium theme-text-secondary"
               >
                 Trigger
               </th>
               <th
-                className="text-right px-4 py-2.5 font-medium"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="text-right px-4 py-2.5 font-medium theme-text-secondary"
               >
                 Duration
               </th>
               <th
-                className="text-center px-4 py-2.5 font-medium"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="text-center px-4 py-2.5 font-medium theme-text-secondary"
               >
                 Status
               </th>
@@ -129,8 +125,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
               <tr>
                 <td
                   colSpan={4}
-                  className="text-center py-8"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-center py-8 theme-text-secondary"
                 >
                   Loading...
                 </td>
@@ -139,8 +134,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
               <tr>
                 <td
                   colSpan={4}
-                  className="text-center py-8"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-center py-8 theme-text-secondary"
                 >
                   No execution logs yet
                 </td>
@@ -176,14 +170,12 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                         }}
                       >
                         <span
-                          className="flex-1"
-                          style={{ color: "var(--color-text-primary)" }}
+                          className="flex-1 theme-text"
                         >
                           {formatDate(log.triggered_at)}
                         </span>
                         <span
-                          className="flex-1 px-4"
-                          style={{ color: "var(--color-text-secondary)" }}
+                          className="flex-1 px-4 theme-text-secondary"
                         >
                           {triggerType}
                         </span>
@@ -224,8 +216,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                           {log.stdout && (
                             <div>
                               <div
-                                className="text-xs font-medium mb-1"
-                                style={{ color: "var(--color-text-secondary)" }}
+                                className="text-xs font-medium mb-1 theme-text-secondary"
                               >
                                 stdout
                               </div>
@@ -245,8 +236,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                           {log.stderr && (
                             <div>
                               <div
-                                className="text-xs font-medium mb-1"
-                                style={{ color: "var(--color-text-secondary)" }}
+                                className="text-xs font-medium mb-1 theme-text-secondary"
                               >
                                 stderr
                               </div>
@@ -266,8 +256,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
                           {log.trigger_data && log.trigger_data !== "{}" && (
                             <div>
                               <div
-                                className="text-xs font-medium mb-1"
-                                style={{ color: "var(--color-text-secondary)" }}
+                                className="text-xs font-medium mb-1 theme-text-secondary"
                               >
                                 Trigger Data
                               </div>
@@ -298,7 +287,7 @@ export default function ActionLogs({ actionId, actionName, onBack }: ActionLogsP
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+          <span className="text-sm theme-text-secondary">
             Page {page} of {totalPages}
           </span>
           <div className="flex gap-inline">

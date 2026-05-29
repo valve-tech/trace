@@ -24,32 +24,27 @@ export function InternalTxSection({
             <thead>
               <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
                 <th
-                  className="text-left px-3 py-2 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
                   Type
                 </th>
                 <th
-                  className="text-left px-3 py-2 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
                   From
                 </th>
                 <th
-                  className="text-left px-3 py-2 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
                   To
                 </th>
                 <th
-                  className="text-left px-3 py-2 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
                   Value
                 </th>
                 <th
-                  className="text-left px-3 py-2 text-xs font-medium"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                 >
                   Gas Used
                 </th>
@@ -80,14 +75,12 @@ export function InternalTxSection({
                     <AddressLink address={itx.to} onNavigate={onNavigate} />
                   </td>
                   <td
-                    className="px-3 py-2 font-mono"
-                    style={{ color: "var(--color-text-primary)" }}
+                    className="px-3 py-2 font-mono theme-text"
                   >
                     {formatPLS(itx.valuePLS)}
                   </td>
                   <td
-                    className="px-3 py-2 font-mono"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="px-3 py-2 font-mono theme-text-secondary"
                   >
                     {Number(itx.gasUsed).toLocaleString()}
                   </td>

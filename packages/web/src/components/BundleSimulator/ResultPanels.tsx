@@ -10,7 +10,7 @@ export function LoadingPanel({ count }: { count: number }) {
       }}
     >
       <div className="spinner mb-4" />
-      <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+      <p className="text-sm theme-text-secondary">
         Simulating {count} transaction{count !== 1 ? "s" : ""}...
       </p>
     </div>
@@ -29,13 +29,11 @@ export function ErrorPanel({ message }: { message: string }) {
       <div className="flex items-start gap-row">
         <Icon
           icon="heroicons:exclamation-circle"
-          className="w-5 h-5 mt-0.5 shrink-0"
-          style={{ color: "var(--color-danger)" }}
+          className="w-5 h-5 mt-0.5 shrink-0 theme-danger"
         />
         <div>
           <h3
-            className="text-sm font-semibold mb-1"
-            style={{ color: "var(--color-danger)" }}
+            className="text-sm font-semibold mb-1 theme-danger"
           >
             Bundle Simulation Error
           </h3>
@@ -68,12 +66,11 @@ export function EmptyPanel() {
         style={{ color: "var(--color-border-default)" }}
       />
       <h3
-        className="text-sm font-medium mb-1"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-sm font-medium mb-1 theme-text-secondary"
       >
         No Bundle Results
       </h3>
-      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+      <p className="text-xs theme-text-muted">
         Add transactions and simulate to see sequential results.
       </p>
     </div>

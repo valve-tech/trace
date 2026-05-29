@@ -9,14 +9,12 @@ export function LoadingPanel() {
     >
       <div className="spinner mb-4" />
       <p
-        className="text-sm"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-sm theme-text-secondary"
       >
         Tracing transaction execution...
       </p>
       <p
-        className="text-xs mt-1"
-        style={{ color: "var(--color-text-muted)" }}
+        className="text-xs mt-1 theme-text-muted"
       >
         This may take a moment for complex transactions.
       </p>

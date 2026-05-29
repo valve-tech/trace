@@ -39,8 +39,7 @@ function StorageSlotEditor({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label
-          className="text-xs font-medium"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-xs font-medium theme-text-secondary"
         >
           Storage Slots
         </label>
@@ -86,8 +85,7 @@ function StorageSlotEditor({
           <button
             type="button"
             onClick={() => removeSlot(key)}
-            className="p-1 rounded hover:opacity-80"
-            style={{ color: "var(--color-danger)" }}
+            className="p-1 rounded hover:opacity-80 theme-danger"
           >
             <Icon icon="heroicons:x-mark" className="w-4 h-4" />
           </button>
@@ -124,7 +122,7 @@ function SingleOverride({
       }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+        <span className="text-xs font-medium theme-text-secondary">
           Override #{index + 1}
         </span>
         <button
@@ -141,7 +139,7 @@ function SingleOverride({
       </div>
 
       <div>
-        <label className="text-xs mb-1 block" style={{ color: "var(--color-text-secondary)" }}>
+        <label className="text-xs mb-1 block theme-text-secondary">
           Address
         </label>
         <input
@@ -160,7 +158,7 @@ function SingleOverride({
 
       <div className="grid grid-cols-2 gap-row">
         <div>
-          <label className="text-xs mb-1 block" style={{ color: "var(--color-text-secondary)" }}>
+          <label className="text-xs mb-1 block theme-text-secondary">
             Balance (wei)
           </label>
           <input
@@ -177,7 +175,7 @@ function SingleOverride({
           />
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: "var(--color-text-secondary)" }}>
+          <label className="text-xs mb-1 block theme-text-secondary">
             Nonce
           </label>
           <input
@@ -196,7 +194,7 @@ function SingleOverride({
       </div>
 
       <div>
-        <label className="text-xs mb-1 block" style={{ color: "var(--color-text-secondary)" }}>
+        <label className="text-xs mb-1 block theme-text-secondary">
           Code (bytecode)
         </label>
         <input
@@ -222,8 +220,7 @@ function SingleOverride({
               update("storage", {});
             }
           }}
-          className="text-xs flex items-center gap-tight"
-          style={{ color: "var(--color-accent)" }}
+          className="text-xs flex items-center gap-tight theme-accent"
         >
           <Icon
             icon="heroicons:chevron-right"

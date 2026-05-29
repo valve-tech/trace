@@ -46,8 +46,7 @@ export function TimeTravelPanel({ forkId, onAdvanced }: Props) {
   return (
     <div className="rounded-md p-3" style={sectionStyle}>
       <label
-        className="block text-xs font-medium mb-1.5"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="block text-xs font-medium mb-1.5 theme-text-secondary"
       >
         Time Travel
       </label>
@@ -76,8 +75,7 @@ export function TimeTravelPanel({ forkId, onAdvanced }: Props) {
         </button>
       </div>
       <p
-        className="text-xs mt-1"
-        style={{ color: "var(--color-text-muted)" }}
+        className="text-xs mt-1 theme-text-muted"
       >
         Advance {previewText}
       </p>

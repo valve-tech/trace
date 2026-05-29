@@ -17,8 +17,7 @@ export default function RpcPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <h2
-            className="text-sm font-semibold mb-3"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-sm font-semibold mb-3 theme-text"
           >
             Method Explorer
           </h2>
@@ -26,8 +25,7 @@ export default function RpcPage() {
         </div>
         <div>
           <h2
-            className="text-sm font-semibold mb-3"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-sm font-semibold mb-3 theme-text"
           >
             RPC Tester
           </h2>

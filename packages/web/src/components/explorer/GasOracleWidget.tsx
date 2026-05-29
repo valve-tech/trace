@@ -91,12 +91,10 @@ export function GasOracleWidget() {
       <div className="flex items-center gap-tight shrink-0">
         <Icon
           icon="heroicons:fire"
-          className="w-4 h-4"
-          style={{ color: "var(--color-accent)" }}
+          className="w-4 h-4 theme-accent"
         />
         <span
-          className="text-sm font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-sm font-semibold theme-text"
         >
           Gas
         </span>
@@ -117,13 +115,11 @@ export function GasOracleWidget() {
       {status === "success" && (
         <>
           <span
-            className="flex items-center gap-tight font-mono shrink-0"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="flex items-center gap-tight font-mono shrink-0 theme-text-secondary"
           >
             <span style={{ color: "var(--color-text-muted)" }}>base</span>
             <span
-              className="tabular-nums"
-              style={{ color: "var(--color-text-primary)" }}
+              className="tabular-nums theme-text"
             >
               {gwei(data.baseFee)}
             </span>
@@ -140,12 +136,10 @@ export function GasOracleWidget() {
           <span className="flex-1" />
 
           <span
-            className="font-mono shrink-0"
-            style={{ color: "var(--color-text-muted)" }}
+            className="font-mono shrink-0 theme-text-muted"
           >
             <span
-              className="tabular-nums"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="tabular-nums theme-text-secondary"
             >
               {Number(data.mempool.pendingCount).toLocaleString()}
             </span>{" "}
@@ -211,24 +205,21 @@ function TierGauge({
 
       <span className="flex items-baseline gap-tight">
         <span
-          className="text-[9px] uppercase tracking-wider font-semibold min-w-[52px]"
-          style={{ color: "var(--color-accent)" }}
+          className="text-[9px] uppercase tracking-wider font-semibold min-w-[52px] theme-accent"
         >
           {TIERS.find((t) => t.key === tier)?.label}
         </span>
         <span
-          className="font-mono text-sm font-semibold tabular-nums text-right min-w-[20px]"
-          style={{ color: "var(--color-text-primary)" }}
+          className="font-mono text-sm font-semibold tabular-nums text-right min-w-[20px] theme-text"
         >
           {gwei(active.maxPriorityFeePerGas)}
         </span>
         <span
-          className="font-mono text-[10px]"
-          style={{ color: "var(--color-text-muted)" }}
+          className="font-mono text-[10px] theme-text-muted"
         >
           / {gwei(active.maxFeePerGas)}
         </span>
-        <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+        <span className="text-[11px] theme-text-muted">
           gwei
         </span>
       </span>

@@ -58,8 +58,7 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
           }}
         />
         <span
-          className="text-sm"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-sm theme-text-secondary"
         >
           Loading transaction...
         </span>
@@ -79,13 +78,11 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
         <div className="flex items-start gap-row">
           <Icon
             icon="heroicons:exclamation-circle"
-            className="w-5 h-5 mt-0.5 shrink-0"
-            style={{ color: "var(--color-danger)" }}
+            className="w-5 h-5 mt-0.5 shrink-0 theme-danger"
           />
           <div>
             <h3
-              className="text-sm font-semibold mb-1"
-              style={{ color: "var(--color-danger)" }}
+              className="text-sm font-semibold mb-1 theme-danger"
             >
               Error
             </h3>

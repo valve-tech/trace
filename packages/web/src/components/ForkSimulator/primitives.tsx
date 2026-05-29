@@ -51,8 +51,7 @@ export function FormField({
   return (
     <div>
       <label
-        className="text-xs font-medium block mb-1"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-xs font-medium block mb-1 theme-text-secondary"
       >
         {label}
       </label>
@@ -102,8 +101,7 @@ export function DiffSection({
         }}
       >
         <span
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-xs font-semibold uppercase tracking-wider theme-text-secondary"
         >
           {title}
         </span>

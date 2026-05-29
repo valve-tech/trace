@@ -83,8 +83,7 @@ export default function ContractView({
           }}
         />
         <span
-          className="text-sm"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-sm theme-text-secondary"
         >
           Loading contract...
         </span>
@@ -102,14 +101,12 @@ export default function ContractView({
         }}
       >
         <h3
-          className="text-sm font-semibold mb-1"
-          style={{ color: "var(--color-danger)" }}
+          className="text-sm font-semibold mb-1 theme-danger"
         >
           Error
         </h3>
         <p
-          className="text-sm"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-sm theme-text-secondary"
         >
           {error}
         </p>

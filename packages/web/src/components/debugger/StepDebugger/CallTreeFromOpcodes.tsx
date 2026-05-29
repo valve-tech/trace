@@ -219,11 +219,11 @@ export function CallTreeFromOpcodes({
   }
 
   // Fallback: no call trace available
-  if (inline) return <div className="text-xs p-2" style={{ color: "var(--color-text-muted)" }}>No call tree</div>;
+  if (inline) return <div className="text-xs p-2 theme-text-muted">No call tree</div>;
   return (
     <div className="card overflow-hidden flex flex-col h-full">
       <PanelHeader title="Call Tree" count={0} suffix="calls" />
-      <div className="p-3 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>No call tree available</div>
+      <div className="p-3 text-xs text-center theme-text-muted">No call tree available</div>
     </div>
   );
 }

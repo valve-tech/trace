@@ -9,8 +9,7 @@ export function BalanceChangesTable({
   return (
     <DiffSection title="Balance Changes" count={changes.length}>
       <table
-        className="w-full text-xs"
-        style={{ fontFamily: "var(--font-mono)" }}
+        className="w-full text-xs theme-mono"
       >
         <thead>
           <tr style={{ color: "var(--color-text-muted)" }}>
@@ -34,14 +33,12 @@ export function BalanceChangesTable({
                 {bc.address.slice(0, 8)}...{bc.address.slice(-6)}
               </td>
               <td
-                className="text-right py-1.5 px-2"
-                style={{ color: "var(--color-text-muted)" }}
+                className="text-right py-1.5 px-2 theme-text-muted"
               >
                 {parseFloat(bc.before).toFixed(4)}
               </td>
               <td
-                className="text-right py-1.5 px-2"
-                style={{ color: "var(--color-text-primary)" }}
+                className="text-right py-1.5 px-2 theme-text"
               >
                 {parseFloat(bc.after).toFixed(4)}
               </td>
@@ -74,8 +71,7 @@ export function StorageChangesTable({
   return (
     <DiffSection title="Storage Changes" count={changes.length}>
       <table
-        className="w-full text-xs"
-        style={{ fontFamily: "var(--font-mono)" }}
+        className="w-full text-xs theme-mono"
       >
         <thead>
           <tr style={{ color: "var(--color-text-muted)" }}>
@@ -139,8 +135,7 @@ export function EventsList({
         {logs.map((log, i) => (
           <div
             key={i}
-            className="text-xs"
-            style={{ fontFamily: "var(--font-mono)" }}
+            className="text-xs theme-mono"
           >
             <span style={{ color: "var(--color-accent)" }}>
               {log.address.slice(0, 10)}...

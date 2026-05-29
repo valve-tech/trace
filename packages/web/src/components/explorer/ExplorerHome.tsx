@@ -152,8 +152,7 @@ function StatTile({
       style={{ backgroundColor: "var(--color-bg-card)" }}
     >
       <div
-        className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest mb-1"
-        style={{ color: "var(--color-text-muted)" }}
+        className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest mb-1 theme-text-muted"
       >
         <Icon icon={icon} className="w-3 h-3" />
         {label}
@@ -170,8 +169,7 @@ function StatTile({
       </div>
       {sub !== "" && (
         <div
-          className="text-[10px] mt-0.5"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-[10px] mt-0.5 theme-text-muted"
         >
           {sub}
         </div>
@@ -212,26 +210,22 @@ function BlocksCard({
             >
               <div className="min-w-0">
                 <div
-                  className="text-sm font-mono font-medium"
-                  style={{ color: "var(--color-accent)" }}
+                  className="text-sm font-mono font-medium theme-accent"
                 >
                   #{formatBlockNum(b.number)}
                 </div>
                 <div
-                  className="text-[11px] mt-0.5"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="text-[11px] mt-0.5 theme-text-muted"
                 >
                   {ago(b.timestamp)} · {b.transactionCount} txs
                 </div>
               </div>
               <div
-                className="text-[11px] font-mono tabular-nums text-right"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="text-[11px] font-mono tabular-nums text-right theme-text-secondary"
               >
                 <div>{gasPctLabel(b.gasUsed, b.gasLimit)}</div>
                 <div
-                  className="text-[10px]"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="text-[10px] theme-text-muted"
                 >
                   gas used
                 </div>
@@ -280,14 +274,12 @@ function TxsCard({
             >
               <div className="min-w-0 flex-1">
                 <div
-                  className="text-xs font-mono truncate"
-                  style={{ color: "var(--color-accent)" }}
+                  className="text-xs font-mono truncate theme-accent"
                 >
                   {short(t.hash)}
                 </div>
                 <div
-                  className="text-[11px] mt-0.5 truncate"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="text-[11px] mt-0.5 truncate theme-text-muted"
                 >
                   {t.methodName ? `${t.methodName}()` : t.methodId || "transfer"}
                 </div>
@@ -301,13 +293,11 @@ function TxsCard({
                 </div>
               </div>
               <div
-                className="text-[11px] font-mono tabular-nums text-right shrink-0"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="text-[11px] font-mono tabular-nums text-right shrink-0 theme-text-secondary"
               >
                 <div>{formatPls(t.value)} PLS</div>
                 <div
-                  className="text-[10px]"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="text-[10px] theme-text-muted"
                 >
                   {ago(t.timestamp)}
                 </div>
@@ -329,8 +319,7 @@ function TxsCard({
 function CardHeader({ title, icon }: { title: string; icon: string }) {
   return (
     <div
-      className="bs-b-muted flex items-center gap-inline px-4 py-2.5"
-      style={{ color: "var(--color-text-secondary)" }}
+      className="bs-b-muted flex items-center gap-inline px-4 py-2.5 theme-text-secondary"
     >
       <Icon icon={icon} className="w-4 h-4" />
       <h3 className="text-xs font-semibold uppercase tracking-widest">

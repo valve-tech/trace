@@ -38,8 +38,7 @@ export function EventsSection({
                 </span>
                 {decoded && (
                   <span
-                    className="text-sm font-medium"
-                    style={{ color: "var(--color-warning)" }}
+                    className="text-sm font-medium theme-warning"
                   >
                     {decoded.eventName}
                   </span>
@@ -57,8 +56,7 @@ export function EventsSection({
                       className="flex items-start gap-inline text-xs"
                     >
                       <span
-                        className="font-medium shrink-0"
-                        style={{ color: "var(--color-text-secondary)" }}
+                        className="font-medium shrink-0 theme-text-secondary"
                       >
                         {arg.name || `arg${j}`}
                       </span>
@@ -66,8 +64,7 @@ export function EventsSection({
                         ({arg.type})
                       </span>
                       <span
-                        className="font-mono break-all"
-                        style={{ color: "var(--color-text-primary)" }}
+                        className="font-mono break-all theme-text"
                       >
                         {renderParamValue(arg.value)}
                       </span>
@@ -79,14 +76,12 @@ export function EventsSection({
                   {rawLog.topics.map((topic, j) => (
                     <div key={j} className="text-xs">
                       <span
-                        className="font-medium"
-                        style={{ color: "var(--color-text-secondary)" }}
+                        className="font-medium theme-text-secondary"
                       >
                         Topic {j}:
                       </span>{" "}
                       <span
-                        className="font-mono break-all"
-                        style={{ color: "var(--color-text-primary)" }}
+                        className="font-mono break-all theme-text"
                       >
                         {topic}
                       </span>
@@ -95,14 +90,12 @@ export function EventsSection({
                   {rawLog.data !== "0x" && (
                     <div className="text-xs">
                       <span
-                        className="font-medium"
-                        style={{ color: "var(--color-text-secondary)" }}
+                        className="font-medium theme-text-secondary"
                       >
                         Data:
                       </span>{" "}
                       <span
-                        className="font-mono break-all"
-                        style={{ color: "var(--color-text-primary)" }}
+                        className="font-mono break-all theme-text"
                       >
                         {rawLog.data}
                       </span>

@@ -53,8 +53,7 @@ function SectionHeader({
       }}
     >
       <span
-        className="text-xs font-semibold uppercase tracking-wider"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-xs font-semibold uppercase tracking-wider theme-text-secondary"
       >
         {title}
         <span
@@ -67,7 +66,7 @@ function SectionHeader({
           {count}
         </span>
       </span>
-      <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+      <span className="text-xs theme-text-muted">
         {expanded ? "▼" : "▶"}
       </span>
     </button>
@@ -84,8 +83,7 @@ function TableHeader({ cols }: { cols: string[] }) {
         {cols.map((col) => (
           <th
             key={col}
-            className="px-3 py-1.5 text-left text-xs font-semibold"
-            style={{ color: "var(--color-text-muted)" }}
+            className="px-3 py-1.5 text-left text-xs font-semibold theme-text-muted"
           >
             {col}
           </th>
@@ -139,14 +137,12 @@ function BalanceChangesSection({ changes }: { changes: BalanceChange[] }) {
                       {truncateHex(change.address)}
                     </td>
                     <td
-                      className="px-3 py-2"
-                      style={{ color: "var(--color-text-secondary)" }}
+                      className="px-3 py-2 theme-text-secondary"
                     >
                       {formatPlsValue(change.before)}
                     </td>
                     <td
-                      className="px-3 py-2"
-                      style={{ color: "var(--color-text-primary)" }}
+                      className="px-3 py-2 theme-text"
                     >
                       {formatPlsValue(change.after)}
                     </td>
@@ -220,7 +216,7 @@ function StorageGroup({
           >
             {rows.length} slot{rows.length !== 1 ? "s" : ""}
           </span>
-          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          <span className="text-xs theme-text-muted">
             {expanded ? "▼" : "▶"}
           </span>
         </div>
@@ -247,8 +243,7 @@ function StorageGroup({
                     {truncateHex(row.slot)}
                   </td>
                   <td
-                    className="px-3 py-2"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="px-3 py-2 theme-text-secondary"
                   >
                     {row.decodedName ?? "—"}
                   </td>
@@ -364,14 +359,12 @@ function NonceChangesSection({ changes }: { changes: NonceChange[] }) {
                     {truncateHex(change.address)}
                   </td>
                   <td
-                    className="px-3 py-2"
-                    style={{ color: "var(--color-text-muted)" }}
+                    className="px-3 py-2 theme-text-muted"
                   >
                     {change.before}
                   </td>
                   <td
-                    className="px-3 py-2"
-                    style={{ color: "var(--color-text-primary)" }}
+                    className="px-3 py-2 theme-text"
                   >
                     {change.after}
                   </td>

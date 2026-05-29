@@ -76,8 +76,7 @@ export default function AlertHistory({
           Back
         </button>
         <h2
-          className="text-lg font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-lg font-semibold theme-text"
         >
           History: {alertName}
         </h2>
@@ -126,26 +125,22 @@ export default function AlertHistory({
                   style={{}}
                 >
                   <th
-                    className="text-left px-4 py-3 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-4 py-3 text-xs font-medium theme-text-secondary"
                   >
                     Timestamp
                   </th>
                   <th
-                    className="text-left px-4 py-3 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-4 py-3 text-xs font-medium theme-text-secondary"
                   >
                     TX Hash
                   </th>
                   <th
-                    className="text-left px-4 py-3 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-4 py-3 text-xs font-medium theme-text-secondary"
                   >
                     Block
                   </th>
                   <th
-                    className="text-left px-4 py-3 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-4 py-3 text-xs font-medium theme-text-secondary"
                   >
                     Summary
                   </th>
@@ -159,8 +154,7 @@ export default function AlertHistory({
                     style={{}}
                   >
                     <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: "var(--color-text-secondary)" }}
+                      className="px-4 py-3 whitespace-nowrap theme-text-secondary"
                     >
                       {formatDate(entry.triggered_at)}
                     </td>
@@ -196,8 +190,7 @@ export default function AlertHistory({
                       {entry.block_number?.toLocaleString() ?? "--"}
                     </td>
                     <td
-                      className="px-4 py-3 max-w-xs truncate"
-                      style={{ color: "var(--color-text-secondary)" }}
+                      className="px-4 py-3 max-w-xs truncate theme-text-secondary"
                     >
                       {(entry.matched_data as Record<string, string>).summary ??
                         "Alert triggered"}
@@ -215,8 +208,7 @@ export default function AlertHistory({
               style={{}}
             >
               <span
-                className="text-xs"
-                style={{ color: "var(--color-text-muted)" }}
+                className="text-xs theme-text-muted"
               >
                 Page {pagination.page} of {pagination.totalPages} ({pagination.total}{" "}
                 entries)

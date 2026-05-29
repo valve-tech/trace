@@ -26,8 +26,7 @@ export function OverviewSection({
       <div className="pt-2">
         <InfoRow label="Transaction Hash">
           <span
-            className="font-mono break-all"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono break-all theme-text"
           >
             {tx.hash}
           </span>
@@ -39,8 +38,7 @@ export function OverviewSection({
           <ExplorerLink
             target={{ type: "block", value: tx.blockNumber }}
             onNavigate={onNavigate}
-            className="font-mono text-sm hover:underline cursor-pointer"
-            style={{ color: "var(--color-accent)" }}
+            className="font-mono text-sm hover:underline cursor-pointer theme-accent"
           >
             {Number(tx.blockNumber).toLocaleString()}
           </ExplorerLink>
@@ -71,8 +69,7 @@ export function OverviewSection({
             </div>
           ) : (
             <span
-              className="text-sm"
-              style={{ color: "var(--color-text-muted)" }}
+              className="text-sm theme-text-muted"
             >
               Contract Creation
               {tx.contractAddress && (
@@ -89,8 +86,7 @@ export function OverviewSection({
         </InfoRow>
         <InfoRow label="Value">
           <span
-            className="font-mono"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono theme-text"
           >
             {formatPLS(tx.valuePLS)}
           </span>
@@ -105,8 +101,7 @@ export function OverviewSection({
               {Number(tx.gas).toLocaleString()}
             </span>
             <span
-              className="ml-2 text-xs"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="ml-2 text-xs theme-text-secondary"
             >
               ({gasPercent}%)
             </span>
@@ -114,16 +109,14 @@ export function OverviewSection({
         </InfoRow>
         <InfoRow label="Gas Price">
           <span
-            className="font-mono"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono theme-text"
           >
             {formatGwei(tx.gasPrice)}
           </span>
         </InfoRow>
         <InfoRow label="Nonce">
           <span
-            className="font-mono"
-            style={{ color: "var(--color-text-primary)" }}
+            className="font-mono theme-text"
           >
             {tx.nonce}
           </span>

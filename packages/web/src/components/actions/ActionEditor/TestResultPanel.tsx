@@ -59,7 +59,7 @@ export function TestResultPanel({ result }: { result: ExecutionResult }) {
         </pre>
       )}
       {result.error && (
-        <p className="text-xs mt-2" style={{ color: "var(--color-danger)" }}>
+        <p className="text-xs mt-2 theme-danger">
           Error: {result.error}
         </p>
       )}

@@ -33,8 +33,7 @@ export function NotificationChannelsCard({
         style={{}}
       >
         <h3
-          className="text-sm font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-sm font-semibold theme-text"
         >
           Notification Channels
         </h3>
@@ -53,8 +52,7 @@ export function NotificationChannelsCard({
 
       {notifications.length === 0 && (
         <p
-          className="text-sm"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-sm theme-text-muted"
         >
           No notification channels configured. Alerts will still be recorded
           in history.

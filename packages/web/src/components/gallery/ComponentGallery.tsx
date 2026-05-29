@@ -30,14 +30,13 @@ export default function ComponentGallery() {
     <div className="max-w-5xl mx-auto space-y-section py-2">
       <header className="space-y-tight">
         <h1
-          className="text-2xl font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-2xl font-semibold theme-text"
         >
           Component gallery
         </h1>
-        <p className="text-sm max-w-2xl" style={{ color: "var(--color-text-secondary)" }}>
+        <p className="text-sm max-w-2xl theme-text-secondary">
           Every component and variation below carries a stable{" "}
-          <span className="font-mono" style={{ color: "var(--color-accent)" }}>
+          <span className="font-mono theme-accent">
             ID
           </span>{" "}
           (click it to copy). Reference an ID to ask for a change — e.g.
@@ -64,7 +63,7 @@ export default function ComponentGallery() {
 
         <GalleryItem id="copy-button" title="CopyButton — clipboard + ✓ feedback">
           <Variant id="copy-button/default">
-            <span className="flex items-center gap-tight font-mono text-xs" style={{ color: "var(--color-text-secondary)" }}>
+            <span className="flex items-center gap-tight font-mono text-xs theme-text-secondary">
               {SAMPLE_ADDR.slice(0, 10)}…
               <CopyButton value={SAMPLE_ADDR} />
             </span>
@@ -158,8 +157,7 @@ function GallerySection({
   return (
     <section className="space-y-row">
       <h2
-        className="text-sm font-semibold uppercase tracking-widest"
-        style={{ color: "var(--color-text-primary)" }}
+        className="text-sm font-semibold uppercase tracking-widest theme-text"
       >
         {title}
       </h2>
@@ -181,7 +179,7 @@ function GalleryItem({
     <div className="card p-4">
       <div className="flex items-center gap-row mb-3">
         <IdChip id={id} />
-        <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+        <span className="text-sm font-medium theme-text">
           {title}
         </span>
       </div>

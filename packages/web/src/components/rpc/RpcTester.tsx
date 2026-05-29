@@ -234,7 +234,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
           className="px-4 py-2.5 bs-b flex items-center justify-between"
           style={{}}
         >
-          <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+          <span className="text-sm font-semibold theme-text">
             Request
           </span>
           <span className="text-xs" style={labelStyle}>
@@ -303,8 +303,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
             style={{}}
           >
             <span
-              className="text-sm font-semibold"
-              style={{ color: "var(--color-text-primary)" }}
+              className="text-sm font-semibold theme-text"
             >
               Response
             </span>

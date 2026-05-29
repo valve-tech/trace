@@ -76,7 +76,7 @@ const CONTEXT_BLOCKS = [
     title: "Verified by",
     icon: "heroicons:check-badge",
     body: (
-      <div className="text-xs space-y-1.5" style={{ color: "var(--color-text-secondary)" }}>
+      <div className="text-xs space-y-1.5 theme-text-secondary">
         <div className="flex justify-between"><span>BlockScout</span><span style={{ color: "var(--color-success)" }}>✓</span></div>
         <div className="flex justify-between"><span>Sourcify (full match)</span><span style={{ color: "var(--color-success)" }}>✓</span></div>
         <div className="flex justify-between"><span>Slither analysis</span><span style={{ color: "var(--color-text-muted)" }}>cached 4d ago</span></div>
@@ -87,7 +87,7 @@ const CONTEXT_BLOCKS = [
     title: "Live signals",
     icon: "heroicons:signal",
     body: (
-      <div className="text-xs space-y-1.5" style={{ color: "var(--color-text-secondary)" }}>
+      <div className="text-xs space-y-1.5 theme-text-secondary">
         <div className="flex justify-between"><span>Calls last 1h</span><span style={{ color: "var(--color-text-primary)" }} className="font-mono">612</span></div>
         <div className="flex justify-between"><span>Revert rate 1h</span><span style={{ color: "var(--color-warning)" }} className="font-mono">3.1%</span></div>
         <div className="flex justify-between"><span>Median gas</span><span style={{ color: "var(--color-text-primary)" }} className="font-mono">142k</span></div>
@@ -99,9 +99,9 @@ const CONTEXT_BLOCKS = [
     icon: "heroicons:link",
     body: (
       <div className="text-xs space-y-1.5">
-        <a className="block hover:underline" style={{ color: "var(--color-accent)" }}>PulseX Factory</a>
-        <a className="block hover:underline" style={{ color: "var(--color-accent)" }}>WPLS (wrapped native)</a>
-        <a className="block hover:underline" style={{ color: "var(--color-accent)" }}>PulseX v1 (deprecated)</a>
+        <a className="block hover:underline theme-accent">PulseX Factory</a>
+        <a className="block hover:underline theme-accent">WPLS (wrapped native)</a>
+        <a className="block hover:underline theme-accent">PulseX v1 (deprecated)</a>
       </div>
     ),
   },
@@ -136,8 +136,7 @@ export default function WorkspaceDraft() {
     <div className="p-4">
       <Link
         to="/drafts"
-        className="text-xs flex items-center gap-1.5 mb-5"
-        style={{ color: "var(--color-text-muted)" }}
+        className="text-xs flex items-center gap-1.5 mb-5 theme-text-muted"
       >
         <Icon icon="heroicons:chevron-left" className="w-3 h-3" />
         Back to drafts
@@ -149,21 +148,19 @@ export default function WorkspaceDraft() {
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div className="min-w-0">
               <div className="flex items-center gap-row mb-2">
-                <h1 className="text-2xl font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                <h1 className="text-2xl font-semibold theme-text">
                   {ADDR.name}
                 </h1>
                 {ADDR.verified && (
                   <Icon
                     icon="heroicons:check-badge-solid"
-                    className="w-5 h-5"
-                    style={{ color: "var(--color-success)" }}
+                    className="w-5 h-5 theme-success"
                   />
                 )}
                 <RiskDot level={ADDR.riskScore} />
               </div>
               <div
-                className="font-mono text-xs break-all"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="font-mono text-xs break-all theme-text-secondary"
               >
                 {ADDR.address}
               </div>
@@ -245,14 +242,12 @@ export default function WorkspaceDraft() {
             <>
               <div className="flex items-center justify-between mb-4">
                 <div
-                  className="text-xs uppercase tracking-widest"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="text-xs uppercase tracking-widest theme-text-muted"
                 >
                   Recent calls
                 </div>
                 <div
-                  className="text-xs"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="text-xs theme-text-muted"
                 >
                   {ADDR.txCount24h.toLocaleString()} txs · {ADDR.uniqueCallers24h.toLocaleString()} callers (24h)
                 </div>
@@ -274,7 +269,7 @@ export default function WorkspaceDraft() {
                       className="border-t"
                       style={{ borderColor: "var(--color-border-muted)" }}
                     >
-                      <td className="py-2.5" style={{ color: "var(--color-text-primary)" }}>{r.method}</td>
+                      <td className="py-2.5 theme-text">{r.method}</td>
                       <td style={{ color: "var(--color-accent)" }}>{r.hash}</td>
                       <td style={{ color: "var(--color-text-secondary)" }}>{r.from}</td>
                       <td style={{ color: "var(--color-text-muted)" }}>{r.age}</td>
@@ -298,9 +293,9 @@ export default function WorkspaceDraft() {
 
           {tab === "source" && (
             <>
-              <div className="mb-3 text-[10px] uppercase tracking-widest flex items-center gap-1.5" style={{ color: "var(--color-text-muted)" }}>
+              <div className="mb-3 text-[10px] uppercase tracking-widest flex items-center gap-1.5 theme-text-muted">
                 <Icon icon="heroicons:link" className="w-3 h-3" />
-                Rendered via the existing <code className="mx-1" style={{ color: "var(--color-text-secondary)" }}>SourceTab</code> component
+                Rendered via the existing <code className="mx-1 theme-text-secondary">SourceTab</code> component
               </div>
               <SourceTab sourceCode={MOCK_SOURCE} />
             </>
@@ -308,9 +303,9 @@ export default function WorkspaceDraft() {
 
           {tab === "storage" && (
             <>
-              <div className="mb-3 text-[10px] uppercase tracking-widest flex items-center gap-1.5" style={{ color: "var(--color-text-muted)" }}>
+              <div className="mb-3 text-[10px] uppercase tracking-widest flex items-center gap-1.5 theme-text-muted">
                 <Icon icon="heroicons:link" className="w-3 h-3" />
-                Rendered via the existing <code className="mx-1" style={{ color: "var(--color-text-secondary)" }}>StorageLayoutViewer</code>
+                Rendered via the existing <code className="mx-1 theme-text-secondary">StorageLayoutViewer</code>
               </div>
               <StorageLayoutViewer />
             </>
@@ -318,8 +313,7 @@ export default function WorkspaceDraft() {
 
           {tab !== "activity" && tab !== "source" && tab !== "storage" && (
             <div
-              className="h-full min-h-[300px] flex flex-col items-center justify-center text-center"
-              style={{ color: "var(--color-text-muted)" }}
+              className="h-full min-h-[300px] flex flex-col items-center justify-center text-center theme-text-muted"
             >
               <Icon
                 icon={SUB_TABS.find((t) => t.key === tab)?.icon ?? "heroicons:cube"}
@@ -330,7 +324,7 @@ export default function WorkspaceDraft() {
               </div>
               <div className="text-xs mt-1">
                 In production this is the existing component from
-                <code className="ml-1" style={{ color: "var(--color-text-secondary)" }}>
+                <code className="ml-1 theme-text-secondary">
                   /{tab}
                 </code>
                 , rendered in context.
@@ -344,8 +338,7 @@ export default function WorkspaceDraft() {
           {CONTEXT_BLOCKS.map((b) => (
             <div key={b.title} className="card p-4">
               <div
-                className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest mb-3"
-                style={{ color: "var(--color-text-muted)" }}
+                className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest mb-3 theme-text-muted"
               >
                 <Icon icon={b.icon} className="w-3 h-3" />
                 {b.title}
@@ -354,8 +347,7 @@ export default function WorkspaceDraft() {
             </div>
           ))}
           <div
-            className="text-[10px] font-mono px-1"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-[10px] font-mono px-1 theme-text-muted"
           >
             compiler {ADDR.compiler} · deployed {ADDR.lastDeploy}
           </div>

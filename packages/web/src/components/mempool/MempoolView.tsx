@@ -150,23 +150,20 @@ export default function MempoolView() {
         <div className="flex items-center gap-inline">
           <Icon
             icon="heroicons:queue-list"
-            className="w-4 h-4"
-            style={{ color: "var(--color-accent)" }}
+            className="w-4 h-4 theme-accent"
           />
           <h2
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-sm font-semibold theme-text"
           >
             Mempool
           </h2>
-          <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+          <span className="text-[11px] theme-text-muted">
             pending, ordered by effective priority tip
           </span>
         </div>
         {data && (
           <div
-            className="flex items-center gap-row text-xs font-mono"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="flex items-center gap-row text-xs font-mono theme-text-secondary"
           >
             <span>{data.pendingCount.toLocaleString()} pending</span>
             <span style={{ color: "var(--color-text-muted)" }}>
@@ -193,12 +190,12 @@ export default function MempoolView() {
         )}
 
         {status === "pending" && (
-          <div className="p-8 text-center text-sm" style={{ color: "var(--color-text-muted)" }}>
+          <div className="p-8 text-center text-sm theme-text-muted">
             Loading pending transactions…
           </div>
         )}
         {status === "error" && (
-          <div className="p-8 text-center text-sm" style={{ color: "var(--color-danger)" }}>
+          <div className="p-8 text-center text-sm theme-danger">
             {error instanceof Error ? error.message : "Failed to load mempool"}
           </div>
         )}
@@ -226,8 +223,7 @@ export default function MempoolView() {
                   (h, idx) => (
                     <th
                       key={h || `col-${idx}`}
-                      className="text-left px-3 py-2.5 text-xs font-medium"
-                      style={{ color: "var(--color-text-secondary)" }}
+                      className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"
                     >
                       {h}
                     </th>
@@ -245,8 +241,7 @@ export default function MempoolView() {
                     />
                   </td>
                   <td
-                    className="px-3 py-2 text-xs font-mono tabular-nums"
-                    style={{ color: "var(--color-text-muted)" }}
+                    className="px-3 py-2 text-xs font-mono tabular-nums theme-text-muted"
                   >
                     {i + 1}
                   </td>
@@ -254,8 +249,7 @@ export default function MempoolView() {
                     <ExplorerLink
                       target={{ type: "tx", value: tx.hash }}
                       onNavigate={onNavigate}
-                      className="font-mono text-xs hover:underline cursor-pointer"
-                      style={{ color: "var(--color-accent)" }}
+                      className="font-mono text-xs hover:underline cursor-pointer theme-accent"
                       title={tx.hash}
                     >
                       {truncateAddr(tx.hash)}
@@ -265,16 +259,14 @@ export default function MempoolView() {
                     <ExplorerLink
                       target={{ type: "address", value: tx.from }}
                       onNavigate={onNavigate}
-                      className="font-mono text-xs hover:underline cursor-pointer"
-                      style={{ color: "var(--color-accent)" }}
+                      className="font-mono text-xs hover:underline cursor-pointer theme-accent"
                       title={tx.from}
                     >
                       {truncateAddr(tx.from)}
                     </ExplorerLink>
                   </td>
                   <td
-                    className="px-3 py-2 font-mono text-xs tabular-nums"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="px-3 py-2 font-mono text-xs tabular-nums theme-text-secondary"
                   >
                     {tx.nonce.toLocaleString()}
                   </td>
@@ -331,7 +323,7 @@ function GasCell({ tx }: { tx: PendingTx }) {
 
   if (tip != null || cap != null) {
     return (
-      <span className="font-mono text-xs tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
+      <span className="font-mono text-xs tabular-nums theme-text-secondary">
         <span style={{ color: "var(--color-text-muted)" }}>tip </span>
         {tip ?? "—"}
         <span style={{ color: "var(--color-text-muted)" }}> / cap </span>
@@ -342,7 +334,7 @@ function GasCell({ tx }: { tx: PendingTx }) {
   }
   if (legacy != null) {
     return (
-      <span className="font-mono text-xs tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
+      <span className="font-mono text-xs tabular-nums theme-text-secondary">
         {legacy}
         <span style={{ color: "var(--color-text-muted)" }}> gwei</span>
       </span>
@@ -384,21 +376,18 @@ function Toolbar({
         >
           <Icon
             icon="heroicons:magnifying-glass"
-            className="w-3.5 h-3.5"
-            style={{ color: "var(--color-text-muted)" }}
+            className="w-3.5 h-3.5 theme-text-muted"
           />
           <input
             value={search}
             onChange={(e) => onSearch(e.target.value)}
             placeholder="from address or tx hash…"
-            className="bare-input flex-1 bg-transparent outline-none text-xs font-mono"
-            style={{ color: "var(--color-text-primary)" }}
+            className="bare-input flex-1 bg-transparent outline-none text-xs font-mono theme-text"
           />
         </div>
 
         <div
-          className="flex items-center gap-inline text-[11px]"
-          style={{ color: "var(--color-text-muted)" }}
+          className="flex items-center gap-inline text-[11px] theme-text-muted"
         >
           sort
           <Dropdown<SortKey>
@@ -413,7 +402,7 @@ function Toolbar({
 
       {presentTypes.length > 1 && (
         <div className="flex items-center gap-inline px-3 pb-2.5 flex-wrap">
-          <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+          <span className="text-[11px] theme-text-muted">
             type
           </span>
           {presentTypes.map((t) => {
@@ -437,8 +426,7 @@ function Toolbar({
             );
           })}
           <span
-            className="ml-auto text-[11px] font-mono"
-            style={{ color: "var(--color-text-muted)" }}
+            className="ml-auto text-[11px] font-mono theme-text-muted"
           >
             showing {showing.toLocaleString()} of {total.toLocaleString()}
           </span>

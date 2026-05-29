@@ -17,8 +17,7 @@ export function TriggerConfigEditor({
   return (
     <div>
       <label
-        className="block text-sm font-medium mb-1.5"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="block text-sm font-medium mb-1.5 theme-text-secondary"
       >
         Trigger Configuration
       </label>
@@ -26,8 +25,7 @@ export function TriggerConfigEditor({
       {triggerType === "block" && (
         <div>
           <label
-            className="block text-xs mb-1"
-            style={{ color: "var(--color-text-muted)" }}
+            className="block text-xs mb-1 theme-text-muted"
           >
             Run every Nth block
           </label>
@@ -54,8 +52,7 @@ export function TriggerConfigEditor({
         <div className="space-y-2">
           <div>
             <label
-              className="block text-xs mb-1"
-              style={{ color: "var(--color-text-muted)" }}
+              className="block text-xs mb-1 theme-text-muted"
             >
               Contract Address
             </label>
@@ -78,8 +75,7 @@ export function TriggerConfigEditor({
           </div>
           <div>
             <label
-              className="block text-xs mb-1"
-              style={{ color: "var(--color-text-muted)" }}
+              className="block text-xs mb-1 theme-text-muted"
             >
               Event Signature (topic0 hash)
             </label>
@@ -106,8 +102,7 @@ export function TriggerConfigEditor({
       {triggerType === "periodic" && (
         <div>
           <label
-            className="block text-xs mb-1"
-            style={{ color: "var(--color-text-muted)" }}
+            className="block text-xs mb-1 theme-text-muted"
           >
             Interval (seconds)
           </label>
@@ -133,8 +128,7 @@ export function TriggerConfigEditor({
       {triggerType === "webhook" && (
         <div>
           <label
-            className="block text-xs mb-1"
-            style={{ color: "var(--color-text-muted)" }}
+            className="block text-xs mb-1 theme-text-muted"
           >
             Webhook URL (auto-generated after saving)
           </label>
@@ -174,8 +168,7 @@ export function TriggerConfigEditor({
             </div>
           ) : (
             <p
-              className="text-xs"
-              style={{ color: "var(--color-text-muted)" }}
+              className="text-xs theme-text-muted"
             >
               Save this action to generate a webhook URL.
             </p>

@@ -77,8 +77,7 @@ export default function BundleSimulator() {
       <div className="space-y-stack">
         <div className="flex items-center justify-between">
           <h2
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-sm font-semibold theme-text"
           >
             Transaction Bundle
             <span
@@ -138,8 +137,7 @@ export default function BundleSimulator() {
 
       <div className="space-y-stack">
         <h2
-          className="text-sm font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-sm font-semibold theme-text"
         >
           Bundle Results
         </h2>

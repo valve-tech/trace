@@ -267,8 +267,7 @@ function CrumbNode({
     <span className="flex items-center gap-tight font-mono px-2 py-1">
       {node.kind && node.kind !== "none" && (
         <span
-          className="text-[9px] uppercase tracking-wider not-italic"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-[9px] uppercase tracking-wider not-italic theme-text-muted"
         >
           {node.kind}
         </span>

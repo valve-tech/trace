@@ -44,14 +44,12 @@ export function InputCard({
       }}
     >
       <h2
-        className="text-lg font-semibold mb-1"
-        style={{ color: "var(--color-text-primary)" }}
+        className="text-lg font-semibold mb-1 theme-text"
       >
         Fork Simulation
       </h2>
       <p
-        className="text-sm mb-4"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-sm mb-4 theme-text-secondary"
       >
         Re-execute a transaction on a forked chain to see exact state changes.
       </p>

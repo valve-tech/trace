@@ -15,8 +15,7 @@ export function PanelHeader({
       style={{ backgroundColor: "var(--color-bg-secondary)" }}
     >
       <span
-        className="text-xs font-semibold uppercase tracking-wider"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-xs font-semibold uppercase tracking-wider theme-text-secondary"
       >
         {title}
       </span>

@@ -64,12 +64,11 @@ export default function SettingsPanel() {
     <div className="p-4 max-w-3xl">
       <div className="mb-6">
         <div
-          className="text-xs uppercase tracking-widest mb-1"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-xs uppercase tracking-widest mb-1 theme-text-muted"
         >
           Settings
         </div>
-        <h1 className="text-xl font-semibold" style={{ color: "var(--color-text-primary)" }}>
+        <h1 className="text-xl font-semibold theme-text">
           Workspace preferences
         </h1>
       </div>
@@ -83,8 +82,7 @@ export default function SettingsPanel() {
         />
         <div className="pt-4 pb-2">
           <div
-            className="text-[10px] uppercase tracking-widest mb-2"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-[10px] uppercase tracking-widest mb-2 theme-text-muted"
           >
             Auto-collapse rules
           </div>
@@ -97,20 +95,19 @@ export default function SettingsPanel() {
               style={{ opacity: autoCollapse ? 1 : 0.4 }}
             >
               <div>
-                <div className="text-sm" style={{ color: "var(--color-text-primary)" }}>
+                <div className="text-sm theme-text">
                   {r.label}{" "}
                   <code
-                    className="ml-1 text-[11px]"
-                    style={{ color: "var(--color-text-muted)" }}
+                    className="ml-1 text-[11px] theme-text-muted"
                   >
                     /{r.key}
                   </code>
                 </div>
-                <div className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+                <div className="text-xs mt-0.5 theme-text-muted">
                   {r.note}
                 </div>
               </div>
-              <div className="text-xs flex items-center gap-1.5" style={{ color: "var(--color-text-muted)" }}>
+              <div className="text-xs flex items-center gap-1.5 theme-text-muted">
                 <Icon icon="heroicons:arrow-down-right" className="w-3 h-3" />
                 collapses
               </div>
@@ -122,8 +119,7 @@ export default function SettingsPanel() {
       {/* Section: Future home for other prefs */}
       <Section title="More" icon="heroicons:adjustments-horizontal">
         <div
-          className="text-xs italic py-4 text-center"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-xs italic py-4 text-center theme-text-muted"
         >
           Network, RPC URL overrides, theme accents, default route, keyboard shortcuts —
           will live here as we add them.
@@ -145,8 +141,7 @@ function Section({
   return (
     <div className="mb-4 card p-5">
       <div
-        className="flex items-center gap-inline mb-4 text-xs uppercase tracking-widest"
-        style={{ color: "var(--color-text-muted)" }}
+        className="flex items-center gap-inline mb-4 text-xs uppercase tracking-widest theme-text-muted"
       >
         <Icon icon={icon} className="w-3.5 h-3.5" />
         {title}
@@ -168,10 +163,10 @@ function Row({
   return (
     <div className="flex items-start justify-between gap-4 py-2">
       <div className="min-w-0">
-        <div className="text-sm" style={{ color: "var(--color-text-primary)" }}>
+        <div className="text-sm theme-text">
           {label}
         </div>
-        <div className="text-xs mt-0.5 max-w-md" style={{ color: "var(--color-text-muted)" }}>
+        <div className="text-xs mt-0.5 max-w-md theme-text-muted">
           {hint}
         </div>
       </div>

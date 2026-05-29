@@ -201,8 +201,7 @@ function ActionMenu({
               {it.label}
               {!it.enabled && (
                 <span
-                  className="ml-auto text-[10px] uppercase tracking-wider"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="ml-auto text-[10px] uppercase tracking-wider theme-text-muted"
                 >
                   n/a
                 </span>

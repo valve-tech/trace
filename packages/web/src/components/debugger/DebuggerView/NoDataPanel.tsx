@@ -8,7 +8,7 @@ export function NoDataPanel({ message }: { message: string }) {
         backgroundColor: "var(--color-bg-card)",
       }}
     >
-      <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+      <p className="text-sm theme-text-secondary">
         {message}
       </p>
     </div>

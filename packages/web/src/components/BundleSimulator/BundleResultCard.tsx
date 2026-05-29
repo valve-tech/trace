@@ -17,8 +17,7 @@ export function BundleResultCard({
     >
       <div className="flex items-center justify-between mb-3">
         <h4
-          className="text-sm font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-sm font-semibold theme-text"
         >
           <span
             className="inline-flex items-center justify-center w-5 h-5 rounded-full mr-2 text-[10px] font-bold"
@@ -54,8 +53,7 @@ export function BundleResultCard({
         {result.returnData && result.returnData !== "0x" && (
           <div>
             <span
-              className="text-xs block mb-1"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="text-xs block mb-1 theme-text-secondary"
             >
               Return Data
             </span>
@@ -77,8 +75,7 @@ export function BundleResultCard({
             style={{ backgroundColor: "var(--color-danger-muted)" }}
           >
             <span
-              className="text-xs font-medium block mb-0.5"
-              style={{ color: "var(--color-danger)" }}
+              className="text-xs font-medium block mb-0.5 theme-danger"
             >
               Revert Reason
             </span>
@@ -97,8 +94,7 @@ export function BundleResultCard({
         {result.decodedCall && (
           <div className="mt-2">
             <span
-              className="text-xs block mb-1"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="text-xs block mb-1 theme-text-secondary"
             >
               Function Call
             </span>

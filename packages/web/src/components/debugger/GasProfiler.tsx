@@ -29,8 +29,7 @@ function Card({
     <div className="rounded-lg p-4" style={cardStyle}>
       <div className="flex items-center justify-between mb-3">
         <h3
-          className="text-sm font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-sm font-semibold theme-text"
         >
           {title}
         </h3>
@@ -63,8 +62,7 @@ export default function GasProfiler({
       >
         <div className="mb-4">
           <h4
-            className="text-xs font-medium mb-2"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="text-xs font-medium mb-2 theme-text-secondary"
           >
             Gas by Call Type
           </h4>
@@ -85,8 +83,7 @@ export default function GasProfiler({
           title="Opcode Gas Distribution"
           trailing={
             <span
-              className="text-xs font-mono"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="text-xs font-mono theme-text-secondary"
             >
               {formatGas(opcodeProfile.totalGas)} gas across{" "}
               {opcodeProfile.categories

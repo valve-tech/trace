@@ -20,9 +20,9 @@ export function StackPanel({
     <CollapsiblePanel title="Stack" count={stack.length} defaultOpen={false}>
       <div className="overflow-y-auto px-3 py-1" style={{ maxHeight: "200px" }}>
         {loading ? (
-          <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Loading stack…</div>
+          <div className="py-4 text-xs text-center theme-text-muted">Loading stack…</div>
         ) : stack.length === 0 ? (
-          <div className="py-4 text-xs text-center" style={{ color: "var(--color-text-muted)" }}>Stack is empty</div>
+          <div className="py-4 text-xs text-center theme-text-muted">Stack is empty</div>
         ) : (
           [...stack].reverse().map((word, i) => {
             const actualIndex = stack.length - 1 - i;
@@ -39,7 +39,7 @@ export function StackPanel({
                   paddingLeft: isInput ? "4px" : undefined,
                 }}
               >
-                <span className="w-8 text-right mr-2 flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{i}</span>
+                <span className="w-8 text-right mr-2 flex-shrink-0 theme-text-muted">{i}</span>
                 <span
                   className="truncate"
                   title={formatWord(word)}
@@ -55,7 +55,7 @@ export function StackPanel({
                   {truncateWord(word)}
                 </span>
                 {isInput && (
-                  <span className="ml-auto flex-shrink-0 text-[9px] uppercase tracking-wide" style={{ color: "var(--color-warning)" }}>
+                  <span className="ml-auto flex-shrink-0 text-[9px] uppercase tracking-wide theme-warning">
                     in
                   </span>
                 )}

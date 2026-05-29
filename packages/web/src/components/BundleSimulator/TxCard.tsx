@@ -31,8 +31,7 @@ export function TxCard({ tx, index, onChange, onRemove, canRemove }: Props) {
     >
       <div className="flex items-center justify-between">
         <h3
-          className="text-sm font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-sm font-semibold theme-text"
         >
           <span
             className="inline-flex items-center justify-center w-6 h-6 rounded-full mr-2 text-xs font-bold"

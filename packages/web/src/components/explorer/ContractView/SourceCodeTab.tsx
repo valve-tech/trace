@@ -14,8 +14,7 @@ function CodeBox({ children }: { children: React.ReactNode }) {
 function EmptyState({ message }: { message: string }) {
   return (
     <div
-      className="p-4 text-center text-sm"
-      style={{ color: "var(--color-text-muted)" }}
+      className="p-4 text-center text-sm theme-text-muted"
     >
       {message}
     </div>

@@ -68,8 +68,7 @@ export function Dropdown<T extends string>({
         <span className="truncate">{current?.label ?? value}</span>
         <Icon
           icon="heroicons:chevron-down"
-          className="w-3 h-3 shrink-0"
-          style={{ color: "var(--color-text-muted)" }}
+          className="w-3 h-3 shrink-0 theme-text-muted"
         />
       </button>
 

@@ -27,20 +27,17 @@ function Index() {
     <div className="px-8 py-10 max-w-5xl mx-auto">
       <div className="mb-10">
         <div
-          className="text-xs uppercase tracking-widest mb-2"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-xs uppercase tracking-widest mb-2 theme-text-muted"
         >
           Drafts
         </div>
         <h1
-          className="text-3xl font-semibold mb-3"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-3xl font-semibold mb-3 theme-text"
         >
           Layout explorations
         </h1>
         <p
-          className="text-sm max-w-2xl leading-relaxed"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-sm max-w-2xl leading-relaxed theme-text-secondary"
         >
           Three concrete pivots away from the current 12-tab shell. Each draft
           renders with mock data so we can react to the shape before wiring
@@ -80,20 +77,17 @@ function Index() {
               </span>
             </div>
             <div
-              className="text-base font-semibold mb-2 group-hover:underline"
-              style={{ color: "var(--color-text-primary)" }}
+              className="text-base font-semibold mb-2 group-hover:underline theme-text"
             >
               {d.title}
             </div>
             <div
-              className="text-sm leading-relaxed"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="text-sm leading-relaxed theme-text-secondary"
             >
               {d.summary}
             </div>
             <div
-              className="mt-5 flex items-center gap-1.5 text-xs font-medium"
-              style={{ color: "var(--color-accent)" }}
+              className="mt-5 flex items-center gap-1.5 text-xs font-medium theme-accent"
             >
               Preview
               <Icon icon="heroicons:arrow-right" className="w-3.5 h-3.5" />
@@ -103,12 +97,10 @@ function Index() {
       </div>
 
       <div
-        className="mt-12 p-5 card text-sm leading-relaxed"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="mt-12 p-5 card text-sm leading-relaxed theme-text-secondary"
       >
         <div
-          className="font-semibold mb-2 flex items-center gap-inline"
-          style={{ color: "var(--color-text-primary)" }}
+          className="font-semibold mb-2 flex items-center gap-inline theme-text"
         >
           <Icon icon="heroicons:light-bulb" className="w-4 h-4" />
           Reading these drafts

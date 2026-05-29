@@ -206,8 +206,7 @@ function TopBar({
       <div className="flex items-center gap-inline px-4 shrink-0">
         <PulseLogo />
         <h1
-          className="text-sm font-semibold hidden md:block"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-sm font-semibold hidden md:block theme-text"
         >
           PulseChain Dev Platform
         </h1>
@@ -234,8 +233,7 @@ function TopBar({
         >
           <Icon
             icon="heroicons:magnifying-glass"
-            className="w-4 h-4 shrink-0"
-            style={{ color: "var(--color-text-muted)" }}
+            className="w-4 h-4 shrink-0 theme-text-muted"
           />
           <span className="flex-1 truncate">
             Paste a tx hash, address, block, or function selector…
@@ -253,8 +251,7 @@ function TopBar({
       </div>
 
       <div
-        className="flex items-center gap-inline px-4 shrink-0 text-sm"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="flex items-center gap-inline px-4 shrink-0 text-sm theme-text-secondary"
       >
         <span className="w-2 h-2" style={{ backgroundColor: statusColor }} />
         <span className="hidden sm:inline">{statusText}</span>
@@ -287,8 +284,7 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
                 />
               ) : (
                 <div
-                  className="flex items-center gap-tight px-1 text-[10px] uppercase tracking-widest font-semibold"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="flex items-center gap-tight px-1 text-[10px] uppercase tracking-widest font-semibold theme-text-muted"
                 >
                   <span>{group.label}</span>
                   <span className="group/info relative inline-flex items-center">
@@ -708,8 +704,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
         >
           <Icon
             icon="heroicons:magnifying-glass"
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-            style={{ color: "var(--color-text-muted)" }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none theme-text-muted"
           />
           <input
             autoFocus
@@ -717,8 +712,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Search recent, contracts, pages — or paste a hash / address / block"
-            className="bare-input flex-1 h-full pl-7 bg-transparent text-sm outline-none font-mono"
-            style={{ color: "var(--color-text-primary)" }}
+            className="bare-input flex-1 h-full pl-7 bg-transparent text-sm outline-none font-mono theme-text"
           />
           {parsed.kind !== "unknown" && (
             <span
@@ -776,8 +770,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                 <div key={r.id}>
                   {showGroup && (
                     <div
-                      className="text-[9px] uppercase tracking-widest px-4 pt-2 pb-1"
-                      style={{ color: "var(--color-text-muted)" }}
+                      className="text-[9px] uppercase tracking-widest px-4 pt-2 pb-1 theme-text-muted"
                     >
                       {r.group}
                     </div>
@@ -809,14 +802,12 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div
-                        className="text-sm font-mono truncate leading-snug"
-                        style={{ color: "var(--color-text-primary)" }}
+                        className="text-sm font-mono truncate leading-snug theme-text"
                       >
                         {r.label}
                       </div>
                       <div
-                        className="text-[11px] truncate"
-                        style={{ color: "var(--color-text-muted)" }}
+                        className="text-[11px] truncate theme-text-muted"
                       >
                         {r.detail}
                       </div>
@@ -838,7 +829,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
             })}
           </div>
         ) : (
-          <div className="px-4 py-4 text-xs" style={{ color: "var(--color-text-muted)" }}>
+          <div className="px-4 py-4 text-xs theme-text-muted">
             {value.trim() === ""
               ? "Nothing viewed yet — paste a tx hash, address, block number, or 4byte selector, or jump to a page from the Pages tab."
               : "No matches. Paste a full tx hash, address, block number, or 4byte selector to open it directly."}

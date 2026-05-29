@@ -6,8 +6,7 @@ export function RawDataSection({ input }: { input: string }) {
       <div className="pt-3 space-y-3">
         <div>
           <span
-            className="text-xs font-medium block mb-1"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="text-xs font-medium block mb-1 theme-text-secondary"
           >
             Input Data
           </span>

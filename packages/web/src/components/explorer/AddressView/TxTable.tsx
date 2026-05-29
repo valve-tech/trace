@@ -22,8 +22,7 @@ export function TxTable({ txs, ownerAddress, onNavigate }: Props) {
           {HEADERS.map((h) => (
             <th
               key={h}
-              className="text-left px-3 py-2.5 text-xs font-medium"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="text-left px-3 py-2.5 text-xs font-medium theme-text-secondary"
             >
               {h}
             </th>
@@ -80,8 +79,7 @@ function TxRow({
         </LinkButton>
       </td>
       <td
-        className="px-3 py-2 text-xs whitespace-nowrap"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="px-3 py-2 text-xs whitespace-nowrap theme-text-secondary"
       >
         {formatRelativeTimestamp(tx.timeStamp)}
       </td>
@@ -119,8 +117,7 @@ function TxRow({
         )}
       </td>
       <td
-        className="px-3 py-2 font-mono text-xs whitespace-nowrap"
-        style={{ color: "var(--color-text-primary)" }}
+        className="px-3 py-2 font-mono text-xs whitespace-nowrap theme-text"
       >
         {formatPLS(tx.valuePLS)}
       </td>
@@ -171,8 +168,7 @@ function LinkButton({
       target={target}
       onNavigate={onNavigate}
       title={title}
-      className="font-mono text-xs hover:underline cursor-pointer"
-      style={{ color: "var(--color-accent)" }}
+      className="font-mono text-xs hover:underline cursor-pointer theme-accent"
     >
       {children}
     </ExplorerLink>

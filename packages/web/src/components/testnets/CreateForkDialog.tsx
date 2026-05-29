@@ -52,8 +52,7 @@ export default function CreateForkDialog({
         }}
       >
         <h2
-          className="text-lg font-semibold mb-4"
-          style={{ color: "var(--color-text-primary)" }}
+          className="text-lg font-semibold mb-4 theme-text"
         >
           Create Virtual TestNet
         </h2>
@@ -62,8 +61,7 @@ export default function CreateForkDialog({
           {/* Label */}
           <div>
             <label
-              className="block text-sm mb-1"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="block text-sm mb-1 theme-text-secondary"
             >
               Label
             </label>
@@ -83,13 +81,11 @@ export default function CreateForkDialog({
           {/* Block Number */}
           <div>
             <label
-              className="block text-sm mb-1"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="block text-sm mb-1 theme-text-secondary"
             >
               Fork Block Number
               <span
-                className="ml-1 text-xs"
-                style={{ color: "var(--color-text-muted)" }}
+                className="ml-1 text-xs theme-text-muted"
               >
                 (optional, defaults to latest)
               </span>

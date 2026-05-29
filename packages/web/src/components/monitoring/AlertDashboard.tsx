@@ -213,42 +213,36 @@ export default function AlertDashboard() {
       <div className="grid grid-cols-3 gap-4">
         <div className="card p-4">
           <p
-            className="text-xs font-medium mb-1"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="text-xs font-medium mb-1 theme-text-secondary"
           >
             Total Alerts
           </p>
           <p
-            className="text-2xl font-bold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-2xl font-bold theme-text"
           >
             {stats.total}
           </p>
         </div>
         <div className="card p-4">
           <p
-            className="text-xs font-medium mb-1"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="text-xs font-medium mb-1 theme-text-secondary"
           >
             Active
           </p>
           <p
-            className="text-2xl font-bold"
-            style={{ color: "var(--color-success)" }}
+            className="text-2xl font-bold theme-success"
           >
             {stats.active}
           </p>
         </div>
         <div className="card p-4">
           <p
-            className="text-xs font-medium mb-1"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="text-xs font-medium mb-1 theme-text-secondary"
           >
             Triggered Today
           </p>
           <p
-            className="text-2xl font-bold"
-            style={{ color: "var(--color-warning)" }}
+            className="text-2xl font-bold theme-warning"
           >
             {stats.triggered_today}
           </p>
@@ -259,8 +253,7 @@ export default function AlertDashboard() {
       <div className="card p-4 flex items-center justify-between">
         <div className="flex items-center gap-row">
           <h2
-            className="text-lg font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
+            className="text-lg font-semibold theme-text"
           >
             Alerts
           </h2>
@@ -276,8 +269,7 @@ export default function AlertDashboard() {
                 }}
               />
               <span
-                className="text-xs font-medium"
-                style={{ color: "var(--color-success)" }}
+                className="text-xs font-medium theme-success"
               >
                 Live
               </span>
@@ -321,12 +313,11 @@ export default function AlertDashboard() {
       {!loading && alerts.length === 0 && (
         <div className="card p-8 text-center">
           <p
-            className="text-sm mb-2"
-            style={{ color: "var(--color-text-muted)" }}
+            className="text-sm mb-2 theme-text-muted"
           >
             No alerts configured yet.
           </p>
-          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-xs theme-text-muted">
             Create an alert to start monitoring PulseChain activity.
           </p>
         </div>
@@ -360,8 +351,7 @@ export default function AlertDashboard() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-inline mb-2">
                     <h3
-                      className="text-sm font-semibold truncate"
-                      style={{ color: "var(--color-text-primary)" }}
+                      className="text-sm font-semibold truncate theme-text"
                     >
                       {a.name}
                     </h3>
@@ -377,8 +367,7 @@ export default function AlertDashboard() {
                   </div>
 
                   <div
-                    className="flex items-center gap-4 text-xs"
-                    style={{ color: "var(--color-text-muted)" }}
+                    className="flex items-center gap-4 text-xs theme-text-muted"
                   >
                     <span>
                       Cooldown: {a.cooldown_seconds}s

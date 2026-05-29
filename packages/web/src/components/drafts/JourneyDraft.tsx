@@ -165,7 +165,7 @@ function decodedCallLens(): Lens {
     title: "Decoded call",
     icon: "heroicons:code-bracket",
     body: (
-      <div className="font-mono text-xs leading-relaxed" style={{ color: "var(--color-text-primary)" }}>
+      <div className="font-mono text-xs leading-relaxed theme-text">
         <span style={{ color: "var(--color-accent)" }}>swapExactTokensForTokens</span>
         <span style={{ color: "var(--color-text-muted)" }}>(</span>
         <div className="pl-4">
@@ -192,9 +192,9 @@ function lensesFor(o: Outcome): Lens[] {
         body: (
           <div className="font-mono text-xs leading-relaxed">
             <div style={{ color: "var(--color-text-primary)" }}>→ Router.swapExactTokensForTokens</div>
-            <div className="pl-4" style={{ color: "var(--color-text-secondary)" }}>→ WPLS.transferFrom(user, pair, 1e18)</div>
-            <div className="pl-8" style={{ color: "var(--color-danger)" }}>✗ REVERT: TRANSFER_FROM_FAILED</div>
-            <div className="pl-4" style={{ color: "var(--color-text-muted)" }}>(execution stops, gas refunded after 184,392)</div>
+            <div className="pl-4 theme-text-secondary">→ WPLS.transferFrom(user, pair, 1e18)</div>
+            <div className="pl-8 theme-danger">✗ REVERT: TRANSFER_FROM_FAILED</div>
+            <div className="pl-4 theme-text-muted">(execution stops, gas refunded after 184,392)</div>
           </div>
         ),
       },
@@ -219,7 +219,7 @@ function lensesFor(o: Outcome): Lens[] {
         key: "state",
         title: "State diff",
         icon: "heroicons:arrows-right-left",
-        body: <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>Reverted txs produce no state diff. Re-run as a simulation to see what <em>would</em> have changed.</div>,
+        body: <div className="text-xs theme-text-muted">Reverted txs produce no state diff. Re-run as a simulation to see what <em>would</em> have changed.</div>,
       },
     ];
   }
@@ -241,7 +241,7 @@ function lensesFor(o: Outcome): Lens[] {
             <span style={{ color: "var(--color-success)" }}>+12,488.21 HEX</span>{" "}
             <span style={{ color: "var(--color-text-muted)" }}>to 0x77eE…aa12</span>
           </div>
-          <div className="pt-1" style={{ color: "var(--color-text-muted)" }}>
+          <div className="pt-1 theme-text-muted">
             Effective rate 12,488.21 HEX/WPLS · slippage 0.18%
           </div>
         </div>
@@ -252,7 +252,7 @@ function lensesFor(o: Outcome): Lens[] {
       title: "State diff",
       icon: "heroicons:list-bullet",
       body: (
-        <div className="font-mono text-xs space-y-1" style={{ color: "var(--color-text-secondary)" }}>
+        <div className="font-mono text-xs space-y-1 theme-text-secondary">
           <div>WPLS.balanceOf[Pair] <span style={{ color: "var(--color-success)" }}>+1e18</span></div>
           <div>HEX.balanceOf[Pair] <span style={{ color: "var(--color-danger)" }}>−1.248e22</span></div>
           <div>WPLS.balanceOf[User] <span style={{ color: "var(--color-danger)" }}>−1e18</span></div>
@@ -297,8 +297,7 @@ export default function JourneyDraft() {
       <div className="flex items-center justify-between mb-5">
         <Link
           to="/drafts"
-          className="text-xs flex items-center gap-1.5"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-xs flex items-center gap-1.5 theme-text-muted"
         >
           <Icon icon="heroicons:chevron-left" className="w-3 h-3" />
           Back to drafts
@@ -339,13 +338,13 @@ export default function JourneyDraft() {
       <div className="card p-5 mb-5">
         <div className="flex items-start justify-between gap-6 flex-wrap">
           <div className="min-w-0 flex-1">
-            <div className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--color-text-muted)" }}>
+            <div className="text-xs uppercase tracking-widest mb-2 theme-text-muted">
               Transaction
             </div>
-            <div className="font-mono text-sm break-all mb-3" style={{ color: "var(--color-text-primary)" }}>
+            <div className="font-mono text-sm break-all mb-3 theme-text">
               {tx.hash}
             </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+            <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs theme-text-secondary">
               <span>From <code style={{ color: "var(--color-text-primary)" }}>{tx.from}</code></span>
               <span>To <code style={{ color: "var(--color-text-primary)" }}>{tx.to}</code></span>
               <span>Block {tx.block.toLocaleString()}</span>
@@ -377,7 +376,7 @@ export default function JourneyDraft() {
 
       {/* Stepper */}
       <div className="mb-6">
-        <div className="text-[10px] uppercase tracking-widest mb-3" style={{ color: "var(--color-text-muted)" }}>
+        <div className="text-[10px] uppercase tracking-widest mb-3 theme-text-muted">
           Investigation
         </div>
         <div className="flex items-center gap-tight flex-wrap">
@@ -406,7 +405,7 @@ export default function JourneyDraft() {
                 {s.label}
               </div>
               {i < stages.length - 1 && (
-                <Icon icon="heroicons:chevron-right" className="w-3 h-3" style={{ color: "var(--color-text-muted)" }} />
+                <Icon icon="heroicons:chevron-right" className="w-3 h-3 theme-text-muted" />
               )}
             </div>
           ))}
@@ -426,14 +425,13 @@ export default function JourneyDraft() {
                 style={{ gridColumn: isExpanded ? "1 / -1" : undefined }}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-inline text-xs uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+                  <div className="flex items-center gap-inline text-xs uppercase tracking-widest theme-text-muted">
                     <Icon icon={l.icon} className="w-3.5 h-3.5" />
                     {l.title}
                   </div>
                   <Icon
                     icon={isExpanded ? "heroicons:arrows-pointing-in" : "heroicons:arrows-pointing-out"}
-                    className="w-3.5 h-3.5"
-                    style={{ color: "var(--color-text-muted)" }}
+                    className="w-3.5 h-3.5 theme-text-muted"
                   />
                 </div>
                 {l.body}
@@ -443,7 +441,7 @@ export default function JourneyDraft() {
         </div>
 
         <aside>
-          <div className="text-[10px] uppercase tracking-widest mb-3" style={{ color: "var(--color-text-muted)" }}>
+          <div className="text-[10px] uppercase tracking-widest mb-3 theme-text-muted">
             What to do next
           </div>
           <div className="space-y-2">
@@ -468,7 +466,7 @@ export default function JourneyDraft() {
                     <div className="text-sm font-medium leading-snug mb-1" style={{ color: s.primary ? "var(--color-accent)" : "var(--color-text-primary)" }}>
                       {s.label}
                     </div>
-                    <div className="text-xs leading-snug" style={{ color: "var(--color-text-muted)" }}>
+                    <div className="text-xs leading-snug theme-text-muted">
                       {s.sub}
                     </div>
                   </div>

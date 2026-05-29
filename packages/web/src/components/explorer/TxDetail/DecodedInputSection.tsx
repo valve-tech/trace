@@ -27,26 +27,22 @@ export function DecodedInputSection({ decoded }: { decoded: DecodedInput }) {
               <thead>
                 <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
                   <th
-                    className="text-left px-3 py-2 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                   >
                     #
                   </th>
                   <th
-                    className="text-left px-3 py-2 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                   >
                     Name
                   </th>
                   <th
-                    className="text-left px-3 py-2 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                   >
                     Type
                   </th>
                   <th
-                    className="text-left px-3 py-2 text-xs font-medium"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="text-left px-3 py-2 text-xs font-medium theme-text-secondary"
                   >
                     Value
                   </th>
@@ -60,26 +56,22 @@ export function DecodedInputSection({ decoded }: { decoded: DecodedInput }) {
                     style={{}}
                   >
                     <td
-                      className="px-3 py-2"
-                      style={{ color: "var(--color-text-muted)" }}
+                      className="px-3 py-2 theme-text-muted"
                     >
                       {i}
                     </td>
                     <td
-                      className="px-3 py-2 font-medium"
-                      style={{ color: "var(--color-accent)" }}
+                      className="px-3 py-2 font-medium theme-accent"
                     >
                       {arg.name || `param${i}`}
                     </td>
                     <td
-                      className="px-3 py-2"
-                      style={{ color: "var(--color-text-secondary)" }}
+                      className="px-3 py-2 theme-text-secondary"
                     >
                       {arg.type}
                     </td>
                     <td
-                      className="px-3 py-2 font-mono break-all max-w-[400px]"
-                      style={{ color: "var(--color-text-primary)" }}
+                      className="px-3 py-2 font-mono break-all max-w-[400px] theme-text"
                     >
                       {renderParamValue(arg.value)}
                     </td>

@@ -65,16 +65,14 @@ export function TrackedTxPanel({
         <div className="flex items-center gap-inline">
           <Icon
             icon="heroicons:map-pin"
-            className="w-4 h-4"
-            style={{ color: "var(--color-accent)" }}
+            className="w-4 h-4 theme-accent"
           />
           <h3
-            className="text-xs font-semibold uppercase tracking-widest"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="text-xs font-semibold uppercase tracking-widest theme-text-secondary"
           >
             Tracked transactions
           </h3>
-          <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+          <span className="text-[11px] theme-text-muted">
             {tracked.length}
           </span>
         </div>
@@ -150,8 +148,7 @@ function TrackedRow({
       <ExplorerLink
         target={{ type: "tx", value: tx.hash }}
         onNavigate={onNavigate}
-        className="font-mono text-xs hover:underline cursor-pointer min-w-0"
-        style={{ color: "var(--color-accent)" }}
+        className="font-mono text-xs hover:underline cursor-pointer min-w-0 theme-accent"
         title={tx.hash}
       >
         {truncateAddr(tx.hash)}
@@ -161,8 +158,7 @@ function TrackedRow({
         <ExplorerLink
           target={{ type: "block", value: tx.blockNumber }}
           onNavigate={onNavigate}
-          className="text-[11px] font-mono hover:underline cursor-pointer shrink-0"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-[11px] font-mono hover:underline cursor-pointer shrink-0 theme-text-muted"
         >
           block #{Number(tx.blockNumber).toLocaleString()}
         </ExplorerLink>

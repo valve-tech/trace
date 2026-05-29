@@ -150,8 +150,7 @@ export function CallFrameRow({
         {hasChildren ? (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleExpand?.(key, !expanded); }}
-            className="w-4 flex items-center justify-center flex-shrink-0"
-            style={{ color: "var(--color-text-muted)" }}
+            className="w-4 flex items-center justify-center flex-shrink-0 theme-text-muted"
           >
             <Icon icon={expanded ? "heroicons:chevron-down" : "heroicons:chevron-right"} className="w-3 h-3" />
           </button>

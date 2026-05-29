@@ -44,8 +44,7 @@ export function CodeEditor({ code, setCode }: Props) {
   return (
     <div>
       <label
-        className="block text-sm font-medium mb-1.5"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="block text-sm font-medium mb-1.5 theme-text-secondary"
       >
         Code
       </label>
