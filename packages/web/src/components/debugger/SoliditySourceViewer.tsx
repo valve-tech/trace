@@ -364,14 +364,17 @@ export default function SourceViewer({
     setActiveMatch(0);
   }, []);
 
-  // Auto-scroll to current line — also triggers when file changes
+  // Auto-scroll to current line — `block: "nearest"` so manual scroll is
+  // preserved when the line is already on screen. Without this, stepping
+  // through opcodes that happen to cross a source-line boundary forced a
+  // recenter on every transition, fighting the user when they had scrolled
+  // ahead to read upcoming code. Explicit jumps (scrollKey bump) may land
+  // the cursor at the edge rather than the center, but it stays visible.
   useEffect(() => {
     if (!containerRef.current || !currentLine) return;
     requestAnimationFrame(() => {
       const lineEl = containerRef.current?.querySelector(`[data-line="${currentLine}"]`);
-      if (lineEl) {
-        lineEl.scrollIntoView({ block: "center", behavior: "instant" });
-      }
+      lineEl?.scrollIntoView({ block: "nearest", behavior: "instant" });
     });
   }, [currentLine, file.name, scrollKey]);
 
