@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -85,11 +85,12 @@ async function fetchDebuggerData(hash: string): Promise<DebuggerData> {
   return data;
 }
 
+const VALID_TABS: ReadonlySet<DebugTab> = new Set(["debugger", "calltree", "gas", "opcodes"]);
+
 export default function DebuggerView() {
-  const { txHash: urlHash } = useParams<{ txHash?: string }>();
+  const { txHash: urlHash, tab: urlTab } = useParams<{ txHash?: string; tab?: string }>();
   const navigate = useNavigate();
   const [txHash, setTxHash] = useState(urlHash ?? "");
-  const [activeTab, setActiveTab] = useState<DebugTab>("debugger");
 
   // Keep the search input in sync when the route hash changes (e.g. ⌘K nav).
   useEffect(() => {
@@ -97,6 +98,24 @@ export default function DebuggerView() {
   }, [urlHash]);
 
   const validUrlHash = urlHash && isValidTxHash(urlHash) ? urlHash : null;
+
+  // The active tab lives in the URL so deep-links are shareable
+  // (/debugger/0xabc/gas opens the gas profile). Default tab ("debugger") is
+  // canonicalized to the bare /debugger/0xabc URL — no need for a path suffix
+  // when it's the default. Invalid tabs in the URL silently fall back.
+  const activeTab: DebugTab =
+    urlTab && VALID_TABS.has(urlTab as DebugTab) ? (urlTab as DebugTab) : "debugger";
+  const setActiveTab = useCallback(
+    (tab: DebugTab) => {
+      if (!validUrlHash) return;
+      const path =
+        tab === "debugger"
+          ? `/debugger/${validUrlHash}`
+          : `/debugger/${validUrlHash}/${tab}`;
+      navigate(path, { replace: true });
+    },
+    [validUrlHash, navigate],
+  );
 
   // Resolve block context first (cheap). A tx hash alone isn't a stable
   // execution identity — a re-org can re-execute the same hash in a different

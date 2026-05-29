@@ -97,6 +97,7 @@ export default function App() {
           <Route path="/token/:address" element={<ExplorerPanel />} />
           <Route path="/mempool" element={<MempoolView />} />
           <Route path="/debugger" element={<DebuggerView />} />
+          <Route path="/debugger/:txHash/:tab" element={<DebuggerView />} />
           <Route path="/debugger/:txHash" element={<DebuggerView />} />
           <Route path="/actions" element={<ActionsDashboard />} />
           <Route path="/storage" element={<StorageLayoutViewer />} />
