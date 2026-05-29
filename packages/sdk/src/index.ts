@@ -71,6 +71,13 @@ export {
   type MatchedEvent,
 } from "./parsers/index.js";
 
+// Storage decoding (pure — typed view of a single packed-slot variable)
+export {
+  decodeSlot,
+  type DecodedValue,
+  type DecodeSlotInput,
+} from "./storage/index.js";
+
 // Risks
 export {
   analyzeRisks,
