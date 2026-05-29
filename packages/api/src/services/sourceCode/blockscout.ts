@@ -99,7 +99,11 @@ export async function fetchFromBlockScout(
       sourceMap,
       deployedBytecode,
     };
-  } catch {
+  } catch (err) {
+    // Let UpstreamError propagate so getVerifiedSource can distinguish a
+    // transient outage from an actual "not verified" answer (otherwise a
+    // 5xx storm gets cemented in the negative cache for 10 minutes).
+    if (err instanceof UpstreamError) throw err;
     return null;
   } finally {
     clearTimeout(timer);
