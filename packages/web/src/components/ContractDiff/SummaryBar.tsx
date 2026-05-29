@@ -16,31 +16,14 @@ export function SummaryBar({ result }: { result: DiffResult }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span
-          style={{
-            fontSize: "12px",
-            color: "var(--color-text-secondary)",
-          }}
-        >
+        <span className="theme-text-secondary" style={{ fontSize: "12px" }}>
           Comparing
         </span>
-        <code
-          style={{
-            fontSize: "12px",
-            fontFamily: "var(--font-mono)",
-            color: "var(--color-accent)",
-          }}
-        >
+        <code className="theme-accent theme-mono" style={{ fontSize: "12px" }}>
           {result.contractA.name ?? shortAddr(result.contractA.address)}
         </code>
         <span className="theme-text-muted">vs</span>
-        <code
-          style={{
-            fontSize: "12px",
-            fontFamily: "var(--font-mono)",
-            color: "var(--color-accent)",
-          }}
-        >
+        <code className="theme-accent theme-mono" style={{ fontSize: "12px" }}>
           {result.contractB.name ?? shortAddr(result.contractB.address)}
         </code>
       </div>
@@ -54,37 +37,25 @@ export function SummaryBar({ result }: { result: DiffResult }) {
         }}
       >
         {summary.filesChanged > 0 && (
-          <span style={{ color: "var(--color-warning)", fontSize: "13px" }}>
+          <span className="theme-warning" style={{ fontSize: "13px" }}>
             {summary.filesChanged} file{summary.filesChanged !== 1 ? "s" : ""}{" "}
             changed
           </span>
         )}
         {summary.filesAdded > 0 && (
-          <span style={{ color: "var(--color-success)", fontSize: "13px" }}>
+          <span className="theme-success" style={{ fontSize: "13px" }}>
             +{summary.filesAdded} added
           </span>
         )}
         {summary.filesRemoved > 0 && (
-          <span style={{ color: "var(--color-danger)", fontSize: "13px" }}>
+          <span className="theme-danger" style={{ fontSize: "13px" }}>
             -{summary.filesRemoved} removed
           </span>
         )}
-        <span
-          style={{
-            color: "var(--color-success)",
-            fontSize: "13px",
-            fontFamily: "var(--font-mono)",
-          }}
-        >
+        <span className="theme-success theme-mono" style={{ fontSize: "13px" }}>
           +{summary.totalLinesAdded}
         </span>
-        <span
-          style={{
-            color: "var(--color-danger)",
-            fontSize: "13px",
-            fontFamily: "var(--font-mono)",
-          }}
-        >
+        <span className="theme-danger theme-mono" style={{ fontSize: "13px" }}>
           -{summary.totalLinesRemoved}
         </span>
       </div>

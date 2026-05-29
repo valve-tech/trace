@@ -23,6 +23,7 @@ export function FileDiffView({ file, isExpanded, onToggle }: Props) {
     <div className="card" style={{ marginBottom: "1px" }}>
       <button
         onClick={onToggle}
+        className="theme-text theme-mono"
         style={{
           width: "100%",
           display: "flex",
@@ -32,8 +33,6 @@ export function FileDiffView({ file, isExpanded, onToggle }: Props) {
           background: "none",
           border: "none",
           cursor: "pointer",
-          color: "var(--color-text-primary)",
-          fontFamily: "var(--font-mono)",
           fontSize: "13px",
           textAlign: "left",
         }}
@@ -56,16 +55,16 @@ export function FileDiffView({ file, isExpanded, onToggle }: Props) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           {file.linesAdded > 0 && (
-            <span style={{ color: "var(--color-success)", fontSize: "12px" }}>
+            <span className="theme-success" style={{ fontSize: "12px" }}>
               +{file.linesAdded}
             </span>
           )}
           {file.linesRemoved > 0 && (
-            <span style={{ color: "var(--color-danger)", fontSize: "12px" }}>
+            <span className="theme-danger" style={{ fontSize: "12px" }}>
               -{file.linesRemoved}
             </span>
           )}
-          <span style={{ color: "var(--color-text-muted)", fontSize: "12px" }}>
+          <span className="theme-text-muted" style={{ fontSize: "12px" }}>
             {isExpanded ? "▲" : "▼"}
           </span>
         </div>
@@ -85,10 +84,10 @@ function DiffTable({ lines }: { lines: FileDiff["lines"] }) {
       }}
     >
       <table
+        className="theme-mono"
         style={{
           width: "100%",
           borderCollapse: "collapse",
-          fontFamily: "var(--font-mono)",
           fontSize: "12px",
           tableLayout: "fixed",
         }}
@@ -158,10 +157,10 @@ function DiffTable({ lines }: { lines: FileDiff["lines"] }) {
 function LineNumberCell({ value }: { value: number | null }) {
   return (
     <td
+      className="theme-text-muted"
       style={{
         padding: "0 8px",
         textAlign: "right",
-        color: "var(--color-text-muted)",
         userSelect: "none",
         boxShadow: "1px 0 0 0 var(--color-border-muted)",
         whiteSpace: "nowrap",
