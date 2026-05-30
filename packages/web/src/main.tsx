@@ -44,7 +44,11 @@ createRoot(rootEl).render(
       // trace switched to the full skeleton (~111k steps vs an old truncated
       // ~50k), and contract-meta gained an events map — both long-cached under
       // staleTime Infinity, so old clients kept serving the stale trace + tree.
-      persistOptions={{ persister, maxAge: Infinity, buster: "2026-05-29-debug-rpc-bearer" }}
+      // 2026-05-30: contract-meta switched to retry-then-omit (sparse records
+      // on transient upstream failures). Old persisted entries from the
+      // Blockscout outage held empty records that staleTime: Infinity pinned
+      // forever, masking method names across reloads.
+      persistOptions={{ persister, maxAge: Infinity, buster: "2026-05-30-contract-meta-sparse" }}
     >
       <BrowserRouter>
         <App />

@@ -8,14 +8,33 @@ import { resolveContractMeta, type ContractMeta } from "../api/contractMeta";
  */
 export function useContractMeta(addresses: string[]) {
   const key = addresses.map((a) => a.toLowerCase()).sort().join(",");
+  const lowerAddresses = addresses.map((a) => a.toLowerCase());
   const query = useQuery({
-    // The `v2` segment busts persisted caches from before ContractMeta carried
-    // its `events` map — those entries are rehydrated from IndexedDB and, under
-    // the global `staleTime: Infinity`, would otherwise never refetch, leaving
-    // tree events undecoded.
-    queryKey: ["contract-meta", "v2", key],
+    // The `v3` segment busts persisted caches from before resolveContractMeta
+    // switched to retry-then-omit semantics (1763a47). Old v2 entries can hold
+    // partial records that the new staleTime function below would treat as
+    // permanently stale — bumping the version flushes them in one shot.
+    queryKey: ["contract-meta", "v3", key],
     queryFn: () => resolveContractMeta(addresses),
     enabled: addresses.length > 0,
+    // resolveContractMeta deliberately returns a *sparse* record on transient
+    // upstream failures (addresses with no definitive answer are omitted, not
+    // returned as empty meta — see contractMeta.ts). Under the global
+    // `staleTime: Infinity` defaults, a sparse result would get pinned in
+    // IndexedDB forever, masking the contracts for the rest of the session.
+    //
+    // We decide staleness per-result: a *complete* record (every requested
+    // address resolved) is canonical and caches forever; an *incomplete*
+    // record is stale immediately so the next mount of this hook re-runs
+    // resolveContractMeta and reattempts the missing addresses.
+    staleTime: (query) => {
+      const data = query.state.data;
+      if (!data) return Infinity;
+      const allResolved = lowerAddresses.every(
+        (addr) => data[addr] !== undefined,
+      );
+      return allResolved ? Infinity : 0;
+    },
   });
 
   const meta: Record<string, ContractMeta> = query.data ?? {};
