@@ -134,96 +134,139 @@ describe("buildEventMap", () => {
 // a per-test envelope response.
 // ---------------------------------------------------------------------------
 
-describe("resolveContractMeta — envelope error handling", () => {
+describe("resolveContractMeta — envelope error handling + retry", () => {
   type ResolveFn = (typeof import("../api/contractMeta"))["resolveContractMeta"];
   let resolveContractMeta: ResolveFn;
 
   beforeEach(async () => {
+    // Fake timers so the retry sleeps don't actually block the test
+    // suite. Each test calls `vi.runAllTimersAsync()` to flush the
+    // backoff schedule between attempts.
+    vi.useFakeTimers();
     vi.resetModules();
     ({ resolveContractMeta } = await import("../api/contractMeta"));
     vi.restoreAllMocks();
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
-  function stubFetch(envelope: unknown, opts: { ok?: boolean; status?: number } = {}) {
-    return vi.spyOn(globalThis, "fetch").mockResolvedValue({
+  function envelopeResponse(
+    envelope: unknown,
+    opts: { ok?: boolean; status?: number } = {},
+  ): Response {
+    return {
       ok: opts.ok ?? true,
       status: opts.status ?? 200,
       json: async () => envelope,
-    } as Response);
+    } as Response;
   }
 
-  it("flags an upstream-unavailable response as transient and DOES NOT cache it", async () => {
-    const fetchSpy = stubFetch({
-      status: "0",
-      message: "NOTOK",
-      result: "Verification source temporarily unavailable: blockscout+sourcify",
-    });
+  const UPSTREAM_DOWN = {
+    status: "0",
+    message: "NOTOK",
+    result: "Verification source temporarily unavailable: blockscout+sourcify",
+  };
+  const NOT_VERIFIED_OK = {
+    status: "1",
+    message: "OK",
+    result: [
+      {
+        SourceCode: "",
+        ABI: "Contract source code not verified",
+        ContractName: "",
+      },
+    ],
+  };
+
+  it("omits an address from the result when every retry returns transient", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(envelopeResponse(UPSTREAM_DOWN));
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const addr = "0xefd2ab7e09f436e8d29bb04df76a9dec77e5f0a3";
 
-    const first = await resolveContractMeta([addr]);
-    expect(first[addr]).toEqual({
-      name: null,
-      selectors: {},
-      events: {},
-      transient: true,
-    });
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("verification upstream unavailable"),
-    );
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const pending = resolveContractMeta([addr]);
+    await vi.runAllTimersAsync();
+    const first = await pending;
 
-    // Second resolve must re-fetch — transient results must never poison
-    // the module-level cache.
-    await resolveContractMeta([addr]);
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    // Definitive answers only. A transient upstream → no entry in the result.
+    expect(first[addr]).toBeUndefined();
+    expect(Object.keys(first)).toEqual([]);
+
+    // All three attempts were made; warning logged once on the final attempt.
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/giving up on .* after 3 attempts/i),
+    );
+
+    // Next call refetches — transient never poisons the cache.
+    const pending2 = resolveContractMeta([addr]);
+    await vi.runAllTimersAsync();
+    await pending2;
+    expect(fetchSpy).toHaveBeenCalledTimes(6); // 3 more
   });
 
-  it("caches a genuine 'not verified' miss (status=1, placeholder ABI)", async () => {
-    const fetchSpy = stubFetch({
-      status: "1",
-      message: "OK",
-      result: [
-        {
-          SourceCode: "",
-          ABI: "Contract source code not verified",
-          ContractName: "",
-        },
-      ],
-    });
+  it("recovers when a transient attempt is followed by a definitive one", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(envelopeResponse(UPSTREAM_DOWN))
+      .mockResolvedValueOnce(envelopeResponse(NOT_VERIFIED_OK));
 
     const addr = "0xdeadbeef00000000000000000000000000000face";
 
-    const first = await resolveContractMeta([addr]);
+    const pending = resolveContractMeta([addr]);
+    await vi.runAllTimersAsync();
+    const result = await pending;
+
+    expect(result[addr]).toEqual({ name: null, selectors: {}, events: {} });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("caches a genuine 'not verified' miss after first definitive answer", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(envelopeResponse(NOT_VERIFIED_OK));
+
+    const addr = "0xdeadbeef00000000000000000000000000000face";
+
+    const pending = resolveContractMeta([addr]);
+    await vi.runAllTimersAsync();
+    const first = await pending;
     expect(first[addr]).toEqual({ name: null, selectors: {}, events: {} });
-    expect(first[addr]!.transient).toBeUndefined();
     expect(fetchSpy).toHaveBeenCalledTimes(1);
 
     // Second resolve served from cache — no extra fetch.
-    await resolveContractMeta([addr]);
+    const pending2 = resolveContractMeta([addr]);
+    await vi.runAllTimersAsync();
+    await pending2;
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
   it("parses ABI + name and caches verified-contract meta", async () => {
     const abi = [transferFn, transferEvent];
-    stubFetch({
-      status: "1",
-      message: "OK",
-      result: [
-        {
-          SourceCode: "// not parsed",
-          ABI: JSON.stringify(abi),
-          ContractName: "MockERC20",
-        },
-      ],
-    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      envelopeResponse({
+        status: "1",
+        message: "OK",
+        result: [
+          {
+            SourceCode: "// not parsed",
+            ABI: JSON.stringify(abi),
+            ContractName: "MockERC20",
+          },
+        ],
+      }),
+    );
 
     const addr = "0xabcdef0000000000000000000000000000000001";
-    const result = await resolveContractMeta([addr]);
+
+    const pending = resolveContractMeta([addr]);
+    await vi.runAllTimersAsync();
+    const result = await pending;
     const meta = result[addr]!;
 
     expect(meta.name).toBe("MockERC20");
@@ -231,22 +274,29 @@ describe("resolveContractMeta — envelope error handling", () => {
     expect(Object.values(meta.events)).toContain(
       "Transfer(address,address,uint256)",
     );
-    expect(meta.transient).toBeUndefined();
   });
 
-  it("treats non-2xx HTTP responses as transient (does not cache)", async () => {
-    const fetchSpy = stubFetch(null, { ok: false, status: 502 });
+  it("treats sustained non-2xx HTTP as transient — omits + retries next call", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(envelopeResponse(null, { ok: false, status: 502 }));
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const addr = "0x1111111111111111111111111111111111111111";
 
-    const first = await resolveContractMeta([addr]);
-    expect(first[addr]!.transient).toBe(true);
+    const pending = resolveContractMeta([addr]);
+    await vi.runAllTimersAsync();
+    const first = await pending;
+
+    expect(first[addr]).toBeUndefined();
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("HTTP 502"),
+      expect.stringMatching(/HTTP 502/i),
     );
 
-    await resolveContractMeta([addr]);
-    expect(fetchSpy).toHaveBeenCalledTimes(2); // re-fetch, not from cache
+    const pending2 = resolveContractMeta([addr]);
+    await vi.runAllTimersAsync();
+    await pending2;
+    expect(fetchSpy).toHaveBeenCalledTimes(6); // 3 retries × 2 rounds — never cached
   });
 });
