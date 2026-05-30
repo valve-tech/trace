@@ -44,7 +44,7 @@ createRoot(rootEl).render(
       // trace switched to the full skeleton (~111k steps vs an old truncated
       // ~50k), and contract-meta gained an events map — both long-cached under
       // staleTime Infinity, so old clients kept serving the stale trace + tree.
-      persistOptions={{ persister, maxAge: Infinity, buster: "2026-05-26-skeleton-events" }}
+      persistOptions={{ persister, maxAge: Infinity, buster: "2026-05-29-debug-rpc-bearer" }}
     >
       <BrowserRouter>
         <App />
