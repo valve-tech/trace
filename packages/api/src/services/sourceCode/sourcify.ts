@@ -30,72 +30,66 @@ export async function fetchFromSourcify(
   try {
     const chainId = 369;
 
-    for (const matchType of ["full_match", "partial_match"]) {
-      const url = `${SOURCIFY_API_URL}/repository/contracts/${matchType}/${chainId}/${address}/`;
-      let res: Response;
-      try {
-        res = await fetch(url, { signal: controller.signal });
-      } catch (err) {
-        throw new UpstreamError(
-          "sourcify",
-          err instanceof Error ? err.message : "network error",
-        );
-      }
-      if (res.status >= 500) throw new UpstreamError("sourcify", `HTTP ${res.status}`);
-      if (!res.ok) continue; // 404 = not in this match-type bucket; try the next
+    // Sourcify migration (2025): the old `/repository/contracts/{full,partial}_match/<chain>/<addr>/`
+    // existence-check + `/files/<chain>/<addr>` file-fetch flow was retired and now 404s for
+    // every request. The replacement is a single `/files/any/<chain>/<addr>` call returning
+    // `{ status: "full" | "partial", files: [...] }`, with HTTP 404 meaning "not verified at
+    // either match strength." One round-trip instead of two.
+    const url = `${SOURCIFY_API_URL}/files/any/${chainId}/${address}`;
+    let res: Response;
+    try {
+      res = await fetch(url, { signal: controller.signal });
+    } catch (err) {
+      throw new UpstreamError(
+        "sourcify",
+        err instanceof Error ? err.message : "network error",
+      );
+    }
+    if (res.status >= 500) throw new UpstreamError("sourcify", `HTTP ${res.status}`);
+    if (res.status === 404) return null; // definitive "not verified here"
+    if (!res.ok) throw new UpstreamError("sourcify", `HTTP ${res.status}`);
 
-      const metadataUrl = `${SOURCIFY_API_URL}/files/${chainId}/${address}`;
-      let metaRes: Response;
-      try {
-        metaRes = await fetch(metadataUrl, { signal: controller.signal });
-      } catch (err) {
-        throw new UpstreamError(
-          "sourcify",
-          err instanceof Error ? err.message : "network error",
-        );
-      }
-      if (metaRes.status >= 500) throw new UpstreamError("sourcify", `HTTP ${metaRes.status}`);
-      if (!metaRes.ok) continue;
+    const body = (await res.json()) as {
+      status?: "full" | "partial";
+      files?: SourcifyFile[];
+    };
+    if (!body.files || body.files.length === 0) return null;
 
-      const files = (await metaRes.json()) as SourcifyFile[];
-      const sourceFiles: SourceFile[] = [];
-      let abi: unknown[] = [];
-      let compilerVersion: string | null = null;
+    const sourceFiles: SourceFile[] = [];
+    let abi: unknown[] = [];
+    let compilerVersion: string | null = null;
 
-      for (const file of files) {
-        if (file.name === "metadata.json") {
-          try {
-            const metadata = JSON.parse(file.content) as {
-              compiler?: { version?: string };
-              output?: { abi?: unknown[] };
-            };
-            compilerVersion = metadata.compiler?.version ?? null;
-            abi = metadata.output?.abi ?? [];
-          } catch {
-            // ignore — metadata may not parse for partial matches
-          }
-        } else if (file.name.endsWith(".sol")) {
-          sourceFiles.push({ name: file.name, content: file.content });
+    for (const file of body.files) {
+      if (file.name === "metadata.json") {
+        try {
+          const metadata = JSON.parse(file.content) as {
+            compiler?: { version?: string };
+            output?: { abi?: unknown[] };
+          };
+          compilerVersion = metadata.compiler?.version ?? null;
+          abi = metadata.output?.abi ?? [];
+        } catch {
+          // ignore — metadata may not parse for partial matches
         }
+      } else if (file.name.endsWith(".sol")) {
+        sourceFiles.push({ name: file.name, content: file.content });
       }
-
-      if (sourceFiles.length === 0) continue;
-
-      return {
-        address: address.toLowerCase(),
-        chainSource: "sourcify",
-        contractName: sourceFiles[0]?.name.replace(".sol", "") ?? null,
-        compilerVersion,
-        optimizationUsed: false,
-        optimizationRuns: null,
-        sourceFiles,
-        abi,
-        sourceMap: null,
-        deployedBytecode: null,
-      };
     }
 
-    return null;
+    if (sourceFiles.length === 0) return null;
+
+    return {
+      address: address.toLowerCase(),
+      chainSource: "sourcify",
+      contractName: sourceFiles[0]?.name.replace(".sol", "") ?? null,
+      compilerVersion,
+      optimizationUsed: false,
+      optimizationRuns: null,
+      sourceFiles,
+      abi,
+      sourceMap: null,
+      deployedBytecode: null,
+    };
   } catch (err) {
     // Let UpstreamError propagate so getVerifiedSource can distinguish
     // "sourcify is down" from "sourcify said this contract isn't there".

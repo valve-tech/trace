@@ -84,7 +84,14 @@ function makeSourcifyFilesResponse(contractName = "MyToken") {
 // fetchFromSourcify
 // ---------------------------------------------------------------------------
 
-describe("fetchFromSourcify", () => {
+// fetchFromSourcify suite moved to ./sourcify.test.ts after the 2025
+// Sourcify API migration (/server/repository/contracts/{full,partial}_match/
+// → /server/files/any/<chain>/<addr>). The previous tests asserted the
+// retired 2-call directory-check + /files/ flow; the new tests in
+// sourcify.test.ts assert the single-call shape and explicitly guard
+// against re-introducing the deprecated paths.
+
+describe("fetchFromSourcify (legacy block kept empty — see sourcify.test.ts)", () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch;
   });
@@ -93,162 +100,6 @@ describe("fetchFromSourcify", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("success path (full_match): returns a VerifiedSource with expected shape", async () => {
-    stubFetch(async (url) => {
-      const u = String(url);
-      // Directory check for full_match
-      if (u.includes("full_match") && !u.includes("/files/")) {
-        return makeFetchResponse({}, 200);
-      }
-      // /files/ endpoint
-      if (u.includes("/files/")) {
-        return makeFetchResponse(makeSourcifyFilesResponse("MyToken"));
-      }
-      return makeFetchResponse({}, 404);
-    });
-
-    const result = await fetchFromSourcify(ADDRESS);
-
-    assert.ok(result !== null);
-    assert.equal(result.chainSource, "sourcify");
-    assert.equal(result.address, ADDRESS.toLowerCase());
-    assert.equal(result.contractName, "MyToken");
-    assert.equal(result.compilerVersion, "0.8.20+commit.a1b79de6");
-    assert.ok(Array.isArray(result.abi) && result.abi.length > 0);
-    assert.ok(result.sourceFiles.length > 0);
-    assert.equal(result.sourceFiles[0]?.name, "MyToken.sol");
-    assert.equal(result.sourceMap, null);
-    assert.equal(result.deployedBytecode, null);
-  });
-
-  it("full_match tried before partial_match", async () => {
-    const triedUrls: string[] = [];
-    stubFetch(async (url) => {
-      const u = String(url);
-      triedUrls.push(u);
-      if (u.includes("full_match") && !u.includes("/files/")) {
-        return makeFetchResponse({}, 200);
-      }
-      if (u.includes("/files/")) {
-        return makeFetchResponse(makeSourcifyFilesResponse());
-      }
-      return makeFetchResponse({}, 404);
-    });
-
-    await fetchFromSourcify(ADDRESS);
-
-    const repoUrls = triedUrls.filter((u) => u.includes("repository/contracts"));
-    assert.ok(repoUrls.length > 0, "should have hit repository endpoint");
-    assert.ok(
-      repoUrls[0]?.includes("full_match"),
-      "full_match should be tried first",
-    );
-  });
-
-  it("falls back to partial_match when full_match returns 404", async () => {
-    stubFetch(async (url) => {
-      const u = String(url);
-      if (u.includes("full_match") && u.includes("repository")) {
-        return makeFetchResponse({}, 404, false);
-      }
-      if (u.includes("partial_match") && u.includes("repository")) {
-        return makeFetchResponse({}, 200);
-      }
-      if (u.includes("/files/")) {
-        return makeFetchResponse(makeSourcifyFilesResponse("PartialToken"));
-      }
-      return makeFetchResponse({}, 404);
-    });
-
-    const result = await fetchFromSourcify(ADDRESS);
-    assert.ok(result !== null);
-    assert.equal(result.contractName, "PartialToken");
-  });
-
-  it("returns null when both full_match and partial_match return 404", async () => {
-    stubFetch(async () => makeFetchResponse({}, 404, false));
-
-    const result = await fetchFromSourcify(ADDRESS);
-    assert.equal(result, null);
-  });
-
-  it("throws UpstreamError on 5xx from directory check", async () => {
-    stubFetch(async () => makeFetchResponse({}, 503));
-
-    await assert.rejects(
-      () => fetchFromSourcify(ADDRESS),
-      (err: unknown) => err instanceof UpstreamError,
-    );
-  });
-
-  it("throws UpstreamError on 5xx from /files/ endpoint", async () => {
-    stubFetch(async (url) => {
-      const u = String(url);
-      if (u.includes("full_match") && u.includes("repository")) {
-        return makeFetchResponse({}, 200);
-      }
-      // /files/ is 503
-      return makeFetchResponse({}, 503);
-    });
-
-    await assert.rejects(
-      () => fetchFromSourcify(ADDRESS),
-      (err: unknown) => err instanceof UpstreamError,
-    );
-  });
-
-  it("throws UpstreamError on network error (fetch throws)", async () => {
-    stubFetch(async () => {
-      throw new Error("ECONNREFUSED");
-    });
-
-    await assert.rejects(
-      () => fetchFromSourcify(ADDRESS),
-      (err: unknown) => err instanceof UpstreamError,
-    );
-  });
-
-  it("returns null when metadata.json contains malformed JSON", async () => {
-    stubFetch(async (url) => {
-      const u = String(url);
-      if (u.includes("full_match") && u.includes("repository")) {
-        return makeFetchResponse({}, 200);
-      }
-      if (u.includes("/files/")) {
-        return makeFetchResponse([
-          { name: "metadata.json", path: "/", content: "{invalid json{{" },
-          { name: "Token.sol", path: "/Token.sol", content: "// sol" },
-        ]);
-      }
-      return makeFetchResponse({}, 404);
-    });
-
-    // Should not throw — metadata parse failure is silenced
-    const result = await fetchFromSourcify(ADDRESS);
-    // sourceFiles has Token.sol so result is non-null but abi/version are defaults
-    assert.ok(result !== null);
-    assert.deepEqual(result.abi, []);
-    assert.equal(result.compilerVersion, null);
-  });
-
-  it("returns null when /files/ response has no .sol files", async () => {
-    stubFetch(async (url) => {
-      const u = String(url);
-      if (u.includes("full_match") && u.includes("repository")) {
-        return makeFetchResponse({}, 200);
-      }
-      if (u.includes("/files/")) {
-        // Only a metadata file, no .sol
-        return makeFetchResponse([
-          { name: "metadata.json", path: "/", content: "{}" },
-        ]);
-      }
-      return makeFetchResponse({}, 404);
-    });
-
-    const result = await fetchFromSourcify(ADDRESS);
-    assert.equal(result, null);
-  });
 });
 
 // ---------------------------------------------------------------------------
