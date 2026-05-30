@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { toFunctionSelector, toEventSelector } from "viem";
 import { buildSelectorMap, buildEventMap } from "../api/contractMeta";
 
@@ -122,5 +122,131 @@ describe("buildEventMap", () => {
       undefined,
     ]);
     expect(map).toEqual({ [topic0]: "Transfer(address,address,uint256)" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveContractMeta — Etherscan envelope handling, cache discipline
+//
+// The module under test holds a private cache at module scope. We isolate
+// each test by `vi.resetModules()` + re-importing so cache state from one
+// test doesn't bleed into the next. Each test stubs globalThis.fetch with
+// a per-test envelope response.
+// ---------------------------------------------------------------------------
+
+describe("resolveContractMeta — envelope error handling", () => {
+  type ResolveFn = (typeof import("../api/contractMeta"))["resolveContractMeta"];
+  let resolveContractMeta: ResolveFn;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    ({ resolveContractMeta } = await import("../api/contractMeta"));
+    vi.restoreAllMocks();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function stubFetch(envelope: unknown, opts: { ok?: boolean; status?: number } = {}) {
+    return vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: opts.ok ?? true,
+      status: opts.status ?? 200,
+      json: async () => envelope,
+    } as Response);
+  }
+
+  it("flags an upstream-unavailable response as transient and DOES NOT cache it", async () => {
+    const fetchSpy = stubFetch({
+      status: "0",
+      message: "NOTOK",
+      result: "Verification source temporarily unavailable: blockscout+sourcify",
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const addr = "0xefd2ab7e09f436e8d29bb04df76a9dec77e5f0a3";
+
+    const first = await resolveContractMeta([addr]);
+    expect(first[addr]).toEqual({
+      name: null,
+      selectors: {},
+      events: {},
+      transient: true,
+    });
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("verification upstream unavailable"),
+    );
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    // Second resolve must re-fetch — transient results must never poison
+    // the module-level cache.
+    await resolveContractMeta([addr]);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("caches a genuine 'not verified' miss (status=1, placeholder ABI)", async () => {
+    const fetchSpy = stubFetch({
+      status: "1",
+      message: "OK",
+      result: [
+        {
+          SourceCode: "",
+          ABI: "Contract source code not verified",
+          ContractName: "",
+        },
+      ],
+    });
+
+    const addr = "0xdeadbeef00000000000000000000000000000face";
+
+    const first = await resolveContractMeta([addr]);
+    expect(first[addr]).toEqual({ name: null, selectors: {}, events: {} });
+    expect(first[addr]!.transient).toBeUndefined();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    // Second resolve served from cache — no extra fetch.
+    await resolveContractMeta([addr]);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("parses ABI + name and caches verified-contract meta", async () => {
+    const abi = [transferFn, transferEvent];
+    stubFetch({
+      status: "1",
+      message: "OK",
+      result: [
+        {
+          SourceCode: "// not parsed",
+          ABI: JSON.stringify(abi),
+          ContractName: "MockERC20",
+        },
+      ],
+    });
+
+    const addr = "0xabcdef0000000000000000000000000000000001";
+    const result = await resolveContractMeta([addr]);
+    const meta = result[addr]!;
+
+    expect(meta.name).toBe("MockERC20");
+    expect(Object.values(meta.selectors)).toContain("transfer");
+    expect(Object.values(meta.events)).toContain(
+      "Transfer(address,address,uint256)",
+    );
+    expect(meta.transient).toBeUndefined();
+  });
+
+  it("treats non-2xx HTTP responses as transient (does not cache)", async () => {
+    const fetchSpy = stubFetch(null, { ok: false, status: 502 });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const addr = "0x1111111111111111111111111111111111111111";
+
+    const first = await resolveContractMeta([addr]);
+    expect(first[addr]!.transient).toBe(true);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("HTTP 502"),
+    );
+
+    await resolveContractMeta([addr]);
+    expect(fetchSpy).toHaveBeenCalledTimes(2); // re-fetch, not from cache
   });
 });

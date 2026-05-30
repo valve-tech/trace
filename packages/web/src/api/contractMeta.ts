@@ -17,6 +17,16 @@ export interface ContractMeta {
    *  `Transfer(address,address,uint256)`. Lets the debugger label emitted
    *  events from the verified ABI without a 4byte round-trip. */
   events: Record<string, string>;
+  /**
+   * When true, this empty meta is the result of a *transient* verification
+   * upstream outage (Blockscout 5xx, Sourcify network error), NOT a
+   * confirmed-unverified contract. Callers can use this to:
+   *   - distinguish "no label available right now" from "no label exists"
+   *     in the UI (e.g. show a retry affordance vs. the truncated address)
+   *   - and crucially, the cache below skips persisting these so the next
+   *     render reattempts once the upstream recovers.
+   */
+  transient?: boolean;
 }
 
 const cache = new Map<string, ContractMeta>();
@@ -87,15 +97,51 @@ export async function resolveContractMeta(
           const res = await fetch(url, {
             signal: AbortSignal.timeout(8_000),
           });
-          if (!res.ok) return [addr, { name: null, selectors: {}, events: {} }];
+          if (!res.ok) {
+            // HTTP-level error (non-200). Treat as transient so we don't
+            // poison the cache on a server hiccup.
+            console.warn(
+              `[contractMeta] HTTP ${res.status} fetching meta for ${addr}`,
+            );
+            return [
+              addr,
+              { name: null, selectors: {}, events: {}, transient: true },
+            ];
+          }
+          // Etherscan envelope: status="1" = success; status="0" = error,
+          // with the reason in `result` (string, not array). We distinguish
+          // a genuine "not verified" miss (status=1, ABI is the literal
+          // placeholder string) from an upstream outage (status=0, message
+          // mentions "temporarily unavailable") because only the former
+          // should be cached. The latter has to be retryable.
           const data = (await res.json()) as {
             status?: string;
-            result?: Array<{ ContractName?: string; ABI?: string }>;
+            result?: Array<{ ContractName?: string; ABI?: string }> | string;
           };
           if (data.status !== "1") {
+            const errMessage =
+              typeof data.result === "string" ? data.result : "Etherscan envelope error";
+            const isTransient = /temporarily unavailable/i.test(errMessage);
+            if (isTransient) {
+              console.warn(
+                `[contractMeta] verification upstream unavailable for ${addr}: ${errMessage}`,
+              );
+              return [
+                addr,
+                { name: null, selectors: {}, events: {}, transient: true },
+              ];
+            }
+            // Non-transient envelope error (e.g. malformed address — shouldn't
+            // happen since we validate, but log it to console at least).
+            console.warn(
+              `[contractMeta] envelope error for ${addr}: ${errMessage}`,
+            );
             return [addr, { name: null, selectors: {}, events: {} }];
           }
-          const record = data.result?.[0];
+          // Past the status="0" branch above, the envelope contract
+          // guarantees `result` is the records array, not the error string.
+          const records = Array.isArray(data.result) ? data.result : [];
+          const record = records[0];
           const name = record?.ContractName ? record.ContractName : null;
           let abi: unknown = [];
           if (record?.ABI && record.ABI !== "Contract source code not verified") {
@@ -120,7 +166,10 @@ export async function resolveContractMeta(
     );
 
     for (const [addr, meta] of fetched) {
-      cache.set(addr, meta);
+      // Skip persisting transient outages — otherwise a single Blockscout
+      // 5xx during the SPA session would mask the contract for the whole
+      // session even after the upstream recovered.
+      if (!meta.transient) cache.set(addr, meta);
       result[addr] = meta;
     }
   }
