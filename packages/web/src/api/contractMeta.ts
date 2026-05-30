@@ -23,10 +23,10 @@ const cache = new Map<string, ContractMeta>();
 
 /**
  * Exponential-ish backoff for retrying transient upstream failures.
- * Three attempts total, worst case ~2.2s before we give up on an address.
+ * Three attempts total, worst case ~3.5s before we give up on an address.
  * Exported so tests can override with `vi.useFakeTimers()` + length-asserts.
  */
-export const RETRY_BACKOFF_MS = [200, 500, 1500];
+export const RETRY_BACKOFF_MS = [500, 1000, 2000];
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
