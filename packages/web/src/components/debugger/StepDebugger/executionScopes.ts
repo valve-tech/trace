@@ -1,6 +1,7 @@
 import type { CallFrame, OpcodeStep } from "../../../api/debugger";
 import type { SourceLocation, SourceFile } from "../../../api/source";
 import { buildFunctionIndex, classifyFn, type FileIndex } from "./functionIndex";
+import type { FnResolve } from "./navDiagnostics";
 
 /**
  * Unified execution tree, ported from Remix's InternalCallTree.
@@ -246,6 +247,10 @@ export function buildExecutionTree(
   /** Per-contract source files (lower-cased address keys). When present, used
    *  to name internal functions exactly and flag library calls. */
   sourcesByAddr?: Record<string, SourceFile[]>,
+  /** Dev-only: callback to receive each internal-jump function-resolution
+   *  decision. Used by navDiagnostics to publish a per-tree audit log on
+   *  window.__traceNav.fnResolves. Production callers pass undefined. */
+  onFnResolve?: (r: FnResolve) => void,
 ): ExecNode {
   // Per-contract symbol index, built once and reused across that contract's
   // frames (a contract recurs many times in a busy trace).
@@ -323,10 +328,42 @@ export function buildExecutionTree(
         // exactly and flags library membership; fall back to the snippet
         // heuristic otherwise.
         const cls = classifyFn(fnIndex, range?.file, range?.start);
+        const fallback = cls?.name
+          ? null
+          : funcNameFromDefinition(range?.snippet, loc.sourceSnippet);
+        if (onFnResolve) {
+          // Enumerate function decls in fnIndex whose decl line falls
+          // INSIDE the JUMPDEST's source range. Multiple matches → the
+          // optimizer's shared trampoline is mapping back to ambiguous
+          // source. Empty → the enclosing-only fallback was the only
+          // signal available.
+          const fnsInsideRange: FnResolve["fnsInsideRange"] = [];
+          if (range && fnIndex) {
+            const fi = fnIndex.get(range.file);
+            if (fi) {
+              for (const fn of fi.fns) {
+                if (fn.line >= range.start && fn.line <= range.end) {
+                  fnsInsideRange.push({ name: fn.name, line: fn.line });
+                }
+              }
+            }
+          }
+          onFnResolve({
+            jumpStep: i,
+            contract: frame.to ?? null,
+            landingStep: range?.step ?? null,
+            landingFile: range?.file ?? null,
+            landingStart: range?.start ?? null,
+            landingEnd: range?.end ?? null,
+            fnsInsideRange,
+            classified: cls?.name ?? fallback,
+            source: cls?.name ? "fnIndex" : fallback ? "snippet" : null,
+          });
+        }
         events.push({
           step: i,
           t: "enter",
-          name: cls?.name ?? funcNameFromDefinition(range?.snippet, loc.sourceSnippet),
+          name: cls?.name ?? fallback ?? "",
           // Show the definition line (where the body begins), not the call site.
           line: range?.start ?? loc.line,
           decl: /^\s*function\b/.test(loc.sourceSnippet),

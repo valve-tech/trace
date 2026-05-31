@@ -57,12 +57,58 @@ export interface NavState {
   effectiveLine: number | null;
 }
 
+/**
+ * One internal-jump function-resolution decision. Captured at tree-build
+ * time so we can audit cases where the displayed function name doesn't
+ * match what the source code actually calls — e.g. shared library entry
+ * trampolines that map the JUMPDEST back to an unrelated function's
+ * source range.
+ *
+ * Read in the browser console as:
+ *   __traceNav.fnResolves.filter(r => r.name === 'getStorageBool')
+ *
+ * to find every place the resolver landed on 'getStorageBool' and check
+ * whether the user's intent matches.
+ */
+export interface FnResolve {
+  /** The opcode-step index of the JUMP `i` event that triggered the resolution. */
+  jumpStep: number;
+  /** Frame address whose code we were in when the jump happened. */
+  contract: string | null;
+  /**
+   * The first step after the JUMP whose pc had a source-map entry. This
+   * is the "landing" the resolver scored against.
+   */
+  landingStep: number | null;
+  /** File the landing maps into. */
+  landingFile: string | null;
+  /**
+   * The landing's source-map line range (start–end, inclusive). When
+   * the optimizer shares a JUMPDEST across many functions, this range
+   * tends to span the whole shared block, which is the signal we use
+   * to detect "this isn't a specific function entry, it's a trampoline".
+   */
+  landingStart: number | null;
+  landingEnd: number | null;
+  /**
+   * The function declarations in `landingFile` whose decl line falls
+   * INSIDE [landingStart, landingEnd]. Multiple matches → optimizer
+   * trampoline / inlined dispatch. One match → unambiguous entry.
+   */
+  fnsInsideRange: Array<{ name: string; line: number }>;
+  /** The name the classifier produced (what the UI displays). */
+  classified: string | null;
+  /** Was the classification from fnIndex enclosing, or from snippet fallback? */
+  source: "fnIndex" | "snippet" | null;
+}
+
 interface TraceNavWindow {
   ctx?: NavContext;
   tree?: unknown;
   state?: NavState;
   activeContractAt?: (step: number) => string | null;
   locAt?: (step: number) => (SourceLocation & { addr: string | null }) | null;
+  fnResolves?: FnResolve[];
 }
 
 export function publishNavContext(ctx: NavContext): void {
@@ -83,4 +129,9 @@ export function publishNavTree(tree: unknown): void {
 export function publishNavState(state: NavState): void {
   const w = window as unknown as { __traceNav?: TraceNavWindow };
   w.__traceNav = { ...(w.__traceNav ?? {}), state };
+}
+
+export function publishFnResolves(fnResolves: FnResolve[]): void {
+  const w = window as unknown as { __traceNav?: TraceNavWindow };
+  w.__traceNav = { ...(w.__traceNav ?? {}), fnResolves };
 }

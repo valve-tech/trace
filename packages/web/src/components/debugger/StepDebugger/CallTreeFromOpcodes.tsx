@@ -8,7 +8,7 @@ import { FrameDetailPanel } from "./FrameDetailPanel";
 import { buildExecutionTree, filterExecutionTree, type LogsByStep } from "./executionScopes";
 import { flattenVisible, resolveTreeKey } from "./treeKeyboard";
 import { TreeFilterBar } from "./TreeFilterBar";
-import { publishNavTree } from "./navDiagnostics";
+import { publishNavTree, publishFnResolves, type FnResolve } from "./navDiagnostics";
 import {
   loadTreeExpandState,
   saveTreeExpandState,
@@ -101,11 +101,33 @@ export function CallTreeFromOpcodes({
   // nesting, interleaved in execution order. Rebuilds when the opcode set
   // changes (opcodes add/remove leaf nodes); the cheaper function/event toggles
   // are applied as a post-filter below without rebuilding.
+  //
+  // In dev mode, each internal-jump function-resolution decision is
+  // captured and published on window.__traceNav.fnResolves so we can
+  // audit cases where the displayed function name doesn't match the
+  // source code's actual call (e.g. shared library trampolines).
   const builtTree = useMemo(
-    () =>
-      callTrace
-        ? buildExecutionTree(callTrace, frameStepMap, steps, traceSourceMaps, logsByStep, enabledOps, sourcesByAddr)
-        : null,
+    () => {
+      if (!callTrace) return null;
+      const fnResolves: FnResolve[] = [];
+      const onFnResolve = import.meta.env.DEV
+        ? (r: FnResolve) => {
+            fnResolves.push(r);
+          }
+        : undefined;
+      const tree = buildExecutionTree(
+        callTrace,
+        frameStepMap,
+        steps,
+        traceSourceMaps,
+        logsByStep,
+        enabledOps,
+        sourcesByAddr,
+        onFnResolve,
+      );
+      if (import.meta.env.DEV) publishFnResolves(fnResolves);
+      return tree;
+    },
     [callTrace, frameStepMap, steps, traceSourceMaps, logsByStep, enabledOps, sourcesByAddr],
   );
   const tree = useMemo(
