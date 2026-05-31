@@ -204,12 +204,12 @@ function TopBar({
         <h1
           className="text-sm font-semibold hidden md:block theme-text"
         >
-          PulseChain Dev Platform
+          Explore
         </h1>
         <span
-          className="text-[10px] uppercase tracking-wider px-2 py-0.5 font-semibold theme-accent-bg theme-accent"
+          className="text-[10px] uppercase tracking-wider px-2 py-0.5 font-semibold hidden md:inline theme-text-muted"
         >
-          Devnet
+          by Valve City
         </span>
       </div>
 

@@ -3,7 +3,8 @@
  * line — sits beside ticking chain stats (latest block, base fee, mempool),
  * with the feature catalogue grouped by intent below and the recent rail last.
  * The search recognizes a pasted tx / address / block / selector and jumps
- * straight to it.
+ * straight to it. The chain selector next to the search input scopes results
+ * to a specific chain or runs across every registered chain.
  */
 
 import { useState } from "react";
@@ -15,11 +16,14 @@ import { routeForInput } from "../lib/entityInput";
 import { fetchLatestSummary } from "../api/latest";
 import { fetchPending } from "../api/mempool";
 import { RecentRail } from "./RecentRail";
+import { ChainSelector } from "./ChainSelector";
+import { ALL_CHAINS, type ChainSelection } from "../lib/chains";
 
 export default function Landing() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [hint, setHint] = useState(false);
+  const [chain, setChain] = useState<ChainSelection>(ALL_CHAINS);
 
   const submit = () => {
     const route = routeForInput(query);
@@ -43,6 +47,8 @@ export default function Landing() {
           }}
           onSubmit={submit}
           hint={hint}
+          chain={chain}
+          onChainChange={setChain}
         />
         <LiveStats />
       </div>
@@ -85,11 +91,15 @@ function HeroTile({
   setQuery,
   onSubmit,
   hint,
+  chain,
+  onChainChange,
 }: {
   query: string;
   setQuery: (v: string) => void;
   onSubmit: () => void;
   hint: boolean;
+  chain: ChainSelection;
+  onChainChange: (next: ChainSelection) => void;
 }) {
   return (
     <div
@@ -115,15 +125,17 @@ function HeroTile({
         <div className="flex items-center gap-inline">
           <PulseLogo />
           <span className="text-[10px] uppercase tracking-widest font-semibold px-2 py-0.5 theme-accent-bg theme-accent">
-            Devnet · Chain 369
+            by Valve City · multichain
           </span>
         </div>
         <h1 className="text-3xl font-semibold theme-text">
-          PulseChain Dev Platform
+          Explore
         </h1>
         <p className="text-sm max-w-xl theme-text-secondary">
-          Simulate before you broadcast, explore the chain and debug traces
-          opcode-by-opcode, and automate on-chain workflows — one toolchain.
+          Multichain trace, simulate, debug — the explorer your terminal
+          deserves. Block exploration, fork simulation, opcode-level
+          debugging, and verification across the L1s and L2s worth caring
+          about.
         </p>
       </div>
 
@@ -135,6 +147,7 @@ function HeroTile({
           }}
           className="flex items-stretch gap-inline"
         >
+          <ChainSelector value={chain} onChange={onChainChange} variant="full" />
           <div
             className="flex-1 flex items-center gap-inline px-3 h-11 theme-input-bg bs-in"
           >

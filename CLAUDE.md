@@ -1,8 +1,24 @@
-# PulseChain Dev Platform
+# Explore — multichain trace, simulate, debug
 
 ## Codebase Overview
 
-A Tenderly-equivalent developer toolchain for PulseChain (chain ID 369). Seven features — transaction simulation, block explorer, monitoring/alerting, virtual testnets (Anvil forks), smart contract debugger, enhanced JSON-RPC proxy, and serverless Web3 Actions — delivered as a TypeScript monorepo.
+**Product name:** Explore (by Valve City). Deployed at https://explore.valve.city.
+Repo is still named `trace` pending a rename (see memory).
+
+Multichain block explorer + transaction simulator + opcode debugger.
+Seven features — transaction simulation, block explorer, monitoring/alerting,
+virtual testnets (Anvil forks), smart contract debugger, enhanced JSON-RPC
+proxy, and serverless Web3 Actions — delivered as a TypeScript monorepo.
+
+**Multichain launch set** (per `docs/superpowers/specs/2026-05-29-multichain-etherscan-labels-design.md`):
+chains 1 (Ethereum), 369 (PulseChain), 943 (PulseChain Testnet). The frontend
+chain registry lives in `packages/web/src/lib/chains.ts`; chain logos render
+via [gib.show](https://gib.show) using CAIP-2 (`eip155:<id>`) URLs.
+
+The dispatcher refactor to `?chainid=N` routing is in flight on the API side;
+the frontend ChainSelector + Landing/AppShell rebrand is UI-only for now and
+defaults to "All chains" with PulseChain as the live data source until the
+backend lands chain-aware routing.
 
 **Stack:** React 19 + React Router 7 + Vite + Tailwind v4 + TanStack Query 5 (frontend), Express 4 + viem + Postgres (`pg`) (backend), Zod (validation), Anvil/Foundry (forks)
 
