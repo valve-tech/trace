@@ -11,37 +11,9 @@ import AlertBuilder from "./AlertBuilder";
 import AlertHistory from "./AlertHistory";
 import { useAlertWebSocket, type AlertEvent } from "../../hooks/useAlertWebSocket";
 import AlertToast from "../AlertToast";
-
-// ---------------------------------------------------------------------------
-// Type badge colors
-// ---------------------------------------------------------------------------
-const TYPE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  address_activity: {
-    label: "Address",
-    color: "var(--color-accent)",
-    bg: "var(--color-accent-muted)",
-  },
-  contract_event: {
-    label: "Event",
-    color: "var(--color-success)",
-    bg: "var(--color-success-muted)",
-  },
-  function_call: {
-    label: "Function",
-    color: "var(--color-warning)",
-    bg: "var(--color-warning-muted)",
-  },
-  balance_threshold: {
-    label: "Balance",
-    color: "#58a6ff",
-    bg: "rgba(88, 166, 255, 0.15)",
-  },
-  failed_tx: {
-    label: "Failed TX",
-    color: "var(--color-danger)",
-    bg: "var(--color-danger-muted)",
-  },
-};
+import { resolveTypeInfo } from "./AlertDashboard/typeInfo";
+import { mergeIncomingAlert } from "./AlertDashboard/events";
+import { parseServerTimestamp } from "./AlertDashboard/timestamps";
 
 // ---------------------------------------------------------------------------
 // Views
@@ -94,26 +66,7 @@ export default function AlertDashboard() {
     if (lastAlert === null || lastAlert === prevLastAlertRef.current) return;
     prevLastAlertRef.current = lastAlert;
 
-    const incoming = lastAlert.data.alert;
-    setAlerts((prev) => {
-      const exists = prev.some((a) => a.id === incoming.id);
-      if (exists) return prev;
-      // Build a minimal Alert shape from the WebSocket payload; fields not
-      // present in the WS message get sensible defaults so the card renders.
-      const synthetic: Alert = {
-        id: incoming.id,
-        name: incoming.name,
-        type: incoming.type as Alert["type"],
-        conditions: {},
-        notifications: [],
-        enabled: true,
-        cooldown_seconds: 0,
-        last_triggered_at: new Date().toISOString().replace("Z", ""),
-        created_at: new Date().toISOString().replace("Z", ""),
-        updated_at: new Date().toISOString().replace("Z", ""),
-      };
-      return [synthetic, ...prev];
-    });
+    setAlerts((prev) => mergeIncomingAlert(prev, lastAlert));
 
     // Show toast; clear any previous dismiss timer
     if (toastTimerRef.current !== null) {
@@ -334,11 +287,7 @@ export default function AlertDashboard() {
       {/* Alert cards */}
       {!loading &&
         alerts.map((a) => {
-          const typeInfo = TYPE_LABELS[a.type] ?? {
-            label: a.type,
-            color: "var(--color-text-secondary)",
-            bg: "var(--color-bg-tertiary)",
-          };
+          const typeInfo = resolveTypeInfo(a.type);
 
           return (
             <div
@@ -378,7 +327,7 @@ export default function AlertDashboard() {
                     {a.last_triggered_at && (
                       <span>
                         Last triggered:{" "}
-                        {new Date(a.last_triggered_at + "Z").toLocaleString()}
+                        {parseServerTimestamp(a.last_triggered_at).toLocaleString()}
                       </span>
                     )}
                   </div>
