@@ -1,31 +1,26 @@
-import { type Address, type Hex, formatEther, formatUnits } from "viem";
+import { type Address, type Hex, formatEther } from "viem";
 import { publicClient } from "../rpc.js";
 import { blockscoutFetch } from "./client.js";
+import {
+  extractTxTypeAndFees,
+  LEGACY_FALLBACK_FEES,
+  mapTokenRow,
+  mapTxListRow,
+  type AddressTransactionBase,
+  type BlockscoutTokenRow,
+  type BlockscoutTxListRow,
+} from "./addresses/transforms.js";
 
 // ---------------------------------------------------------------------------
 // Address transactions
 // ---------------------------------------------------------------------------
 
-export interface AddressTransaction {
-  hash: string;
-  blockNumber: string;
-  timeStamp: string;
-  from: string;
-  to: string;
-  value: string;
-  valuePLS: string;
-  gas: string;
-  gasUsed: string;
-  gasPrice: string;
-  isError: string;
-  functionName: string;
-  methodId: string;
-  input: string;
+export type AddressTransaction = AddressTransactionBase & {
   /** Enriched from the node — BlockScout's txlist omits these. */
   type: string;
   maxFeePerGas: string | null;
   maxPriorityFeePerGas: string | null;
-}
+};
 
 export async function getAddressTransactions(
   address: string,
@@ -34,21 +29,7 @@ export async function getAddressTransactions(
 ): Promise<{ transactions: AddressTransaction[]; total: number }> {
   const data = await blockscoutFetch<{
     status: string;
-    result: Array<{
-      hash: string;
-      blockNumber: string;
-      timeStamp: string;
-      from: string;
-      to: string;
-      value: string;
-      gas: string;
-      gasUsed: string;
-      gasPrice: string;
-      isError: string;
-      functionName: string;
-      methodId: string;
-      input: string;
-    }>;
+    result: BlockscoutTxListRow[];
   }>({
     module: "account",
     action: "txlist",
@@ -62,22 +43,7 @@ export async function getAddressTransactions(
     return { transactions: [], total: 0 };
   }
 
-  const base = data.result.map((tx) => ({
-    hash: tx.hash,
-    blockNumber: tx.blockNumber,
-    timeStamp: tx.timeStamp,
-    from: tx.from,
-    to: tx.to,
-    value: tx.value,
-    valuePLS: formatEther(BigInt(tx.value || "0")),
-    gas: tx.gas,
-    gasUsed: tx.gasUsed,
-    gasPrice: tx.gasPrice,
-    isError: tx.isError,
-    functionName: tx.functionName || "",
-    methodId: tx.methodId || "",
-    input: tx.input,
-  }));
+  const base = data.result.map(mapTxListRow);
 
   // BlockScout's txlist omits tx-type + the 1559 fee caps, so enrich from the
   // node. viem batches these getTransaction calls into one HTTP round-trip
@@ -86,21 +52,9 @@ export async function getAddressTransactions(
     base.map(async (tx) => {
       try {
         const full = await publicClient.getTransaction({ hash: tx.hash as Hex });
-        const g = full as {
-          maxFeePerGas?: bigint;
-          maxPriorityFeePerGas?: bigint;
-        };
-        return {
-          ...tx,
-          type: full.type ?? "legacy",
-          maxFeePerGas: g.maxFeePerGas != null ? g.maxFeePerGas.toString() : null,
-          maxPriorityFeePerGas:
-            g.maxPriorityFeePerGas != null
-              ? g.maxPriorityFeePerGas.toString()
-              : null,
-        };
+        return { ...tx, ...extractTxTypeAndFees(full) };
       } catch {
-        return { ...tx, type: "legacy", maxFeePerGas: null, maxPriorityFeePerGas: null };
+        return { ...tx, ...LEGACY_FALLBACK_FEES };
       }
     }),
   );
@@ -127,14 +81,7 @@ export async function getAddressTokens(
 ): Promise<AddressToken[]> {
   const data = await blockscoutFetch<{
     status: string;
-    result: Array<{
-      balance: string;
-      contractAddress: string;
-      name: string;
-      symbol: string;
-      decimals: string;
-      type: string;
-    }>;
+    result: BlockscoutTokenRow[];
   }>({
     module: "account",
     action: "tokenlist",
@@ -145,24 +92,7 @@ export async function getAddressTokens(
     return [];
   }
 
-  return data.result.map((t) => {
-    const decimals = parseInt(t.decimals || "18", 10);
-    let formattedBalance = t.balance;
-    try {
-      formattedBalance = formatUnits(BigInt(t.balance || "0"), decimals);
-    } catch {
-      // keep raw
-    }
-    return {
-      balance: t.balance,
-      formattedBalance,
-      contractAddress: t.contractAddress,
-      name: t.name,
-      symbol: t.symbol,
-      decimals: t.decimals,
-      type: t.type || "ERC-20",
-    };
-  });
+  return data.result.map(mapTokenRow);
 }
 
 // ---------------------------------------------------------------------------

@@ -1,22 +1,12 @@
 import { fetchAbi } from "../decoder.js";
 import { blockscoutFetch } from "./client.js";
+import {
+  buildContractInfo,
+  type BlockscoutSourceRow,
+  type ContractInfoView,
+} from "./contracts/transforms.js";
 
-export interface ContractInfo {
-  address: string;
-  isVerified: boolean;
-  contractName: string;
-  compilerVersion: string;
-  optimizationUsed: boolean;
-  sourceCode: string;
-  abi: unknown[] | null;
-  constructorArguments: string;
-  evmVersion: string;
-  library: string;
-  licenseType: string;
-  proxy: string;
-  implementation: string;
-  swarmSource: string;
-}
+export type ContractInfo = ContractInfoView;
 
 /**
  * Resolve ABI + verified-source metadata for a contract. ABI may come from a
@@ -31,42 +21,12 @@ export async function getContractInfo(
 
   const data = await blockscoutFetch<{
     status: string;
-    result: Array<{
-      ContractName: string;
-      CompilerVersion: string;
-      OptimizationUsed: string;
-      SourceCode: string;
-      ConstructorArguments: string;
-      EVMVersion: string;
-      Library: string;
-      LicenseType: string;
-      Proxy: string;
-      Implementation: string;
-      SwarmSource: string;
-      ABI: string;
-    }>;
+    result: BlockscoutSourceRow[];
   }>({
     module: "contract",
     action: "getsourcecode",
     address,
   });
 
-  const source = data?.result?.[0];
-
-  return {
-    address,
-    isVerified: !!abi || (!!source && source.ContractName !== ""),
-    contractName: source?.ContractName ?? "",
-    compilerVersion: source?.CompilerVersion ?? "",
-    optimizationUsed: source?.OptimizationUsed === "1",
-    sourceCode: source?.SourceCode ?? "",
-    abi: abi as unknown[] | null,
-    constructorArguments: source?.ConstructorArguments ?? "",
-    evmVersion: source?.EVMVersion ?? "",
-    library: source?.Library ?? "",
-    licenseType: source?.LicenseType ?? "",
-    proxy: source?.Proxy ?? "",
-    implementation: source?.Implementation ?? "",
-    swarmSource: source?.SwarmSource ?? "",
-  };
+  return buildContractInfo(address, abi as unknown[] | null, data?.result?.[0]);
 }

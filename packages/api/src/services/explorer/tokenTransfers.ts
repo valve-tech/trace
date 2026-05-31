@@ -1,18 +1,15 @@
-import { type Hex, formatUnits } from "viem";
+import { type Hex } from "viem";
 import { publicClient } from "../rpc.js";
 import { BLOCKSCOUT_API, blockscoutFetch } from "./client.js";
+import {
+  mapV1Row,
+  mapV2Row,
+  type BlockscoutV1Row,
+  type BlockscoutV2Row,
+  type TokenTransferView,
+} from "./tokenTransfers/transforms.js";
 
-export interface TokenTransfer {
-  from: string;
-  to: string;
-  value: string;
-  formattedValue: string;
-  tokenName: string;
-  tokenSymbol: string;
-  tokenDecimal: string;
-  contractAddress: string;
-  hash: string;
-}
+export type TokenTransfer = TokenTransferView;
 
 /**
  * Token transfers emitted by a transaction. Prefers BlockScout v2's per-tx
@@ -36,32 +33,9 @@ async function fetchV2(hash: string): Promise<TokenTransfer[] | null> {
       { signal: AbortSignal.timeout(10_000) },
     );
     if (!res.ok) return null;
-    const data = (await res.json()) as {
-      items?: Array<{
-        from: { hash: string };
-        to: { hash: string };
-        total: { value: string; decimals: string };
-        token: {
-          name: string;
-          symbol: string;
-          address: string;
-          decimals: string;
-        };
-      }>;
-    };
+    const data = (await res.json()) as { items?: BlockscoutV2Row[] };
     if (!data.items?.length) return null;
-
-    return data.items.map((t) => ({
-      from: t.from.hash,
-      to: t.to.hash,
-      value: t.total.value,
-      formattedValue: safeFormatUnits(t.total.value, t.token.decimals),
-      tokenName: t.token.name,
-      tokenSymbol: t.token.symbol,
-      tokenDecimal: t.token.decimals,
-      contractAddress: t.token.address,
-      hash,
-    }));
+    return data.items.map((row) => mapV2Row(row, hash));
   } catch {
     return null;
   }
@@ -78,16 +52,7 @@ async function fetchV1Fallback(hash: string): Promise<TokenTransfer[]> {
 
   const data = await blockscoutFetch<{
     status: string;
-    result: Array<{
-      from: string;
-      to: string;
-      value: string;
-      tokenName: string;
-      tokenSymbol: string;
-      tokenDecimal: string;
-      contractAddress: string;
-      hash: string;
-    }>;
+    result: BlockscoutV1Row[];
   }>({
     module: "account",
     action: "tokentx",
@@ -96,28 +61,7 @@ async function fetchV1Fallback(hash: string): Promise<TokenTransfer[]> {
 
   if (!data || data.status !== "1" || !Array.isArray(data.result)) return [];
 
-  const filtered = data.result.filter(
-    (t) => t.hash.toLowerCase() === hash.toLowerCase(),
-  );
-
-  return filtered.map((t) => ({
-    from: t.from,
-    to: t.to,
-    value: t.value,
-    formattedValue: safeFormatUnits(t.value, t.tokenDecimal),
-    tokenName: t.tokenName,
-    tokenSymbol: t.tokenSymbol,
-    tokenDecimal: t.tokenDecimal,
-    contractAddress: t.contractAddress,
-    hash: t.hash,
-  }));
-}
-
-function safeFormatUnits(value: string, decimalsStr: string | undefined): string {
-  const decimals = parseInt(decimalsStr || "18", 10);
-  try {
-    return formatUnits(BigInt(value || "0"), decimals);
-  } catch {
-    return value;
-  }
+  return data.result
+    .filter((t) => t.hash.toLowerCase() === hash.toLowerCase())
+    .map(mapV1Row);
 }

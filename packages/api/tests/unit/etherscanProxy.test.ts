@@ -85,10 +85,11 @@ describe("etherscan proxy actions", () => {
     patch = null;
   });
 
-  it("registers all 13 documented proxy actions", () => {
+  it("registers all 14 documented proxy actions", () => {
     const expected = [
       "eth_blockNumber",
       "eth_getBlockByNumber",
+      "eth_getBlockByHash",
       "eth_getBlockTransactionCountByNumber",
       "eth_getTransactionByHash",
       "eth_getTransactionByBlockNumberAndIndex",
