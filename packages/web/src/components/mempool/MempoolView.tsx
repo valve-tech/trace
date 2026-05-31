@@ -12,8 +12,12 @@ import { TrackedTxPanel } from "./TrackedTxPanel";
 import { useTrackedTxs } from "../../hooks/useTrackedTxs";
 import { toggleTrack } from "../../lib/trackedTxs";
 import { scanPath, type ScanKind } from "../../lib/scanRoutes";
-
-type SortKey = "rank" | "tip" | "cap" | "nonce";
+import { gweiDisp } from "./MempoolView/formatters";
+import {
+  distinctTypes,
+  filterAndSortPending,
+  type SortKey,
+} from "./MempoolView/sort";
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "rank", label: "node order" },
@@ -29,47 +33,6 @@ const TYPE_LABEL: Record<string, string> = {
   eip4844: "Blob (4844)",
   eip7702: "EIP-7702",
 };
-
-function bigintOf(wei: string | null): bigint {
-  if (wei == null) return 0n;
-  try {
-    return BigInt(wei);
-  } catch {
-    return 0n;
-  }
-}
-
-/** wei decimal string → trimmed gwei, or null for null/non-numeric input. */
-function gweiDisp(wei: string | null): string | null {
-  if (wei == null) return null;
-  try {
-    const g = Number(BigInt(wei)) / 1e9;
-    if (!isFinite(g)) return null;
-    return g.toLocaleString(undefined, { maximumFractionDigits: 3 });
-  } catch {
-    return null;
-  }
-}
-
-/** Sort comparator for a pending tx under the chosen key. */
-function compareTx(a: PendingTx, b: PendingTx, key: SortKey): number {
-  switch (key) {
-    case "tip":
-      return Number(
-        bigintOf(b.maxPriorityFeePerGas ?? b.gasPrice) -
-          bigintOf(a.maxPriorityFeePerGas ?? a.gasPrice),
-      );
-    case "cap":
-      return Number(
-        bigintOf(b.maxFeePerGas ?? b.gasPrice) -
-          bigintOf(a.maxFeePerGas ?? a.gasPrice),
-      );
-    case "nonce":
-      return a.nonce - b.nonce;
-    case "rank":
-      return 0; // preserve server order (effective priority tip)
-  }
-}
 
 export default function MempoolView() {
   const navigate = useNavigate();
@@ -91,30 +54,20 @@ export default function MempoolView() {
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
 
   // Distinct tx-types present, for the filter chips.
-  const presentTypes = useMemo(() => {
-    const set = new Set<string>();
-    for (const tx of data?.transactions ?? []) set.add(tx.type);
-    return [...set].sort();
-  }, [data]);
+  const presentTypes = useMemo(
+    () => distinctTypes(data?.transactions ?? []),
+    [data],
+  );
 
-  const filtered = useMemo(() => {
-    let rows = data?.transactions ?? [];
-    const q = search.trim().toLowerCase();
-    if (q) {
-      rows = rows.filter(
-        (tx) =>
-          tx.hash.toLowerCase().includes(q) ||
-          tx.from.toLowerCase().includes(q),
-      );
-    }
-    if (typeFilter.size > 0) {
-      rows = rows.filter((tx) => typeFilter.has(tx.type));
-    }
-    if (sortKey !== "rank") {
-      rows = [...rows].sort((a, b) => compareTx(a, b, sortKey));
-    }
-    return rows;
-  }, [data, search, sortKey, typeFilter]);
+  const filtered = useMemo(
+    () =>
+      filterAndSortPending(data?.transactions ?? [], {
+        search,
+        typeFilter,
+        sortKey,
+      }),
+    [data, search, sortKey, typeFilter],
+  );
 
   const toggleType = (t: string) => {
     setTypeFilter((prev) => {
