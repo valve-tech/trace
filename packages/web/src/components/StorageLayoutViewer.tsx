@@ -1,56 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { isAddress, keccak256, encodePacked, pad, toHex } from "viem";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface StorageEntry {
-  label: string;
-  slot: string;
-  offset: number;
-  type: string;
-  contract: string;
-}
-
-interface StorageType {
-  encoding: string;
-  key?: string;
-  label: string;
-  numberOfBytes: string;
-  value?: string;
-  base?: string;
-}
-
-interface StorageLayout {
-  storage: StorageEntry[];
-  types: Record<string, StorageType>;
-}
-
-interface StorageLayoutResponse {
-  ok: boolean;
-  storageLayout?: StorageLayout;
-  contractName?: string;
-  error?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Slot computation helpers
-// ---------------------------------------------------------------------------
-
-function computeMappingSlot(baseSlot: string, key: string): string {
-  const slotPadded = pad(toHex(BigInt(baseSlot)), { size: 32 });
-  const keyPadded = pad(key as `0x${string}`, { size: 32 });
-  return keccak256(encodePacked(["bytes32", "bytes32"], [keyPadded, slotPadded]));
-}
-
-function computeArraySlot(baseSlot: string, index: number, elementSize: number): string {
-  const arrayDataSlot = keccak256(pad(toHex(BigInt(baseSlot)), { size: 32 }));
-  const offset = BigInt(index) * BigInt(Math.ceil(elementSize / 32));
-  return toHex(BigInt(arrayDataSlot) + offset);
-}
+import { isAddress, pad, toHex } from "viem";
+import type {
+  StorageEntry,
+  StorageLayoutResponse,
+} from "./StorageLayoutViewer/types";
+import { resolveSlot } from "./StorageLayoutViewer/slots";
+import { groupByContract } from "./StorageLayoutViewer/grouping";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -88,17 +45,10 @@ export default function StorageLayoutViewer() {
 
   const layout = data?.storageLayout;
 
-  // Group entries by contract
-  const grouped = useMemo(() => {
-    if (!layout) return new Map<string, StorageEntry[]>();
-    const map = new Map<string, StorageEntry[]>();
-    for (const entry of layout.storage) {
-      const group = map.get(entry.contract) ?? [];
-      group.push(entry);
-      map.set(entry.contract, group);
-    }
-    return map;
-  }, [layout]);
+  const grouped = useMemo(
+    () => (layout ? groupByContract(layout.storage) : new Map<string, StorageEntry[]>()),
+    [layout],
+  );
 
   const handleComputeSlot = (entry: StorageEntry) => {
     setSelectedEntry(entry);
@@ -117,19 +67,8 @@ export default function StorageLayoutViewer() {
     if (!selectedEntry || !lookupKey || !validAddress) return;
 
     const typeInfo = layout?.types[selectedEntry.type];
-    if (!typeInfo) return;
-
-    let slot: string;
-    if (typeInfo.encoding === "mapping") {
-      const keyHex = lookupKey.startsWith("0x") ? lookupKey : pad(toHex(BigInt(lookupKey)), { size: 32 });
-      slot = computeMappingSlot(selectedEntry.slot, keyHex);
-    } else if (typeInfo.encoding === "dynamic_array") {
-      const index = parseInt(lookupKey, 10);
-      const elemSize = parseInt(typeInfo.numberOfBytes, 10);
-      slot = computeArraySlot(selectedEntry.slot, index, elemSize);
-    } else {
-      slot = pad(toHex(BigInt(selectedEntry.slot)), { size: 32 });
-    }
+    const slot = resolveSlot(selectedEntry, typeInfo, lookupKey);
+    if (!slot) return;
 
     setComputedSlot(slot);
 
