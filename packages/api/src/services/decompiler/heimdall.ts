@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { cacheDecompilation, getCachedDecompilation } from "./cache.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -62,18 +63,25 @@ export interface DecompiledContract {
 /**
  * Probe whether heimdall is available on PATH. Memoized for the
  * lifetime of the process — heimdall doesn't get installed / removed
- * mid-session. Returns true iff `heimdall --version` succeeds.
+ * mid-session. Returns the reported version string when present, or
+ * null when absent / unavailable.
  */
-let _available: boolean | null = null;
-export async function heimdallAvailable(): Promise<boolean> {
-  if (_available !== null) return _available;
+let _versionCache: string | null | undefined = undefined;
+export async function heimdallVersion(): Promise<string | null> {
+  if (_versionCache !== undefined) return _versionCache;
   try {
-    await execFileAsync("heimdall", ["--version"], { timeout: 3_000 });
-    _available = true;
+    const { stdout } = await execFileAsync("heimdall", ["--version"], {
+      timeout: 3_000,
+    });
+    _versionCache = stdout.trim() || "unknown";
   } catch {
-    _available = false;
+    _versionCache = null;
   }
-  return _available;
+  return _versionCache;
+}
+
+export async function heimdallAvailable(): Promise<boolean> {
+  return (await heimdallVersion()) !== null;
 }
 
 /**
@@ -81,7 +89,7 @@ export async function heimdallAvailable(): Promise<boolean> {
  * exercise both the heimdall-present and heimdall-missing paths.
  */
 export function resetHeimdallAvailabilityCache(): void {
-  _available = null;
+  _versionCache = undefined;
 }
 
 /**
@@ -95,12 +103,29 @@ export function resetHeimdallAvailabilityCache(): void {
  */
 export async function decompileWithHeimdall(
   bytecode: string,
-  opts: { timeoutMs?: number } = {},
+  opts: { timeoutMs?: number; skipCache?: boolean } = {},
 ): Promise<DecompiledContract | null> {
-  if (!(await heimdallAvailable())) return null;
-
   const hex = bytecode.startsWith("0x") ? bytecode : `0x${bytecode}`;
   if (hex.length < 4) return null; // empty / EOA
+
+  // Cache check FIRST — heimdall takes 10-30s per call, so the read
+  // path needs to short-circuit on a cache hit even when heimdall
+  // isn't installed. Cached rows are still valid; the operator may
+  // have installed heimdall to populate them then uninstalled.
+  if (!opts.skipCache) {
+    try {
+      const cached = await getCachedDecompilation(hex);
+      if (cached) return cached;
+    } catch (err) {
+      // Postgres unavailable / migration not run — degrade to a fresh
+      // call rather than failing the whole request.
+      console.warn(
+        `[heimdall] cache lookup failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  if (!(await heimdallAvailable())) return null;
 
   const timeout = opts.timeoutMs ?? 60_000;
   const workDir = await mkdir(
@@ -109,6 +134,7 @@ export async function decompileWithHeimdall(
   );
   if (!workDir) return null;
 
+  const startedAt = Date.now();
   try {
     const bytecodeFile = join(workDir, "bytecode.txt");
     await writeFile(bytecodeFile, hex, "utf8");
@@ -144,12 +170,27 @@ export async function decompileWithHeimdall(
     const slots = storageJson ? parseHeimdallStorage(storageJson) : [];
     const inferredAbi = abiJson ? safeParseJson(abiJson) : null;
 
-    return {
+    const result: DecompiledContract = {
       hasLayout: slots.length > 0,
       slots,
       pseudoSource,
       inferredAbi: Array.isArray(inferredAbi) ? (inferredAbi as unknown[]) : null,
     };
+
+    // Best-effort cache write — never fail the request on a cache miss.
+    // Future requests for the same bytecode hash (any address, any chain)
+    // get the answer in ~5ms instead of 10-30s.
+    const durationMs = Date.now() - startedAt;
+    void cacheDecompilation(hex, result, {
+      durationMs,
+      heimdallVersion: await heimdallVersion(),
+    }).catch((err) =>
+      console.warn(
+        `[heimdall] cache write failed: ${err instanceof Error ? err.message : String(err)}`,
+      ),
+    );
+
+    return result;
   } catch (err) {
     // Timeout / non-zero exit / OOM — degrade to null. Log so prod
     // observability catches recurring heimdall failures.
