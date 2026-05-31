@@ -2,6 +2,11 @@ import { type Hex, formatEther } from "viem";
 import { publicClient } from "../rpc.js";
 import { fetchAbi, decodeInput, decodeLogs } from "../decoder.js";
 import { serialize } from "./client.js";
+import {
+  mergeDecodedLogs,
+  otherEmitters,
+  toRawLog,
+} from "./transactionDetails/transforms.js";
 
 export interface TransactionDetails {
   hash: string;
@@ -107,47 +112,33 @@ export async function getTransactionDetails(
   // Second pass: decode logs emitted by contracts other than tx.to.
   // Common for routers that delegate into multiple sub-contracts.
   if (!options.skipDecode && decodedLogEntries.length < receipt.logs.length) {
-    const uniqueAddresses = [
-      ...new Set(
-        receipt.logs
-          .map((l) => l.address.toLowerCase())
-          .filter((a) => a !== tx.to?.toLowerCase()),
-      ),
-    ];
-
-    for (const addr of uniqueAddresses) {
+    for (const addr of otherEmitters(receipt.logs, tx.to ?? null)) {
       const abi = await fetchAbi(addr);
       if (!abi) continue;
 
       const logsForAddr = receipt.logs.filter(
         (l) => l.address.toLowerCase() === addr,
       );
-      // Same shape mismatch as the first decode pass above.
+      // viem's branded receipt log type → decodeLogs' looser input.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const decoded = decodeLogs(logsForAddr as any, abi);
+      const incoming: TransactionDetails["decodedLogs"] = [];
       for (let i = 0; i < decoded.length; i++) {
         const decodedEntry = decoded[i];
         const originalLog = logsForAddr[i];
         if (!decodedEntry) continue;
-        const logIndex = Number(originalLog?.logIndex ?? 0);
-        if (!decodedLogEntries.find((e) => e.logIndex === logIndex)) {
-          decodedLogEntries.push({
-            eventName: decodedEntry.eventName,
-            args: decodedEntry.args,
-            address: originalLog?.address ?? addr,
-            logIndex,
-          });
-        }
+        incoming.push({
+          eventName: decodedEntry.eventName,
+          args: decodedEntry.args,
+          address: originalLog?.address ?? addr,
+          logIndex: Number(originalLog?.logIndex ?? 0),
+        });
       }
+      decodedLogEntries = mergeDecodedLogs(decodedLogEntries, incoming);
     }
   }
 
-  const rawLogs = receipt.logs.map((l) => ({
-    address: l.address,
-    topics: l.topics as string[],
-    data: l.data,
-    logIndex: Number(l.logIndex),
-  }));
+  const rawLogs = receipt.logs.map(toRawLog);
 
   return serialize({
     hash: tx.hash,

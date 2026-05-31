@@ -1,18 +1,11 @@
-import { formatEther } from "viem";
 import { blockscoutFetch } from "./client.js";
+import {
+  mapInternalTxRow,
+  type BlockscoutInternalTxRow,
+  type InternalTransactionView,
+} from "./internalTransactions/transforms.js";
 
-export interface InternalTransaction {
-  from: string;
-  to: string;
-  value: string;
-  valuePLS: string;
-  type: string;
-  gas: string;
-  gasUsed: string;
-  input: string;
-  errCode: string;
-  isError: string;
-}
+export type InternalTransaction = InternalTransactionView;
 
 /**
  * Internal calls (CALL / DELEGATECALL / etc.) that happened *within* the
@@ -30,17 +23,7 @@ export async function getInternalTransactions(
 ): Promise<InternalTransaction[]> {
   const data = await blockscoutFetch<{
     status: string;
-    result: Array<{
-      from: string;
-      to: string;
-      value: string;
-      type: string;
-      gas: string;
-      gasUsed: string;
-      input: string;
-      errCode: string;
-      isError: string;
-    }>;
+    result: BlockscoutInternalTxRow[];
   }>({
     module: "account",
     action: "txlistinternal",
@@ -51,16 +34,5 @@ export async function getInternalTransactions(
     return [];
   }
 
-  return data.result.map((itx) => ({
-    from: itx.from,
-    to: itx.to,
-    value: itx.value,
-    valuePLS: formatEther(BigInt(itx.value || "0")),
-    type: itx.type || "CALL",
-    gas: itx.gas,
-    gasUsed: itx.gasUsed,
-    input: itx.input,
-    errCode: itx.errCode || "",
-    isError: itx.isError || "0",
-  }));
+  return data.result.map(mapInternalTxRow);
 }
