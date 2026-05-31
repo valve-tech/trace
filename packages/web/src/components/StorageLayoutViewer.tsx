@@ -443,17 +443,27 @@ function DecompiledLayoutPanel({
             <tbody>
               {decompiled.slots.map((s) => {
                 const isSelected = selectedSlot === s.slot;
+                // Prefer the registry label when present — known proxy
+                // slots are immediately legible even though the contract
+                // isn't verified.
+                const displayName = s.known?.label ?? s.name;
                 return (
                   <tr
                     key={s.slot}
                     onClick={() => void handleRead(s.slot)}
                     className={`cursor-pointer${isSelected ? " theme-accent-bg" : ""}`}
+                    title={s.known?.hint}
                   >
                     <td className="px-3 py-1.5 theme-text-muted">
                       {truncateSlot(s.slot)}
                     </td>
                     <td className="px-3 py-1.5 theme-text">
-                      {s.name ?? <span className="theme-text-muted">—</span>}
+                      {displayName ?? <span className="theme-text-muted">—</span>}
+                      {s.known && (
+                        <span className="ml-1 text-[9px] uppercase tracking-wider font-semibold theme-accent">
+                          ★ known
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-1.5 theme-text-secondary">
                       {s.inferredType ?? "unknown"}

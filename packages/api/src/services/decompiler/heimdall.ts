@@ -4,6 +4,8 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { cacheDecompilation, getCachedDecompilation } from "./cache.js";
+import { extractStorageSlots } from "./parseDecompiled.js";
+import type { KnownSlot } from "./knownSlots.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -29,24 +31,28 @@ const execFileAsync = promisify(execFile);
  */
 
 /**
- * Per-slot storage access entry inferred from bytecode by heimdall.
- * Heimdall's analyzer detects PUSH-then-SLOAD/SSTORE patterns, simple
- * keccak-derived mappings, and inferred type widths (uint8 vs uint256)
- * by tracing AND-mask operations after SLOAD.
+ * Per-slot storage access entry derived from heimdall's decompiled
+ * Solidity output. Heimdall renders storage reads/writes inline as
+ * `storage[<slot>]`; we scan the source for those references and
+ * cross-reference against the known proxy-pattern registry.
+ *
+ * `name` is null today (heimdall doesn't emit slot-name suggestions in
+ * its current output), reserved so the frontend can render the field
+ * unconditionally without a layout shift if name inference lands later.
  */
 export interface DecompiledStorageSlot {
-  /** Hex slot value (0x-prefixed). For mappings, this is the base slot. */
+  /** Hex slot value, 0x-prefixed, zero-padded to 64 chars. */
   slot: string;
-  /** Inferred type, when heimdall could narrow it. e.g. "uint256" / "address" / "bytes32". */
+  /** Inferred type, when heimdall could narrow it. Today: always null. */
   inferredType: string | null;
-  /** "read" / "write" — what kinds of access heimdall observed. */
+  /** "read" / "write" — observed access kinds for this slot in the decompiled source. */
   access: ("read" | "write")[];
-  /**
-   * Heimdall-inferred name (e.g. "owner", "_balances"). Best-effort —
-   * derived from access patterns, not source. Null when no plausible
-   * name was inferred.
-   */
+  /** Heimdall-inferred name (reserved; null today). */
   name: string | null;
+  /** Match against the well-known proxy/upgradeable slot registry. */
+  known: KnownSlot | null;
+  /** Count of distinct storage[] references that landed on this slot. */
+  hitCount: number;
 }
 
 export interface DecompiledContract {
@@ -128,19 +134,24 @@ export async function decompileWithHeimdall(
   if (!(await heimdallAvailable())) return null;
 
   const timeout = opts.timeoutMs ?? 60_000;
-  const workDir = await mkdir(
-    join(tmpdir(), `heimdall-${Date.now()}-${Math.random().toString(36).slice(2)}`),
-    { recursive: true },
-  );
-  if (!workDir) return null;
+  const workDirName = `heimdall-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const workDir = join(tmpdir(), workDirName);
+  await mkdir(workDir, { recursive: true });
 
   const startedAt = Date.now();
   try {
     const bytecodeFile = join(workDir, "bytecode.txt");
     await writeFile(bytecodeFile, hex, "utf8");
 
-    // heimdall writes its outputs to ./output by default; --output puts
-    // them in our isolated workDir so concurrent calls don't collide.
+    // Flags rationale:
+    //   --include-sol   — emit human-readable Solidity (storage refs live here)
+    //   --skip-resolving — don't hit a 4byte registry for selectors; we don't
+    //                     need names and it cuts ~10s per call
+    //   --default       — auto-pick defaults on any prompt so the process
+    //                     never blocks on stdin
+    //   --output <dir>  — when --output is NOT the literal "output", heimdall
+    //                     writes files directly to <dir>/<filename> (no
+    //                     nested target subdir; see heimdall/cli/output.rs)
     await execFileAsync(
       "heimdall",
       [
@@ -148,31 +159,39 @@ export async function decompileWithHeimdall(
         bytecodeFile,
         "--output",
         workDir,
-        "--include-yul", // emit storage analysis in the Yul output
-        "--name",
-        "contract",
+        "--include-sol",
+        "--skip-resolving",
+        "--default",
       ],
       { timeout, maxBuffer: 32 * 1024 * 1024 },
     );
 
-    // heimdall emits:
-    //   output/contract/decompiled.sol  (pseudo-Solidity)
-    //   output/contract/abi.json
-    //   output/contract/storage.json    (or embedded in decompiled.sol comments)
-    const decompPath = join(workDir, "contract", "decompiled.sol");
-    const abiPath = join(workDir, "contract", "abi.json");
-    const storagePath = join(workDir, "contract", "storage.json");
+    // With --output=<workDir>, heimdall emits:
+    //   <workDir>/abi.json
+    //   <workDir>/decompiled.sol   (with --include-sol)
+    const decompPath = join(workDir, "decompiled.sol");
+    const abiPath = join(workDir, "abi.json");
 
     const pseudoSource = await readOptional(decompPath);
     const abiJson = await readOptional(abiPath);
-    const storageJson = await readOptional(storagePath);
 
-    const slots = storageJson ? parseHeimdallStorage(storageJson) : [];
+    // Storage slots come from PARSING the .sol output — heimdall doesn't
+    // emit a separate storage.json. The parser regex-scans for
+    // `storage[<hex>]` references and labels each match against the
+    // known proxy-pattern registry.
+    const slots = pseudoSource ? extractStorageSlots(pseudoSource) : [];
     const inferredAbi = abiJson ? safeParseJson(abiJson) : null;
 
     const result: DecompiledContract = {
       hasLayout: slots.length > 0,
-      slots,
+      slots: slots.map((s) => ({
+        slot: s.slot,
+        inferredType: null,
+        access: s.access,
+        name: null,
+        known: s.known,
+        hitCount: s.hitCount,
+      })),
       pseudoSource,
       inferredAbi: Array.isArray(inferredAbi) ? (inferredAbi as unknown[]) : null,
     };
@@ -220,39 +239,6 @@ function safeParseJson(s: string): unknown {
   }
 }
 
-/**
- * Parse heimdall's storage.json into the canonical DecompiledStorageSlot
- * shape. Heimdall's schema has shifted between versions, so we try a
- * couple of known shapes and fall back to an empty array on unknown.
- *
- * Versions seen in the wild:
- *   v0.8+: { "0xSLOT": { type, modifiers: [...] } }
- *   v0.7:  { storage: { "0xSLOT": { type } } }
- */
-export function parseHeimdallStorage(json: string): DecompiledStorageSlot[] {
-  const parsed = safeParseJson(json);
-  if (!parsed || typeof parsed !== "object") return [];
-  const rec = parsed as Record<string, unknown>;
-  const root =
-    "storage" in rec && typeof rec.storage === "object" && rec.storage !== null
-      ? (rec.storage as Record<string, unknown>)
-      : rec;
-
-  const out: DecompiledStorageSlot[] = [];
-  for (const [slot, raw] of Object.entries(root)) {
-    if (!slot.startsWith("0x")) continue;
-    const meta = (raw ?? {}) as Record<string, unknown>;
-    const access: ("read" | "write")[] = [];
-    const modifiers = Array.isArray(meta.modifiers) ? meta.modifiers : [];
-    if (modifiers.includes("read") || modifiers.includes("sload")) access.push("read");
-    if (modifiers.includes("write") || modifiers.includes("sstore")) access.push("write");
-    if (access.length === 0) access.push("read"); // default — heimdall lists it because it touches it
-    out.push({
-      slot,
-      inferredType: typeof meta.type === "string" ? meta.type : null,
-      access,
-      name: typeof meta.name === "string" ? meta.name : null,
-    });
-  }
-  return out;
-}
+// `parseHeimdallStorage` was removed: heimdall doesn't emit a
+// `storage.json` file. Storage references are extracted from the
+// decompiled `.sol` source by extractStorageSlots in parseDecompiled.ts.

@@ -31,20 +31,35 @@ export interface StorageLayout {
 }
 
 /**
+ * A well-known proxy/upgradeable storage slot label that came back
+ * from the backend registry (EIP-1967 impl/admin/beacon, EIP-1822,
+ * OpenZeppelin Initializable / ReentrancyGuard, etc.).
+ */
+export interface KnownSlotLabel {
+  slot: string;
+  label: string;
+  hint: string;
+}
+
+/**
  * Per-slot entry inferred by the heimdall decompiler fall-through —
  * used when the contract isn't verified and solc recompilation isn't
  * available, but heimdall can still recover slot accesses from the
  * deployed bytecode.
  */
 export interface DecompiledSlot {
-  /** 0x-prefixed hex slot value. For mappings, this is the base slot. */
+  /** 0x-prefixed 64-char hex slot value. */
   slot: string;
-  /** Heimdall-inferred Solidity type (e.g. "uint256", "address") or null. */
+  /** Heimdall-inferred Solidity type. Null today (heimdall doesn't emit). */
   inferredType: string | null;
   /** "read" / "write" — what kinds of access heimdall observed. */
   access: ("read" | "write")[];
-  /** Heimdall-inferred name, when one was deducible from access pattern. */
+  /** Heimdall-inferred name. Reserved; null today. */
   name: string | null;
+  /** Proxy / upgradeable registry match, if any. Drives the labeled badge. */
+  known: KnownSlotLabel | null;
+  /** Count of distinct storage[] references that landed on this slot. */
+  hitCount: number;
 }
 
 export interface DecompiledLayout {
