@@ -98,8 +98,27 @@ export interface FnResolve {
   fnsInsideRange: Array<{ name: string; line: number }>;
   /** The name the classifier produced (what the UI displays). */
   classified: string | null;
-  /** Was the classification from fnIndex enclosing, or from snippet fallback? */
-  source: "fnIndex" | "snippet" | null;
+  /**
+   * The provenance of the displayed name:
+   *   "fnIndex"  → from the fn index's enclosing-line lookup
+   *   "snippet"  → from the snippet regex fallback
+   *   "callSite" → the call-site override fired (the JUMP source snippet
+   *                explicitly named a different (real) function, which we
+   *                trusted over the index's pick — the trampoline case)
+   */
+  source: "fnIndex" | "snippet" | "callSite" | null;
+  /**
+   * The function name extracted from the JUMP opcode's source snippet —
+   * the function the developer wrote at the call site. Null when the
+   * snippet wasn't a call expression (control flow, etc.).
+   */
+  callSite: string | null;
+  /**
+   * True when the call-site override actually changed the displayed
+   * name. Read on the console to find every record where the heuristic
+   * intervened — these are the suspected-trampoline cases.
+   */
+  callSiteOverrode: boolean;
 }
 
 interface TraceNavWindow {

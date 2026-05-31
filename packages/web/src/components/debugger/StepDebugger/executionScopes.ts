@@ -116,6 +116,54 @@ function funcNameFromSnippet(snippet: string): string {
 }
 
 /**
+ * Solidity control-flow + low-level keywords that read like calls in the
+ * source but aren't function invocations. Used to filter out false
+ * positives when we extract the call-site function name from a JUMP
+ * opcode's source snippet (e.g. `if (cond)`, `require(x, "msg")`).
+ */
+const CALL_SITE_NON_FN = new Set([
+  "if",
+  "for",
+  "while",
+  "do",
+  "switch",
+  "return",
+  "require",
+  "assert",
+  "revert",
+  "emit",
+  "new",
+  "delete",
+  "try",
+  "catch",
+  "function",
+  "modifier",
+  "using",
+]);
+
+/**
+ * Extract the called function name from a JUMP opcode's source snippet.
+ * Looks for an identifier directly followed by `(` — the call expression.
+ * Returns null when the snippet doesn't read like a function call (control
+ * flow, no identifier, or only a non-function keyword like `if (`).
+ *
+ * Used as a tiebreaker when the function index disagrees with the call
+ * site about which function is being entered — the call site is the
+ * source of truth (it names the function the developer wrote), the
+ * landing's source map can lie when the optimizer shares JUMPDESTs.
+ */
+function callSiteFuncName(snippet: string): string | null {
+  if (!snippet) return null;
+  // Match `<receiver>.<name>(` so we get the called method, not the receiver.
+  const dotted = snippet.match(/\.([A-Za-z_]\w*)\s*\(/);
+  if (dotted && !CALL_SITE_NON_FN.has(dotted[1]!)) return dotted[1]!;
+  // Plain `name(` — the first identifier that's followed by `(`.
+  const plain = snippet.match(/\b([A-Za-z_]\w*)\s*\(/);
+  if (plain && !CALL_SITE_NON_FN.has(plain[1]!)) return plain[1]!;
+  return null;
+}
+
+/**
  * Best-effort internal function name. Prefer the definition snippet at the
  * entry JUMPDEST (mapped to the whole FunctionDefinition, so it reads
  * `function NAME(...)`); this gets `_transferFrom`, `mul`, etc. exactly right
@@ -331,6 +379,35 @@ export function buildExecutionTree(
         const fallback = cls?.name
           ? null
           : funcNameFromDefinition(range?.snippet, loc.sourceSnippet);
+
+        // Call-site override: the JUMP `i` source snippet usually points
+        // at the call expression (`getStorageBytes32(name)`), which names
+        // the function being entered. If the index's enclosing-based
+        // classification disagrees with the call site AND the call-site
+        // candidate IS a known function in the same source index, trust
+        // the call site. This catches the optimizer-shared-trampoline
+        // case where the JUMPDEST maps back to an unrelated earlier
+        // function in the library.
+        const callSite = callSiteFuncName(loc.sourceSnippet);
+        let resolvedName = cls?.name ?? fallback;
+        let resolvedSource: "fnIndex" | "snippet" | "callSite" | null =
+          cls?.name ? "fnIndex" : fallback ? "snippet" : null;
+        let callSiteOverrode = false;
+        if (
+          callSite &&
+          resolvedName &&
+          callSite !== resolvedName &&
+          range?.file &&
+          fnIndex
+        ) {
+          const fi = fnIndex.get(range.file);
+          if (fi?.fns.some((fn) => fn.name === callSite)) {
+            resolvedName = callSite;
+            resolvedSource = "callSite";
+            callSiteOverrode = true;
+          }
+        }
+
         if (onFnResolve) {
           // Enumerate function decls in fnIndex whose decl line falls
           // INSIDE the JUMPDEST's source range. Multiple matches → the
@@ -356,14 +433,16 @@ export function buildExecutionTree(
             landingStart: range?.start ?? null,
             landingEnd: range?.end ?? null,
             fnsInsideRange,
-            classified: cls?.name ?? fallback,
-            source: cls?.name ? "fnIndex" : fallback ? "snippet" : null,
+            classified: resolvedName,
+            source: resolvedSource,
+            callSite,
+            callSiteOverrode,
           });
         }
         events.push({
           step: i,
           t: "enter",
-          name: cls?.name ?? fallback ?? "",
+          name: resolvedName ?? "",
           // Show the definition line (where the body begins), not the call site.
           line: range?.start ?? loc.line,
           decl: /^\s*function\b/.test(loc.sourceSnippet),

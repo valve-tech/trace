@@ -165,6 +165,169 @@ describe("buildExecutionTree", () => {
     expect(leaf.children).toHaveLength(0);
   });
 
+  it("call-site name overrides fnIndex when they disagree AND the call-site fn is known", () => {
+    // The classic library-trampoline case. The contract's `appId()`
+    // calls `getStorageBytes32(name)`, but the optimizer-shared
+    // JUMPDEST source map points back to a line inside `getStorageBool`
+    // (the first storage getter in the library). Without the override,
+    // fnIndex's enclosing-line lookup would return "getStorageBool";
+    // the override trusts the call site, which names the actual
+    // function being entered.
+    const root = frame("0xLIB");
+    const steps = [
+      step(0, 1),
+      step(10, 1), // the JUMP `i` — source map points to the call expr
+      step(20, 1), // landing — source map points inside getStorageBool
+      step(30, 1),
+    ];
+    const L = (
+      line: number,
+      end: number,
+      jump: string,
+      snip: string,
+    ): SourceLocation => ({
+      file: "Lib.sol",
+      line,
+      column: 0,
+      endLine: end,
+      endColumn: 0,
+      sourceSnippet: snip,
+      jumpType: jump,
+    });
+    const maps = {
+      "0xlib": {
+        // appId()'s call expression: explicitly invokes getStorageBytes32
+        10: L(50, 50, "i", "getStorageBytes32(name)"),
+        // Landing maps into the body of getStorageBool (the bug: shared trampoline)
+        20: L(12, 60, "-", "bytes32 location = getStorageLocation(name);"),
+      } as Record<number, SourceLocation>,
+    };
+    // The library source has both functions; getStorageBool comes FIRST
+    // so the enclosing-line lookup would return it for any landing
+    // between its decl line (10) and getStorageBytes32's decl line (30).
+    const sourcesByAddr = {
+      "0xlib": [
+        {
+          name: "Lib.sol",
+          content: [
+            "library Storage {",
+            "  function getStorageLocation(bytes32 name) internal pure returns (bytes32) {",
+            "    return keccak256(abi.encodePacked('storage.', name));",
+            "  }",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "  function getStorageBool(bytes32 name) internal view returns (bool) {",
+            "    bytes32 location = getStorageLocation(name);",
+            "    bool value;",
+            "    assembly { value := sload(location) }",
+            "    return value;",
+            "  }",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "  function getStorageBytes32(bytes32 name) internal view returns (bytes32) {",
+            "    bytes32 location = getStorageLocation(name);",
+            "    bytes32 value;",
+            "    assembly { value := sload(location) }",
+            "    return value;",
+            "  }",
+            "}",
+          ].join("\n"),
+        },
+      ],
+    };
+    const tree = buildExecutionTree(
+      root,
+      new Map([[root, 0]]),
+      steps,
+      maps,
+      undefined,
+      undefined,
+      sourcesByAddr,
+    );
+    // Without the override this would be "getStorageBool" (the enclosing
+    // fn for line 12). With the override, the call site wins and we get
+    // "getStorageBytes32" — the function actually being entered.
+    const top = fns(tree);
+    expect(top).toHaveLength(1);
+    expect(top[0]!.name).toBe("getStorageBytes32");
+  });
+
+  it("call-site override does NOT fire when the call-site name isn't a known fn", () => {
+    // Defensive: if the call-site snippet names something that isn't a
+    // function in the source (e.g. a type cast, a library prefix), the
+    // override is a no-op and the fnIndex classification stands. This
+    // prevents the heuristic from wrongly rewriting legitimate
+    // resolutions.
+    const root = frame("0xAAA");
+    const steps = [step(0, 1), step(10, 1), step(20, 1), step(30, 1)];
+    const L = (
+      line: number,
+      end: number,
+      jump: string,
+      snip: string,
+    ): SourceLocation => ({
+      file: "C.sol",
+      line,
+      column: 0,
+      endLine: end,
+      endColumn: 0,
+      sourceSnippet: snip,
+      jumpType: jump,
+    });
+    const maps = {
+      "0xaaa": {
+        // Cast-like snippet — "IERC20" isn't a function decl in C.sol
+        10: L(100, 100, "i", "IERC20(token).balanceOf(addr)"),
+        20: L(50, 50, "-", "function balanceOf(address) public view returns (uint256)"),
+      } as Record<number, SourceLocation>,
+    };
+    const sourcesByAddr = {
+      "0xaaa": [
+        {
+          name: "C.sol",
+          content: [
+            "contract Token {",
+            "",
+            "",
+            "",
+            "  function balanceOf(address account) public view returns (uint256) {",
+            "    return 0;",
+            "  }",
+            "}",
+          ].join("\n"),
+        },
+      ],
+    };
+    const tree = buildExecutionTree(
+      root,
+      new Map([[root, 0]]),
+      steps,
+      maps,
+      undefined,
+      undefined,
+      sourcesByAddr,
+    );
+    // fnIndex's enclosing-line lookup picks balanceOf (correct). The
+    // call-site candidate "IERC20" isn't a fn in C.sol so the override
+    // doesn't fire and "balanceOf" stands.
+    expect(fns(tree)[0]!.name).toBe("balanceOf");
+  });
+
   it("surfaces a toggled opcode as a leaf in the scope that ran it", () => {
     const root = frame("0xAAA");
     const steps = [step(0, 1), step(10, 1, "SSTORE"), step(20, 1, "TLOAD"), step(30, 1)];
