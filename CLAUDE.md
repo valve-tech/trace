@@ -41,6 +41,10 @@ npm run dev:api                # API only
 npm run dev:web                # Frontend only
 ```
 
+### Optional system deps
+
+- **`heimdall-rs`** (decompiler) — install via [`bifrost`](https://github.com/Jon-Becker/heimdall-rs?tab=readme-ov-file#bifrost-installer) (`curl -L https://raw.githubusercontent.com/Jon-Becker/heimdall-rs/main/bifrost/install | bash && bifrost -t nightly`) or `cargo install heimdall-rs`. Used as a fall-through for unverified contracts on the storage-layout endpoint. Optional: the API degrades to the existing "not verified" message when heimdall isn't on PATH.
+
 ## Environment Variables
 
 | Variable | Default | Purpose |

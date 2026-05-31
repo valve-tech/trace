@@ -30,9 +30,39 @@ export interface StorageLayout {
   types: Record<string, StorageType>;
 }
 
+/**
+ * Per-slot entry inferred by the heimdall decompiler fall-through —
+ * used when the contract isn't verified and solc recompilation isn't
+ * available, but heimdall can still recover slot accesses from the
+ * deployed bytecode.
+ */
+export interface DecompiledSlot {
+  /** 0x-prefixed hex slot value. For mappings, this is the base slot. */
+  slot: string;
+  /** Heimdall-inferred Solidity type (e.g. "uint256", "address") or null. */
+  inferredType: string | null;
+  /** "read" / "write" — what kinds of access heimdall observed. */
+  access: ("read" | "write")[];
+  /** Heimdall-inferred name, when one was deducible from access pattern. */
+  name: string | null;
+}
+
+export interface DecompiledLayout {
+  slots: DecompiledSlot[];
+  /** Pseudo-Solidity source from heimdall (rendered in the inspector pane). */
+  pseudoSource: string | null;
+  /** Inferred ABI; passed through unchanged for downstream consumers. */
+  inferredAbi: unknown[] | null;
+}
+
 export interface StorageLayoutResponse {
   ok: boolean;
+  /** Discriminator: which path produced this layout. */
+  source?: "compiled" | "decompiled";
+  /** Verified-source path: solc's typed layout. */
   storageLayout?: StorageLayout;
   contractName?: string;
+  /** Decompiler fall-through path: heimdall's inferred layout. */
+  decompiled?: DecompiledLayout;
   error?: string;
 }

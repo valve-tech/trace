@@ -7,6 +7,11 @@ import {
 } from "../services/sourceMap.js";
 import { compileForSourceMap } from "../services/solcCompiler.js";
 import { analyzeContract } from "../services/slither.js";
+import { publicClient } from "../services/rpc.js";
+import {
+  decompileWithHeimdall,
+  heimdallAvailable,
+} from "../services/decompiler/heimdall.js";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
 import { mapPcsSchema, analyzeSchema } from "./source/schemas.js";
 
@@ -154,26 +159,61 @@ router.get(
   asyncRoute(async (req: Request, res: Response) => {
     const address = requireAddress(req.params.address);
 
+    // Happy path: contract is verified, solc gives us the typed layout.
     const compiled = await compileForSourceMap(address);
-    if (!compiled) {
-      throw new ApiError(
-        404,
-        "Could not compile contract to get storage layout",
-      );
-    }
-    if (!compiled.storageLayout) {
-      throw new ApiError(
-        404,
-        "Storage layout not available (compiler may be too old)",
-      );
+    if (compiled?.storageLayout) {
+      respond.ok(res, {
+        storageLayout: compiled.storageLayout,
+        contractName: compiled.contractName,
+        source: "compiled",
+      });
+      return;
     }
 
-    respond.ok(res, {
-      storageLayout: compiled.storageLayout,
-      contractName: compiled.contractName,
-    });
+    // Fall-through: contract isn't verified (or solc couldn't produce a
+    // layout). Try heimdall on the deployed bytecode — gives us inferred
+    // slots, names, and access patterns without a verified source.
+    const decompiled = await tryDecompileForStorage(address);
+    if (decompiled && decompiled.hasLayout) {
+      respond.ok(res, {
+        decompiled: {
+          slots: decompiled.slots,
+          pseudoSource: decompiled.pseudoSource,
+          inferredAbi: decompiled.inferredAbi,
+        },
+        source: "decompiled",
+      });
+      return;
+    }
+
+    // Neither path produced a layout. Give a hint that's actually useful.
+    const heimdallOn = await heimdallAvailable();
+    throw new ApiError(
+      404,
+      compiled
+        ? "Storage layout not available (compiler may be too old)"
+        : "Contract isn't verified and the bytecode probe couldn't infer a layout",
+      {
+        hint: heimdallOn
+          ? "Tried solc recompile then heimdall decompile — neither produced storage slots. The bytecode may be a thin proxy or aggressively-optimized to the point of obscuring slot literals."
+          : "Heimdall isn't installed on this server, so unverified contracts can't be probed. Install via `bifrost -t nightly` to enable decompiler fall-through.",
+      },
+    );
   }, "source/storage-layout"),
 );
+
+async function tryDecompileForStorage(
+  address: string,
+): Promise<ReturnType<typeof decompileWithHeimdall> extends Promise<infer T> ? T : never> {
+  try {
+    const code = await publicClient.getCode({ address: address as `0x${string}` });
+    if (!code || code === "0x") return null;
+    return await decompileWithHeimdall(code);
+  } catch (err) {
+    console.warn(`[storage-layout] decompile fall-through failed:`, err);
+    return null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // POST /api/source/:address/analyze — Run Slither static analysis

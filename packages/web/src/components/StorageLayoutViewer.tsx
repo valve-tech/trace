@@ -44,6 +44,7 @@ export default function StorageLayoutViewer() {
   });
 
   const layout = data?.storageLayout;
+  const decompiled = data?.decompiled;
 
   const grouped = useMemo(
     () => (layout ? groupByContract(layout.storage) : new Map<string, StorageEntry[]>()),
@@ -102,7 +103,12 @@ export default function StorageLayoutViewer() {
           Storage Layout Viewer
         </h2>
         <p className="text-xs mb-3 theme-text-secondary">
-          Enter a verified contract address to see its storage slot layout. Click a variable to compute its slot hash and read its on-chain value.
+          Enter a contract address to see its storage layout. Verified
+          contracts show solc's typed layout; unverified contracts fall
+          through to the heimdall decompiler, which infers slot
+          accesses, types, and (best-effort) names from the deployed
+          bytecode. Click a row to compute its slot hash and read the
+          on-chain value.
         </p>
         <input
           type="text"
@@ -122,6 +128,14 @@ export default function StorageLayoutViewer() {
           <p className="text-xs mt-2 theme-warning">{data.error}</p>
         )}
       </div>
+
+      {/* Decompiled fall-through banner + table for unverified contracts */}
+      {!layout && decompiled && (
+        <DecompiledLayoutPanel
+          decompiled={decompiled}
+          contractAddress={contractAddress}
+        />
+      )}
 
       {/* Layout table */}
       {layout && (
@@ -337,4 +351,178 @@ export default function StorageLayoutViewer() {
       )}
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Decompiled layout panel — heimdall fall-through                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Render the heimdall-decompiled storage view when the contract isn't
+ * verified. Includes a banner that flags the panel as inferred (not
+ * authoritative — heimdall's analyzer makes a best-effort guess), the
+ * slot table with type / access / name columns, and the pseudo-source
+ * panel beside it when heimdall produced one.
+ */
+function DecompiledLayoutPanel({
+  decompiled,
+  contractAddress,
+}: {
+  decompiled: import("./StorageLayoutViewer/types").DecompiledLayout;
+  contractAddress: string;
+}) {
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [slotValue, setSlotValue] = useState<string | null>(null);
+  const [loadingValue, setLoadingValue] = useState(false);
+
+  const handleRead = async (slot: string) => {
+    setSelectedSlot(slot);
+    setSlotValue(null);
+    setLoadingValue(true);
+    try {
+      const res = await fetch("/rpc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "eth_getStorageAt",
+          params: [contractAddress, slot, "latest"],
+        }),
+      });
+      const rpcRes = (await res.json()) as { result?: string };
+      setSlotValue(rpcRes.result ?? null);
+    } catch {
+      setSlotValue(null);
+    } finally {
+      setLoadingValue(false);
+    }
+  };
+
+  return (
+    <div className="space-y-stack">
+      <div className="card p-3 theme-warning-bg">
+        <div className="flex items-start gap-row">
+          <span className="text-xs font-semibold theme-warning shrink-0">
+            INFERRED
+          </span>
+          <p className="text-xs theme-text-secondary">
+            Source code isn't verified. These slots were recovered from
+            the deployed bytecode by{" "}
+            <a
+              href="https://github.com/Jon-Becker/heimdall-rs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="theme-accent hover:underline"
+            >
+              heimdall
+            </a>
+            . Names and types are best-effort guesses; access patterns
+            are observed directly from the bytecode (high confidence).
+          </p>
+        </div>
+      </div>
+
+      <div className="flex gap-0" style={{ minHeight: "400px" }}>
+        {/* Inferred slot list */}
+        <div className="card flex-1 overflow-auto">
+          <div className="card-divider px-3 py-2 theme-secondary-bg">
+            <span className="text-xs font-semibold uppercase tracking-wider theme-text-secondary">
+              Inferred Storage Slots ({decompiled.slots.length})
+            </span>
+          </div>
+          <table className="w-full text-xs theme-mono">
+            <thead>
+              <tr className="theme-text-muted">
+                <th className="text-left px-3 py-1.5">Slot</th>
+                <th className="text-left px-3 py-1.5">Name</th>
+                <th className="text-left px-3 py-1.5">Type</th>
+                <th className="text-left px-3 py-1.5">Access</th>
+              </tr>
+            </thead>
+            <tbody>
+              {decompiled.slots.map((s) => {
+                const isSelected = selectedSlot === s.slot;
+                return (
+                  <tr
+                    key={s.slot}
+                    onClick={() => void handleRead(s.slot)}
+                    className={`cursor-pointer${isSelected ? " theme-accent-bg" : ""}`}
+                  >
+                    <td className="px-3 py-1.5 theme-text-muted">
+                      {truncateSlot(s.slot)}
+                    </td>
+                    <td className="px-3 py-1.5 theme-text">
+                      {s.name ?? <span className="theme-text-muted">—</span>}
+                    </td>
+                    <td className="px-3 py-1.5 theme-text-secondary">
+                      {s.inferredType ?? "unknown"}
+                    </td>
+                    <td className="px-3 py-1.5 theme-text-muted">
+                      {s.access.join(" + ")}
+                    </td>
+                  </tr>
+                );
+              })}
+              {decompiled.slots.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-3 py-4 text-center theme-text-muted">
+                    No constant slot accesses found in the bytecode.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Inspector + pseudo-source */}
+        <div className="card overflow-auto" style={{ width: "380px", flexShrink: 0 }}>
+          <div className="card-divider px-3 py-2 theme-secondary-bg">
+            <span className="text-xs font-semibold uppercase tracking-wider theme-text-secondary">
+              {selectedSlot ? "Slot Inspector" : "Pseudo-source (heimdall)"}
+            </span>
+          </div>
+          {selectedSlot ? (
+            <div className="p-3 space-y-3">
+              <div>
+                <label className="text-xs block mb-1 theme-text-secondary">Slot</label>
+                <div className="text-xs p-2 break-all theme-primary-bg theme-accent theme-mono">
+                  {selectedSlot}
+                </div>
+              </div>
+              {loadingValue && (
+                <p className="text-xs theme-text-muted">Reading from chain...</p>
+              )}
+              {slotValue && (
+                <div>
+                  <label className="text-xs block mb-1 theme-text-secondary">Current Value</label>
+                  <div className="text-xs p-2 break-all theme-primary-bg theme-success theme-mono">
+                    {slotValue}
+                  </div>
+                  <div className="text-xs mt-1 theme-text-muted">
+                    Decimal: {BigInt(slotValue).toString()}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : decompiled.pseudoSource ? (
+            <pre className="p-3 text-[11px] whitespace-pre-wrap theme-text theme-mono">
+              {decompiled.pseudoSource}
+            </pre>
+          ) : (
+            <div className="px-3 py-8 text-xs text-center theme-text-muted">
+              Click a row to inspect the slot, or wait for heimdall to
+              produce pseudo-source.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Shorten a 0x-prefixed slot hex to head…tail for the table column. */
+function truncateSlot(slot: string): string {
+  if (slot.length <= 14) return slot;
+  return `${slot.slice(0, 8)}…${slot.slice(-4)}`;
 }
