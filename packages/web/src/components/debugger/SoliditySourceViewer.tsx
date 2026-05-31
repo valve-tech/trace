@@ -85,17 +85,51 @@ export default function SourceViewer({
     inputRef: findInputRef,
   } = useFindInSource(lines, containerRef);
 
-  // Auto-scroll to current line — `block: "nearest"` so manual scroll is
-  // preserved when the line is already on screen. Without this, stepping
-  // through opcodes that happen to cross a source-line boundary forced a
-  // recenter on every transition, fighting the user when they had scrolled
-  // ahead to read upcoming code. Explicit jumps (scrollKey bump) may land
-  // the cursor at the edge rather than the center, but it stays visible.
+  // Auto-scroll to current line by directly setting the container's
+  // scrollTop. We don't use `Element.scrollIntoView` because it walks
+  // every scrollable ancestor — and the debugger page itself can scroll,
+  // so the browser would sometimes scroll the OUTER page instead of the
+  // source pane's internal scroll container, leaving the line visually
+  // off-screen inside the pane while the page jumped around. Scrolling
+  // the container directly guarantees we only move the pane.
+  //
+  // "Manual-scroll preservation" semantics (don't fight the user when
+  // they've scrolled ahead to read upcoming code): only scroll when the
+  // current line is outside the pane's viewport. When the line is
+  // already visible, leave scrollTop alone — same effect as `block:
+  // "nearest"` but scoped to the container.
   useEffect(() => {
     if (!containerRef.current || !currentLine) return;
     requestAnimationFrame(() => {
-      const lineEl = containerRef.current?.querySelector(`[data-line="${currentLine}"]`);
-      lineEl?.scrollIntoView({ block: "nearest", behavior: "instant" });
+      const container = containerRef.current;
+      if (!container) return;
+      const lineEl = container.querySelector(
+        `[data-line="${currentLine}"]`,
+      ) as HTMLElement | null;
+      if (!lineEl) return;
+
+      // Sticky header eats the top portion of the viewport — measure it so
+      // the target line isn't hidden underneath. Defaults to 0 if no
+      // sticky header is rendered.
+      const header = container.querySelector("[data-source-header]") as
+        | HTMLElement
+        | null;
+      const headerH = header?.offsetHeight ?? 0;
+
+      const lineTop = lineEl.offsetTop;
+      const lineBottom = lineTop + lineEl.offsetHeight;
+      const viewTop = container.scrollTop + headerH;
+      const viewBottom = container.scrollTop + container.clientHeight;
+
+      if (lineTop < viewTop) {
+        // Line is above the visible area — scroll up to put it just
+        // under the sticky header.
+        container.scrollTop = lineTop - headerH;
+      } else if (lineBottom > viewBottom) {
+        // Line is below the visible area — scroll down minimally so the
+        // bottom of the line aligns with the bottom of the pane.
+        container.scrollTop = lineBottom - container.clientHeight;
+      }
     });
   }, [currentLine, file.name, scrollKey]);
 
@@ -146,7 +180,10 @@ export default function SourceViewer({
         style={{ maxHeight: "100%" }}
       >
       {/* File name header */}
-      <div className="sticky top-0 z-10 px-3 py-1.5 card-divider text-xs font-semibold theme-secondary-bg theme-text-secondary">
+      <div
+        data-source-header
+        className="sticky top-0 z-10 px-3 py-1.5 card-divider text-xs font-semibold theme-secondary-bg theme-text-secondary"
+      >
         {file.name}
       </div>
 
