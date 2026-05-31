@@ -1,29 +1,14 @@
 import { useState, useEffect } from "react";
 import { fetchBlock, type BlockDetails } from "../../api/explorer";
 import TxRowActions from "./TxRowActions";
-import { formatPLS } from "./format";
+import { formatPLS, truncateAddr } from "./format";
 import { ExplorerLink } from "./ExplorerLink";
 import { TxGasInfo } from "./TxGasInfo";
+import { formatTimestamp } from "./BlockView/formatters";
 
 interface BlockViewProps {
   numberOrHash: string;
   onNavigate: (target: { type: "tx" | "address" | "block"; value: string }) => void;
-}
-
-function truncateAddr(addr: string): string {
-  if (!addr || addr.length < 12) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
-
-function formatTimestamp(ts: number): string {
-  const d = new Date(ts * 1000);
-  const ago = Math.floor((Date.now() - d.getTime()) / 1000);
-  let agoStr = "";
-  if (ago < 60) agoStr = `${ago}s ago`;
-  else if (ago < 3600) agoStr = `${Math.floor(ago / 60)}m ago`;
-  else if (ago < 86400) agoStr = `${Math.floor(ago / 3600)}h ago`;
-  else agoStr = `${Math.floor(ago / 86400)}d ago`;
-  return `${d.toISOString().replace("T", " ").replace("Z", " UTC")} (${agoStr})`;
 }
 
 
