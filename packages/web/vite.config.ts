@@ -30,5 +30,19 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: ["src/**/*.{ts,tsx}"],
+      // Test scaffolding, type-only files, and the app entry are
+      // excluded from the metric — they have no logic to cover.
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/**/_test-utils.tsx",
+        "src/test-setup.ts",
+        "src/main.tsx",
+        "src/vite-env.d.ts",
+      ],
+    },
   },
 });
