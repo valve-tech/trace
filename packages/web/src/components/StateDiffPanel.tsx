@@ -1,41 +1,17 @@
 import { useState, useMemo } from "react";
-import { formatEther } from "viem";
 import { useQuery } from "@tanstack/react-query";
 import type { StateDiff, BalanceChange, StorageChange, NonceChange } from "../api/simulate";
 import {
   buildSlotIndex,
   decodeChangeAtSlot,
-  formatDecodedValue,
-  type DecodedRow,
   type StorageLayout,
 } from "../lib/storageDecode";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function truncateHex(value: string, prefixChars = 6, suffixChars = 4): string {
-  if (value.length <= prefixChars + suffixChars + 2) return value;
-  return `${value.slice(0, prefixChars)}...${value.slice(-suffixChars)}`;
-}
-
-function formatPlsValue(wei: string): string {
-  try {
-    const formatted = formatEther(BigInt(wei));
-    // Show up to 6 significant decimals, strip trailing zeros
-    const num = parseFloat(formatted);
-    if (num === 0) return "0";
-    return num.toLocaleString(undefined, { maximumFractionDigits: 6 });
-  } catch {
-    return wei;
-  }
-}
-
-function isDeltaPositive(delta: string): boolean {
-  if (delta.startsWith("-")) return false;
-  const n = BigInt(delta);
-  return n > 0n;
-}
+import {
+  truncateHex,
+  formatPlsValue,
+  isDeltaPositive,
+  formatDecodedShort,
+} from "./StateDiffPanel/formatters";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -159,20 +135,6 @@ function BalanceChangesSection({ changes }: { changes: BalanceChange[] }) {
 // ---------------------------------------------------------------------------
 // Storage Changes
 // ---------------------------------------------------------------------------
-
-/**
- * Format a typed-decoded value for inline display, truncating
- * long-form bytes/addresses. Decoded values render in the row's
- * primary cell; the raw hex stays available via the `title` tooltip.
- */
-function formatDecodedShort(decoded: DecodedRow["before"]): string | null {
-  const text = formatDecodedValue(decoded);
-  if (text === null) return null;
-  if (decoded.kind === "address" || decoded.kind === "bytes") {
-    return truncateHex(text, 8, 6);
-  }
-  return text;
-}
 
 function StorageGroup({
   address,
