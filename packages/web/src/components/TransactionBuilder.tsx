@@ -3,58 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { isAddress, encodeFunctionData, type Abi, type AbiFunction } from "viem";
 import { useContractSource } from "../hooks/useContractSource";
 import type { ForkSimulationResponse } from "../api/simulate";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function getWriteFunctions(abi: unknown[]): AbiFunction[] {
-  return (abi as AbiFunction[]).filter(
-    (item) =>
-      item.type === "function" &&
-      item.stateMutability !== "view" &&
-      item.stateMutability !== "pure",
-  );
-}
-
-function getReadFunctions(abi: unknown[]): AbiFunction[] {
-  return (abi as AbiFunction[]).filter(
-    (item) =>
-      item.type === "function" &&
-      (item.stateMutability === "view" || item.stateMutability === "pure"),
-  );
-}
-
-function getDefaultValue(type: string): string {
-  if (type.startsWith("uint") || type.startsWith("int")) return "0";
-  if (type === "bool") return "false";
-  if (type === "address") return "";
-  if (type.startsWith("bytes")) return "0x";
-  if (type === "string") return "";
-  if (type.endsWith("[]")) return "[]";
-  return "";
-}
-
-function parseArgValue(value: string, type: string): unknown {
-  if (type.startsWith("uint") || type.startsWith("int")) return BigInt(value);
-  if (type === "bool") return value === "true";
-  if (type.endsWith("[]")) {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return [];
-    }
-  }
-  return value;
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+import {
+  getDefaultValue,
+  getReadFunctions,
+  getWriteFunctions,
+  parseArgValue,
+} from "./TransactionBuilder/abi";
+import { plsToWei } from "./TransactionBuilder/value";
 
 export default function TransactionBuilder() {
   const navigate = useNavigate();
@@ -124,9 +79,8 @@ export default function TransactionBuilder() {
         data: calldata,
       };
 
-      if (value && parseFloat(value) > 0) {
-        body.value = "0x" + BigInt(Math.floor(parseFloat(value) * 1e18)).toString(16);
-      }
+      const weiHex = plsToWei(value);
+      if (weiHex) body.value = weiHex;
 
       const res = await fetch("/api/simulate/fork", {
         method: "POST",
