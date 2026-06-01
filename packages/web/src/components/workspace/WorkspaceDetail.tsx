@@ -5,6 +5,7 @@ import { useWorkspaces } from "../../hooks/useWorkspaces";
 import type { Workspace, WorkspaceItem } from "../../lib/workspace/types";
 import { scanPath } from "../../lib/scanRoutes";
 import { WorkspaceItemRow } from "./WorkspaceItemRow";
+import { BulkPastePanel } from "./BulkPastePanel";
 
 /**
  * One Workspace's items, listed with type icon + value + optional label. Each
@@ -16,11 +17,12 @@ import { WorkspaceItemRow } from "./WorkspaceItemRow";
 export default function WorkspaceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { workspaces, isLoading, removeFromWorkspace, rename, remove } = useWorkspaces();
+  const { workspaces, isLoading, addToWorkspace, removeFromWorkspace, rename, remove } = useWorkspaces();
   const workspace = useMemo(
     () => workspaces.find((w) => w.id === id) ?? null,
     [workspaces, id],
   );
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   if (isLoading) {
     return <div className="p-4 text-sm theme-text-muted">Loading…</div>;
@@ -38,6 +40,8 @@ export default function WorkspaceDetail() {
 
       <Header
         workspace={workspace}
+        onBulkPaste={() => setBulkOpen((v) => !v)}
+        bulkOpen={bulkOpen}
         onRename={(name, description) =>
           rename.mutateAsync({ id: workspace.id, name, description })
         }
@@ -46,6 +50,28 @@ export default function WorkspaceDetail() {
           navigate("/workspace", { replace: true });
         }}
       />
+
+      {bulkOpen && (
+        <BulkPastePanel
+          workspace={workspace}
+          onClose={() => setBulkOpen(false)}
+          onAdd={async (items) => {
+            // Add sequentially so the IDB write is one consistent
+            // transform-then-persist per item (matches the existing
+            // addToWorkspace mutation contract). Each call is fast — the
+            // store helpers are pure and the write is a single idb-keyval
+            // setItem on a small blob — so even 100 items completes in well
+            // under a second.
+            for (const it of items) {
+              await addToWorkspace.mutateAsync({
+                id: workspace.id,
+                kind: it.kind,
+                value: it.value,
+              });
+            }
+          }}
+        />
+      )}
 
       <Items
         workspace={workspace}
@@ -57,10 +83,14 @@ export default function WorkspaceDetail() {
 
 function Header({
   workspace,
+  bulkOpen,
+  onBulkPaste,
   onRename,
   onDelete,
 }: {
   workspace: Workspace;
+  bulkOpen: boolean;
+  onBulkPaste: () => void;
   onRename: (name: string, description?: string) => Promise<unknown>;
   onDelete: () => Promise<unknown>;
 }) {
@@ -135,6 +165,16 @@ function Header({
         </div>
       </div>
       <div className="flex gap-tight shrink-0">
+        <button
+          onClick={onBulkPaste}
+          className="text-xs px-2 py-1 flex items-center gap-tight"
+          title="Bulk paste"
+          style={{
+            color: bulkOpen ? "var(--color-accent)" : "var(--color-text-muted)",
+          }}
+        >
+          <Icon icon="heroicons:clipboard-document-list" className="w-4 h-4" />
+        </button>
         <button onClick={() => setEditing(true)} className="text-xs px-2 py-1 theme-text-muted">
           <Icon icon="heroicons:pencil" className="w-4 h-4" />
         </button>
