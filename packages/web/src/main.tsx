@@ -48,7 +48,11 @@ createRoot(rootEl).render(
       // on transient upstream failures). Old persisted entries from the
       // Blockscout outage held empty records that staleTime: Infinity pinned
       // forever, masking method names across reloads.
-      persistOptions={{ persister, maxAge: Infinity, buster: "2026-05-30-contract-meta-sparse" }}
+      // 2026-05-31: useTraceSources got the same retry-then-omit treatment
+      // (queryKey bumped to `v2`). Old v1 entries held 0-file results from
+      // pre-fix sessions that starved the debugger's call-tree fnIndex of
+      // every contract's source — silently masking the call-site override.
+      persistOptions={{ persister, maxAge: Infinity, buster: "2026-05-31-trace-sources-sparse" }}
     >
       <BrowserRouter>
         <App />

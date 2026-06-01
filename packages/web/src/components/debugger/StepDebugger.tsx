@@ -317,7 +317,7 @@ export default function StepDebugger({
   // Source files per contract, so the tree can name internal functions exactly
   // and split library calls from a contract's own internals.
   const traceSourceAddrs = useMemo(() => Object.keys(pcsByContract), [pcsByContract]);
-  const { data: sourcesByAddr = {} } = useTraceSources(traceSourceAddrs);
+  const { data: sourcesByAddr, refetch: refetchSources } = useTraceSources(traceSourceAddrs);
 
   // Decoded events keyed by the LOG opcode's step, so the call tree can show
   // each emitted event nested in the function that fired it.
@@ -570,6 +570,16 @@ export default function StepDebugger({
     const w = window as unknown as { __traceNav?: Record<string, unknown> };
     w.__traceNav = { ...(w.__traceNav ?? {}), history: navHistory };
   }, [navHistory]);
+
+  // Dev-only: expose useTraceSources' refetch so a console user can force a
+  // re-check of contracts that came back unverified (the call tree degrades to
+  // address-only labels without sources; verifying mid-session and calling
+  // `__traceNav.refetchSources()` repaints without a hard reload).
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as { __traceNav?: Record<string, unknown> };
+    w.__traceNav = { ...(w.__traceNav ?? {}), refetchSources };
+  }, [refetchSources]);
 
   // Keyboard shortcuts
   useEffect(() => {
