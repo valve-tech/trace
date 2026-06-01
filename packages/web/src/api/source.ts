@@ -99,7 +99,7 @@ export async function fetchSource(address: string): Promise<SourceResponse> {
  * call-site-override). Mirrors the same pattern proven out in contractMeta.ts.
  */
 type SourceFetchOutcome =
-  | { kind: "verified"; files: SourceFile[] }
+  | { kind: "verified"; source: ContractSource }
   /** Definitive answer: API says the contract isn't verified (HTTP 404 from
    *  /api/source/:addr, or a 200 with `ok: false` and no transient marker). */
   | { kind: "unverified" }
@@ -138,7 +138,8 @@ async function attemptFetchSource(address: string): Promise<SourceFetchOutcome> 
     }
     return { kind: "unverified" };
   }
-  return { kind: "verified", files: data.source?.files ?? [] };
+  if (!data.source) return { kind: "fatal", reason: "ok:true but no source" };
+  return { kind: "verified", source: data.source };
 }
 
 /**
@@ -164,7 +165,7 @@ export async function fetchTraceSourceFiles(
   for (let attempt = 0; attempt < SOURCE_RETRY_BACKOFF_MS.length; attempt += 1) {
     const outcome = await attemptFetchSource(address);
     if (outcome.kind === "verified") {
-      return { files: outcome.files, verified: true };
+      return { files: outcome.source.files, verified: true };
     }
     if (outcome.kind === "unverified") {
       return { files: [], verified: false };
@@ -185,6 +186,32 @@ export async function fetchTraceSourceFiles(
     await sleep(SOURCE_RETRY_BACKOFF_MS[attempt]!);
   }
   return null;
+}
+
+/**
+ * Single-address contract source fetch with bounded retry. Returns a
+ * definitive ContractSource OR null (definitely unverified) within the
+ * retry budget; throws on persistent transient failure so React Query
+ * treats it as an error (data stays undefined, no cache poisoning).
+ */
+export async function fetchContractSourceWithRetry(
+  address: string,
+): Promise<ContractSource | null> {
+  for (let attempt = 0; attempt < SOURCE_RETRY_BACKOFF_MS.length; attempt += 1) {
+    const outcome = await attemptFetchSource(address);
+    if (outcome.kind === "verified") return outcome.source;
+    if (outcome.kind === "unverified") return null;
+    if (outcome.kind === "fatal") {
+      throw new Error(`[contract-source] non-retryable: ${outcome.reason}`);
+    }
+    if (attempt === SOURCE_RETRY_BACKOFF_MS.length - 1) {
+      throw new Error(
+        `[contract-source] gave up on ${address} after ${SOURCE_RETRY_BACKOFF_MS.length} attempts: ${outcome.reason}`,
+      );
+    }
+    await sleep(SOURCE_RETRY_BACKOFF_MS[attempt]!);
+  }
+  throw new Error("[contract-source] unreachable");
 }
 
 export async function analyzeContract(
@@ -209,4 +236,94 @@ export async function fetchSourceMappings(
     body: JSON.stringify({ pcs }),
   });
   return (await res.json()) as SourceMapResponse;
+}
+
+/**
+ * Definitive-vs-transient outcome for one source-map fetch, paralleling
+ * SourceFetchOutcome. The backend (`POST /api/source/:addr/map`) returns:
+ *   - 200 + ok:true + mappings  → mapped
+ *   - 404 "Verified source not found"          → unmappable (contract isn't verified)
+ *   - 404 "Source map not available — recompilation failed" → unmappable
+ *   - 503 "Verification source temporarily unavailable"     → transient
+ *   - other 5xx / network / timeout                          → transient
+ * Recompilation can succeed later (cache priming, dependency tweak, or the
+ * contract becoming verified upstream), so "unmappable" gets a TTL, not ∞.
+ */
+type SourceMapFetchOutcome =
+  | { kind: "mapped"; mappings: Record<number, SourceLocation | null> }
+  | { kind: "unmappable" }
+  | { kind: "transient"; reason: string }
+  | { kind: "fatal"; reason: string };
+
+const SOURCE_MAP_FETCH_TIMEOUT_MS = 12_000; // recompile can be slow on a cold cache
+
+async function attemptFetchSourceMap(
+  address: string,
+  pcs: number[],
+): Promise<SourceMapFetchOutcome> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/${address}/map`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pcs }),
+      signal: AbortSignal.timeout(SOURCE_MAP_FETCH_TIMEOUT_MS),
+    });
+  } catch (err) {
+    return {
+      kind: "transient",
+      reason: err instanceof Error ? err.message : "network error",
+    };
+  }
+  if (res.status === 404) return { kind: "unmappable" };
+  if (!res.ok) return { kind: "transient", reason: `HTTP ${res.status}` };
+  const data = (await res.json().catch(() => null)) as SourceMapResponse | null;
+  if (!data) return { kind: "fatal", reason: "malformed JSON" };
+  if (!data.ok) {
+    if (/temporarily unavailable/i.test(data.error ?? "")) {
+      return { kind: "transient", reason: data.error! };
+    }
+    return { kind: "unmappable" };
+  }
+  return { kind: "mapped", mappings: data.mappings ?? {} };
+}
+
+/**
+ * Single-address source-map fetch with bounded retry. Returns a definitive
+ * answer (mapped OR confirmed-unmappable) within the retry budget; `null`
+ * when transient/fatal exhausted the budget so the caller can omit the
+ * address from a sparse result and refetch on the next mount instead of
+ * pinning an empty map under `staleTime: Infinity`.
+ */
+export async function fetchTraceSourceMap(
+  address: string,
+  pcs: number[],
+): Promise<
+  | { mappings: Record<number, SourceLocation | null>; mapped: true }
+  | { mappings: Record<number, SourceLocation | null>; mapped: false }
+  | null
+> {
+  for (let attempt = 0; attempt < SOURCE_RETRY_BACKOFF_MS.length; attempt += 1) {
+    const outcome = await attemptFetchSourceMap(address, pcs);
+    if (outcome.kind === "mapped") {
+      return { mappings: outcome.mappings, mapped: true };
+    }
+    if (outcome.kind === "unmappable") {
+      return { mappings: {}, mapped: false };
+    }
+    if (outcome.kind === "fatal") {
+      console.warn(
+        `[traceSourceMaps] non-retryable error for ${address}: ${outcome.reason}`,
+      );
+      return null;
+    }
+    if (attempt === SOURCE_RETRY_BACKOFF_MS.length - 1) {
+      console.warn(
+        `[traceSourceMaps] giving up on ${address} after ${SOURCE_RETRY_BACKOFF_MS.length} attempts: ${outcome.reason}`,
+      );
+      return null;
+    }
+    await sleep(SOURCE_RETRY_BACKOFF_MS[attempt]!);
+  }
+  return null;
 }

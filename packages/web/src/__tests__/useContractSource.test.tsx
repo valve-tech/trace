@@ -19,10 +19,11 @@ describe("useSourceMappings", () => {
   });
 
   it("re-fetches when the PC set changes content but not length", async () => {
-    const spy = vi.spyOn(sourceApi, "fetchSourceMappings").mockResolvedValue({
-      ok: true,
-      mappings: {},
-    });
+    // v2 of useSourceMappings calls fetchTraceSourceMap (which wraps
+    // attemptFetchSourceMap with retry-then-throw semantics).
+    const spy = vi
+      .spyOn(sourceApi, "fetchTraceSourceMap")
+      .mockResolvedValue({ mappings: {}, mapped: true });
     const wrapper = makeWrapper();
     const addr = "0xaaaa000000000000000000000000000000000000";
 
@@ -39,10 +40,11 @@ describe("useSourceMappings", () => {
   });
 
   it("dedupes when the PC set is the same content in different order", async () => {
-    const spy = vi.spyOn(sourceApi, "fetchSourceMappings").mockResolvedValue({
-      ok: true,
-      mappings: {},
-    });
+    // v2 of useSourceMappings calls fetchTraceSourceMap (which wraps
+    // attemptFetchSourceMap with retry-then-throw semantics).
+    const spy = vi
+      .spyOn(sourceApi, "fetchTraceSourceMap")
+      .mockResolvedValue({ mappings: {}, mapped: true });
     const wrapper = makeWrapper();
     const addr = "0xbbbb000000000000000000000000000000000000";
 

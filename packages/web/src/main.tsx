@@ -52,7 +52,13 @@ createRoot(rootEl).render(
       // (queryKey bumped to `v2`). Old v1 entries held 0-file results from
       // pre-fix sessions that starved the debugger's call-tree fnIndex of
       // every contract's source — silently masking the call-site override.
-      persistOptions={{ persister, maxAge: Infinity, buster: "2026-05-31-trace-sources-sparse" }}
+      // 2026-06-01: staleTime: Infinity hygiene sweep across the rest of
+      // the long-cached queries — useTraceSourceMaps, useSignatures, and
+      // useContractSource all gained retry-then-omit (or retry-then-throw)
+      // semantics and bumped to v2 keys. Old v1 entries from prior outages
+      // held empty mappings / no-match results that pinned the debugger
+      // call tree's source-map and method-name layers across reloads.
+      persistOptions={{ persister, maxAge: Infinity, buster: "2026-06-01-staletime-hygiene-sweep" }}
     >
       <BrowserRouter>
         <App />
