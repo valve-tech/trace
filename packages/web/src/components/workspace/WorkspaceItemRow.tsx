@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import type { WorkspaceItem } from "../../lib/workspace/types";
+import { AddressPreview } from "./previews/AddressPreview";
+import { TxPreview } from "./previews/TxPreview";
+import { BlockPreview } from "./previews/BlockPreview";
 
 /**
  * One row in a Workspace's item list. Two states:
@@ -61,14 +64,12 @@ export function WorkspaceItemRow({
 
       {expanded && (
         <div className="mt-3 pt-3 text-xs theme-text-secondary" style={{ borderTop: "1px solid var(--color-border-muted)" }}>
-          {/* v0 stub: a placeholder that the existing per-entity hooks will
-              fill once we wire them. Kept deliberately minimal so the page
-              ships now and the live-data layer can be a follow-up commit
-              without a structural change here. */}
-          <div className="flex items-center gap-inline">
-            <Icon icon="heroicons:information-circle" className="w-3.5 h-3.5 theme-text-muted" />
-            Live preview will land in the next pass — for now, follow the link above to the canonical Explore view.
-          </div>
+          {/* The preview only mounts when the row is expanded — collapsed
+              rows never trigger a fetch, so a workspace with N items costs
+              0 API calls until the user opens one. */}
+          {item.kind === "address" && <AddressPreview address={item.value} />}
+          {item.kind === "tx" && <TxPreview hash={item.value} />}
+          {item.kind === "block" && <BlockPreview numberOrHash={item.value} />}
         </div>
       )}
     </div>

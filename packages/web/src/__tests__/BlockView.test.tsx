@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { BlockDetails } from "../api/explorer";
 
 /**
@@ -42,10 +43,21 @@ function block(overrides: Partial<BlockDetails> = {}): BlockDetails {
 
 function renderView(props: { numberOrHash?: string } = {}) {
   const onNavigate = vi.fn();
+  // BlockView now embeds AddToWorkspaceButton, which calls useWorkspaces ->
+  // useQueryClient. Pass the provider via the `wrapper` option so it sticks
+  // through any rerender() — testing-library's render(jsx, ...) replaces the
+  // entire tree on rerender; only wrapper is preserved.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity, gcTime: Infinity } },
+  });
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
   const result = render(
-    <MemoryRouter>
-      <BlockView numberOrHash={props.numberOrHash ?? "12345678"} onNavigate={onNavigate} />
-    </MemoryRouter>,
+    <BlockView numberOrHash={props.numberOrHash ?? "12345678"} onNavigate={onNavigate} />,
+    { wrapper: Wrapper },
   );
   return { onNavigate, ...result };
 }
@@ -99,11 +111,7 @@ describe("<BlockView />", () => {
     await screen.findByText(/12,345,678/);
 
     expect(mockFetch).toHaveBeenCalledWith("100");
-    rerender(
-      <MemoryRouter>
-        <BlockView numberOrHash="200" onNavigate={onNavigate} />
-      </MemoryRouter>,
-    );
+    rerender(<BlockView numberOrHash="200" onNavigate={onNavigate} />);
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith("200");
     });

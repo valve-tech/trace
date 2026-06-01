@@ -5,6 +5,7 @@ import { formatPLS, truncateAddr } from "./format";
 import { ExplorerLink } from "./ExplorerLink";
 import { TxGasInfo } from "./TxGasInfo";
 import { formatTimestamp } from "./BlockView/formatters";
+import { AddToWorkspaceButton } from "../workspace/AddToWorkspaceButton";
 
 interface BlockViewProps {
   numberOrHash: string;
@@ -115,6 +116,7 @@ export default function BlockView({
           </span>
           {/* Block nav */}
           <div className="flex items-center gap-tight ml-auto">
+            <AddToWorkspaceButton kind="block" value={block.number} />
             <button
               onClick={() => {
                 const prevNum = Number(block.number) - 1;
