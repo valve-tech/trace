@@ -1,6 +1,7 @@
 import type { AddressInfo } from "../../../api/explorer";
 import { formatPLS } from "../format";
 import { EntityActionBar } from "../../EntityActionBar";
+import { AddToWorkspaceButton } from "../../workspace/AddToWorkspaceButton";
 
 export function AddressHeader({
   address,
@@ -36,12 +37,13 @@ export function AddressHeader({
           >
             {address}
           </span>
-          <div className="mt-3">
+          <div className="mt-3 flex items-center gap-inline flex-wrap">
             <EntityActionBar
               kind={info?.isContract ? "contract" : "address"}
               value={address}
               omit={["explorer"]}
             />
+            <AddToWorkspaceButton kind="address" value={address} />
           </div>
         </div>
         <div className="text-right">

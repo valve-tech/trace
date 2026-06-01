@@ -1,0 +1,106 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Icon } from "@iconify/react";
+import type { WorkspaceItem } from "../../lib/workspace/types";
+
+/**
+ * One row in a Workspace's item list. Two states:
+ *   - collapsed: type icon + short value + optional user label + canonical link
+ *   - expanded:  inline mini-card with a few quick facts (TODO: wire the real
+ *                preview fetchers; for v0 it just shows the metadata we have)
+ *
+ * Per-row expansion (not bulk) keeps API load proportional to user attention —
+ * a 50-item workspace doesn't fan out 50 simultaneous fetches just to render.
+ */
+export function WorkspaceItemRow({
+  item,
+  canonicalHref,
+  onRemove,
+}: {
+  item: WorkspaceItem;
+  canonicalHref: string;
+  onRemove: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="card p-3">
+      <div className="flex items-center gap-row">
+        <Icon icon={iconFor(item.kind)} className={`w-4 h-4 shrink-0 ${colorFor(item.kind)}`} />
+        <div className="min-w-0 flex-1">
+          <Link to={canonicalHref} className="block theme-text" style={{ textDecoration: "none" }}>
+            <div className="flex items-center gap-inline">
+              <span className="text-[10px] uppercase tracking-widest theme-text-muted">
+                {item.kind}
+              </span>
+              {item.label && (
+                <span className="text-xs font-medium theme-text">{item.label}</span>
+              )}
+            </div>
+            <div className="font-mono text-xs truncate theme-accent">{item.value}</div>
+          </Link>
+          <div className="text-[11px] mt-0.5 theme-text-muted">
+            added {ago(item.addedAt)}
+            {item.chainId !== undefined && (
+              <span> · chain {item.chainId}</span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-tight shrink-0">
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="text-xs px-1.5 py-1 theme-text-muted"
+            title={expanded ? "Collapse" : "Expand"}
+          >
+            <Icon icon={expanded ? "heroicons:chevron-up" : "heroicons:chevron-down"} className="w-4 h-4" />
+          </button>
+          <button onClick={onRemove} className="text-xs px-1.5 py-1 theme-text-muted" title="Remove from workspace">
+            <Icon icon="heroicons:x-mark" className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 pt-3 text-xs theme-text-secondary" style={{ borderTop: "1px solid var(--color-border-muted)" }}>
+          {/* v0 stub: a placeholder that the existing per-entity hooks will
+              fill once we wire them. Kept deliberately minimal so the page
+              ships now and the live-data layer can be a follow-up commit
+              without a structural change here. */}
+          <div className="flex items-center gap-inline">
+            <Icon icon="heroicons:information-circle" className="w-3.5 h-3.5 theme-text-muted" />
+            Live preview will land in the next pass — for now, follow the link above to the canonical Explore view.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function iconFor(kind: WorkspaceItem["kind"]): string {
+  switch (kind) {
+    case "address":
+      return "heroicons:identification";
+    case "tx":
+      return "heroicons:arrow-right-circle";
+    case "block":
+      return "heroicons:cube";
+  }
+}
+
+function colorFor(kind: WorkspaceItem["kind"]): string {
+  switch (kind) {
+    case "address":
+      return "theme-accent";
+    case "tx":
+      return "theme-success";
+    case "block":
+      return "theme-warning";
+  }
+}
+
+function ago(ms: number): string {
+  const d = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (d < 60) return "just now";
+  if (d < 3600) return `${Math.floor(d / 60)}m ago`;
+  if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
+  return `${Math.floor(d / 86400)}d ago`;
+}

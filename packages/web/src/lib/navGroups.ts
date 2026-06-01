@@ -97,6 +97,18 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Investigate",
+    hint: "Keep a named bucket of things you're digging into",
+    items: [
+      {
+        to: "/workspace",
+        label: "Workspaces",
+        icon: "heroicons:folder",
+        desc: "Named buckets of addresses, transactions, and blocks you're tracking together.",
+      },
+    ],
+  },
+  {
     label: "Automate",
     hint: "Keep something running in the background",
     items: [

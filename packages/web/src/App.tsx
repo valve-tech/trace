@@ -21,6 +21,8 @@ import StorageLayoutViewer from "./components/StorageLayoutViewer";
 import VerifyContract from "./components/VerifyContract";
 import DraftsIndex from "./components/drafts/DraftsIndex";
 import SettingsPanel from "./components/drafts/SettingsPanel";
+import WorkspaceList from "./components/workspace/WorkspaceList";
+import WorkspaceDetail from "./components/workspace/WorkspaceDetail";
 
 export default function App() {
   const [apiStatus, setApiStatus] = useState<"connected" | "disconnected" | "checking">("checking");
@@ -106,6 +108,8 @@ export default function App() {
           <Route path="/settings" element={<SettingsPanel />} />
           <Route path="/ui" element={<ComponentGallery />} />
           <Route path="/drafts/*" element={<DraftsIndex />} />
+          <Route path="/workspace" element={<WorkspaceList />} />
+          <Route path="/workspace/:id" element={<WorkspaceDetail />} />
         </Routes>
       </AppShell>
     </div>

@@ -9,6 +9,7 @@ import { InternalTxSection } from "./TxDetail/InternalTxSection";
 import { TokenTransfersSection } from "./TxDetail/TokenTransfersSection";
 import { RawDataSection } from "./TxDetail/RawDataSection";
 import { EntityActionBar } from "../EntityActionBar";
+import { AddToWorkspaceButton } from "../workspace/AddToWorkspaceButton";
 
 interface TxDetailProps {
   hash: string;
@@ -88,13 +89,14 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
 
   return (
     <div className="space-y-stack">
-      <div className="card p-3">
+      <div className="card p-3 flex items-center gap-inline flex-wrap">
         <EntityActionBar
           kind="tx"
           value={hash}
           contractAddress={tx.to}
           omit={["explorer"]}
         />
+        <AddToWorkspaceButton kind="tx" value={hash} />
       </div>
       <OverviewSection tx={tx} onNavigate={onNavigate} />
       {tx.decodedInput && <DecodedInputSection decoded={tx.decodedInput} />}

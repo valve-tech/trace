@@ -1,6 +1,7 @@
 import type { ContractInfo } from "../../../api/explorer";
 import { TokenImage } from "../../primitives/TokenImage";
 import { EntityActionBar } from "../../EntityActionBar";
+import { AddToWorkspaceButton } from "../../workspace/AddToWorkspaceButton";
 
 export function ContractHeader({
   address,
@@ -60,8 +61,9 @@ export function ContractHeader({
               )}
             </div>
           )}
-          <div className="mt-3">
+          <div className="mt-3 flex items-center gap-inline flex-wrap">
             <EntityActionBar kind="contract" value={address} omit={["explorer"]} />
+            <AddToWorkspaceButton kind="address" value={address} />
           </div>
           </div>
         </div>

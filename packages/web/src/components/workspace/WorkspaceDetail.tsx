@@ -1,0 +1,210 @@
+import { useState, useMemo } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Icon } from "@iconify/react";
+import { useWorkspaces } from "../../hooks/useWorkspaces";
+import type { Workspace, WorkspaceItem } from "../../lib/workspace/types";
+import { scanPath } from "../../lib/scanRoutes";
+import { WorkspaceItemRow } from "./WorkspaceItemRow";
+
+/**
+ * One Workspace's items, listed with type icon + value + optional label. Each
+ * row click navigates to the item's canonical Explore route (/address/0x…,
+ * /tx/0x…, /block/N); the chevron expands an inline mini-card with live data
+ * fetched on demand (per row, so an empty workspace doesn't fan out N requests
+ * for nothing).
+ */
+export default function WorkspaceDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { workspaces, isLoading, removeFromWorkspace, rename, remove } = useWorkspaces();
+  const workspace = useMemo(
+    () => workspaces.find((w) => w.id === id) ?? null,
+    [workspaces, id],
+  );
+
+  if (isLoading) {
+    return <div className="p-4 text-sm theme-text-muted">Loading…</div>;
+  }
+  if (!workspace) {
+    return <NotFound />;
+  }
+
+  return (
+    <div className="p-4 max-w-5xl">
+      <Link to="/workspace" className="text-xs flex items-center gap-1.5 mb-4 theme-text-muted">
+        <Icon icon="heroicons:chevron-left" className="w-3 h-3" />
+        All workspaces
+      </Link>
+
+      <Header
+        workspace={workspace}
+        onRename={(name, description) =>
+          rename.mutateAsync({ id: workspace.id, name, description })
+        }
+        onDelete={async () => {
+          await remove.mutateAsync(workspace.id);
+          navigate("/workspace", { replace: true });
+        }}
+      />
+
+      <Items
+        workspace={workspace}
+        onRemove={(itemId) => removeFromWorkspace.mutate({ id: workspace.id, itemId })}
+      />
+    </div>
+  );
+}
+
+function Header({
+  workspace,
+  onRename,
+  onDelete,
+}: {
+  workspace: Workspace;
+  onRename: (name: string, description?: string) => Promise<unknown>;
+  onDelete: () => Promise<unknown>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(workspace.name);
+  const [description, setDescription] = useState(workspace.description ?? "");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  if (editing) {
+    return (
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          await onRename(name.trim(), description.trim() || undefined);
+          setEditing(false);
+        }}
+        className="card p-4 mb-4 space-y-stack"
+      >
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full text-base font-semibold px-2 py-1.5 theme-primary-bg theme-text"
+          style={{ boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }}
+        />
+        <input
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Description (optional)"
+          className="w-full text-xs px-2 py-1.5 theme-primary-bg theme-text-secondary"
+          style={{ boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }}
+        />
+        <div className="flex gap-inline">
+          <button
+            type="submit"
+            disabled={!name.trim()}
+            className="text-xs px-3 py-1.5"
+            style={{ backgroundColor: "var(--color-accent)", color: "#fff", opacity: !name.trim() ? 0.5 : 1 }}
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setName(workspace.name);
+              setDescription(workspace.description ?? "");
+              setEditing(false);
+            }}
+            className="text-xs px-3 py-1.5 theme-text-secondary"
+            style={{ boxShadow: "inset 0 0 0 1px var(--color-border-muted)" }}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="card p-4 mb-4 flex items-start justify-between gap-row">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-inline mb-1">
+          <Icon icon="heroicons:folder" className="w-4 h-4 theme-accent" />
+          <h1 className="text-lg font-semibold theme-text">{workspace.name}</h1>
+        </div>
+        {workspace.description && (
+          <p className="text-xs theme-text-secondary">{workspace.description}</p>
+        )}
+        <div className="text-[11px] mt-1 theme-text-muted">
+          {workspace.items.length} {workspace.items.length === 1 ? "item" : "items"}
+        </div>
+      </div>
+      <div className="flex gap-tight shrink-0">
+        <button onClick={() => setEditing(true)} className="text-xs px-2 py-1 theme-text-muted">
+          <Icon icon="heroicons:pencil" className="w-4 h-4" />
+        </button>
+        {confirmDelete ? (
+          <>
+            <button
+              onClick={() => void onDelete()}
+              className="text-[11px] px-2 py-1 theme-danger-bg theme-danger"
+            >
+              Confirm delete
+            </button>
+            <button onClick={() => setConfirmDelete(false)} className="text-[11px] px-2 py-1 theme-text-muted">
+              Keep
+            </button>
+          </>
+        ) : (
+          <button onClick={() => setConfirmDelete(true)} className="text-xs px-2 py-1 theme-text-muted">
+            <Icon icon="heroicons:trash" className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Items({
+  workspace,
+  onRemove,
+}: {
+  workspace: Workspace;
+  onRemove: (itemId: string) => void;
+}) {
+  if (workspace.items.length === 0) {
+    return (
+      <div className="card p-8 text-center theme-text-muted">
+        <Icon icon="heroicons:plus-circle" className="w-10 h-10 mx-auto mb-3 opacity-50" />
+        <div className="text-sm max-w-md mx-auto leading-relaxed">
+          Open any address, transaction, or block and click <span className="theme-text-secondary">&quot;Add to Workspace&quot;</span> in its action bar to drop it in here.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <ul className="space-y-stack">
+      {workspace.items.map((it) => (
+        <li key={it.id}>
+          <WorkspaceItemRow item={it} canonicalHref={canonicalFor(it)} onRemove={() => onRemove(it.id)} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function canonicalFor(item: WorkspaceItem): string {
+  if (item.kind === "tx") return scanPath("tx", item.value);
+  if (item.kind === "block") return scanPath("block", item.value);
+  return scanPath("address", item.value);
+}
+
+function NotFound() {
+  return (
+    <div className="p-4 max-w-2xl">
+      <Link to="/workspace" className="text-xs flex items-center gap-1.5 mb-4 theme-text-muted">
+        <Icon icon="heroicons:chevron-left" className="w-3 h-3" />
+        All workspaces
+      </Link>
+      <div className="card p-8 text-center theme-text-muted">
+        <Icon icon="heroicons:question-mark-circle" className="w-10 h-10 mx-auto mb-3 opacity-50" />
+        <div className="text-sm">This workspace doesn&apos;t exist (or was deleted).</div>
+      </div>
+    </div>
+  );
+}
