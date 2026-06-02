@@ -119,46 +119,65 @@ this leak.
 Workspaces follow the user across browsers / devices, but the backend
 stores only ciphertext. Decryption key never leaves the client.
 
-### Key derivation — three options
+### Cryptographic primitives — RESOLVED
 
-**A. Wallet signature.** "Sign In With Ethereum" → sign a fixed message →
-hash the signature → use as the key. *Pro:* no extra password; wallet-based
-identity matches our SIWE story for labels (see the 2026-05-29 spec).
-*Con:* swapping wallets locks the user out of their data forever; lost
-seed = lost workspaces.
+The key-derivation + envelope + auth primitives ship in the toolkit as of
+2026-06-02:
 
-**B. Password (Argon2id derivation).** User picks a password → Argon2id
-derives the key. *Pro:* no wallet dependency; user can reset by re-
-encrypting. *Con:* yet another password to remember; bad ones expose the
-ciphertext if leaked.
+* **`@valve-tech/wallet-crypto@0.18.0`** —
+  `deriveWalletEncryptionKey({ signer, purpose, version })` returns a
+  non-extractable AES-GCM `CryptoKey` derived from a deterministic
+  personal_sign signature. `encryptEnvelope` / `decryptEnvelope` wrap
+  WebCrypto AES-GCM with AAD binding and a 12-byte random IV per call.
+* **`@valve-tech/auth-lite@0.18.0`** —
+  `signAuthChallenge` (client) + `generateAuthNonce` /
+  `verifyAuthSignature` (server). SIWE-lite: server nonce + client
+  personal_sign + server recover, without EIP-4361's domain / URI /
+  chainId / statement / expiry fields (we're single-app; we don't need
+  them).
 
-**C. Hybrid.** Wallet signature is the default; password is an optional
-backup. *Pro:* covers both seed-loss and wallet-swap. *Con:* more code,
-more confusing UX.
+See `docs/superpowers/specs/2026-06-01-evm-toolkit-siwe-encryption-contract.md`
+for the requirements trail that drove the package design.
 
-**Recommendation:** A. The labels system is already heading toward SIWE
-(per the 2026-05-29 spec). Reusing that identity for workspace encryption
-keeps the surface area small. Users who lose their seed already have a
-"lose everything" problem — workspaces are not the place to solve it.
+Cipher choice locked in by the packages: AES-GCM (not ChaCha20). Universal
+WebCrypto support — the original ChaCha20 preference was overruled by the
+fact that `crypto.subtle` doesn't expose ChaCha20 in every browser. Both
+are AEAD, both are constant-time; AES-GCM with a fresh-per-call random IV
+is the safer default for a primitive that hides the IV from callers.
 
-### Cipher
+### Wallet connection — open
 
-* **Symmetric: ChaCha20-Poly1305 via WebCrypto.** Single 32-byte key,
-  built into every modern browser. AES-GCM is also fine — pick by
-  availability. Both are AEAD, both are constant-time in modern
-  implementations.
-* **Key derivation:** SHA-256 of the signed SIWE message → use as
-  ChaCha20 key. Salt with the workspace owner's address so the same
-  signed message produces different keys per chain.
+Explore is currently wallet-less. Connecting a wallet is the prerequisite
+for everything in this section. Options:
+
+* **Direct viem `walletClient`** via `window.ethereum` injected provider.
+  Tightest dep footprint; works with MetaMask / Rabby / Frame natively.
+* **WalletConnect** for mobile wallets. Heavier dep tree.
+* **wagmi** wraps both and adds React hooks. Standard in the ecosystem.
+
+**Recommendation:** wagmi. Worth the dep weight because it standardizes
+connector / chain switching / disconnect flows; rolling our own is six
+months of rough edges.
 
 ### Backend shape
 
 * `PUT /api/workspaces/sync` — body `{ ciphertext, nonce, version }`,
-  auth via SIWE bearer token. Backend stores as-is, scoped to the
-  signer's address.
+  auth via SIWE-lite session token. Backend stores as-is, scoped to the
+  recovered address.
 * `GET /api/workspaces/sync` — returns `{ ciphertext, nonce, version,
   updatedAt }` or 404.
 * No `LIST` — one blob per identity.
+
+Auth endpoints:
+
+* `GET /api/auth/nonce` — issues `{ nonce, expiresAt }` via
+  `generateAuthNonce`. Backend persists the nonce in an
+  `auth_nonces` table with `(nonce, issued_at, used_at)`; rejects any
+  verify call whose nonce is missing, expired, or already used.
+* `POST /api/auth/verify` — body `{ address, signature, nonce }`. Calls
+  `verifyAuthSignature` from `@valve-tech/auth-lite`, marks the nonce
+  used, mints a session token (HMAC-signed cookie, 7-day TTL), and
+  returns the token.
 
 Conflict resolution: client compares its local `updatedAt` to the server's;
 if local > server, push; if server > local, pull and prompt user. (No
@@ -166,13 +185,12 @@ attempt at CRDT — workspaces are small enough that "two devices edited at
 the same time" is rare, and a manual-merge prompt is fine.)
 
 ### Decision points
-1. SIWE-only identity, password-backup, or both? (Recommend: SIWE-only
-   for v0; revisit if user feedback wants password.)
+1. wagmi vs. raw viem + custom connect UX? (Recommend: wagmi.)
 2. One blob per identity or one blob per workspace? (Recommend: one blob
    total — smaller backend surface; workspaces are tiny in practice.)
-3. What's the `version` field for? Schema migration (we already have
-   `schemaVersion: 1` on the store). Add `formatVersion` for cipher /
-   serialization changes.
+3. Session token shape — HMAC cookie vs. JWT vs. opaque DB row? (Recommend:
+   HMAC-signed cookie, server holds the secret. Avoids JWT key-rotation
+   complexity for a 7-day session.)
 
 ---
 
