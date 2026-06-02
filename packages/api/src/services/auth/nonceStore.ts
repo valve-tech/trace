@@ -13,9 +13,10 @@ import { pool } from "../pool.js";
  *                the response whether they hit a replay vs an expiry, which is
  *                the desired behaviour for an auth primitive.
  *
- * The nonce table is small (5min TTL, low write rate). A periodic vacuum to
- * drop rows where `expires_at < now() - interval '1 hour'` keeps it bounded;
- * not implemented here — would live in a cron worker alongside other cleanup.
+ * The nonce table is small (5min TTL, low write rate). A periodic vacuum
+ * (`vacuumExpiredNonces` + the worker in `./nonceVacuum.ts`) drops rows
+ * where `expires_at < now() - interval '1 hour'`, keeping the table bounded
+ * without competing with in-flight verifies on borderline-fresh nonces.
  */
 
 const NONCE_TTL_SECONDS = 5 * 60;
@@ -45,4 +46,17 @@ export async function consumeNonce(nonce: string): Promise<boolean> {
     [nonce],
   );
   return result.rowCount === 1;
+}
+
+/**
+ * Delete expired-and-stale auth_nonces rows. The 1h grace beyond `expires_at`
+ * keeps borderline-fresh rows visible long enough for postmortem of failed
+ * verifies (replay attempts surface as "row exists, used_at is set" instead of
+ * "row vanished"). Returns the number of rows removed — caller can log.
+ */
+export async function vacuumExpiredNonces(): Promise<number> {
+  const result = await pool.query(
+    `DELETE FROM auth_nonces WHERE expires_at < NOW() - INTERVAL '1 hour'`,
+  );
+  return result.rowCount ?? 0;
 }
