@@ -7,6 +7,13 @@ import { NAV_GROUPS } from "../lib/navGroups";
 import { HEX_TX, HEX_ADDR, HEX_SELECTOR, DIGITS } from "../lib/entityInput";
 import { scanPath } from "../lib/scanRoutes";
 import { BackHistoryControl } from "./RecentMenu";
+import { AddToWorkspaceButton } from "./workspace/AddToWorkspaceButton";
+import {
+  PaletteWorkspaceDropZone,
+  PALETTE_ENTITY_MIME,
+  type PaletteEntityPayload,
+} from "./workspace/PaletteWorkspaceDropZone";
+import type { WorkspaceItemKind } from "../lib/workspace/types";
 
 /**
  * Routes that bring their own side rails. Sidebar auto-collapses when active.
@@ -529,6 +536,10 @@ interface Result {
   detail: string;
   icon: string;
   to: string;
+  /** Present when the result represents an entity that can be filed into a
+   *  workspace (tx/address/block — not pages or selectors). When set, the
+   *  row becomes draggable + shows a + workspace-picker button. */
+  entity?: { kind: WorkspaceItemKind; value: string };
 }
 
 /** Flattened navigable pages, derived from the sidebar groups. */
@@ -543,6 +554,10 @@ function truncMid(v: string): string {
 
 function recentToResult(e: RecentEntity): Result {
   const to = scanPath(e.kind, e.value);
+  // "contract" recents are addresses with verified bytecode — file as
+  // kind:"address" in a workspace (workspaces don't distinguish contracts).
+  const wsKind: WorkspaceItemKind =
+    e.kind === "contract" ? "address" : e.kind;
   return {
     id: `${e.kind}:${e.value}`,
     group: e.kind === "contract" ? "Contracts" : "Recent",
@@ -558,6 +573,7 @@ function recentToResult(e: RecentEntity): Result {
             ? "heroicons:document-text"
             : "heroicons:identification",
     to,
+    entity: { kind: wsKind, value: e.value },
   };
 }
 
@@ -575,6 +591,12 @@ function buildResults(
 ): Result[] {
   const q = value.trim().toLowerCase();
 
+  // Only tx/address/block "Jump to" entities can be filed into a workspace;
+  // "selector" / "unknown" are excluded by the type guard below.
+  const jumpEntity =
+    parsed.kind === "tx" || parsed.kind === "address" || parsed.kind === "block"
+      ? { kind: parsed.kind, value: parsed.value }
+      : undefined;
   const jump: Result[] =
     parsed.kind === "unknown"
       ? []
@@ -586,6 +608,7 @@ function buildResults(
           detail: a.detail,
           icon: a.icon,
           to: a.to,
+          entity: jumpEntity,
         }));
 
   const recentResults = recents
@@ -626,6 +649,11 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   const [value, setValue] = useState("");
   const [tab, setTab] = useState<PaletteTab>("all");
   const [selected, setSelected] = useState(0);
+  // Tracks whether a result row is being dragged. When true, the palette
+  // body is replaced with a workspace-drop overlay; releasing on a workspace
+  // tile files the dragged entity. Cleared on dragend (which fires whether
+  // or not a drop succeeded), so a release outside any tile just dismisses.
+  const [isDragging, setIsDragging] = useState(false);
   const parsed = useMemo(() => parseInput(value), [value]);
 
   const results = useMemo(
@@ -669,7 +697,17 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
       onClick={onClose}
     >
-      <div className="card w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="card w-full max-w-xl relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <PaletteWorkspaceDropZone
+          visible={isDragging}
+          onComplete={() => {
+            setIsDragging(false);
+            onClose();
+          }}
+        />
         <div className="palette-row relative flex items-center px-4 h-12 bs-b">
           <Icon
             icon="heroicons:magnifying-glass"
@@ -729,32 +767,57 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                       {r.group}
                     </div>
                   )}
-                  <button
-                    onClick={() => go(r.to)}
+                  <div
+                    draggable={!!r.entity}
+                    onDragStart={(e) => {
+                      if (!r.entity) return;
+                      const payload: PaletteEntityPayload = r.entity;
+                      e.dataTransfer.setData(
+                        PALETTE_ENTITY_MIME,
+                        JSON.stringify(payload),
+                      );
+                      e.dataTransfer.effectAllowed = "copy";
+                      setIsDragging(true);
+                    }}
+                    onDragEnd={() => setIsDragging(false)}
                     onMouseEnter={() => setSelected(i)}
-                    className={`w-full flex items-center gap-row px-4 py-2.5 text-left transition-colors ${isSel ? "theme-accent-bg bs-l-accent-in" : "bg-transparent"}`}
+                    className={`w-full flex items-center gap-row px-4 py-2.5 transition-colors ${isSel ? "theme-accent-bg bs-l-accent-in" : "bg-transparent"} ${r.entity ? "cursor-grab" : ""}`}
                   >
-                    <Icon
-                      icon={r.icon}
-                      className={`w-4 h-4 shrink-0 ${isSel ? "theme-accent" : "theme-text-secondary"}`}
-                    />
-                    <span
-                      className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 shrink-0 theme-tertiary-bg theme-text-secondary"
+                    <button
+                      onClick={() => go(r.to)}
+                      className="flex items-center gap-row flex-1 min-w-0 text-left bg-transparent"
                     >
-                      {r.tag}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="text-sm font-mono truncate leading-snug theme-text"
+                      <Icon
+                        icon={r.icon}
+                        className={`w-4 h-4 shrink-0 ${isSel ? "theme-accent" : "theme-text-secondary"}`}
+                      />
+                      <span
+                        className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 shrink-0 theme-tertiary-bg theme-text-secondary"
                       >
-                        {r.label}
+                        {r.tag}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className="text-sm font-mono truncate leading-snug theme-text"
+                        >
+                          {r.label}
+                        </div>
+                        <div
+                          className="text-[11px] truncate theme-text-muted"
+                        >
+                          {r.detail}
+                        </div>
                       </div>
-                      <div
-                        className="text-[11px] truncate theme-text-muted"
-                      >
-                        {r.detail}
+                    </button>
+                    {r.entity && (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <AddToWorkspaceButton
+                          kind={r.entity.kind}
+                          value={r.entity.value}
+                          compact
+                        />
                       </div>
-                    </div>
+                    )}
                     {isSel && (
                       <kbd
                         className="text-[10px] px-2 py-1 font-mono shrink-0 theme-card-bg theme-text-secondary"
@@ -762,7 +825,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                         ↵
                       </kbd>
                     )}
-                  </button>
+                  </div>
                 </div>
               );
             })}
