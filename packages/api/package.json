@@ -13,6 +13,7 @@
     "test:coverage": "node --experimental-test-coverage --test-coverage-include='src/**/*.ts' --import tsx --test $(find tests/unit -name '*.test.ts')"
   },
   "dependencies": {
+    "@valve-tech/auth-lite": "^0.18.0",
     "@valve-tech/gas-oracle": "^0.16.0",
     "@valve-tech/trueblocks-sdk": "^0.16.0",
     "cors": "^2.8.5",
