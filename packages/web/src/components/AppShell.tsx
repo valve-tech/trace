@@ -9,6 +9,8 @@ import { scanPath } from "../lib/scanRoutes";
 import { BackHistoryControl } from "./RecentMenu";
 import { AddToWorkspaceButton } from "./workspace/AddToWorkspaceButton";
 import { WalletConnectButton } from "./wallet/WalletConnectButton";
+import { WorkspaceSyncStatus } from "./wallet/WorkspaceSyncStatus";
+import { WorkspaceSyncAutoPush } from "./wallet/WorkspaceSyncAutoPush";
 import {
   PaletteWorkspaceDropZone,
   PALETTE_ENTITY_MIME,
@@ -242,6 +244,8 @@ function TopBar({
       </div>
 
       <div className="flex items-center gap-inline px-2 shrink-0">
+        <WorkspaceSyncAutoPush />
+        <WorkspaceSyncStatus />
         <WalletConnectButton />
       </div>
 
