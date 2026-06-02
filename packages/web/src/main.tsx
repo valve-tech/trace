@@ -3,9 +3,20 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { WagmiProvider } from "wagmi";
 import { createIdbPersister } from "./lib/idbPersister";
+import { wagmiConfig } from "./lib/wagmi";
 import App from "./App";
 import "./index.css";
+
+// wagmi v2 uses module augmentation for chain-id literal narrowing across
+// hooks. Registering the config here means `useChainId()` returns
+// `1 | 369 | 943`, not the loose `number` fallback.
+declare module "wagmi" {
+  interface Register {
+    config: typeof wagmiConfig;
+  }
+}
 
 // One-time HashRouter → BrowserRouter rewrite. We switched routers to
 // satisfy EIP-3091 (wallets and dApps generate canonical URLs like
@@ -35,6 +46,7 @@ if (!rootEl) throw new Error("Root element not found");
 
 createRoot(rootEl).render(
   <StrictMode>
+    <WagmiProvider config={wagmiConfig}>
     <PersistQueryClientProvider
       client={queryClient}
       // `buster` discards the persisted cache when bumped. Bump it whenever a
@@ -64,5 +76,6 @@ createRoot(rootEl).render(
         <App />
       </BrowserRouter>
     </PersistQueryClientProvider>
+    </WagmiProvider>
   </StrictMode>,
 );

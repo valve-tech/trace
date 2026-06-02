@@ -8,6 +8,7 @@ import { HEX_TX, HEX_ADDR, HEX_SELECTOR, DIGITS } from "../lib/entityInput";
 import { scanPath } from "../lib/scanRoutes";
 import { BackHistoryControl } from "./RecentMenu";
 import { AddToWorkspaceButton } from "./workspace/AddToWorkspaceButton";
+import { WalletConnectButton } from "./wallet/WalletConnectButton";
 import {
   PaletteWorkspaceDropZone,
   PALETTE_ENTITY_MIME,
@@ -238,6 +239,10 @@ function TopBar({
             ⌘K
           </span>
         </button>
+      </div>
+
+      <div className="flex items-center gap-inline px-2 shrink-0">
+        <WalletConnectButton />
       </div>
 
       <div
