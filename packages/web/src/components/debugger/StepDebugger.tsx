@@ -50,6 +50,7 @@ import { ShortcutsHelp } from "./StepDebugger/ShortcutsHelp";
 import { OperandBar } from "./StepDebugger/OperandBar";
 import { describeOperands } from "./StepDebugger/opcodeOperands";
 import { FrameOpcodesOverlay } from "./StepDebugger/FrameOpcodesOverlay";
+import { DebuggerWorkspaceSuggest } from "./DebuggerWorkspaceSuggest";
 
 interface DecodedLog {
   eventName: string;
@@ -828,6 +829,12 @@ export default function StepDebugger({
 
   return (
     <div className="flex flex-col gap-0">
+      {txHash && traceSourceAddrs.length > 0 && (
+        <DebuggerWorkspaceSuggest
+          txHash={txHash}
+          addresses={traceSourceAddrs}
+        />
+      )}
       <ControlsBar
         currentStep={currentStep}
         totalSteps={totalSteps}
