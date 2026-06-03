@@ -12,14 +12,13 @@
     "gas-profiler",
     "react"
   ],
-  "homepage": "https://github.com/valve-tech/trace/tree/main/packages/sdk#readme",
+  "homepage": "https://github.com/valve-tech/reth#readme",
   "bugs": {
-    "url": "https://github.com/valve-tech/trace/issues"
+    "url": "https://github.com/valve-tech/reth/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/valve-tech/trace.git",
-    "directory": "packages/sdk"
+    "url": "git+https://github.com/valve-tech/reth.git"
   },
   "license": "MIT",
   "author": "Valve Tech <dev@valve.city>",

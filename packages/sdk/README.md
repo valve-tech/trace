@@ -2,7 +2,7 @@
 
 Standalone EVM trace loading, traversal, and rendering toolkit. No platform dependencies — works against any JSON-RPC node that supports `debug_traceTransaction` / `debug_traceCall`.
 
-> Originally extracted from the [PulseChain Dev Platform](https://github.com/valve-tech/trace) debugger. Works for any EVM chain, not just PulseChain.
+> Originally extracted from the [Explore by Valve City](https://github.com/valve-tech/reth) debugger. Works for any EVM chain, not just PulseChain.
 
 ## Install
 
