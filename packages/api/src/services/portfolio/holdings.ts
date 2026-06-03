@@ -1,131 +1,114 @@
-import { formatUnits } from "viem";
-import { type TrueblocksClient } from "@valve-tech/trueblocks-sdk";
-import { chifraClient, withRetry } from "../chifra/client.js";
+import { formatUnits, type Address } from "viem";
+import { pool } from "../pool.js";
 import { readCache, writeCache } from "../chifra/cache.js";
 import { getChain } from "../chains/registry.js";
+import { getRpcClient } from "../chains/clients.js";
 import {
-  extractHeldTokens,
-  mapTokenRow,
+  mapBalanceRow,
   sortHoldings,
+  type BalanceRow,
   type Holding,
   type HoldingsResult,
   type NativeHolding,
 } from "./transforms.js";
 
 /**
- * Portfolio holdings via TrueBlocks chifra. Three daemon calls, no archive
- * node required (the `export --assets` accounting mode does need archive — see
- * services/chifra/transfers.ts — so we discover the token set from raw
- * `Transfer` logs instead):
+ * Portfolio holdings from the substreams sink.
  *
- *   1. export.logs(holder) → decode Transfer logs → distinct token contracts
- *      the holder has been a party to. (discovery)
- *   2. tokens([...tokens, holder]) → current balance + decimals per token.
- *      `noZero` drops dust; we re-filter defensively in the transform.
- *   3. state(holder, parts:["balance"]) → native balance.
+ * Token balances are read from the per-chain `holdings_<chainId>.token_balance`
+ * table that `substreams-sink-sql` populates from the firehose (see
+ * `substreams/`). Substreams streams from genesis, so once synced the table is
+ * the complete, authoritative holder→token→balance set for the curated tokens
+ * — no RPC enumeration, no seed-on-sight. If the schema/table doesn't exist
+ * yet (sink not run for this chain), token holdings come back empty and
+ * `indexed: false`, and we still return the native balance.
  *
- * `null` on a discovery/balance failure (mirrors getTokenTransfers); native is
- * best-effort and degrades to zero rather than failing the whole result.
- * Results are cached (TTL, see ../chifra/cache.ts) per (chainId, holder).
+ * Native balance is read directly from the chain RPC (a trivial point query,
+ * not an enumeration problem). Results are cached briefly per (chainId, holder).
  */
 
-/** Cap on logs pulled for discovery — bounds cold-scrape latency + memory. */
-const MAX_DISCOVERY_LOGS = 5_000;
-/** Cap on distinct token contracts fed to the `tokens` balance call. */
-const MAX_TOKENS = 250;
-
-/** The chifra verbs this service needs — narrowed for dependency injection. */
-type HoldingsClient = Pick<TrueblocksClient, "tokens" | "state"> & {
-  export: Pick<TrueblocksClient["export"], "logs">;
-};
-
-interface StateRow {
-  balance?: string;
+/** Deps are injected so the service is unit-testable without a DB or RPC. */
+export interface HoldingsDeps {
+  /**
+   * Sink balance rows for a holder (bare lowercase hex, no 0x). Returns `null`
+   * when the chain's sink table doesn't exist yet (not indexed), `[]` when it
+   * exists but the holder has no rows.
+   */
+  queryBalances: (chainId: number, holderBare: string) => Promise<BalanceRow[] | null>;
+  /** Native balance (wei) for a holder. */
+  nativeBalance: (chainId: number, holder: string) => Promise<bigint>;
 }
+
+/** Postgres schema substreams-sink-sql writes this chain's holdings into. */
+export function holdingsSchema(chainId: number): string {
+  return `holdings_${chainId}`;
+}
+
+const defaultDeps: HoldingsDeps = {
+  async queryBalances(chainId, holderBare) {
+    const schema = holdingsSchema(chainId);
+    try {
+      // Schema/table are sink-managed; identifier is derived from a numeric
+      // chainId (not user input), so interpolation is safe here.
+      const res = await pool.query<BalanceRow>(
+        `SELECT token, balance::text AS balance
+           FROM ${schema}.token_balance
+          WHERE holder = $1 AND balance <> 0`,
+        [holderBare],
+      );
+      return res.rows;
+    } catch {
+      // undefined_table / undefined_schema (or any read failure) → treat as
+      // not indexed yet.
+      return null;
+    }
+  },
+  async nativeBalance(chainId, holder) {
+    return getRpcClient(chainId).getBalance({ address: holder as Address });
+  },
+};
 
 export async function getHoldings(
   holder: string,
   chainId: number,
-  client: HoldingsClient = chifraClient,
-): Promise<HoldingsResult | null> {
-  const chain = getChain(chainId).chifraChain;
+  deps: HoldingsDeps = defaultDeps,
+): Promise<HoldingsResult> {
   const addr = holder.toLowerCase();
+  const bare = addr.replace(/^0x/, "");
 
   const cacheKey = `holdings:${chainId}:${addr}`;
   const cached = readCache<HoldingsResult>(cacheKey);
   if (cached) return cached;
 
-  // 1. Discover the holder's token universe from Transfer logs.
-  let logRes;
-  try {
-    logRes = await withRetry(() =>
-      client.export.logs({
-        addrs: [addr],
-        reversed: true,
-        maxRecords: MAX_DISCOVERY_LOGS,
-        chain,
-      }),
-    );
-  } catch {
-    return null;
-  }
-  const logs = (logRes.data ?? []) as { address?: string; topics?: string[] }[];
-  const allTokens = extractHeldTokens(logs, addr);
-  const truncated = logs.length >= MAX_DISCOVERY_LOGS;
-  const tokens = allTokens.slice(0, MAX_TOKENS);
+  // Touch the registry so an unsupported chain throws before any work.
+  const { nativeSymbol } = getChain(chainId);
 
-  // 2. Balances + metadata for the discovered set (skip the call when empty).
-  let holdings: Holding[] = [];
-  if (tokens.length > 0) {
-    let tokenRes;
-    try {
-      tokenRes = await withRetry(() =>
-        client.tokens({
-          addrs: [...tokens, addr],
-          parts: ["name", "symbol", "decimals"],
-          noZero: true,
-          chain,
-        }),
-      );
-    } catch {
-      return null;
-    }
-    const rows = (tokenRes.data ?? []) as Parameters<typeof mapTokenRow>[0][];
-    holdings = sortHoldings(
-      rows.map((r) => mapTokenRow(r, addr)).filter((h): h is Holding => h !== null),
-    );
-  }
+  const rows = await deps.queryBalances(chainId, bare);
+  const indexed = rows !== null;
+  const holdings: Holding[] = sortHoldings(
+    (rows ?? [])
+      .map((r) => mapBalanceRow(r, chainId))
+      .filter((h): h is Holding => h !== null),
+  );
 
-  // 3. Native balance — best-effort; a failure here yields a zero native row.
-  const native = await getNativeBalance(client, addr, chainId);
+  const native = await resolveNative(deps, chainId, addr, nativeSymbol);
 
-  const result: HoldingsResult = {
-    chainId,
-    address: addr,
-    native,
-    holdings,
-    discoveredTokens: allTokens.length,
-    truncated,
-  };
+  const result: HoldingsResult = { chainId, address: addr, native, holdings, indexed };
   writeCache(cacheKey, result);
   return result;
 }
 
-async function getNativeBalance(
-  client: HoldingsClient,
-  holder: string,
+async function resolveNative(
+  deps: HoldingsDeps,
   chainId: number,
+  holder: string,
+  symbol: string,
 ): Promise<NativeHolding> {
-  const { chifraChain, nativeSymbol } = getChain(chainId);
   let balance = "0";
   try {
-    const res = await withRetry(() =>
-      client.state({ addrs: [holder], parts: ["balance"], chain: chifraChain }),
-    );
-    const row = (res.data?.[0] ?? {}) as StateRow;
-    balance = (row.balance ?? "0").trim() || "0";
+    balance = (await deps.nativeBalance(chainId, holder)).toString();
   } catch {
-    // leave at "0" — native is non-fatal
+    // native is non-fatal — degrade to zero
   }
   let balanceFormatted = "0";
   try {
@@ -133,5 +116,5 @@ async function getNativeBalance(
   } catch {
     balance = "0";
   }
-  return { symbol: nativeSymbol, balance, balanceFormatted };
+  return { symbol, balance, balanceFormatted };
 }
