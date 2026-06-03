@@ -6,6 +6,7 @@ import type { Workspace, WorkspaceItem } from "../../lib/workspace/types";
 import { scanPath } from "../../lib/scanRoutes";
 import { WorkspaceItemRow } from "./WorkspaceItemRow";
 import { BulkPastePanel } from "./BulkPastePanel";
+import { PortfolioPanel } from "./PortfolioPanel";
 
 /**
  * One Workspace's items, listed with type icon + value + optional label. Each
@@ -72,6 +73,8 @@ export default function WorkspaceDetail() {
           }}
         />
       )}
+
+      <PortfolioPanel workspace={workspace} />
 
       <Items
         workspace={workspace}

@@ -1,0 +1,111 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
+import { renderWithProviders } from "./_test-utils";
+import { PortfolioPanel } from "../components/workspace/PortfolioPanel";
+import type { Workspace } from "../lib/workspace/types";
+import type { HoldingsResult } from "../api/portfolio";
+
+/**
+ * Tests for the workspace portfolio rollup. fetch is stubbed per-address; the
+ * panel aggregates token balances across addresses and renders native
+ * balances, with honest states for "not indexed" and "no addresses".
+ */
+
+const HEX = "0x2b591e99afe9f32eaa6214f7b7629768c40eeb39";
+const WPLS = "0xa1077a294dde1b09bb078844df40758a5d0f9a27";
+const A1 = "0x1111111111111111111111111111111111111111";
+const A2 = "0x2222222222222222222222222222222222222222";
+
+function workspace(items: { kind: "address" | "tx" | "block"; value: string }[]): Workspace {
+  return {
+    id: "w1",
+    name: "bags",
+    createdAt: 1,
+    updatedAt: 1,
+    items: items.map((it, i) => ({ id: `i${i}`, kind: it.kind, value: it.value, addedAt: 1 })),
+  };
+}
+
+function holdings(address: string, over: Partial<HoldingsResult>): HoldingsResult {
+  return {
+    chainId: 369,
+    address,
+    native: { symbol: "PLS", balance: "0", balanceFormatted: "0" },
+    holdings: [],
+    indexed: true,
+    ...over,
+  };
+}
+
+/** Stub fetch to return a holdings result keyed by the address query param. */
+function stubHoldings(byAddress: Record<string, HoldingsResult>) {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    const url = String(input);
+    const addr = new URL(url, "http://x").searchParams.get("address")!.toLowerCase();
+    const result = byAddress[addr];
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, result }),
+      text: async () => JSON.stringify({ ok: true, result }),
+    } as Response;
+  });
+}
+
+beforeEach(() => vi.restoreAllMocks());
+afterEach(() => vi.restoreAllMocks());
+
+describe("<PortfolioPanel />", () => {
+  it("renders nothing when the workspace has no address items", () => {
+    const { container } = renderWithProviders(
+      <PortfolioPanel workspace={workspace([{ kind: "tx", value: "0xabc" }])} />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("aggregates a token across addresses and counts holders", async () => {
+    stubHoldings({
+      [A1]: holdings(A1, {
+        native: { symbol: "PLS", balance: "0", balanceFormatted: "10" },
+        holdings: [
+          { tokenAddress: HEX, symbol: "HEX", name: "HEXcoin", decimals: 8, balance: "100000000", balanceFormatted: "1" },
+        ],
+      }),
+      [A2]: holdings(A2, {
+        native: { symbol: "PLS", balance: "0", balanceFormatted: "5" },
+        holdings: [
+          { tokenAddress: HEX, symbol: "HEX", name: "HEXcoin", decimals: 8, balance: "300000000", balanceFormatted: "3" },
+          { tokenAddress: WPLS, symbol: "WPLS", name: "Wrapped Pulse", decimals: 18, balance: "2000000000000000000", balanceFormatted: "2" },
+        ],
+      }),
+    });
+
+    renderWithProviders(
+      <PortfolioPanel workspace={workspace([{ kind: "address", value: A1 }, { kind: "address", value: A2 }])} />,
+    );
+
+    // HEX summed across A1 (1) + A2 (3) = 4, held by 2 addresses.
+    await waitFor(() => expect(screen.getByText("HEX")).toBeInTheDocument());
+    const hexRow = screen.getByText("HEX").closest("tr")!;
+    expect(hexRow).toHaveTextContent("4");
+    expect(hexRow).toHaveTextContent("2"); // holder count
+    // WPLS only in A2.
+    expect(screen.getByText("WPLS").closest("tr")!).toHaveTextContent("1");
+    // header reflects 2 addresses
+    expect(screen.getByText(/2 addresses/)).toBeInTheDocument();
+  });
+
+  it("shows the not-indexed note when every result is indexed:false", async () => {
+    stubHoldings({
+      [A1]: holdings(A1, { indexed: false, native: { symbol: "PLS", balance: "0", balanceFormatted: "7" } }),
+    });
+    renderWithProviders(
+      <PortfolioPanel workspace={workspace([{ kind: "address", value: A1 }])} />,
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/aren't indexed for this chain yet/i)).toBeInTheDocument(),
+    );
+    // native still shown
+    expect(screen.getByText(/7 PLS/)).toBeInTheDocument();
+  });
+});
