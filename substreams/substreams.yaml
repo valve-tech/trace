@@ -3,7 +3,7 @@ package:
   name: valve_holdings
   version: v0.1.0
   url: https://explore.valve.city
-  description: Holder balances for a curated PulseChain token set, for substreams-sink-sql.
+  description: Append-only ERC-20 transfers archive (all tokens), for substreams-sink-sql. Portfolio discovery + balances are derived downstream.
 
 imports:
   # sf.substreams.sink.database.v1.DatabaseChanges (db_out output type).
@@ -19,18 +19,14 @@ binaries:
 network: pulsechain-testnet-v4
 
 modules:
-  - name: store_balances
-    kind: store
-    updatePolicy: add
-    valueType: bigint
-    inputs:
-      - source: sf.ethereum.type.v2.Block
-
+  # Stateless map over every block: decode all ERC-20 Transfer logs into
+  # append-only `transfers` rows. No store, no curated filter — discovery and
+  # current balances are derived downstream (see src/lib.rs). initialBlock
+  # defaults to 0 (genesis); substreams parallelizes the historical range.
   - name: db_out
     kind: map
     inputs:
-      - store: store_balances
-        mode: deltas
+      - source: sf.ethereum.type.v2.Block
     output:
       type: proto:sf.substreams.sink.database.v1.DatabaseChanges
 

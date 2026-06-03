@@ -1,17 +1,14 @@
 /**
- * Per-chain curated token metadata for the portfolio tracker.
+ * Per-chain curated token metadata — an optional *label override*, not the
+ * token list. Holdings now cover all tokens: the substreams pipeline indexes
+ * every Transfer, the API discovers a wallet's tokens from that archive, and
+ * symbol/name/decimals come from on-chain reads (`balanceOf`/`decimals`/
+ * `symbol`/`name`). This registry only overrides those reads for a handful of
+ * major tokens — clean canonical labels and a decimals guard for contracts
+ * that misreport. Absence here is normal; the on-chain values are used.
  *
- * The substreams holdings indexer tracks this same curated set (see
- * `substreams/src/lib.rs`) and stores only `(token, holder) → balance`; the
- * symbol/name/decimals live here so the API can label holdings without a
- * metadata lookup. Keep the two lists in sync when extending.
- *
- * Addresses are lowercase 0x-prefixed; all metadata verified on-chain
+ * Addresses are lowercase 0x-prefixed; metadata verified on-chain
  * (decimals()/symbol()) on 2026-06-02 — note HEX is 8 decimals.
- *
- * Only chain 369 (PulseChain mainnet) has a curated set today. 943 (testnet)
- * is the substreams pipeline prototype and has no curated tokens yet, so
- * holdings there are native-only until testnet addresses are added.
  */
 
 export interface CuratedToken {

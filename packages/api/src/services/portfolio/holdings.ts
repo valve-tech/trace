@@ -1,67 +1,118 @@
-import { formatUnits, type Address } from "viem";
+import { erc20Abi, formatUnits, type Address } from "viem";
 import { pool } from "../pool.js";
 import { readCache, writeCache } from "../chifra/cache.js";
 import { getChain } from "../chains/registry.js";
 import { getRpcClient } from "../chains/clients.js";
 import {
-  mapBalanceRow,
+  mapTokenRead,
   sortHoldings,
-  type BalanceRow,
   type Holding,
   type HoldingsResult,
   type NativeHolding,
+  type TokenRead,
 } from "./transforms.js";
 
 /**
- * Portfolio holdings from the substreams sink.
+ * Portfolio holdings: all tokens a wallet holds, no curation.
  *
- * Token balances are read from the per-chain `holdings_<chainId>.token_balance`
- * table that `substreams-sink-sql` populates from the firehose (see
- * `substreams/`). Substreams streams from genesis, so once synced the table is
- * the complete, authoritative holder→token→balance set for the curated tokens
- * — no RPC enumeration, no seed-on-sight. If the schema/table doesn't exist
- * yet (sink not run for this chain), token holdings come back empty and
- * `indexed: false`, and we still return the native balance.
+ * Two stages, neither of which precomputes balances:
+ *   1. DISCOVERY — the set of tokens the holder has ever touched is a
+ *      projection of the substreams transfers archive:
+ *      `DISTINCT token WHERE sender = $holder OR recipient = $holder`
+ *      in `holdings_<chainId>.transfers`. If that table doesn't exist yet
+ *      (sink not run for this chain) discovery returns null → `indexed: false`
+ *      and we still return the native balance.
+ *   2. CURRENT BALANCE — read `balanceOf(holder)` + metadata for each
+ *      discovered token in a single multicall. balanceOf is the ground truth
+ *      (transfer-sum is wrong for rebasing / fee-on-transfer tokens), so we
+ *      never trust accumulated transfer values for the displayed amount.
  *
- * Native balance is read directly from the chain RPC (a trivial point query,
- * not an enumeration problem). Results are cached briefly per (chainId, holder).
+ * Native balance is a trivial RPC point query. Results are cached briefly per
+ * (chainId, holder).
  */
+
+/** Canonical Multicall3 — same address on every chain via the deterministic deployer. */
+const MULTICALL3: Address = "0xcA11bde05977b3631167028862bE2a173976CA11";
 
 /** Deps are injected so the service is unit-testable without a DB or RPC. */
 export interface HoldingsDeps {
   /**
-   * Sink balance rows for a holder (bare lowercase hex, no 0x). Returns `null`
-   * when the chain's sink table doesn't exist yet (not indexed), `[]` when it
-   * exists but the holder has no rows.
+   * Bare-hex (no 0x) token addresses the holder has touched. `null` when the
+   * chain's transfers archive doesn't exist yet (not indexed); `[]` when it
+   * exists but the holder appears in no transfer.
    */
-  queryBalances: (chainId: number, holderBare: string) => Promise<BalanceRow[] | null>;
+  discoverTokens: (chainId: number, holderBare: string) => Promise<string[] | null>;
+  /**
+   * On-chain reads (balanceOf + metadata) for the discovered tokens, batched.
+   * Returns one entry per token that responded to balanceOf + decimals;
+   * zero-balance filtering happens in the transform.
+   */
+  readTokens: (chainId: number, holder: string, tokens: string[]) => Promise<TokenRead[]>;
   /** Native balance (wei) for a holder. */
   nativeBalance: (chainId: number, holder: string) => Promise<bigint>;
 }
 
-/** Postgres schema substreams-sink-sql writes this chain's holdings into. */
+/** Postgres schema substreams-sink-sql writes this chain's transfers into. */
 export function holdingsSchema(chainId: number): string {
   return `holdings_${chainId}`;
 }
 
 const defaultDeps: HoldingsDeps = {
-  async queryBalances(chainId, holderBare) {
+  async discoverTokens(chainId, holderBare) {
     const schema = holdingsSchema(chainId);
     try {
       // Schema/table are sink-managed; identifier is derived from a numeric
       // chainId (not user input), so interpolation is safe here.
-      const res = await pool.query<BalanceRow>(
-        `SELECT token, balance::text AS balance
-           FROM ${schema}.token_balance
-          WHERE holder = $1 AND balance <> 0`,
+      const res = await pool.query<{ token: string }>(
+        `SELECT DISTINCT token
+           FROM ${schema}.transfers
+          WHERE sender = $1 OR recipient = $1`,
         [holderBare],
       );
-      return res.rows;
+      return res.rows.map((r) => r.token);
     } catch {
-      // undefined_table / undefined_schema (or any read failure) → treat as
-      // not indexed yet.
+      // undefined_table / undefined_schema (or any read failure) → not indexed.
       return null;
     }
+  },
+  async readTokens(chainId, holder, tokens) {
+    if (tokens.length === 0) return [];
+    const client = getRpcClient(chainId);
+    const holderAddr = holder as Address;
+    const contracts = tokens.flatMap((t) => {
+      const address = `0x${t.replace(/^0x/, "")}` as Address;
+      return [
+        { address, abi: erc20Abi, functionName: "balanceOf", args: [holderAddr] } as const,
+        { address, abi: erc20Abi, functionName: "decimals" } as const,
+        { address, abi: erc20Abi, functionName: "symbol" } as const,
+        { address, abi: erc20Abi, functionName: "name" } as const,
+      ];
+    });
+
+    const results = await client.multicall({
+      contracts,
+      allowFailure: true,
+      multicallAddress: MULTICALL3,
+    });
+
+    const reads: TokenRead[] = [];
+    tokens.forEach((token, i) => {
+      const base = i * 4;
+      const bal = results[base];
+      const dec = results[base + 1];
+      const sym = results[base + 2];
+      const nam = results[base + 3];
+      // balanceOf + decimals are required; without them we can't display.
+      if (bal?.status !== "success" || dec?.status !== "success") return;
+      reads.push({
+        token,
+        balance: bal.result as bigint,
+        decimals: Number(dec.result),
+        symbol: sym?.status === "success" ? String(sym.result) : "",
+        name: nam?.status === "success" ? String(nam.result) : "",
+      });
+    });
+    return reads;
   },
   async nativeBalance(chainId, holder) {
     return getRpcClient(chainId).getBalance({ address: holder as Address });
@@ -83,12 +134,11 @@ export async function getHoldings(
   // Touch the registry so an unsupported chain throws before any work.
   const { nativeSymbol } = getChain(chainId);
 
-  const rows = await deps.queryBalances(chainId, bare);
-  const indexed = rows !== null;
+  const tokens = await deps.discoverTokens(chainId, bare);
+  const indexed = tokens !== null;
+  const reads = tokens && tokens.length > 0 ? await deps.readTokens(chainId, addr, tokens) : [];
   const holdings: Holding[] = sortHoldings(
-    (rows ?? [])
-      .map((r) => mapBalanceRow(r, chainId))
-      .filter((h): h is Holding => h !== null),
+    reads.map((r) => mapTokenRead(r, chainId)).filter((h): h is Holding => h !== null),
   );
 
   const native = await resolveNative(deps, chainId, addr, nativeSymbol);

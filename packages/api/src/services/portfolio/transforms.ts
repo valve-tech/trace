@@ -1,11 +1,11 @@
 import { formatUnits } from "viem";
-import { curatedToken, type CuratedToken } from "./curatedTokens.js";
+import { curatedToken } from "./curatedTokens.js";
 
 /**
  * Pure transforms for portfolio holdings — no DB, no network, so they're
- * unit-testable in isolation. The service layer (`./holdings.ts`) wires these
- * to the substreams sink rows (`token_balance`) + the per-chain curated token
- * metadata.
+ * unit-testable in isolation. The service layer (`./holdings.ts`) discovers a
+ * holder's tokens from the transfers archive, reads each token's current
+ * balance + metadata on-chain (multicall), then maps the reads through here.
  */
 
 export interface Holding {
@@ -31,16 +31,24 @@ export interface HoldingsResult {
   address: string;
   native: NativeHolding;
   holdings: Holding[];
-  /** True when the substreams sink table wasn't found (not indexed yet). */
+  /** True when the transfers archive exists for this chain (discovery ran). */
   indexed: boolean;
 }
 
-/** A row from the substreams sink `token_balance` table. */
-export interface BalanceRow {
-  /** lowercase hex, no 0x (the substreams store key form). */
+/**
+ * An on-chain read for one discovered token: the current `balanceOf` plus the
+ * metadata needed to label and format it. `balanceOf`/`decimals` are required
+ * (a token that fails those is dropped upstream); `symbol`/`name` may be empty
+ * when the contract doesn't implement them or returns a non-string.
+ */
+export interface TokenRead {
+  /** lowercase hex, no 0x (the transfers-archive key form). */
   token: string;
-  /** raw integer balance as a string (Postgres numeric). */
-  balance: string;
+  /** current raw balance from balanceOf() — the ground truth. */
+  balance: bigint;
+  decimals: number;
+  symbol: string;
+  name: string;
 }
 
 /** Decimals-adjust a raw integer balance; "0" on any parse failure. */
@@ -53,26 +61,27 @@ export function formatTokenAmount(balance: string, decimals: number): string {
 }
 
 /**
- * Map a sink balance row to a `Holding`, resolving symbol/name/decimals from
- * the per-chain curated metadata. Returns null for zero balances and for
- * tokens not in the curated set (the sink only tracks curated tokens, but
- * guard anyway).
+ * Map an on-chain token read to a `Holding`. Returns null for non-positive
+ * balances. A curated registry entry (when present) overrides the on-chain
+ * symbol/name/decimals — clean labels for major tokens and a decimals guard
+ * for contracts that misreport — otherwise the on-chain values are used as-is.
  */
-export function mapBalanceRow(row: BalanceRow, chainId: number): Holding | null {
-  const balance = (row.balance ?? "0").trim();
-  if (!balance || balance === "0" || /^0+$/.test(balance)) return null;
+export function mapTokenRead(read: TokenRead, chainId: number): Holding | null {
+  if (read.balance <= 0n) return null;
 
-  const bareToken = row.token.toLowerCase().replace(/^0x/, "");
-  const meta: CuratedToken | undefined = curatedToken(chainId, bareToken);
-  if (!meta) return null;
+  const bareToken = read.token.toLowerCase().replace(/^0x/, "");
+  const override = curatedToken(chainId, bareToken);
+
+  const decimals = override?.decimals ?? read.decimals;
+  const balance = read.balance.toString();
 
   return {
-    tokenAddress: meta.address,
-    symbol: meta.symbol,
-    name: meta.name,
-    decimals: meta.decimals,
+    tokenAddress: `0x${bareToken}`,
+    symbol: override?.symbol ?? read.symbol,
+    name: override?.name ?? read.name,
+    decimals,
     balance,
-    balanceFormatted: formatTokenAmount(balance, meta.decimals),
+    balanceFormatted: formatTokenAmount(balance, decimals),
   };
 }
 
