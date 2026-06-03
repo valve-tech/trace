@@ -1,0 +1,22 @@
+{
+  "name": "@valve-tech/trace-indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Stopgap Ponder indexer: holder balances for a curated PulseChain token set. Replaced by the firehose substream (see docs/superpowers/specs/2026-06-02-portfolio-holdings-data-layer-design.md).",
+  "scripts": {
+    "dev": "ponder dev --schema indexer",
+    "start": "ponder start --schema indexer",
+    "codegen": "ponder codegen",
+    "serve": "ponder serve",
+    "db": "ponder db"
+  },
+  "dependencies": {
+    "ponder": "0.16.6",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  }
+}
