@@ -1,0 +1,19 @@
+[package]
+name = "valve-holdings-substreams"
+version = "0.1.0"
+edition = "2021"
+description = "Holder balances for a curated PulseChain token set → DatabaseChanges for substreams-sink-sql"
+
+[lib]
+name = "valve_holdings"
+crate-type = ["cdylib"]
+
+[dependencies]
+substreams = "0.7"
+substreams-ethereum = "0.11"
+substreams-database-change = "4.0"
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = "debuginfo"
