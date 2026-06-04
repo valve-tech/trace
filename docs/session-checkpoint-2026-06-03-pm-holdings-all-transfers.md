@@ -1,9 +1,11 @@
 # Session checkpoint — 2026-06-03 PM (holdings: curated store → all-transfers)
 
 Continues the portfolio holdings thread. This session **redesigned the holdings
-data model** and rewrote both the substreams package and the API consumer to
-match, all green. The live sink run is **blocked on the s2/Cloudflare edge** and
-is a **monorepo/infra task** — see the handoff at the bottom.
+data model** (curated balance store → all-transfers + `balanceOf`), rewrote the
+substreams package and the API consumer, and **verified the whole pipeline
+end-to-end on 943** (substreams → sink → 26,742 rows → `getHoldings` with live
+`balanceOf`). See the RESOLVED section for how the s2/tier blockers actually
+shook out.
 
 ## Headline
 
@@ -55,57 +57,50 @@ API unit suite: **433 passing**, `tsc` clean.
 | `packages/api/tests/unit/portfolio*.test.ts` | rewritten for the new deps |
 | `packages/sdk/{package.json,README.md}` | repo links → public `valve-tech/reth` (monorepo is private) |
 
-## s2 / token findings
+## ✅ RESOLVED — full 943 pipeline verified end-to-end
 
-- **`VALVE_KEY`** (in `monorepo/.env`) **is the substreams bearer** — auth
-  confirmed working (a `substreams run` got past auth to the stream).
-- The **s2/Cloudflare streaming blocker is NOT fixed**. `substreams run`
-  through `evm-943-substreams.valve.city` still fails:
-  `Decompressor is not installed for grpc-encoding "s2"`. Unary works,
-  streaming doesn't. **No client-side flag dodges it** — s2 is negotiated
-  server-side.
-- `s2` = a Snappy-derived gRPC compression codec the firehose server uses; the
-  compressed stream framing doesn't survive Cloudflare's edge.
+The earlier "s2/Cloudflare edge is broken, not ready" diagnosis was **wrong**.
+What actually happened, in order:
 
----
+1. **`VALVE_KEY`** (in `monorepo/.env`) is the substreams bearer — auth always
+   worked.
+2. The `Decompressor … "s2"` error was a **client version mismatch**, not the
+   edge. Substreams **v1.18.0** switched the default gRPC compression from gzip
+   to **s2**; the monorepo's `firehose-meter` (`services/firehose-meter`) only
+   registers **gzip**. A freshly-downloaded `substreams`/`substreams-sink-sql`
+   (1.18.x / 4.13.x) sends s2 → meter rejects it. Pinning to a **gzip-era**
+   build (`substreams` **1.17.11**, `substreams-sink-sql` **v4.12.0**) makes the
+   error vanish. The grpcurl/fireeth clients always worked because they don't s2.
+3. The remaining 404 was the **substreams tiers being disabled** on the fireeth
+   box (the meter is a transparent passthrough to `fireeth :10015`; "fireeth
+   itself is unchanged"). Once the tiers were enabled (the monorepo session's
+   "separate follow-up"), `sf.substreams.rpc.v2.Stream` served.
 
-## ▶ MONOREPO / INFRA HANDOFF (the next session's work — NOT trace)
+**End-to-end proof (this machine, local Postgres):** sink streamed a 200k-block
+window through `evm-943-substreams.valve.city:443` → **26,742 transfer rows**;
+`getHoldings(0xe01d7a51…, 943)` discovered the holder's **6 tokens** by `DISTINCT`
+and read live `balanceOf` (WPLS 3571, the BLOCK family, native 781 v4PLS) — none
+of them in any curated list.
 
-The substreams **package** lives in `trace/substreams` and is done. **Running**
-the sink, the **s2 edge fix**, and **deploy** are monorepo/Cloudflare/fleet
-tasks (keep-out-of-fleet: author config in `render-caddy-proxy.ts`, run on the
-box yourself).
+## RPC key convention (applied to the registry)
 
-**To get 943 prototype data flowing — pick one:**
+- Valve RPC URL = `https://evm-{chainId}-rpc.valve.city/v1/{key}/evm/{chainId}`.
+- **`vk_demo`** = public, per-IP-rate-limited → basic/one-off reads (portfolio
+  `balanceOf`, dev defaults). The chain registry now defaults to it.
+- **valve.city unlimited key** = sustained/production (the substreams stream;
+  the legacy core RPC paths via `PULSECHAIN_RPC_URL` env override). Inject via
+  env in production.
 
-1. **(preferred) Run the sink on `direct-a-evm-943`, internal, no Cloudflare:**
-   ```bash
-   export SUBSTREAMS_API_TOKEN="$VALVE_KEY"
-   DSN="psql://<user>:<pw>@localhost:5432/<db>?sslmode=disable"
-   substreams-sink-sql setup "$DSN" valve-holdings-v0.1.0.spkg     # creates `transfers`
-   substreams-sink-sql run   "$DSN" valve-holdings-v0.1.0.spkg \
-     -e 127.0.0.1:10016 --plaintext                                # internal tier → no s2/CF
-   ```
-2. **Grey-cloud / disable s2** on `evm-943-substreams.valve.city` if external
-   streaming is wanted (only needed for consumers outside the box).
+## Still TODO
 
-**API contract the sink must feed** (so holdings light up with zero API change):
-- schema `holdings_<chainId>` (per `holdingsSchema()`), table **`transfers`**:
-  `id, block_num, log_index, token, sender, recipient, value`; `token/sender/
-  recipient` are **lowercase hex, no 0x**.
-- the API does `DISTINCT token WHERE sender = $holder OR recipient = $holder`,
-  then `balanceOf` per token. Native balance is a direct RPC call.
-
-**For 369 mainnet (real target):**
-- repack the spkg with the **mainnet network** (currently
-  `network: pulsechain-testnet-v4`).
-- sink to **ClickHouse** on a dedicated box; maintain the `(holder,token)`
-  membership MV there. Wire the API's `discoverTokens` to that store.
-- genesis backfill of ~26.7M blocks is a "kick off and let it run" job; wall
-  clock depends on substreams tier2 parallelism.
+- **Genesis backfill** for real holdings (the 200k window is a recent slice, not
+  full history). On 943 it's fine to run from 0; for **369 mainnet** it's the
+  ClickHouse + `(holder,token)` MV job on a dedicated box, and the spkg needs a
+  **mainnet-network** repack (currently `pulsechain-testnet-v4`).
+- The sink belongs **on/near the firehose box** for production (sustained,
+  large) — not this laptop. The local run was a prototype validation.
 
 **Local prototype artifacts (ephemeral, NOT committed, this machine only):**
-- throwaway Postgres on `:5432` (`valvetech/valvetech`), `public.transfers`
-  + `holdings_943.transfers` view.
-- `substreams` + `substreams-sink-sql` CLIs in `~/.local/bin`.
-- runner stub + staged token in the job tmp dir.
+throwaway Postgres on `:5432` (`valvetech/valvetech`), `public.transfers`
+(26,742 rows) + `holdings_943.transfers` view; gzip-era CLIs in `~/.local/bin`
+(`substreams-sink-sql-v4.12.0`); runner + token in the job tmp dir.

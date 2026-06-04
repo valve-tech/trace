@@ -66,7 +66,10 @@ const CHAINS: Record<number, ChainConfig> = {
     nativeSymbol: "ETH",
     nativeDecimals: 18,
     chifraChain: "mainnet",
-    rpcUrl: process.env.ETH_RPC_URL || "https://eth.llamarpc.com",
+    // Default to valve's own RPC with the public, per-IP-rate-limited vk_demo
+    // key (right for basic/one-off reads like portfolio balanceOf); production
+    // overrides via env with the valve.city unlimited key.
+    rpcUrl: process.env.ETH_RPC_URL || "https://evm-1-rpc.valve.city/v1/vk_demo/evm/1",
     rethSnapshotUrl: "https://evm1-snapshot-reth.valve.city",
     substreamsEndpoint: "evm-1-substreams.valve.city",
     sourcifyEnabled: true,
@@ -82,7 +85,7 @@ const CHAINS: Record<number, ChainConfig> = {
     nativeSymbol: "PLS",
     nativeDecimals: 18,
     chifraChain: "pulsechain",
-    rpcUrl: process.env.PULSECHAIN_RPC_URL || "https://rpc.pulsechain.com",
+    rpcUrl: process.env.PULSECHAIN_RPC_URL || "https://evm-369-rpc.valve.city/v1/vk_demo/evm/369",
     debugRpcUrl: process.env.DEBUG_RPC_URL || undefined,
     rethSnapshotUrl: "https://evm369-snapshot-reth.valve.city",
     substreamsEndpoint: "evm-369-substreams.valve.city",
@@ -101,7 +104,7 @@ const CHAINS: Record<number, ChainConfig> = {
     nativeSymbol: "v4PLS",
     nativeDecimals: 18,
     chifraChain: "pulsechain-v4",
-    rpcUrl: process.env.PULSECHAIN_V4_RPC_URL || "https://rpc.v4.testnet.pulsechain.com",
+    rpcUrl: process.env.PULSECHAIN_V4_RPC_URL || "https://evm-943-rpc.valve.city/v1/vk_demo/evm/943",
     rethSnapshotUrl: "https://evm943-snapshot-reth.valve.city",
     substreamsEndpoint: "evm-943-substreams.valve.city",
     sourcifyEnabled: false,
