@@ -3,9 +3,10 @@
  *
  *   GET /api/portfolio/holdings?address=0x…&chainid=369
  *
- * Returns all token balances the holder owns — tokens discovered from the
- * substreams transfers archive, current amounts read via balanceOf — plus the
- * native balance. Service implementation lives in services/portfolio/.
+ * Returns all token balances the holder owns — current amounts from the
+ * balance_changes archive (storage-diff truth, no balanceOf), labelled with
+ * chain metadata — plus the native balance. Service implementation lives in
+ * services/portfolio/.
  */
 
 import { Router, type Request, type Response } from "express";

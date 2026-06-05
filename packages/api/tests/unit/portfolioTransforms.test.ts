@@ -3,25 +3,27 @@ import assert from "node:assert/strict";
 
 import {
   formatTokenAmount,
-  mapTokenRead,
+  mapHolding,
   sortHoldings,
+  type HeldBalance,
   type Holding,
-  type TokenRead,
+  type TokenMeta,
 } from "../../src/services/portfolio/transforms.js";
 import { curatedToken, curatedTokens } from "../../src/services/portfolio/curatedTokens.js";
 
 /**
  * Pure-transform tests for portfolio holdings — no DB, no RPC. Pins the
- * on-chain-read → Holding mapping (all tokens, curated override, zero-balance
- * drops), amount formatting, ordering, and the curated override registry.
+ * (archive balance + chain metadata) → Holding mapping (all tokens, curated
+ * override, zero-balance drops, drop-on-unresolvable-decimals), amount
+ * formatting, ordering, and the curated override registry.
  */
 
 const HEX_BARE = "2b591e99afe9f32eaa6214f7b7629768c40eeb39"; // curated 369, 8 decimals
 const WPLS_BARE = "a1077a294dde1b09bb078844df40758a5d0f9a27"; // curated 369, 18 decimals
 const RANDOM_BARE = "dead00000000000000000000000000000000beef"; // not curated
 
-const read = (over: Partial<TokenRead> & { token: string }): TokenRead => ({
-  balance: 0n,
+const held = (token: string, value: bigint): HeldBalance => ({ token, balance: value });
+const meta = (over: Partial<TokenMeta> & { token: string }): TokenMeta => ({
   decimals: 18,
   symbol: "",
   name: "",
@@ -41,10 +43,11 @@ describe("curatedTokens (override registry)", () => {
   });
 });
 
-describe("mapTokenRead", () => {
-  it("maps a read using on-chain metadata for a non-curated token", () => {
-    const h = mapTokenRead(
-      read({ token: RANDOM_BARE, balance: 5_000000000000000000n, decimals: 18, symbol: "RND", name: "Random" }),
+describe("mapHolding", () => {
+  it("combines an archive balance with chain metadata for a non-curated token", () => {
+    const h = mapHolding(
+      held(RANDOM_BARE, 5_000000000000000000n),
+      meta({ token: RANDOM_BARE, decimals: 18, symbol: "RND", name: "Random" }),
       369,
     );
     assert.ok(h);
@@ -54,10 +57,11 @@ describe("mapTokenRead", () => {
     assert.equal(h!.balanceFormatted, "5");
   });
 
-  it("a curated entry overrides on-chain metadata (label + decimals guard)", () => {
+  it("a curated entry overrides chain metadata (label + decimals guard)", () => {
     // HEX is curated as 8 decimals; even if the chain misreports 18, curated wins.
-    const h = mapTokenRead(
-      read({ token: HEX_BARE, balance: 150000000n, decimals: 18, symbol: "WRONG", name: "Wrong" }),
+    const h = mapHolding(
+      held(HEX_BARE, 150000000n),
+      meta({ token: HEX_BARE, decimals: 18, symbol: "WRONG", name: "Wrong" }),
       369,
     );
     assert.equal(h!.symbol, "HEX");
@@ -65,9 +69,21 @@ describe("mapTokenRead", () => {
     assert.equal(h!.balanceFormatted, "1.5"); // 1.5e8 at 8dp
   });
 
-  it("tolerates a 0x-prefixed token in the read", () => {
-    const h = mapTokenRead(
-      read({ token: "0x" + WPLS_BARE, balance: 2_000000000000000000n, decimals: 18, symbol: "WPLS", name: "Wrapped Pulse" }),
+  it("uses curated decimals when metadata is missing (read failed)", () => {
+    const h = mapHolding(held(HEX_BARE, 150000000n), undefined, 369);
+    assert.equal(h!.symbol, "HEX");
+    assert.equal(h!.decimals, 8);
+    assert.equal(h!.balanceFormatted, "1.5");
+  });
+
+  it("drops a non-curated token when decimals can't be resolved", () => {
+    assert.equal(mapHolding(held(RANDOM_BARE, 5n), undefined, 369), null);
+  });
+
+  it("tolerates a 0x-prefixed token in either input", () => {
+    const h = mapHolding(
+      held("0x" + WPLS_BARE, 2_000000000000000000n),
+      meta({ token: "0x" + WPLS_BARE, decimals: 18, symbol: "WPLS", name: "Wrapped Pulse" }),
       369,
     );
     assert.equal(h!.tokenAddress, "0x" + WPLS_BARE);
@@ -75,12 +91,12 @@ describe("mapTokenRead", () => {
   });
 
   it("drops non-positive balances", () => {
-    assert.equal(mapTokenRead(read({ token: HEX_BARE, balance: 0n }), 369), null);
-    assert.equal(mapTokenRead(read({ token: RANDOM_BARE, balance: -1n }), 369), null);
+    assert.equal(mapHolding(held(HEX_BARE, 0n), meta({ token: HEX_BARE, decimals: 8 }), 369), null);
+    assert.equal(mapHolding(held(RANDOM_BARE, -1n), meta({ token: RANDOM_BARE }), 369), null);
   });
 
   it("keeps non-curated tokens — all tokens, not a curated allowlist", () => {
-    const h = mapTokenRead(read({ token: RANDOM_BARE, balance: 5n, decimals: 0, symbol: "DEAD", name: "Dead" }), 943);
+    const h = mapHolding(held(RANDOM_BARE, 5n), meta({ token: RANDOM_BARE, decimals: 0, symbol: "DEAD", name: "Dead" }), 943);
     assert.ok(h);
     assert.equal(h!.symbol, "DEAD");
     assert.equal(h!.balanceFormatted, "5");

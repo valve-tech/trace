@@ -3,9 +3,11 @@ import { curatedToken } from "./curatedTokens.js";
 
 /**
  * Pure transforms for portfolio holdings — no DB, no network, so they're
- * unit-testable in isolation. The service layer (`./holdings.ts`) discovers a
- * holder's tokens from the transfers archive, reads each token's current
- * balance + metadata on-chain (multicall), then maps the reads through here.
+ * unit-testable in isolation. The service layer (`./holdings.ts`) gets each
+ * held token's current balance from the `balance_changes` archive (storage-diff
+ * truth, no `balanceOf`) and its metadata from a separate chain read, then
+ * combines the two through here. Balance and metadata come from *different*
+ * sources now, so they're modelled as distinct inputs.
  */
 
 export interface Holding {
@@ -31,21 +33,32 @@ export interface HoldingsResult {
   address: string;
   native: NativeHolding;
   holdings: Holding[];
-  /** True when the transfers archive exists for this chain (discovery ran). */
+  /** True when the balance_changes archive was queryable for this chain. */
   indexed: boolean;
 }
 
 /**
- * An on-chain read for one discovered token: the current `balanceOf` plus the
- * metadata needed to label and format it. `balanceOf`/`decimals` are required
- * (a token that fails those is dropped upstream); `symbol`/`name` may be empty
- * when the contract doesn't implement them or returns a non-string.
+ * A held token's current balance, straight from the `balance_changes` archive
+ * (`argMax(new_balance)` per `(contract, owner)`). Storage-diff truth — no
+ * `balanceOf`, correct for rebasing / fee-on-transfer tokens, and spam-immune
+ * (a token that never touches a balance slot never appears).
  */
-export interface TokenRead {
-  /** lowercase hex, no 0x (the transfers-archive key form). */
+export interface HeldBalance {
+  /** lowercase hex, no 0x (the archive key form). 0x-prefixed is tolerated. */
   token: string;
-  /** current raw balance from balanceOf() — the ground truth. */
+  /** current raw balance (smallest unit) from the archive. */
   balance: bigint;
+}
+
+/**
+ * Token display metadata, read separately from the chain (immutable, so
+ * cacheable). Decoupled from balance: the archive answers "how much," this
+ * answers "what is it." `symbol`/`name` may be empty when a contract doesn't
+ * implement them; `decimals` is required to format an amount.
+ */
+export interface TokenMeta {
+  /** lowercase hex, no 0x. 0x-prefixed is tolerated. */
+  token: string;
   decimals: number;
   symbol: string;
   name: string;
@@ -61,24 +74,37 @@ export function formatTokenAmount(balance: string, decimals: number): string {
 }
 
 /**
- * Map an on-chain token read to a `Holding`. Returns null for non-positive
- * balances. A curated registry entry (when present) overrides the on-chain
- * symbol/name/decimals — clean labels for major tokens and a decimals guard
- * for contracts that misreport — otherwise the on-chain values are used as-is.
+ * Combine an archive balance with its (optional) chain metadata into a
+ * `Holding`. Returns null when:
+ *   - the balance is non-positive (token fully exited), or
+ *   - decimals can't be resolved (no curated override *and* the metadata read
+ *     failed) — without decimals the amount can't be formatted, so we drop it
+ *     rather than display a wrong number. (Rare: most ERC-20s implement
+ *     `decimals()`. Flip to a fallback here if showing the raw balance is
+ *     preferable to omitting a token the holder provably owns.)
+ *
+ * A curated registry entry, when present, overrides the chain metadata — clean
+ * labels for major tokens and a decimals guard for contracts that misreport.
  */
-export function mapTokenRead(read: TokenRead, chainId: number): Holding | null {
-  if (read.balance <= 0n) return null;
+export function mapHolding(
+  held: HeldBalance,
+  meta: TokenMeta | undefined,
+  chainId: number,
+): Holding | null {
+  if (held.balance <= 0n) return null;
 
-  const bareToken = read.token.toLowerCase().replace(/^0x/, "");
+  const bareToken = held.token.toLowerCase().replace(/^0x/, "");
   const override = curatedToken(chainId, bareToken);
 
-  const decimals = override?.decimals ?? read.decimals;
-  const balance = read.balance.toString();
+  const decimals = override?.decimals ?? meta?.decimals;
+  if (decimals === undefined) return null;
+
+  const balance = held.balance.toString();
 
   return {
     tokenAddress: `0x${bareToken}`,
-    symbol: override?.symbol ?? read.symbol,
-    name: override?.name ?? read.name,
+    symbol: override?.symbol ?? meta?.symbol ?? "",
+    name: override?.name ?? meta?.name ?? "",
     decimals,
     balance,
     balanceFormatted: formatTokenAmount(balance, decimals),
