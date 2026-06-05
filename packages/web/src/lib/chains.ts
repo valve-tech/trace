@@ -57,3 +57,10 @@ export function chainLogoUrl(chainId: number): string {
  */
 export const ALL_CHAINS = -1;
 export type ChainSelection = number | typeof ALL_CHAINS;
+
+/**
+ * Default chain when none is specified in the URL — PulseChain mainnet, the
+ * live data source until the backend `?chainid=N` dispatcher lands. The API
+ * layer omits `chainid` for this id so default requests stay byte-identical.
+ */
+export const DEFAULT_CHAIN_ID = 369;

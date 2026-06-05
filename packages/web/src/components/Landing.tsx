@@ -26,7 +26,7 @@ export default function Landing() {
   const [chain, setChain] = useState<ChainSelection>(ALL_CHAINS);
 
   const submit = () => {
-    const route = routeForInput(query);
+    const route = routeForInput(query, chain);
     if (route) {
       setHint(false);
       navigate(route);
@@ -103,23 +103,28 @@ function HeroTile({
 }) {
   return (
     <div
-      className="lg:col-span-2 card relative overflow-hidden flex flex-col justify-between p-4"
+      className="lg:col-span-2 card relative flex flex-col justify-between p-4"
       style={{ minHeight: 240 }}
     >
-      {/* breathing accent glow, top-right */}
-      <div
-        className="glow-pulse pointer-events-none absolute"
-        style={{
-          top: -90,
-          right: -90,
-          width: 260,
-          height: 260,
-          background:
-            "radial-gradient(circle, var(--color-accent) 0%, transparent 70%)",
-        }}
-      />
-      {/* flowing pulse line, bottom edge */}
-      <PulseLine />
+      {/* Decorations live in their own clipped layer so the card itself doesn't
+          need overflow-hidden — which was clipping the ChainSelector dropdown
+          that opens below the search row. */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* breathing accent glow, top-right */}
+        <div
+          className="glow-pulse absolute"
+          style={{
+            top: -90,
+            right: -90,
+            width: 260,
+            height: 260,
+            background:
+              "radial-gradient(circle, var(--color-accent) 0%, transparent 70%)",
+          }}
+        />
+        {/* flowing pulse line, bottom edge */}
+        <PulseLine />
+      </div>
 
       <div className="relative space-y-tight">
         <div className="flex items-center gap-inline">

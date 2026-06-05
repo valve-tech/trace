@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchBlock, type BlockDetails } from "../../api/explorer";
+import { useActiveChainId } from "../../lib/activeChain";
 import TxRowActions from "./TxRowActions";
 import { formatPLS, truncateAddr } from "./format";
 import { ExplorerLink } from "./ExplorerLink";
@@ -39,6 +40,7 @@ export default function BlockView({
   const [block, setBlock] = useState<BlockDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const chainId = useActiveChainId();
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +48,7 @@ export default function BlockView({
     setError(null);
     setBlock(null);
 
-    fetchBlock(numberOrHash)
+    fetchBlock(numberOrHash, chainId)
       .then((data) => {
         if (!cancelled) setBlock(data);
       })
@@ -60,7 +62,7 @@ export default function BlockView({
     return () => {
       cancelled = true;
     };
-  }, [numberOrHash]);
+  }, [numberOrHash, chainId]);
 
   if (loading) {
     return (

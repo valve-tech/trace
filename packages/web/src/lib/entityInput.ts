@@ -5,6 +5,7 @@
  */
 
 import { scanPath } from "./scanRoutes";
+import { ALL_CHAINS, type ChainSelection } from "./chains";
 
 export const HEX_TX = /^0x[a-fA-F0-9]{64}$/;
 export const HEX_ADDR = /^0x[a-fA-F0-9]{40}$/;
@@ -24,20 +25,36 @@ export function classifyInput(raw: string): EntityInputKind | null {
   return null;
 }
 
-/** The default explorer/debugger route for a recognized input, or null. */
-export function routeForInput(raw: string): string | null {
+/**
+ * The default explorer/debugger route for a recognized input, or null. When a
+ * specific chain is selected (not "all chains"), the route carries `?chainid=N`
+ * so the destination view scopes its data to that chain; the default/all-chains
+ * case is left bare (resolves against the default chain).
+ */
+export function routeForInput(
+  raw: string,
+  chain: ChainSelection = ALL_CHAINS,
+): string | null {
   const v = raw.trim();
+  let base: string | null;
   switch (classifyInput(v)) {
     case "tx":
-      return scanPath("tx", v);
+      base = scanPath("tx", v);
+      break;
     case "address":
-      return scanPath("address", v);
+      base = scanPath("address", v);
+      break;
     case "selector":
       // Not an EIP-3091 entity; placeholder until selector lookup is wired.
-      return `/explorer?selector=${v}`;
+      base = `/explorer?selector=${v}`;
+      break;
     case "block":
-      return scanPath("block", v);
+      base = scanPath("block", v);
+      break;
     default:
-      return null;
+      base = null;
   }
+  if (base === null || chain === ALL_CHAINS) return base;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}chainid=${chain}`;
 }

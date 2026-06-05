@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchContractInfo, type ContractInfo } from "../../api/explorer";
+import { useActiveChainId } from "../../lib/activeChain";
 import { enrichEntity } from "../../lib/recentEntities";
 import {
   type AbiItem,
@@ -36,13 +37,14 @@ export default function ContractView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subTab, setSubTab] = useState<SubTab>("read");
+  const chainId = useActiveChainId();
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetchContractInfo(address)
+    fetchContractInfo(address, chainId)
       .then((data) => {
         if (!cancelled) {
           setInfo(data);
@@ -65,7 +67,7 @@ export default function ContractView({
     return () => {
       cancelled = true;
     };
-  }, [address]);
+  }, [address, chainId]);
 
   if (loading) {
     return (

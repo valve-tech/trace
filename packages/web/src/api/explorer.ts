@@ -1,6 +1,18 @@
 import { formatEther, hexToBigInt, hexToNumber } from "viem";
+import { DEFAULT_CHAIN_ID } from "../lib/chains";
 
 const API_BASE = "/api";
+
+/**
+ * Scope a request to a chain via the `?chainid=N` dispatcher param. The default
+ * chain is omitted so existing PulseChain calls stay byte-identical; an explicit
+ * non-default chain appends the param, which the backend chainid dispatcher
+ * reads once it lands (until then it degrades to the default chain).
+ */
+function scoped(url: string, chainId: number): string {
+  if (chainId === DEFAULT_CHAIN_ID) return url;
+  return url + (url.includes("?") ? "&" : "?") + `chainid=${chainId}`;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -181,8 +193,11 @@ async function apiFetch<T>(url: string): Promise<T> {
 // API functions
 // ---------------------------------------------------------------------------
 
-export async function fetchTransaction(hash: string): Promise<TransactionDetails> {
-  return apiFetch<TransactionDetails>(`${API_BASE}/tx/${hash}`);
+export async function fetchTransaction(
+  hash: string,
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<TransactionDetails> {
+  return apiFetch<TransactionDetails>(scoped(`${API_BASE}/tx/${hash}`, chainId));
 }
 
 /**
@@ -201,13 +216,16 @@ export async function fetchTransaction(hash: string): Promise<TransactionDetails
  * it. That's fine — `formatEther` is a viem helper, deterministic, and
  * already a dependency.
  */
-export async function fetchAddressInfo(address: string): Promise<AddressInfo> {
+export async function fetchAddressInfo(
+  address: string,
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<AddressInfo> {
   const [balanceRes, codeRes] = await Promise.all([
     fetch(
-      `${API_BASE}?module=account&action=balance&address=${address}`,
+      scoped(`${API_BASE}?module=account&action=balance&address=${address}`, chainId),
     ),
     fetch(
-      `${API_BASE}?module=proxy&action=eth_getCode&address=${address}&tag=latest`,
+      scoped(`${API_BASE}?module=proxy&action=eth_getCode&address=${address}&tag=latest`, chainId),
     ),
   ]);
 
@@ -258,22 +276,25 @@ export async function fetchAddressTransactions(
   address: string,
   page: number = 1,
   limit: number = 25,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<{ transactions: AddressTransaction[]; total: number }> {
   return apiFetch<{ transactions: AddressTransaction[]; total: number }>(
-    `${API_BASE}/address/${address}/txs?page=${page}&limit=${limit}`,
+    scoped(`${API_BASE}/address/${address}/txs?page=${page}&limit=${limit}`, chainId),
   );
 }
 
 export async function fetchAddressTokens(
   address: string,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<AddressToken[]> {
-  return apiFetch<AddressToken[]>(`${API_BASE}/address/${address}/tokens`);
+  return apiFetch<AddressToken[]>(scoped(`${API_BASE}/address/${address}/tokens`, chainId));
 }
 
 export async function fetchContractInfo(
   address: string,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<ContractInfo> {
-  return apiFetch<ContractInfo>(`${API_BASE}/contract/${address}`);
+  return apiFetch<ContractInfo>(scoped(`${API_BASE}/contract/${address}`, chainId));
 }
 
 // ---------------------------------------------------------------------------
@@ -345,12 +366,15 @@ interface RpcBlock {
  * receipt fan-out entirely. Per-tx `gasUsed` is `null` from now on; if a
  * future consumer needs it, fetch receipts lazily at the row level.
  */
-export async function fetchBlock(numberOrHash: string): Promise<BlockDetails> {
+export async function fetchBlock(
+  numberOrHash: string,
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<BlockDetails> {
   const url = isHash(numberOrHash)
     ? `${API_BASE}?module=proxy&action=eth_getBlockByHash&hash=${numberOrHash}&boolean=true`
     : `${API_BASE}?module=proxy&action=eth_getBlockByNumber&tag=${toBlockTag(numberOrHash)}&boolean=true`;
 
-  const res = await fetch(url);
+  const res = await fetch(scoped(url, chainId));
   if (!res.ok) {
     throw new Error(`Block lookup failed (HTTP ${res.status})`);
   }

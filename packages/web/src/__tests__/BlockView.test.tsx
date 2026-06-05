@@ -110,10 +110,11 @@ describe("<BlockView />", () => {
     const { rerender, onNavigate } = renderView({ numberOrHash: "100" });
     await screen.findByText(/12,345,678/);
 
-    expect(mockFetch).toHaveBeenCalledWith("100");
+    // Second arg is the active chain id — 369 (default) since the test URL has no ?chainid.
+    expect(mockFetch).toHaveBeenCalledWith("100", 369);
     rerender(<BlockView numberOrHash="200" onNavigate={onNavigate} />);
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith("200");
+      expect(mockFetch).toHaveBeenCalledWith("200", 369);
     });
   });
 });

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useActiveChainId } from "../../lib/activeChain";
 import {
   fetchAddressInfo,
   fetchAddressTransactions,
@@ -31,6 +32,7 @@ export default function AddressView({
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [subTab, setSubTab] = useState<AddressSubTab>("transactions");
+  const chainId = useActiveChainId();
 
   useEffect(() => {
     let cancelled = false;
@@ -38,9 +40,9 @@ export default function AddressView({
     setError(null);
 
     Promise.all([
-      fetchAddressInfo(address),
-      fetchAddressTransactions(address, 1, 25),
-      fetchAddressTokens(address),
+      fetchAddressInfo(address, chainId),
+      fetchAddressTransactions(address, 1, 25, chainId),
+      fetchAddressTokens(address, chainId),
     ])
       .then(([addrInfo, txData, tokenData]) => {
         if (!cancelled) {
@@ -60,11 +62,11 @@ export default function AddressView({
     return () => {
       cancelled = true;
     };
-  }, [address]);
+  }, [address, chainId]);
 
   const loadPage = async (newPage: number) => {
     try {
-      const data = await fetchAddressTransactions(address, newPage, 25);
+      const data = await fetchAddressTransactions(address, newPage, 25, chainId);
       setTxs(data.transactions);
       setPage(newPage);
     } catch {

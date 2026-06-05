@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { fetchTransaction, type TransactionDetails } from "../../api/explorer";
+import { useActiveChainId } from "../../lib/activeChain";
 import type { NavTarget } from "./TxDetail/primitives";
 import { OverviewSection } from "./TxDetail/OverviewSection";
 import { DecodedInputSection } from "./TxDetail/DecodedInputSection";
@@ -20,6 +21,7 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
   const [tx, setTx] = useState<TransactionDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const chainId = useActiveChainId();
 
   useEffect(() => {
     let cancelled = false;
@@ -27,7 +29,7 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
     setError(null);
     setTx(null);
 
-    fetchTransaction(hash)
+    fetchTransaction(hash, chainId)
       .then((data) => {
         if (!cancelled) setTx(data);
       })
@@ -41,7 +43,7 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
     return () => {
       cancelled = true;
     };
-  }, [hash]);
+  }, [hash, chainId]);
 
   if (loading) {
     return (
