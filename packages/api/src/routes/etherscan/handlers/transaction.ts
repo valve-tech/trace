@@ -8,16 +8,37 @@
  * status field; tooling still asks for `getstatus` to learn the revert
  * reason, and `gettxreceiptstatus` to learn the receipt bit. We back
  * both with the same `getTransactionDetails` call.
+ *
+ * Chain awareness: `getTransactionDetails` is still bound to the legacy
+ * PulseChain RPC singleton, so both actions only serve the default chain
+ * until that service accepts a chain (see services/explorer/transactionDetails.ts).
  */
 
+import {
+  DEFAULT_CHAIN_ID,
+  type ChainConfig,
+} from "../../../services/chains/registry.js";
 import { getTransactionDetails } from "../../../services/explorer.js";
+import { defaultChain } from "../chain.js";
 import {
   etherscanErr,
   etherscanOk,
+  type EtherscanErr,
   type EtherscanResponse,
 } from "../envelope.js";
 
 const TXHASH_RE = /^0x[a-fA-F0-9]{64}$/;
+
+/**
+ * Both transaction handlers share the same chain gate: the backing service
+ * can only read the default chain today.
+ */
+function unsupportedChain(chain: ChainConfig): EtherscanErr | null {
+  if (chain.chainId === DEFAULT_CHAIN_ID) return null;
+  return etherscanErr(
+    `transaction lookups not yet supported for chainId ${chain.chainId}`,
+  );
+}
 
 // ===========================================================================
 // getstatus
@@ -30,11 +51,15 @@ interface TxStatusResult {
 
 export async function getStatusAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<TxStatusResult>> {
   const hash = String(params.txhash ?? "");
   if (!TXHASH_RE.test(hash)) {
     return etherscanErr("Invalid transaction hash");
   }
+
+  const gate = unsupportedChain(chain);
+  if (gate) return gate;
 
   try {
     const tx = await getTransactionDetails(hash, { skipDecode: true });
@@ -60,11 +85,15 @@ interface TxReceiptStatusResult {
 
 export async function getTxReceiptStatusAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<TxReceiptStatusResult>> {
   const hash = String(params.txhash ?? "");
   if (!TXHASH_RE.test(hash)) {
     return etherscanErr("Invalid transaction hash");
   }
+
+  const gate = unsupportedChain(chain);
+  if (gate) return gate;
 
   try {
     const tx = await getTransactionDetails(hash, { skipDecode: true });

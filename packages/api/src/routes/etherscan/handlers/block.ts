@@ -10,10 +10,21 @@
  * fields are emitted as "0" rather than guessed. Block-by-timestamp
  * needs a dedicated BlockScout call we don't have today — returned as
  * "Not supported" so callers don't quietly receive head.
+ *
+ * Chain awareness: `getblockcountdown` reads head + ETA from the
+ * per-request chain's RPC client and `defaultBlockTimeSeconds`.
+ * `getblockreward` delegates to `getBlockDetails`, which is still bound to
+ * the legacy PulseChain singleton, so it only serves the default chain
+ * until that service accepts a chain (see services/explorer/blocks.ts).
  */
 
-import { publicClient } from "../../../services/rpc.js";
+import { getRpcClient } from "../../../services/chains/clients.js";
+import {
+  DEFAULT_CHAIN_ID,
+  type ChainConfig,
+} from "../../../services/chains/registry.js";
 import { getBlockDetails } from "../../../services/explorer.js";
+import { defaultChain } from "../chain.js";
 import {
   etherscanErr,
   etherscanOk,
@@ -22,9 +33,6 @@ import {
 
 const BLOCKNO_RE = /^[0-9]+$/;
 const TIMESTAMP_RE = /^[0-9]+$/;
-
-/** PulseChain target block time; used for countdown ETA. */
-const PULSECHAIN_BLOCK_SECONDS = 10;
 
 // ===========================================================================
 // getblockreward
@@ -41,10 +49,19 @@ interface BlockRewardResult {
 
 export async function getBlockRewardAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<BlockRewardResult>> {
   const blockno = String(params.blockno ?? "");
   if (!BLOCKNO_RE.test(blockno)) {
     return etherscanErr("Invalid block number");
+  }
+
+  // `getBlockDetails` still reads the legacy PulseChain singleton; serving
+  // another chain's block through it would silently return wrong-chain data.
+  if (chain.chainId !== DEFAULT_CHAIN_ID) {
+    return etherscanErr(
+      `getblockreward not yet supported for chainId ${chain.chainId}`,
+    );
   }
 
   try {
@@ -77,6 +94,7 @@ interface BlockCountdownResult {
 
 export async function getBlockCountdownAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<BlockCountdownResult>> {
   const blocknoStr = String(params.blockno ?? "");
   if (!BLOCKNO_RE.test(blocknoStr)) {
@@ -86,7 +104,7 @@ export async function getBlockCountdownAction(
   const target = BigInt(blocknoStr);
   let head: bigint;
   try {
-    head = await publicClient.getBlockNumber();
+    head = await getRpcClient(chain.chainId).getBlockNumber();
   } catch {
     return etherscanErr("Upstream temporarily unavailable");
   }
@@ -99,7 +117,7 @@ export async function getBlockCountdownAction(
   }
 
   const remaining = target - head;
-  const eta = remaining * BigInt(PULSECHAIN_BLOCK_SECONDS);
+  const eta = remaining * BigInt(chain.defaultBlockTimeSeconds);
 
   return etherscanOk({
     CurrentBlock: head.toString(),
@@ -120,7 +138,9 @@ export async function getBlockCountdownAction(
  */
 export async function getBlockNoByTimeAction(
   params: Record<string, unknown>,
+  _chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<string>> {
+  void _chain;
   const timestamp = String(params.timestamp ?? "");
   if (!TIMESTAMP_RE.test(timestamp)) {
     return etherscanErr("Invalid timestamp");

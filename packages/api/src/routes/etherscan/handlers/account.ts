@@ -11,12 +11,22 @@
  * (ethers, web3.py, hardhat) read `blockNumber`, `timeStamp`, `txreceipt_status`,
  * etc. by name. Our internal `AddressTransaction` shape uses similar but
  * not identical fields, so we map explicitly rather than spread.
+ *
+ * Chain awareness: native balance reads (`balance`, `balancemulti`) go
+ * through the per-request chain's RPC client (`getRpcClient`). `txlist`
+ * delegates to `getAddressTransactions`, which is still bound to the legacy
+ * PulseChain BlockScout singleton, so it only serves the default chain
+ * until that service takes a chain (see services/explorer/addresses.ts).
  */
 
+import { type Address } from "viem";
+import { getRpcClient } from "../../../services/chains/clients.js";
 import {
-  getAddressBalance,
-  getAddressTransactions,
-} from "../../../services/explorer.js";
+  DEFAULT_CHAIN_ID,
+  type ChainConfig,
+} from "../../../services/chains/registry.js";
+import { getAddressTransactions } from "../../../services/explorer.js";
+import { defaultChain } from "../chain.js";
 import {
   etherscanErr,
   etherscanOk,
@@ -34,6 +44,7 @@ const BALANCEMULTI_MAX = 20;
 
 export async function balanceAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<string>> {
   const address = String(params.address ?? "");
   if (!ADDRESS_RE.test(address)) {
@@ -41,8 +52,10 @@ export async function balanceAction(
   }
 
   try {
-    const { balance } = await getAddressBalance(address);
-    return etherscanOk(balance);
+    const balance = await getRpcClient(chain.chainId).getBalance({
+      address: address as Address,
+    });
+    return etherscanOk(balance.toString());
   } catch {
     return etherscanErr("Upstream temporarily unavailable");
   }
@@ -59,6 +72,7 @@ interface BalanceEntry {
 
 export async function balanceMultiAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<BalanceEntry[]>> {
   const raw = String(params.address ?? "");
   if (!raw) {
@@ -85,10 +99,13 @@ export async function balanceMultiAction(
   }
 
   try {
+    const client = getRpcClient(chain.chainId);
     const results = await Promise.all(
       addresses.map(async (account) => {
-        const { balance } = await getAddressBalance(account);
-        return { account, balance };
+        const balance = await client.getBalance({
+          address: account as Address,
+        });
+        return { account, balance: balance.toString() };
       }),
     );
     return etherscanOk(results);
@@ -129,10 +146,19 @@ function parsePositiveInt(value: unknown, fallback: number): number {
 
 export async function txListAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<EtherscanTxRecord[]>> {
   const address = String(params.address ?? "");
   if (!ADDRESS_RE.test(address)) {
     return etherscanErr("Invalid Address format");
+  }
+
+  // `getAddressTransactions` still reads the legacy PulseChain BlockScout
+  // singleton; serving another chain through it would return wrong-chain txs.
+  if (chain.chainId !== DEFAULT_CHAIN_ID) {
+    return etherscanErr(
+      `txlist not yet supported for chainId ${chain.chainId}`,
+    );
   }
 
   // Etherscan pagination semantics: `page` is 1-based, `offset` is page size.
@@ -192,7 +218,9 @@ export async function txListAction(
  */
 export async function tokenTxAction(
   params: Record<string, unknown>,
+  _chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<never[]>> {
+  void _chain;
   const address = String(params.address ?? "");
   if (!ADDRESS_RE.test(address)) {
     return etherscanErr("Invalid Address format");

@@ -15,6 +15,8 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { publicClient } from "../../src/services/rpc.js";
+import { getRpcClient } from "../../src/services/chains/clients.js";
+import { DEFAULT_CHAIN_ID } from "../../src/services/chains/registry.js";
 import {
   getBlockRewardAction,
   getBlockCountdownAction,
@@ -22,7 +24,7 @@ import {
 } from "../../src/routes/etherscan/handlers/block.js";
 
 // ---------------------------------------------------------------------------
-// High-level method stubs for publicClient
+// High-level method stubs
 // ---------------------------------------------------------------------------
 
 type AnyFn = (...args: unknown[]) => unknown;
@@ -31,8 +33,31 @@ interface Restorable {
   restore: () => void;
 }
 
+/**
+ * `getblockreward` still reads through `getBlockDetails`, which is bound to
+ * the legacy rpc.js `publicClient` singleton — stub there.
+ */
 function patchMethod(key: string, impl: AnyFn): Restorable {
   const client = publicClient as unknown as Record<string, AnyFn>;
+  const original = client[key];
+  client[key] = impl;
+  return {
+    restore: () => {
+      client[key] = original;
+    },
+  };
+}
+
+/**
+ * `getblockcountdown` resolves its client via `getRpcClient(chainId)`. With
+ * no chain passed it falls back to the registry default (PulseChain 369), so
+ * stub that client's high-level methods.
+ */
+function patchChainMethod(key: string, impl: AnyFn): Restorable {
+  const client = getRpcClient(DEFAULT_CHAIN_ID) as unknown as Record<
+    string,
+    AnyFn
+  >;
   const original = client[key];
   client[key] = impl;
   return {
@@ -175,7 +200,7 @@ describe("etherscan block.getblockcountdown — happy path", () => {
     const HEAD = BigInt(20_000_000);
     const TARGET = "20000100";
 
-    patch = patchMethod("getBlockNumber", () => Promise.resolve(HEAD));
+    patch = patchChainMethod("getBlockNumber", () => Promise.resolve(HEAD));
 
     const res = await getBlockCountdownAction({ blockno: TARGET });
     assert.equal(res.status, "1");
@@ -189,7 +214,7 @@ describe("etherscan block.getblockcountdown — happy path", () => {
 
   it("target === head → returns etherscanErr 'Block number already pass'", async () => {
     const HEAD = BigInt(20_000_000);
-    patch = patchMethod("getBlockNumber", () => Promise.resolve(HEAD));
+    patch = patchChainMethod("getBlockNumber", () => Promise.resolve(HEAD));
 
     const res = await getBlockCountdownAction({ blockno: HEAD.toString() });
     assert.equal(res.status, "0");
@@ -198,7 +223,7 @@ describe("etherscan block.getblockcountdown — happy path", () => {
 
   it("target < head → returns etherscanErr 'Block number already pass'", async () => {
     const HEAD = BigInt(20_000_100);
-    patch = patchMethod("getBlockNumber", () => Promise.resolve(HEAD));
+    patch = patchChainMethod("getBlockNumber", () => Promise.resolve(HEAD));
 
     const res = await getBlockCountdownAction({ blockno: "20000000" });
     assert.equal(res.status, "0");
@@ -207,7 +232,7 @@ describe("etherscan block.getblockcountdown — happy path", () => {
 
   it("remaining=1 → EstimateTimeInSec='10'", async () => {
     const HEAD = BigInt(999);
-    patch = patchMethod("getBlockNumber", () => Promise.resolve(HEAD));
+    patch = patchChainMethod("getBlockNumber", () => Promise.resolve(HEAD));
 
     const res = await getBlockCountdownAction({ blockno: "1000" });
     assert.equal(res.status, "1");
@@ -218,7 +243,7 @@ describe("etherscan block.getblockcountdown — happy path", () => {
   });
 
   it("getBlockNumber throw → etherscanErr 'Upstream temporarily unavailable'", async () => {
-    patch = patchMethod("getBlockNumber", () =>
+    patch = patchChainMethod("getBlockNumber", () =>
       Promise.reject(new Error("RPC down")),
     );
     const res = await getBlockCountdownAction({ blockno: "99999999" });

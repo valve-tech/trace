@@ -4,7 +4,8 @@ import {
   jsonRpcErr,
   jsonRpcOk,
 } from "../../src/routes/etherscan/envelope.js";
-import { publicClient } from "../../src/services/rpc.js";
+import { getRpcClient } from "../../src/services/chains/clients.js";
+import { DEFAULT_CHAIN_ID } from "../../src/services/chains/registry.js";
 import {
   ethBlockNumberAction,
   ethCallAction,
@@ -20,13 +21,16 @@ interface ClientWithRequest {
   request: (args: { method: string; params?: unknown }) => Promise<unknown>;
 }
 
+/**
+ * Proxy actions resolve their client via `getRpcClient(chainId)`. With no
+ * chain passed they fall back to the registry default (PulseChain 369), so
+ * patching that client's `request` is what intercepts the forwarded call.
+ */
 function patchRequest(impl: (call: RpcCall) => Promise<unknown> | unknown) {
-  const original = (publicClient as unknown as ClientWithRequest).request;
+  const client = getRpcClient(DEFAULT_CHAIN_ID) as unknown as ClientWithRequest;
+  const original = client.request;
   const calls: RpcCall[] = [];
-  (publicClient as unknown as ClientWithRequest).request = async ({
-    method,
-    params,
-  }) => {
+  client.request = async ({ method, params }) => {
     const call: RpcCall = { method, params };
     calls.push(call);
     return impl(call);
@@ -34,7 +38,7 @@ function patchRequest(impl: (call: RpcCall) => Promise<unknown> | unknown) {
   return {
     calls,
     restore: () => {
-      (publicClient as unknown as ClientWithRequest).request = original;
+      client.request = original;
     },
   };
 }

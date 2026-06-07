@@ -12,11 +12,16 @@
  */
 
 import {
+  DEFAULT_CHAIN_ID,
+  type ChainConfig,
+} from "../../../services/chains/registry.js";
+import {
   getVerifiedSource,
   submitToSourcify,
   UpstreamError,
   type VerifiedSource,
 } from "../../../services/sourceCode.js";
+import { defaultChain } from "../chain.js";
 import {
   etherscanErr,
   etherscanOk,
@@ -28,9 +33,6 @@ import {
 } from "../verifyShim.js";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
-
-/** PulseChain mainnet — only chain we currently support. */
-const PULSECHAIN_ID = 369;
 
 // ===========================================================================
 // getsourcecode
@@ -124,10 +126,19 @@ function emptyContractRecord(): EtherscanContractRecord {
 
 export async function getSourceCodeAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<EtherscanContractRecord[]>> {
   const address = String(params.address ?? "");
   if (!ADDRESS_RE.test(address)) {
     return etherscanErr("Invalid Address format");
+  }
+
+  // `getVerifiedSource` still reads the legacy PulseChain BlockScout/Sourcify
+  // singletons; serving another chain through it would return wrong-chain data.
+  if (chain.chainId !== DEFAULT_CHAIN_ID) {
+    return etherscanErr(
+      `getsourcecode not yet supported for chainId ${chain.chainId}`,
+    );
   }
 
   let source: VerifiedSource | null;
@@ -155,10 +166,18 @@ export async function getSourceCodeAction(
 
 export async function getAbiAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<string>> {
   const address = String(params.address ?? "");
   if (!ADDRESS_RE.test(address)) {
     return etherscanErr("Invalid Address format");
+  }
+
+  if (chain.chainId !== DEFAULT_CHAIN_ID) {
+    return etherscanErr(
+      `getabi not yet supported for chainId ${chain.chainId}`,
+      "NOTOK",
+    );
   }
 
   let source: VerifiedSource | null;
@@ -196,12 +215,20 @@ export async function getAbiAction(
  */
 export async function verifySourceCodeAction(
   params: Record<string, unknown>,
+  chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<string>> {
   const address = String(
     params.contractaddress ?? params.address ?? "",
   );
   if (!ADDRESS_RE.test(address)) {
     return etherscanErr("Invalid Address format");
+  }
+
+  // Sourcify can only verify on chains it indexes; the registry flags this.
+  if (!chain.sourcifyEnabled) {
+    return etherscanErr(
+      `Source verification not available for chainId ${chain.chainId}`,
+    );
   }
 
   const codeformat = String(params.codeformat ?? "");
@@ -262,7 +289,7 @@ export async function verifySourceCodeAction(
   try {
     result = await submitToSourcify({
       address,
-      chainId: PULSECHAIN_ID,
+      chainId: chain.chainId,
       files,
     });
   } catch (err) {
@@ -286,7 +313,9 @@ export async function verifySourceCodeAction(
 
 export async function checkVerifyStatusAction(
   params: Record<string, unknown>,
+  _chain: ChainConfig = defaultChain(),
 ): Promise<EtherscanResponse<string>> {
+  void _chain;
   const guid = String(params.guid ?? "");
   if (!guid) return etherscanErr("Missing guid");
 

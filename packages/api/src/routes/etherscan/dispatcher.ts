@@ -13,14 +13,22 @@
  * params in the body for write actions.
  *
  * To add a new action: register it in `handlers[module][action]`. Each
- * handler receives the merged params map and returns an Etherscan
- * envelope — no Express coupling, no res.json calls inline. This keeps
- * the dispatcher trivial and lets handlers be tested as pure functions.
+ * handler receives the merged params map plus the resolved per-request
+ * `ChainConfig` and returns an Etherscan envelope — no Express coupling,
+ * no res.json calls inline. This keeps the dispatcher trivial and lets
+ * handlers be tested as pure functions.
+ *
+ * The chain comes from a `chainid` param resolved once at this boundary
+ * (see ./chain.ts). Requests that omit it default to PulseChain (369),
+ * preserving the legacy single-chain behavior exactly; unsupported or
+ * malformed ids are rejected here with an Etherscan error envelope.
  */
 
 import type { Request, Response } from "express";
+import type { ChainConfig } from "../../services/chains/registry.js";
 import type { EtherscanResponse, JsonRpcResponse } from "./envelope.js";
 import { etherscanErr } from "./envelope.js";
+import { resolveChain } from "./chain.js";
 import {
   checkVerifyStatusAction,
   getAbiAction,
@@ -52,6 +60,7 @@ import { proxyActions } from "./handlers/proxy.js";
  */
 type Handler = (
   params: Record<string, unknown>,
+  chain: ChainConfig,
 ) => Promise<EtherscanResponse | JsonRpcResponse>;
 
 const handlers: Record<string, Record<string, Handler>> = {
@@ -103,6 +112,15 @@ export async function handleEtherscan(
     return;
   }
 
-  const result = await handler(params);
+  // Resolve the target chain once, before dispatching. Bad `chainid` is a
+  // client error and short-circuits with the Etherscan error envelope so
+  // handlers only ever see a valid, supported ChainConfig.
+  const resolved = resolveChain(params);
+  if (!resolved.ok) {
+    res.json(resolved.error);
+    return;
+  }
+
+  const result = await handler(params, resolved.chain);
   res.json(result);
 }
