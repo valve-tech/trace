@@ -44,7 +44,7 @@ export default function ContractDiff() {
   }, []);
 
   return (
-    <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
+    <div className="max-w-[1200px] mx-auto">
       <InputCard
         addressA={addressA}
         setAddressA={setAddressA}

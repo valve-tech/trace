@@ -24,7 +24,7 @@ const DRAFTS = [
 
 function Index() {
   return (
-    <div className="px-8 py-10 max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <div className="mb-10">
         <div
           className="text-xs uppercase tracking-widest mb-2 theme-text-muted"

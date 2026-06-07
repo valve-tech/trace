@@ -15,7 +15,7 @@ export default function WorkspaceList() {
   const [creating, setCreating] = useState(false);
 
   return (
-    <div className="p-4 max-w-5xl">
+    <div className="max-w-5xl">
       <Header onNew={() => setCreating(true)} />
 
       {creating && (

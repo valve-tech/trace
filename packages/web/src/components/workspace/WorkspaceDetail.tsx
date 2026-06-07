@@ -26,14 +26,14 @@ export default function WorkspaceDetail() {
   const [bulkOpen, setBulkOpen] = useState(false);
 
   if (isLoading) {
-    return <div className="p-4 text-sm theme-text-muted">Loading…</div>;
+    return <div className="text-sm theme-text-muted">Loading…</div>;
   }
   if (!workspace) {
     return <NotFound />;
   }
 
   return (
-    <div className="p-4 max-w-5xl">
+    <div className="max-w-5xl">
       <Link to="/workspace" className="text-xs flex items-center gap-1.5 mb-4 theme-text-muted">
         <Icon icon="heroicons:chevron-left" className="w-3 h-3" />
         All workspaces
