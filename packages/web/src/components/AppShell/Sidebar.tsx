@@ -1,0 +1,162 @@
+import { NavLink } from "react-router-dom";
+import { Icon } from "@iconify/react";
+import { NAV_GROUPS } from "../../lib/navGroups";
+
+export function Sidebar({ collapsed }: { collapsed: boolean }) {
+  return (
+    <aside
+      className="flex flex-col transition-[width] duration-150 shrink-0 theme-secondary-bg bs-r"
+      style={{
+        width: collapsed ? 56 : 240,
+      }}
+    >
+      <nav className="flex-1 overflow-y-auto py-4">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="mb-4">
+            {/* Fixed-height header slot: holds the label (expanded) or a
+                centered divider (collapsed). Same height either way, so the
+                icon rows below land at the same Y and don't jump on toggle. */}
+            <div className="h-7 flex items-center px-3">
+              {collapsed ? (
+                <div className="flex-1 h-px theme-border-bg-muted" />
+              ) : (
+                <div
+                  className="flex items-center gap-tight px-1 text-[10px] uppercase tracking-widest font-semibold theme-text-muted"
+                >
+                  <span>{group.label}</span>
+                  <span className="group/info relative inline-flex items-center">
+                    <button
+                      type="button"
+                      aria-label={`${group.label}: ${group.hint}`}
+                      className="opacity-50 hover:opacity-100 transition-opacity"
+                    >
+                      <Icon icon="heroicons:information-circle" className="w-3 h-3" />
+                    </button>
+                    <span
+                      role="tooltip"
+                      className="card pointer-events-none absolute top-full left-0 mt-1 z-50 hidden group-hover/info:block w-44 px-2 py-1.5 text-[11px] leading-snug normal-case tracking-normal font-normal theme-card-bg theme-text-secondary"
+                    >
+                      {group.hint}
+                    </span>
+                  </span>
+                </div>
+              )}
+            </div>
+            {group.items.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                title={collapsed ? item.label : undefined}
+                className="flex items-center transition-colors overflow-hidden"
+                style={({ isActive }) =>
+                  collapsed
+                    ? {
+                        width: 40,
+                        height: 36,
+                        marginLeft: "auto",
+                        marginRight: "auto",
+                        justifyContent: "center",
+                        backgroundColor: isActive
+                          ? "var(--color-accent-muted)"
+                          : "transparent",
+                        color: isActive
+                          ? "var(--color-accent)"
+                          : "var(--color-text-secondary)",
+                        textDecoration: "none",
+                      }
+                    : {
+                        width: "100%",
+                        gap: 10,
+                        paddingLeft: 16,
+                        paddingRight: 16,
+                        paddingTop: 8,
+                        paddingBottom: 8,
+                        backgroundColor: isActive
+                          ? "var(--color-accent-muted)"
+                          : "transparent",
+                        color: isActive
+                          ? "var(--color-accent)"
+                          : "var(--color-text-secondary)",
+                        boxShadow: isActive
+                          ? "inset 2px 0 0 0 var(--color-accent)"
+                          : "inset 2px 0 0 0 transparent",
+                        textDecoration: "none",
+                      }
+                }
+              >
+                <Icon icon={item.icon} className="w-5 h-5 shrink-0" />
+                {!collapsed && (
+                  <span className="text-sm whitespace-nowrap">{item.label}</span>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      <div
+        className="py-2 flex items-center theme-text-muted bs-t-muted"
+        style={{
+          paddingLeft: collapsed ? 0 : 12,
+          paddingRight: collapsed ? 0 : 12,
+          gap: collapsed ? 0 : 8,
+          justifyContent: collapsed ? "center" : "flex-start",
+        }}
+      >
+        <NavLink
+          to="/settings"
+          title={collapsed ? "Settings" : undefined}
+          className="flex items-center transition-colors"
+          style={({ isActive }) =>
+            collapsed
+              ? {
+                  width: 40,
+                  height: 40,
+                  justifyContent: "center",
+                  color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
+                  textDecoration: "none",
+                }
+              : {
+                  flex: 1,
+                  gap: 8,
+                  paddingLeft: 8,
+                  paddingRight: 8,
+                  paddingTop: 6,
+                  paddingBottom: 6,
+                  fontSize: 12,
+                  color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
+                  textDecoration: "none",
+                }
+          }
+        >
+          <Icon icon="heroicons:cog-6-tooth" className="w-5 h-5 shrink-0" />
+          {!collapsed && <span>Settings</span>}
+        </NavLink>
+        {!collapsed && (
+          <>
+            <NavLink
+              to="/ui"
+              className="text-[10px] uppercase tracking-widest"
+              style={({ isActive }) => ({
+                color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
+                textDecoration: "none",
+              })}
+            >
+              UI ✶
+            </NavLink>
+            <NavLink
+              to="/drafts"
+              className="text-[10px] uppercase tracking-widest"
+              style={({ isActive }) => ({
+                color: isActive ? "var(--color-accent)" : "var(--color-text-muted)",
+                textDecoration: "none",
+              })}
+            >
+              Drafts ✶
+            </NavLink>
+          </>
+        )}
+      </div>
+    </aside>
+  );
+}
