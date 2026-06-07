@@ -5,6 +5,7 @@ import { WalletConnectButton } from "../wallet/WalletConnectButton";
 import { WorkspaceSyncStatus } from "../wallet/WorkspaceSyncStatus";
 import { WorkspaceSyncAutoPush } from "../wallet/WorkspaceSyncAutoPush";
 import { PulseLogo } from "./PulseLogo";
+import { ValveLogo } from "./ValveLogo";
 import type { SidebarIntent } from "./useSidebarState";
 import type { ApiStatus } from "./types";
 
@@ -84,9 +85,9 @@ export function TopBar({
           Explore
         </h1>
         <span
-          className="text-[10px] uppercase tracking-wider px-2 py-0.5 font-semibold hidden md:inline theme-text-muted"
+          className="text-[10px] uppercase tracking-wider px-2 py-0.5 font-semibold hidden md:inline-flex items-center gap-1 theme-text-muted"
         >
-          by Valve City
+          by <ValveLogo className="w-3.5 h-3.5" />
         </span>
       </div>
 
