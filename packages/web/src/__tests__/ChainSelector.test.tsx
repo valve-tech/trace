@@ -27,7 +27,7 @@ describe("<ChainSelector />", () => {
     expect(screen.getAllByText("All chains").length).toBeGreaterThan(0);
     expect(screen.getByText("Ethereum")).toBeInTheDocument();
     expect(screen.getByText("PulseChain")).toBeInTheDocument();
-    expect(screen.getByText("PulseChain Testnet")).toBeInTheDocument();
+    expect(screen.getByText("PulseChain Testnet v4")).toBeInTheDocument();
   });
 
   it("clicking a chain row calls onChange with that chain's id", () => {

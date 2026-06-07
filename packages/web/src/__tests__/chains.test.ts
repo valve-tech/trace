@@ -32,6 +32,19 @@ describe("CHAINS registry", () => {
     const slugs = new Set(CHAINS.map((c) => c.slug));
     expect(slugs.size).toBe(CHAINS.length);
   });
+
+  it("943 matches the canonical PulseChain V4 values (viem + backend registry)", () => {
+    // Reconciled with viem's pulsechainV4 definition (name "PulseChain V4",
+    // nativeCurrency.symbol "v4PLS") and the backend chains registry, which is
+    // authoritative. slug stays "pulsechain-testnet" to match the backend's
+    // route-prefix field (explorerSlug); chifraChain ("pulsechain-v4") is a
+    // separate TrueBlocks daemon param, not the UI route slug.
+    const v4 = chainById(943);
+    expect(v4?.name).toBe("PulseChain Testnet v4");
+    expect(v4?.symbol).toBe("v4PLS");
+    expect(v4?.slug).toBe("pulsechain-testnet");
+    expect(v4?.testnet).toBe(true);
+  });
 });
 
 describe("chainById", () => {

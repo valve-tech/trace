@@ -30,9 +30,9 @@ export const CHAINS: ChainInfo[] = [
   { id: 369, name: "PulseChain", slug: "pulsechain", symbol: "PLS", testnet: false },
   {
     id: 943,
-    name: "PulseChain Testnet",
+    name: "PulseChain Testnet v4",
     slug: "pulsechain-testnet",
-    symbol: "tPLS",
+    symbol: "v4PLS",
     testnet: true,
   },
 ];
