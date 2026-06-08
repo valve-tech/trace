@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { useAlertWebSocket, type AlertEvent } from "./hooks/useAlertWebSocket";
 import AlertToast from "./components/AlertToast";
+import ErrorBoundary from "./components/ErrorBoundary";
 import AppShell from "./components/AppShell";
 import Landing from "./components/Landing";
 import ComponentGallery from "./components/gallery/ComponentGallery";
@@ -28,6 +29,7 @@ export default function App() {
   const [apiStatus, setApiStatus] = useState<"connected" | "disconnected" | "checking">("checking");
 
   const { lastAlert } = useAlertWebSocket();
+  const location = useLocation();
   const [appToast, setAppToast] = useState<AlertEvent | null>(null);
   const appToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLastAlertRef = useRef<AlertEvent | null>(null);
@@ -82,6 +84,7 @@ export default function App() {
       )}
 
       <AppShell apiStatus={apiStatus}>
+        <ErrorBoundary resetKey={location.pathname}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/simulate" element={<SimulationPage />} />
@@ -111,6 +114,7 @@ export default function App() {
           <Route path="/workspace" element={<WorkspaceList />} />
           <Route path="/workspace/:id" element={<WorkspaceDetail />} />
         </Routes>
+        </ErrorBoundary>
       </AppShell>
     </div>
   );

@@ -116,7 +116,10 @@ export default function SimulationResultPanel({
         </div>
 
         <div>
-          <DataRow label="Gas Used" value={BigInt(result.gasUsed).toLocaleString()} />
+          <DataRow
+            label="Gas Estimate"
+            value={result.gasEstimate != null ? BigInt(result.gasEstimate).toLocaleString() : "—"}
+          />
 
           {result.returnData && result.returnData !== "0x" && (
             <DataRow label="Return Data (raw)" value={result.returnData} mono />

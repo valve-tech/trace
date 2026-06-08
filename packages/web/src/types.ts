@@ -40,12 +40,19 @@ export interface DecodedReturn {
   values: DecodedParam[];
 }
 
-/** Result of a single simulation */
+/**
+ * Result of a single simulation. Mirrors the API's `/api/simulate` payload
+ * (services/simulator/simulateTransaction.ts → routes/simulate.ts): the gas
+ * field is `gasEstimate` (a string, or `null` when the call reverts before a
+ * gas figure is available), NOT `gasUsed`. Consumers must null-guard it before
+ * `BigInt(...)`.
+ */
 export interface SimulationResult {
   success: boolean;
-  gasUsed: string;
-  returnData: string;
-  revertReason?: string;
+  gasEstimate: string | null;
+  returnData: string | null;
+  revertReason?: string | null;
+  error?: string | null;
   decodedCall?: DecodedCall;
   decodedReturn?: DecodedReturn;
   logs?: SimulationLog[];

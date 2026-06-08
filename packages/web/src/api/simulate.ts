@@ -67,7 +67,11 @@ export async function simulateTransaction(
     throw new Error(`Simulation failed: ${message}`);
   }
 
-  return (await response.json()) as SimulationResult;
+  // API envelope is `{ ok: true, result: {...} }` (lib/respond.ts → routes/
+  // simulate.ts). Unwrap `.result` — returning the raw envelope leaves
+  // `success`/`gasEstimate` undefined on the consumer and crashes the panel.
+  const json = (await response.json()) as { result: SimulationResult };
+  return json.result;
 }
 
 export async function simulateBundle(

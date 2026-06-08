@@ -36,10 +36,10 @@ export function BundleResultCard({
 
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="theme-text-secondary">Gas Used</span>
+          <span className="theme-text-secondary">Gas Estimate</span>
           <span className="theme-mono theme-text"
           >
-            {BigInt(result.gasUsed).toLocaleString()}
+            {result.gasEstimate != null ? BigInt(result.gasEstimate).toLocaleString() : "—"}
           </span>
         </div>
 

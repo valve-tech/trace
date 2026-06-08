@@ -67,7 +67,10 @@ export function EmptyPanel() {
 export function SummaryBar({ results }: { results: SimulationResult[] }) {
   const succeeded = results.filter((r) => r.success).length;
   const reverted = results.length - succeeded;
-  const totalGas = results.reduce((sum, r) => sum + BigInt(r.gasUsed), 0n);
+  const totalGas = results.reduce(
+    (sum, r) => sum + (r.gasEstimate != null ? BigInt(r.gasEstimate) : 0n),
+    0n,
+  );
 
   return (
     <div
