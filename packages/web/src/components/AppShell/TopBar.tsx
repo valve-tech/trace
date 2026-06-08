@@ -79,16 +79,22 @@ export function TopBar({
 
       <div className="flex items-center gap-inline px-4 shrink-0">
         <ExploreLogo className="w-7 h-7 theme-text" />
-        <h1
-          className="text-sm font-semibold hidden md:block theme-text"
-        >
-          Explore
-        </h1>
-        <span
-          className="text-xs uppercase tracking-wider px-2 py-0.5 font-semibold hidden md:inline-flex items-center gap-1 theme-text-muted"
-        >
-          by <ValveLogo className="w-4 h-4" />
-        </span>
+        <div className="hidden md:flex items-baseline gap-2">
+          <h1 className="text-sm font-semibold theme-text">Explore</h1>
+          <span className="text-xs uppercase tracking-wider font-semibold inline-flex items-center gap-1 theme-text-muted">
+            by
+            <a
+              href="https://valve.city"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Valve City"
+              title="Valve City"
+              className="inline-flex items-center hover:opacity-70 transition-opacity"
+            >
+              <ValveLogo className="w-4 h-4" />
+            </a>
+          </span>
+        </div>
       </div>
 
       <div className="flex-1 flex items-center px-3 min-w-0">
