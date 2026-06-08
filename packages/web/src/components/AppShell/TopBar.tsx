@@ -85,9 +85,9 @@ export function TopBar({
           Explore
         </h1>
         <span
-          className="text-[10px] uppercase tracking-wider px-2 py-0.5 font-semibold hidden md:inline-flex items-center gap-1 theme-text-muted"
+          className="text-xs uppercase tracking-wider px-2 py-0.5 font-semibold hidden md:inline-flex items-center gap-1 theme-text-muted"
         >
-          by <ValveLogo className="w-3.5 h-3.5" />
+          by <ValveLogo className="w-4 h-4" />
         </span>
       </div>
 
