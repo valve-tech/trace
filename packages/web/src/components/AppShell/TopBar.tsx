@@ -4,7 +4,7 @@ import { BackHistoryControl } from "../RecentMenu";
 import { WalletConnectButton } from "../wallet/WalletConnectButton";
 import { WorkspaceSyncStatus } from "../wallet/WorkspaceSyncStatus";
 import { WorkspaceSyncAutoPush } from "../wallet/WorkspaceSyncAutoPush";
-import { PulseLogo } from "./PulseLogo";
+import { ExploreLogo } from "./ExploreLogo";
 import { ValveLogo } from "./ValveLogo";
 import type { SidebarIntent } from "./useSidebarState";
 import type { ApiStatus } from "./types";
@@ -78,7 +78,7 @@ export function TopBar({
       <BackHistoryControl canGoBack={canGoBack} onBack={() => navigate(-1)} />
 
       <div className="flex items-center gap-inline px-4 shrink-0">
-        <PulseLogo />
+        <ExploreLogo className="w-7 h-7 theme-text" />
         <h1
           className="text-sm font-semibold hidden md:block theme-text"
         >

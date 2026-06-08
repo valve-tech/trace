@@ -17,6 +17,7 @@ import { fetchLatestSummary } from "../api/latest";
 import { fetchPending } from "../api/mempool";
 import { RecentRail } from "./RecentRail";
 import { ChainSelector } from "./ChainSelector";
+import { ExploreLogo } from "./AppShell/ExploreLogo";
 import { ALL_CHAINS, type ChainSelection } from "../lib/chains";
 
 export default function Landing() {
@@ -128,7 +129,7 @@ function HeroTile({
 
       <div className="relative space-y-tight">
         <div className="flex items-center gap-inline">
-          <PulseLogo />
+          <ExploreLogo className="w-8 h-8 theme-text" />
           <span className="text-[10px] uppercase tracking-widest font-semibold px-2 py-0.5 theme-accent-bg theme-accent">
             by Valve City · multichain
           </span>
@@ -363,20 +364,3 @@ function gwei(wei: string): string {
   }
 }
 
-function PulseLogo() {
-  return (
-    <div className="relative pulse-icon flex items-center justify-center w-8 h-8">
-      <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none">
-        <circle cx="16" cy="16" r="14" fill="#8B5CF6" />
-        <path
-          d="M8 18 L12 10 L16 20 L20 8 L24 18"
-          stroke="white"
-          strokeWidth="2.5"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
-  );
-}

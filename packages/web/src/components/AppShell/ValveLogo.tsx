@@ -3,7 +3,7 @@
  * Ported from the monorepo brand asset (packages/web/public/logo.svg). Uses
  * `currentColor` so it inherits whatever text color it sits in (e.g. the muted
  * "by …" byline in the top bar). This is the company mark — distinct from
- * PulseLogo, the Explore product mark.
+ * ExploreLogo, the Explore product mark.
  */
 const SPOKE = "238,206 274,206 296,46 216,46";
 
