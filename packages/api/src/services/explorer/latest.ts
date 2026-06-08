@@ -11,8 +11,10 @@
  * generally read from cache.
  */
 
-import { formatEther } from "viem";
+import { formatEther, type PublicClient } from "viem";
 import { publicClient } from "../rpc.js";
+import { getRpcClient } from "../chains/clients.js";
+import { getChain, DEFAULT_CHAIN_ID } from "../chains/registry.js";
 import { lookupSelectors } from "../signatures.js";
 
 // NB: spec §4a calls for `ots_getBlockDetails` here, but PulseChain's
@@ -47,14 +49,15 @@ export interface BlockHeader {
  */
 async function getBlockHeader(
   tagOrNumber: "latest" | "finalized" | "safe" | bigint,
+  client: PublicClient = publicClient,
 ): Promise<BlockHeader> {
   const block =
     typeof tagOrNumber === "bigint"
-      ? await publicClient.getBlock({
+      ? await client.getBlock({
           blockNumber: tagOrNumber,
           includeTransactions: false,
         })
-      : await publicClient.getBlock({
+      : await client.getBlock({
           blockTag: tagOrNumber,
           includeTransactions: false,
         });
@@ -88,25 +91,30 @@ export interface LatestSummary {
     suggestedPriorityFee: string;
   };
   network: {
-    chainId: 369;
-    name: "PulseChain";
+    chainId: number;
+    name: string;
   };
 }
 
-let summaryCache: { v: LatestSummary; t: number } | null = null;
+const summaryCache = new Map<number, { v: LatestSummary; t: number }>();
 
-export async function getLatestSummary(): Promise<LatestSummary> {
-  if (summaryCache && Date.now() - summaryCache.t < SUMMARY_TTL_MS) {
-    return summaryCache.v;
+export async function getLatestSummary(
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<LatestSummary> {
+  const cached = summaryCache.get(chainId);
+  if (cached && Date.now() - cached.t < SUMMARY_TTL_MS) {
+    return cached.v;
   }
+
+  const client = getRpcClient(chainId);
 
   // Parallelize: latest header + finalized header + priority fee. A failed
   // finalized read isn't fatal — pre-merge chains and some forks don't have
   // it; we surface "lag 0 / same as latest" when that happens.
   const [latest, finalized, priorityFee] = await Promise.all([
-    getBlockHeader("latest"),
-    getBlockHeader("finalized").catch(() => null),
-    publicClient.estimateMaxPriorityFeePerGas().catch(() => 0n),
+    getBlockHeader("latest", client),
+    getBlockHeader("finalized", client).catch(() => null),
+    client.estimateMaxPriorityFeePerGas().catch(() => 0n),
   ]);
 
   const baseFeePerGas = latest.baseFeePerGas ?? "0";
@@ -133,10 +141,10 @@ export async function getLatestSummary(): Promise<LatestSummary> {
       baseFeePerGas,
       suggestedPriorityFee: priorityFee.toString(10),
     },
-    network: { chainId: 369, name: "PulseChain" },
+    network: { chainId, name: getChain(chainId).name },
   };
 
-  summaryCache = { v: summary, t: Date.now() };
+  summaryCache.set(chainId, { v: summary, t: Date.now() });
   return summary;
 }
 

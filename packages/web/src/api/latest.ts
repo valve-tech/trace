@@ -33,8 +33,8 @@ export interface LatestSummary {
     suggestedPriorityFee: string;
   };
   network: {
-    chainId: 369;
-    name: "PulseChain";
+    chainId: number;
+    name: string;
   };
 }
 
@@ -86,8 +86,9 @@ async function apiFetch<T>(url: string): Promise<T> {
   return json.result;
 }
 
-export function fetchLatestSummary(): Promise<LatestSummary> {
-  return apiFetch<LatestSummary>(`${API_BASE}/latest/summary`);
+export function fetchLatestSummary(chainId?: number): Promise<LatestSummary> {
+  const qs = chainId != null ? `?chainid=${chainId}` : "";
+  return apiFetch<LatestSummary>(`${API_BASE}/latest/summary${qs}`);
 }
 
 export function fetchRecentBlocks(opts: {

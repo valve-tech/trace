@@ -22,8 +22,9 @@ export interface MempoolPending {
   truncated: boolean;
 }
 
-export async function fetchPending(): Promise<MempoolPending> {
-  const res = await fetch(`${API_BASE}/pending`);
+export async function fetchPending(chainId?: number): Promise<MempoolPending> {
+  const qs = chainId != null ? `?chainid=${chainId}` : "";
+  const res = await fetch(`${API_BASE}/pending${qs}`);
   if (!res.ok) {
     const text = await res.text();
     let message: string;

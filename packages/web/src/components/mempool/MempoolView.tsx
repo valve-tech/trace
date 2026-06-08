@@ -44,7 +44,7 @@ export default function MempoolView() {
 
   const { data, status, error } = useQuery({
     queryKey: ["mempool-pending"],
-    queryFn: fetchPending,
+    queryFn: () => fetchPending(),
     refetchInterval: 5_000,
     staleTime: 4_000,
   });

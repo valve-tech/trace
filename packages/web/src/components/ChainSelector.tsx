@@ -161,7 +161,7 @@ function ChainRow({
  * icon when the image fails to load — keeps the layout stable for
  * obscure / future chains that gib.show hasn't catalogued yet.
  */
-function ChainGlyph({ chainId }: { chainId: number }) {
+export function ChainGlyph({ chainId }: { chainId: number }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (

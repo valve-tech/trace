@@ -16,17 +16,34 @@ import {
   getRecentBlocks,
   getRecentTxs,
 } from "../services/explorer/latest.js";
+import { DEFAULT_CHAIN_ID, isSupportedChain } from "../services/chains/registry.js";
 
 const router = Router();
 
+/** Resolve an optional `?chainid=N` to a supported chain id (default 369). */
+const chainidQuery = z.object({
+  chainid: z.coerce.number().int().positive().optional(),
+});
+function resolveChainId(query: unknown): number {
+  const parsed = chainidQuery.safeParse(query);
+  if (!parsed.success) {
+    throw new ApiError(400, "chainid must be a positive integer");
+  }
+  const chainId = parsed.data.chainid ?? DEFAULT_CHAIN_ID;
+  if (!isSupportedChain(chainId)) {
+    throw new ApiError(400, `Unsupported chainId: ${chainId}`);
+  }
+  return chainId;
+}
+
 // ---------------------------------------------------------------------------
-// GET /api/latest/summary
+// GET /api/latest/summary?chainid
 // ---------------------------------------------------------------------------
 
 router.get(
   "/latest/summary",
-  asyncRoute(async (_req: Request, res: Response) => {
-    const summary = await getLatestSummary();
+  asyncRoute(async (req: Request, res: Response) => {
+    const summary = await getLatestSummary(resolveChainId(req.query));
     respond.ok(res, { result: summary });
   }, "latest/summary"),
 );

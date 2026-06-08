@@ -39,7 +39,7 @@ interface Props {
 export default function ExplorerHome({ onNavigate }: Props) {
   const summary = useQuery({
     queryKey: ["explorer", "latest", "summary"],
-    queryFn: fetchLatestSummary,
+    queryFn: () => fetchLatestSummary(),
     refetchInterval: REFETCH_MS,
     staleTime: 0,
   });

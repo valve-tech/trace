@@ -16,9 +16,14 @@ import { routeForInput } from "../lib/entityInput";
 import { fetchLatestSummary } from "../api/latest";
 import { fetchPending } from "../api/mempool";
 import { RecentRail } from "./RecentRail";
-import { ChainSelector } from "./ChainSelector";
+import { ChainSelector, ChainGlyph } from "./ChainSelector";
 import { ExploreLogo } from "./AppShell/ExploreLogo";
-import { ALL_CHAINS, type ChainSelection } from "../lib/chains";
+import {
+  ALL_CHAINS,
+  DEFAULT_CHAIN_ID,
+  chainById,
+  type ChainSelection,
+} from "../lib/chains";
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -51,7 +56,7 @@ export default function Landing() {
           chain={chain}
           onChainChange={setChain}
         />
-        <LiveStats />
+        <LiveStats chain={chain} />
       </div>
 
       {/* Feature catalogue, grouped by intent */}
@@ -219,16 +224,21 @@ function PulseLine() {
 /* Live stats                                                         */
 /* ------------------------------------------------------------------ */
 
-function LiveStats() {
+function LiveStats({ chain }: { chain: ChainSelection }) {
+  // "All chains" has no single live source yet, so the stats default to
+  // PulseChain; picking a specific chain focuses the stats on it.
+  const chainId = chain === ALL_CHAINS ? DEFAULT_CHAIN_ID : chain;
+  const chainInfo = chainById(chainId);
+
   const summary = useQuery({
-    queryKey: ["landing", "summary"],
-    queryFn: fetchLatestSummary,
+    queryKey: ["landing", "summary", chainId],
+    queryFn: () => fetchLatestSummary(chainId),
     refetchInterval: 5_000,
     staleTime: 0,
   });
   const mempool = useQuery({
-    queryKey: ["landing", "mempool"],
-    queryFn: fetchPending,
+    queryKey: ["landing", "mempool", chainId],
+    queryFn: () => fetchPending(chainId),
     refetchInterval: 5_000,
     staleTime: 0,
   });
@@ -237,7 +247,12 @@ function LiveStats() {
   const baseFee = summary.data?.gasPrice.baseFeePerGas;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-row">
+    <div className="space-y-row">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold theme-text-muted">
+        <ChainGlyph chainId={chainId} />
+        {chainInfo?.name ?? `Chain ${chainId}`}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-row">
       <StatTile
         icon="heroicons:cube"
         label="Latest block"
@@ -261,6 +276,7 @@ function LiveStats() {
         live
         to="/mempool"
       />
+      </div>
     </div>
   );
 }

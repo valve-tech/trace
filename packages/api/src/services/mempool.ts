@@ -7,7 +7,8 @@
  * pre-inclusion counterpart to the block view's after-the-fact ordering.
  */
 
-import { publicClient } from "./rpc.js";
+import { getRpcClient } from "./chains/clients.js";
+import { DEFAULT_CHAIN_ID } from "./chains/registry.js";
 
 export interface PendingTx {
   hash: string;
@@ -84,10 +85,13 @@ function effectiveTip(tx: RawPoolTx): bigint {
   }
 }
 
-export async function getPendingTransactions(): Promise<MempoolPending> {
-  const content = (await publicClient.request({
+export async function getPendingTransactions(
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<MempoolPending> {
+  const client = getRpcClient(chainId);
+  const content = (await client.request({
     method: "txpool_content",
-  } as unknown as Parameters<typeof publicClient.request>[0])) as {
+  } as unknown as Parameters<typeof client.request>[0])) as {
     pending?: Record<string, Record<string, RawPoolTx>>;
     queued?: Record<string, Record<string, RawPoolTx>>;
   };
