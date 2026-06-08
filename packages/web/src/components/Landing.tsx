@@ -1,6 +1,6 @@
 /**
  * Landing hub at `/`. A bento hero — brand + search over a live, flowing pulse
- * line — sits beside ticking chain stats (latest block, base fee, mempool),
+ * line — sits above a row of ticking chain stats (latest block, base fee, mempool),
  * with the feature catalogue grouped by intent below and the recent rail last.
  * The search recognizes a pasted tx / address / block / selector and jumps
  * straight to it. The chain selector next to the search input scopes results
@@ -43,8 +43,8 @@ export default function Landing() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-section py-2">
-      {/* Bento hero: brand + search beside live chain stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-row">
+      {/* Full-width hero (brand + search), with live chain stats in a row below */}
+      <div className="space-y-row">
         <HeroTile
           query={query}
           setQuery={(v) => {
@@ -109,7 +109,7 @@ function HeroTile({
 }) {
   return (
     <div
-      className="lg:col-span-2 card relative flex flex-col justify-between p-4"
+      className="card relative flex flex-col justify-between p-4"
       style={{ minHeight: 240 }}
     >
       {/* Decorations live in their own clipped layer so the card itself doesn't
@@ -252,7 +252,7 @@ function LiveStats({ chain }: { chain: ChainSelection }) {
         <ChainGlyph chainId={chainId} />
         {chainInfo?.name ?? `Chain ${chainId}`}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-row">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-row">
       <StatTile
         icon="heroicons:cube"
         label="Latest block"
