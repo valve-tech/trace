@@ -1,8 +1,22 @@
 import { apiUrl } from "../lib/apiBase";
 import { formatEther, hexToBigInt, hexToNumber } from "viem";
 import { DEFAULT_CHAIN_ID } from "../lib/chains";
+import { isRpcOverridden } from "../lib/rpcEndpoint";
+import { sendRpcRequest, type JsonRpcResponse } from "./rpc";
 
 const API_BASE = apiUrl("/api");
+
+/**
+ * Pull a single result off a JSON-RPC response, throwing the node's error
+ * message on an error envelope. Used by the bring-your-own-RPC read paths,
+ * which talk to the user's node directly instead of our `/api` dispatcher.
+ */
+function rpcResult(resp: JsonRpcResponse, method: string): string {
+  if (resp.error) {
+    throw new Error(`${method}: ${resp.error.message ?? "unknown error"}`);
+  }
+  return (resp.result as string | undefined) ?? "0x";
+}
 
 /**
  * Scope a request to a chain via the `?chainid=N` dispatcher param. The default
@@ -221,6 +235,40 @@ export async function fetchAddressInfo(
   address: string,
   chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<AddressInfo> {
+  // Balance + code are raw JSON-RPC reads. When the user has set a per-chain
+  // RPC override (bring-your-own-RPC), go DIRECT to their node so the read runs
+  // on their infrastructure; otherwise use our canonical `/api` dispatcher,
+  // byte-identical to before. Both paths yield the same `{ balance, code }`,
+  // so the composition below is shared.
+  const { balance, code } = isRpcOverridden(chainId)
+    ? await readAddressViaRpc(address, chainId)
+    : await readAddressViaDispatcher(address, chainId);
+
+  // An address holds code iff eth_getCode returns more than the empty "0x".
+  const isContract = code.length > 2;
+
+  let balancePLS: string;
+  try {
+    balancePLS = formatEther(BigInt(balance));
+  } catch {
+    // Non-numeric balance string shouldn't happen, but a malformed upstream
+    // response shouldn't crash the address page.
+    balancePLS = "0";
+  }
+
+  return { address, balance, balancePLS, isContract };
+}
+
+/**
+ * Address balance + code via the Etherscan-shaped dispatcher (our backend):
+ *   - module=account&action=balance  → decimal wei string
+ *   - module=proxy&action=eth_getCode → "0x" for EOAs, bytecode for contracts
+ * Issued in parallel so the two-action read costs no extra wall time.
+ */
+async function readAddressViaDispatcher(
+  address: string,
+  chainId: number,
+): Promise<{ balance: string; code: string }> {
   const [balanceRes, codeRes] = await Promise.all([
     fetch(
       scoped(`${API_BASE}?module=account&action=balance&address=${address}`, chainId),
@@ -251,26 +299,33 @@ export async function fetchAddressInfo(
     throw new Error(`eth_getCode: ${codeBody.error.message ?? "unknown error"}`);
   }
 
-  const balance = balanceBody.result ?? "0";
-  const code = codeBody.result ?? "0x";
-  // An address holds code iff eth_getCode returns more than the empty "0x".
-  const isContract = code.length > 2;
+  return { balance: balanceBody.result ?? "0", code: codeBody.result ?? "0x" };
+}
 
-  let balancePLS: string;
-  try {
-    balancePLS = formatEther(BigInt(balance));
-  } catch {
-    // Non-numeric balance string shouldn't happen via the dispatcher, but
-    // a malformed upstream response shouldn't crash the address page.
-    balancePLS = "0";
-  }
+/**
+ * Address balance + code straight from the user's RPC node (BYO-RPC). Two
+ * parallel single calls rather than a JSON-RPC batch, so we don't assume the
+ * node supports batched bodies. `eth_getBalance` returns hex, normalized to the
+ * decimal wei string the rest of the app expects.
+ */
+async function readAddressViaRpc(
+  address: string,
+  chainId: number,
+): Promise<{ balance: string; code: string }> {
+  const [balanceRes, codeRes] = (await Promise.all([
+    sendRpcRequest(
+      { jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [address, "latest"] },
+      chainId,
+    ),
+    sendRpcRequest(
+      { jsonrpc: "2.0", id: 1, method: "eth_getCode", params: [address, "latest"] },
+      chainId,
+    ),
+  ])) as [JsonRpcResponse, JsonRpcResponse];
 
-  return {
-    address,
-    balance,
-    balancePLS,
-    isContract,
-  };
+  const balanceHex = rpcResult(balanceRes, "eth_getBalance");
+  const code = rpcResult(codeRes, "eth_getCode");
+  return { balance: hexToBigInt(balanceHex as `0x${string}`).toString(), code };
 }
 
 export async function fetchAddressTransactions(
@@ -371,6 +426,25 @@ export async function fetchBlock(
   numberOrHash: string,
   chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<BlockDetails> {
+  // eth_getBlockBy* is a raw read: direct to the user's node when a BYO-RPC
+  // override is set, else through our canonical dispatcher (byte-identical to
+  // before). Both yield the same `RpcBlock`, mapped to `BlockDetails` below.
+  const rpc = isRpcOverridden(chainId)
+    ? await readBlockViaRpc(numberOrHash, chainId)
+    : await readBlockViaDispatcher(numberOrHash, chainId);
+
+  if (!rpc) {
+    throw new Error(`Block not found: ${numberOrHash}`);
+  }
+
+  return mapRpcBlock(rpc);
+}
+
+/** `eth_getBlockBy*` over the Etherscan-shaped dispatcher (our backend). */
+async function readBlockViaDispatcher(
+  numberOrHash: string,
+  chainId: number,
+): Promise<RpcBlock | null> {
   const url = isHash(numberOrHash)
     ? `${API_BASE}?module=proxy&action=eth_getBlockByHash&hash=${numberOrHash}&boolean=true`
     : `${API_BASE}?module=proxy&action=eth_getBlockByNumber&tag=${toBlockTag(numberOrHash)}&boolean=true`;
@@ -389,12 +463,39 @@ export async function fetchBlock(
   if (body.error) {
     throw new Error(`eth_getBlockBy*: ${body.error.message ?? "unknown error"}`);
   }
-  if (!body.result) {
-    throw new Error(`Block not found: ${numberOrHash}`);
+  return body.result ?? null;
+}
+
+/** `eth_getBlockBy*` straight from the user's RPC node (BYO-RPC). */
+async function readBlockViaRpc(
+  numberOrHash: string,
+  chainId: number,
+): Promise<RpcBlock | null> {
+  const resp = (await sendRpcRequest(
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: isHash(numberOrHash) ? "eth_getBlockByHash" : "eth_getBlockByNumber",
+      params: [
+        isHash(numberOrHash) ? numberOrHash : toBlockTag(numberOrHash),
+        true,
+      ],
+    },
+    chainId,
+  )) as JsonRpcResponse;
+
+  if (resp.error) {
+    throw new Error(`eth_getBlockBy*: ${resp.error.message ?? "unknown error"}`);
   }
+  return (resp.result as RpcBlock | null) ?? null;
+}
 
-  const rpc = body.result;
-
+/**
+ * Map a raw `RpcBlock` (hex everywhere) to `BlockDetails` (decimal strings).
+ * This is the *only* place we convert hex → decimal for the rest of the app,
+ * shared across both transports so the shapes can never drift.
+ */
+function mapRpcBlock(rpc: RpcBlock): BlockDetails {
   // Per-tx mapping. methodId is derived from `input` (first 4 bytes), and
   // valuePLS uses viem's formatEther — both moved client-side because the
   // raw RPC payload doesn't include them.
