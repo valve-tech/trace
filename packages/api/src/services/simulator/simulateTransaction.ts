@@ -1,5 +1,5 @@
 import type { Address, Hex } from "viem";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import { estimateGas } from "../gasEstimator.js";
 import { decodeInput, decodeOutput, resolveAbi } from "../decoder.js";
 import type {
@@ -60,7 +60,7 @@ export async function simulateTransaction(
     // either branch precisely. Passing through with an `any` cast is the
     // standard approach for proxy-style call constructors.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await publicClient.call(callParams as any);
+    const result = await chainClient().call(callParams as any);
     returnData = (result.data as Hex) ?? "0x";
     success = true;
   } catch (err) {

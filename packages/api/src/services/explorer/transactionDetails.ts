@@ -4,7 +4,7 @@ import {
   TransactionNotFoundError,
   TransactionReceiptNotFoundError,
 } from "viem";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import { fetchAbi, decodeInput, decodeLogs } from "../decoder.js";
 import { serialize } from "./client.js";
 import { ApiError } from "../../lib/respond.js";
@@ -68,12 +68,13 @@ export async function getTransactionDetails(
   hash: string,
   options: { skipDecode?: boolean } = {},
 ): Promise<TransactionDetails> {
-  let tx: Awaited<ReturnType<typeof publicClient.getTransaction>>;
-  let receipt: Awaited<ReturnType<typeof publicClient.getTransactionReceipt>>;
+  const client = chainClient();
+  let tx: Awaited<ReturnType<typeof client.getTransaction>>;
+  let receipt: Awaited<ReturnType<typeof client.getTransactionReceipt>>;
   try {
     [tx, receipt] = await Promise.all([
-      publicClient.getTransaction({ hash: hash as Hex }),
-      publicClient.getTransactionReceipt({ hash: hash as Hex }),
+      client.getTransaction({ hash: hash as Hex }),
+      client.getTransactionReceipt({ hash: hash as Hex }),
     ]);
   } catch (err) {
     // viem throws a typed not-found (for the tx or its receipt) that carries
@@ -92,7 +93,7 @@ export async function getTransactionDetails(
 
   let timestamp: number | null = null;
   try {
-    const block = await publicClient.getBlock({
+    const block = await chainClient().getBlock({
       blockNumber: tx.blockNumber!,
     });
     timestamp = Number(block.timestamp);

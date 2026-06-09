@@ -8,6 +8,7 @@ import {
   type ForkClient,
 } from "./forkClient.js";
 import { spawnAnvil } from "./spawnAnvil.js";
+import { DEFAULT_CHAIN_ID, getChain } from "./chains/registry.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,8 +33,10 @@ export interface CreateForkOptions {
 // ForkManager
 // ---------------------------------------------------------------------------
 
-const RPC_URL =
-  process.env.PULSECHAIN_RPC_URL || "https://rpc.pulsechain.com";
+// Default fork upstream: the registry's 369 valve endpoint (still honors
+// PULSECHAIN_RPC_URL). Per-chain forking is a follow-up; this removes the
+// rpc.pulsechain.com hardcode.
+const RPC_URL = getChain(DEFAULT_CHAIN_ID).rpcUrl;
 
 /** Default TTL for forks: 1 hour. */
 const DEFAULT_TTL_MS = 60 * 60 * 1000;

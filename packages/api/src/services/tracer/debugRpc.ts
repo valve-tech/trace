@@ -5,18 +5,37 @@
  * 60s timeouts here, not viem's defaults.
  */
 
+import { currentChain } from "../chains/context.js";
+import { DEFAULT_CHAIN_ID } from "../chains/registry.js";
+
 /**
- * Resolve the debug RPC URL from env, at call time.
+ * Resolve the debug RPC URL for the active request's chain, at call time.
  *
- * Re-reads `process.env` on every call rather than capturing at module
- * load: makes the URL hot-swappable (rare in production but useful in
- * tests) and keeps the public surface a function so callers can mock
- * it cleanly.
+ * Sourced from the chain registry: the chain's `debugRpcUrl` (which for 369
+ * already encodes `process.env.DEBUG_RPC_URL` — the prod debug node) when set,
+ * else the chain's regular valve `rpcUrl`. Outside a request the chain context
+ * resolves to 369, so the default path is unchanged — minus the old
+ * `rpc.pulsechain.com` fallback, which is now a valve endpoint.
+ *
+ * Re-resolved on every call (not captured at module load) so it follows both
+ * the active chain and any env hot-swap in tests.
  */
-export const debugRpcUrl = (): string =>
-  process.env.DEBUG_RPC_URL ||
-  process.env.PULSECHAIN_RPC_URL ||
-  "https://rpc.pulsechain.com";
+export const debugRpcUrl = (): string => {
+  const chain = currentChain();
+  if (chain.chainId === DEFAULT_CHAIN_ID) {
+    // Default chain (369): honor live env overrides — DEBUG_RPC_URL (the prod
+    // debug-enabled node), then PULSECHAIN_RPC_URL — both read at call time so
+    // they stay hot-swappable (the registry only captures env at load). Final
+    // fallback is the registry's valve endpoint, never rpc.pulsechain.com.
+    return (
+      process.env.DEBUG_RPC_URL ||
+      process.env.PULSECHAIN_RPC_URL ||
+      chain.rpcUrl
+    );
+  }
+  // Other chains route via the registry's per-chain debug/rpc endpoint.
+  return chain.debugRpcUrl ?? chain.rpcUrl;
+};
 
 /**
  * Resolve the optional bearer token for the debug RPC, at call time.

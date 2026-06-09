@@ -12,7 +12,7 @@
  *   so future readers don't try.
  */
 
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 
 type JsonRpcMethodMissing = { code: number; message?: string };
 
@@ -46,7 +46,7 @@ export async function otsCall<T>(method: string, params: unknown[]): Promise<T |
     // viem's request() is generic over its own EIP-1474 union; we're stepping
     // outside that union deliberately to call namespaced methods.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (publicClient.request as any)({ method, params });
+    const result = await (chainClient().request as any)({ method, params });
     if (supportCache === null) supportCache = true;
     return result as T;
   } catch (err) {

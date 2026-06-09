@@ -1,5 +1,5 @@
 import { type Hex, formatEther, BlockNotFoundError } from "viem";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import { serialize } from "./client.js";
 import { ApiError } from "../../lib/respond.js";
 
@@ -60,12 +60,12 @@ export async function getBlockDetails(
 
   try {
     if (isHash) {
-      block = await publicClient.getBlock({
+      block = await chainClient().getBlock({
         blockHash: numberOrHash as Hex,
         includeTransactions: true,
       });
     } else {
-      block = await publicClient.getBlock({
+      block = await chainClient().getBlock({
         blockNumber: BigInt(numberOrHash),
         includeTransactions: true,
       });

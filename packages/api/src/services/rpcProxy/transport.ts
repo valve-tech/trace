@@ -1,7 +1,5 @@
 import type { JsonRpcRequest, JsonRpcResponse } from "./types.js";
-
-const UPSTREAM_RPC =
-  process.env.PULSECHAIN_RPC_URL || "https://rpc.pulsechain.com";
+import { currentChain } from "../chains/context.js";
 
 /**
  * Build a success response with the caller's id. JSON-RPC requires
@@ -58,7 +56,10 @@ export function serializeBigInts(val: unknown): unknown {
 export async function forwardUpstream(
   body: JsonRpcRequest,
 ): Promise<JsonRpcResponse> {
-  const res = await fetch(UPSTREAM_RPC, {
+  // Per-chain valve endpoint resolved from the request's chain context
+  // (`?chainid`), defaulting to 369 outside a request. Replaces the old single
+  // hardcoded rpc.pulsechain.com upstream so /rpc honors the requested chain.
+  const res = await fetch(currentChain().rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

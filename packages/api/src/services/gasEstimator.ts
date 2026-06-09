@@ -1,5 +1,5 @@
 import type { Address, Hex } from "viem";
-import { publicClient } from "./rpc.js";
+import { chainClient } from "./chains/context.js";
 
 export interface GasEstimateParams {
   from?: Address;
@@ -19,7 +19,7 @@ export async function estimateGas(
   params: GasEstimateParams,
 ): Promise<bigint | null> {
   try {
-    const estimate = await publicClient.estimateGas({
+    const estimate = await chainClient().estimateGas({
       account: params.from ?? ("0x0000000000000000000000000000000000000000" as Address),
       to: params.to ?? undefined,
       value: params.value,

@@ -2,7 +2,7 @@ import type { Hex, Address } from "viem";
 import type { JsonRpcResponse } from "./types.js";
 import { simulateTransaction, simulateBundle } from "../simulator.js";
 import { fetchAbi, decodeInput } from "../decoder.js";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import { makeError, makeResponse, serializeBigInts } from "./transport.js";
 
 type RpcId = number | string | null;
@@ -85,7 +85,7 @@ export async function handleDecodeTransaction(
   }
 
   try {
-    const tx = await publicClient.getTransaction({ hash: txHash as Hex });
+    const tx = await chainClient().getTransaction({ hash: txHash as Hex });
     if (!tx) return makeError(id, -32000, "Transaction not found");
 
     let decodedInput = null;
@@ -140,7 +140,7 @@ export async function handleGetAssetChanges(
 
     if (from) {
       balancePromises.push(
-        publicClient
+        chainClient()
           .getBalance({ address: from as Address })
           .then((balance) => ({ address: from, balance }))
           .catch(() => null),
@@ -148,7 +148,7 @@ export async function handleGetAssetChanges(
     }
     if (to) {
       balancePromises.push(
-        publicClient
+        chainClient()
           .getBalance({ address: to as Address })
           .then((balance) => ({ address: to, balance }))
           .catch(() => null),

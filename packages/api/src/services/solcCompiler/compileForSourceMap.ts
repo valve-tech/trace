@@ -1,5 +1,5 @@
 import { getVerifiedSource } from "../sourceCode.js";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import type { CompilationResult } from "./types.js";
 import { cacheCompilationResult, getCachedCompilation } from "./cache.js";
 import { getCompiler, resolveFullVersion } from "./loadCompiler.js";
@@ -66,7 +66,7 @@ export async function compileForSourceMap(
   // The deployed bytecode is the ground truth we gate against.
   let onchain: string | undefined;
   try {
-    onchain = await publicClient.getCode({ address: address as `0x${string}` });
+    onchain = await chainClient().getCode({ address: address as `0x${string}` });
   } catch (err) {
     console.warn(`[solc] eth_getCode failed for ${address}:`, err instanceof Error ? err.message : err);
     return null;

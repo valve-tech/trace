@@ -1,5 +1,5 @@
 import { type Hex } from "viem";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import { BLOCKSCOUT_API, blockscoutFetch } from "./client.js";
 import {
   mapV1Row,
@@ -44,7 +44,7 @@ async function fetchV2(hash: string): Promise<TokenTransfer[] | null> {
 async function fetchV1Fallback(hash: string): Promise<TokenTransfer[]> {
   let tx: { from: string } | null = null;
   try {
-    tx = await publicClient.getTransaction({ hash: hash as Hex });
+    tx = await chainClient().getTransaction({ hash: hash as Hex });
   } catch {
     return [];
   }

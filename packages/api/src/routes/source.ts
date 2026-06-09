@@ -7,7 +7,7 @@ import {
 } from "../services/sourceMap.js";
 import { compileForSourceMap } from "../services/solcCompiler.js";
 import { analyzeContract } from "../services/slither.js";
-import { publicClient } from "../services/rpc.js";
+import { chainClient } from "../services/chains/context.js";
 import {
   decompileWithHeimdall,
   heimdallAvailable,
@@ -206,7 +206,7 @@ async function tryDecompileForStorage(
   address: string,
 ): Promise<ReturnType<typeof decompileWithHeimdall> extends Promise<infer T> ? T : never> {
   try {
-    const code = await publicClient.getCode({ address: address as `0x${string}` });
+    const code = await chainClient().getCode({ address: address as `0x${string}` });
     if (!code || code === "0x") return null;
     return await decompileWithHeimdall(code);
   } catch (err) {

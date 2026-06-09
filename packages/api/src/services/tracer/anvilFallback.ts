@@ -1,5 +1,5 @@
 import type { Hex } from "viem";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import { forkManager } from "../forkManager.js";
 
 interface AnvilRpcResponse {
@@ -40,7 +40,7 @@ export async function traceViaAnvilFork(
   tracerConfig: unknown,
 ): Promise<{ result: unknown; rpcUrl: string; forkId: string } | null> {
   try {
-    const tx = await publicClient.getTransaction({ hash: hash as Hex });
+    const tx = await chainClient().getTransaction({ hash: hash as Hex });
     if (!tx || !tx.blockNumber) return null;
 
     const fork = await forkManager.createFork({

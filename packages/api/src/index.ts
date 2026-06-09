@@ -42,6 +42,7 @@ import authRouter from "./routes/auth.js";
 import workspaceSyncRouter from "./routes/workspaceSync.js";
 import portfolioRouter from "./routes/portfolio.js";
 import { authMiddleware } from "./middleware/auth.js";
+import { chainContext } from "./middleware/chainContext.js";
 import { docsHandler, openapiJsonHandler } from "./openapi/handlers.js";
 import { startMonitor } from "./services/monitor.js";
 import { initScheduler } from "./services/actionScheduler.js";
@@ -57,6 +58,13 @@ const PORT = Number(process.env.PORT) || 10100;
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+
+// Resolve the request's target chain from ?chainid (or a chainid body field)
+// and run the rest of the request inside the chain context, so the /rpc proxy
+// and every chain-aware service routes to the right per-chain valve RPC
+// endpoint. Mounted ahead of the /rpc and /api routes; omitted/bad chainid
+// falls back to the default chain (369).
+app.use(["/rpc", "/api"], chainContext);
 
 // ---------------------------------------------------------------------------
 // Routes — health and RPC bypass auth

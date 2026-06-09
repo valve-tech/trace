@@ -1,5 +1,5 @@
 import type { Hex } from "viem";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import type { ForkSimulationResult } from "./types.js";
 import { forkSimulate } from "./forkSimulate.js";
 
@@ -13,7 +13,7 @@ import { forkSimulate } from "./forkSimulate.js";
 export async function simulateFromTxHash(
   txHash: string,
 ): Promise<ForkSimulationResult> {
-  const tx = await publicClient.getTransaction({ hash: txHash as Hex });
+  const tx = await chainClient().getTransaction({ hash: txHash as Hex });
   if (!tx) {
     throw new Error(`Transaction ${txHash} not found`);
   }

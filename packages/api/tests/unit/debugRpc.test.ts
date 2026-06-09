@@ -83,10 +83,15 @@ describe("debugRpc env resolution", () => {
     assert.equal(debugRpcUrl(), "https://example.test/pls");
   });
 
-  it("debugRpcUrl falls back to the public PulseChain RPC when nothing is set", () => {
+  it("debugRpcUrl falls back to the registry's valve 369 endpoint when nothing is set", () => {
     delete process.env.DEBUG_RPC_URL;
     delete process.env.PULSECHAIN_RPC_URL;
-    assert.equal(debugRpcUrl(), "https://rpc.pulsechain.com");
+    // No env overrides → the default chain's registry rpcUrl (a valve
+    // endpoint), never rpc.pulsechain.com.
+    assert.equal(
+      debugRpcUrl(),
+      "https://evm-369-rpc.valve.city/v1/vk_demo/evm/369",
+    );
   });
 
   it("debugRpcBearer is empty by default", () => {

@@ -7,6 +7,7 @@ import {
 import type { ExecutionResult, TriggerEvent } from "./types.js";
 import { TIMEOUT_MS } from "./childEnv.js";
 import { runInChild } from "./runInChild.js";
+import { DEFAULT_CHAIN_ID, getChain } from "../chains/registry.js";
 
 /**
  * Execute a user-defined action in a sandboxed child process.
@@ -25,8 +26,7 @@ export async function executeAction(
   const secrets = (action.secrets ?? {}) as Record<string, string>;
   const storageData = await getActionStorage(action.id);
 
-  const rpcUrl =
-    process.env.PULSECHAIN_RPC_URL || "https://rpc.pulsechain.com";
+  const rpcUrl = getChain(DEFAULT_CHAIN_ID).rpcUrl;
 
   try {
     const result = await runInChild({

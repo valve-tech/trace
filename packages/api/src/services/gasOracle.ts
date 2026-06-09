@@ -17,9 +17,9 @@ import { createPublicClient, http, type PublicClient } from "viem";
 import { gasOracleActions } from "@valve-tech/gas-oracle/viem-actions";
 import type { GasOracleState } from "@valve-tech/gas-oracle";
 import { pulsechain } from "./rpc.js";
+import { DEFAULT_CHAIN_ID, getChain } from "./chains/registry.js";
 
-const RPC_URL =
-  process.env.PULSECHAIN_RPC_URL || "https://rpc.pulsechain.com";
+const RPC_URL = getChain(DEFAULT_CHAIN_ID).rpcUrl;
 
 const oracleClient = createPublicClient({
   chain: pulsechain,

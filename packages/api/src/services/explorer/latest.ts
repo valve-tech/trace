@@ -12,7 +12,7 @@
  */
 
 import { formatEther, type PublicClient } from "viem";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import { getRpcClient } from "../chains/clients.js";
 import { getChain, DEFAULT_CHAIN_ID } from "../chains/registry.js";
 import { lookupSelectors } from "../signatures.js";
@@ -49,7 +49,7 @@ export interface BlockHeader {
  */
 async function getBlockHeader(
   tagOrNumber: "latest" | "finalized" | "safe" | bigint,
-  client: PublicClient = publicClient,
+  client: PublicClient = chainClient(),
 ): Promise<BlockHeader> {
   const block =
     typeof tagOrNumber === "bigint"
@@ -171,7 +171,7 @@ export async function getRecentBlocks(opts: {
   // Resolve the upper-bound block number.
   const headNumber = opts.before
     ? BigInt(opts.before) - 1n
-    : await publicClient.getBlockNumber();
+    : await chainClient().getBlockNumber();
 
   if (headNumber < 0n) {
     return { blocks: [], cursor: null };
@@ -241,14 +241,14 @@ export async function getRecentTxs(limit: number = 10): Promise<RecentTxsResult>
   // Empty blocks are common on dev forks; cap the scan window so we don't
   // walk arbitrarily far back on idle chains.
   const SCAN_WINDOW = 20;
-  const head = await publicClient.getBlockNumber();
+  const head = await chainClient().getBlockNumber();
   const txs: RecentTx[] = [];
 
   for (let i = 0n; i < BigInt(SCAN_WINDOW) && txs.length < n; i++) {
     const blockNumber = head - i;
     if (blockNumber < 0n) break;
 
-    const block = await publicClient.getBlock({
+    const block = await chainClient().getBlock({
       blockNumber,
       includeTransactions: true,
     });

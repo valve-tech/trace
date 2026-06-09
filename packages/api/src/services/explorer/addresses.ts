@@ -1,5 +1,5 @@
 import { type Address, type Hex, formatEther } from "viem";
-import { publicClient } from "../rpc.js";
+import { chainClient } from "../chains/context.js";
 import { blockscoutFetch } from "./client.js";
 import {
   extractTxTypeAndFees,
@@ -51,7 +51,7 @@ export async function getAddressTransactions(
   const transactions: AddressTransaction[] = await Promise.all(
     base.map(async (tx) => {
       try {
-        const full = await publicClient.getTransaction({ hash: tx.hash as Hex });
+        const full = await chainClient().getTransaction({ hash: tx.hash as Hex });
         return { ...tx, ...extractTxTypeAndFees(full) };
       } catch {
         return { ...tx, ...LEGACY_FALLBACK_FEES };
@@ -102,7 +102,7 @@ export async function getAddressTokens(
 export async function getAddressBalance(
   address: string,
 ): Promise<{ balance: string; balancePLS: string }> {
-  const balance = await publicClient.getBalance({
+  const balance = await chainClient().getBalance({
     address: address as Address,
   });
   return {
@@ -113,7 +113,7 @@ export async function getAddressBalance(
 
 export async function isContract(address: string): Promise<boolean> {
   try {
-    const code = await publicClient.getCode({ address: address as Address });
+    const code = await chainClient().getCode({ address: address as Address });
     return !!code && code !== "0x";
   } catch {
     return false;
