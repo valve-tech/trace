@@ -8,7 +8,8 @@ import {
   type ForkClient,
 } from "./forkClient.js";
 import { spawnAnvil } from "./spawnAnvil.js";
-import { DEFAULT_CHAIN_ID, getChain } from "./chains/registry.js";
+import { getChain, isSupportedChain } from "./chains/registry.js";
+import { currentChainId } from "./chains/context.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -16,6 +17,8 @@ import { DEFAULT_CHAIN_ID, getChain } from "./chains/registry.js";
 
 export interface Fork {
   id: string;
+  /** The chain this fork's upstream points at (resolved from request context). */
+  chainId: number;
   port: number;
   rpcUrl: string;
   blockNumber: number | "latest";
@@ -27,16 +30,17 @@ export interface Fork {
 export interface CreateForkOptions {
   blockNumber?: number;
   label?: string;
+  /**
+   * Chain to fork. Defaults to the active request's chain (`currentChainId()`),
+   * so a `?chainid=943` request forks 943 without the caller threading it.
+   * Pass explicitly for out-of-request callers that need a specific chain.
+   */
+  chainId?: number;
 }
 
 // ---------------------------------------------------------------------------
 // ForkManager
 // ---------------------------------------------------------------------------
-
-// Default fork upstream: the registry's 369 valve endpoint (still honors
-// PULSECHAIN_RPC_URL). Per-chain forking is a follow-up; this removes the
-// rpc.pulsechain.com hardcode.
-const RPC_URL = getChain(DEFAULT_CHAIN_ID).rpcUrl;
 
 /** Default TTL for forks: 1 hour. */
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
@@ -95,11 +99,21 @@ export class ForkManager {
     const label = options.label || `Fork ${this.forks.size + 1}`;
     const blockNumber = options.blockNumber ?? "latest";
 
+    // Resolve the upstream from the active request's chain (or an explicit
+    // override). Validate before spawning so an unsupported chain is a clean
+    // 400, not a confusing "anvil RPC not responding" after a wasted spawn.
+    const chainId = options.chainId ?? currentChainId();
+    if (!isSupportedChain(chainId)) {
+      throw new ApiError(400, `Unsupported chainId: ${chainId}`);
+    }
+    const upstreamUrl = getChain(chainId).rpcUrl;
+
     const port = await this.findAvailablePort();
-    const child = await spawnAnvil({ port, rpcUrl: RPC_URL, blockNumber: options.blockNumber });
+    const child = await spawnAnvil({ port, rpcUrl: upstreamUrl, blockNumber: options.blockNumber });
 
     const fork: Fork = {
       id,
+      chainId,
       port,
       rpcUrl: `http://localhost:${port}`,
       blockNumber,

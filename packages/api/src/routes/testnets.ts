@@ -32,6 +32,7 @@ router.post(
     respond.ok(res, {
       fork: {
         id: fork.id,
+        chainId: fork.chainId,
         port: fork.port,
         rpcUrl: fork.rpcUrl,
         blockNumber: fork.blockNumber,
@@ -50,6 +51,7 @@ router.post(
 router.get("/", (_req: Request, res: Response): void => {
   const forks = forkManager.listForks().map((f) => ({
     id: f.id,
+        chainId: f.chainId,
     port: f.port,
     rpcUrl: f.rpcUrl,
     blockNumber: f.blockNumber,
@@ -81,6 +83,7 @@ router.get(
     respond.ok(res, {
       fork: {
         id: fork.id,
+        chainId: fork.chainId,
         port: fork.port,
         rpcUrl: fork.rpcUrl,
         blockNumber: fork.blockNumber,
