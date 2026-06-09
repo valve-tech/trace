@@ -184,8 +184,8 @@ export interface BlockDetails {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function apiFetch<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, init);
   if (!res.ok) {
     const text = await res.text();
     let message: string;
@@ -212,7 +212,51 @@ export async function fetchTransaction(
   hash: string,
   chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<TransactionDetails> {
+  // Bring-your-own-RPC: when a per-chain override is set, fetch the raw tx +
+  // receipt straight from the user's node (the heavy reads run on their infra)
+  // and hand them to the backend's /from-raw enrichment, which does the
+  // mapping + ABI decode + internal/token enrichment. No override → the GET
+  // path, byte-identical to before.
+  if (isRpcOverridden(chainId)) return readTransactionViaRpc(hash, chainId);
   return apiFetch<TransactionDetails>(scoped(`${API_BASE}/tx/${hash}`, chainId));
+}
+
+/**
+ * BYO-RPC transaction read: raw tx + receipt from the user's node, enriched by
+ * the backend. We forward the RAW RPC payloads rather than mapping them client-
+ * side, so the tx-shape mapping lives in exactly one place (the backend).
+ */
+async function readTransactionViaRpc(
+  hash: string,
+  chainId: number,
+): Promise<TransactionDetails> {
+  const [txRes, receiptRes] = (await Promise.all([
+    sendRpcRequest(
+      { jsonrpc: "2.0", id: 1, method: "eth_getTransactionByHash", params: [hash] },
+      chainId,
+    ),
+    sendRpcRequest(
+      { jsonrpc: "2.0", id: 1, method: "eth_getTransactionReceipt", params: [hash] },
+      chainId,
+    ),
+  ])) as [JsonRpcResponse, JsonRpcResponse];
+
+  if (txRes.error) throw new Error(`eth_getTransactionByHash: ${txRes.error.message}`);
+  if (receiptRes.error) {
+    throw new Error(`eth_getTransactionReceipt: ${receiptRes.error.message}`);
+  }
+  const tx = txRes.result;
+  const receipt = receiptRes.result;
+  if (!tx || !receipt) throw new Error("Transaction not found");
+
+  return apiFetch<TransactionDetails>(
+    scoped(`${API_BASE}/tx/${hash}/from-raw`, chainId),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tx, receipt }),
+    },
+  );
 }
 
 /**

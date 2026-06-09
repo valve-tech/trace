@@ -42,6 +42,7 @@ const UNDOCUMENTED: ReadonlyArray<{ method: string; path: string; reason: string
   // ─── Follow-up tag commits — slice 1 covers /health only ───────────
   // explorer — block/tx/address/receipt lookups
   { method: "get", path: "/api/tx/:hash", reason: "Covered by follow-up: explorer tag." },
+  { method: "post", path: "/api/tx/:hash/from-raw", reason: "BYO-RPC tx enrichment (raw tx/receipt from the client's node); covered by follow-up: explorer tag." },
   { method: "get", path: "/api/address/:addr", reason: "Covered by follow-up: explorer tag." },
   { method: "get", path: "/api/block/:tag", reason: "Covered by follow-up: explorer tag." },
   { method: "get", path: "/api/receipt/:hash", reason: "Covered by follow-up: explorer tag." },

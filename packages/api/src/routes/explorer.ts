@@ -1,6 +1,13 @@
 import { Router, type Request, type Response } from "express";
 import {
+  formatTransaction,
+  formatTransactionReceipt,
+  type RpcTransaction,
+  type RpcTransactionReceipt,
+} from "viem";
+import {
   getTransactionDetails,
+  buildTransactionDetails,
   getInternalTransactions,
   getTokenTransfers,
   getAddressTransactions,
@@ -10,6 +17,7 @@ import {
   getAddressBalance,
   isContract,
 } from "../services/explorer.js";
+import { chainClient } from "../services/chains/context.js";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
 
 const router = Router();
@@ -21,6 +29,14 @@ function requireAddress(raw: string | string[] | undefined): string {
   const address = String(raw ?? "");
   if (!ADDRESS_RE.test(address)) throw new ApiError(400, "Invalid address");
   return address;
+}
+
+/** Resolve `p`, or `fallback` if it hasn't settled within `ms`. */
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
 }
 
 // ---------------------------------------------------------------------------
@@ -35,21 +51,15 @@ router.get(
       throw new ApiError(400, "Invalid transaction hash");
     }
 
-    const timeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
-      Promise.race([
-        p,
-        new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-      ]);
-
     // RPC can be slow for complex txs — 15s timeout per call
     const [details, internalTxs, tokenTransfers] = await Promise.all([
-      timeout(
+      withTimeout(
         getTransactionDetails(hash),
         15_000,
         null as Awaited<ReturnType<typeof getTransactionDetails>> | null,
       ),
-      timeout(getInternalTransactions(hash), 10_000, []),
-      timeout(getTokenTransfers(hash), 10_000, []),
+      withTimeout(getInternalTransactions(hash), 10_000, []),
+      withTimeout(getTokenTransfers(hash), 10_000, []),
     ]);
 
     if (!details) {
@@ -67,6 +77,70 @@ router.get(
       },
     });
   }, "explorer/tx"),
+);
+
+// ---------------------------------------------------------------------------
+// POST /api/tx/:hash/from-raw
+// ---------------------------------------------------------------------------
+//
+// Bring-your-own-RPC companion to GET /api/tx/:hash. The client fetches the raw
+// tx + receipt from ITS OWN node (so the heavy raw reads run on the user's
+// infrastructure, consistent with the BYO block/balance/code reads) and POSTs
+// them here. We format them with viem and run the SAME mapping + ABI decoding
+// the GET route uses, then add the enrichment that can only come from the
+// backend (internal txs via debug_trace, token transfers via the indexer). No
+// transaction mapping is duplicated on the frontend.
+
+router.post(
+  "/tx/:hash/from-raw",
+  asyncRoute(async (req: Request, res: Response) => {
+    const hash = String(req.params.hash ?? "");
+    if (!HASH_RE.test(hash)) {
+      throw new ApiError(400, "Invalid transaction hash");
+    }
+
+    const body = req.body as { tx?: unknown; receipt?: unknown };
+    if (!body || typeof body.tx !== "object" || typeof body.receipt !== "object") {
+      throw new ApiError(400, "Body must include raw `tx` and `receipt` objects");
+    }
+
+    // Parse the client's raw RPC payloads (hex everywhere) into viem's shape.
+    // Malformed input → 400, not a 500: this is user-supplied data.
+    let details;
+    try {
+      const tx = formatTransaction(body.tx as RpcTransaction);
+      const receipt = formatTransactionReceipt(body.receipt as RpcTransactionReceipt);
+      if (tx.hash?.toLowerCase() !== hash.toLowerCase()) {
+        throw new ApiError(400, "Raw tx hash does not match the path");
+      }
+      let timestamp: number | null = null;
+      try {
+        if (tx.blockNumber != null) {
+          const block = await chainClient().getBlock({ blockNumber: tx.blockNumber });
+          timestamp = Number(block.timestamp);
+        }
+      } catch {
+        // timestamp is best-effort, same as the GET route
+      }
+      details = await buildTransactionDetails(tx, receipt, timestamp);
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError(400, "Malformed raw tx/receipt payload");
+    }
+
+    const [internalTxs, tokenTransfers] = await Promise.all([
+      withTimeout(getInternalTransactions(hash), 10_000, []),
+      withTimeout(getTokenTransfers(hash), 10_000, []),
+    ]);
+
+    respond.ok(res, {
+      result: {
+        ...details,
+        internalTransactions: internalTxs,
+        tokenTransfers,
+      },
+    });
+  }, "explorer/tx-from-raw"),
 );
 
 // ---------------------------------------------------------------------------

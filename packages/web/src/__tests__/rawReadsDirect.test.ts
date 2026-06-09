@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { fetchAddressInfo, fetchBlock } from "../api/explorer";
+import { fetchAddressInfo, fetchBlock, fetchTransaction } from "../api/explorer";
 import { setRpcOverride, clearRpcOverride } from "../lib/rpcEndpoint";
 import { DEFAULT_CHAIN_ID } from "../lib/chains";
 
@@ -13,6 +13,8 @@ import { DEFAULT_CHAIN_ID } from "../lib/chains";
 
 const OVERRIDE = "https://my-node.example/rpc";
 const ADDR = "0xdeadbeef00000000000000000000000000000001";
+const A = "0xaaaa000000000000000000000000000000000001";
+const B = "0xbbbb000000000000000000000000000000000002";
 const BLOCK_HASH =
   "0xabc1230000000000000000000000000000000000000000000000000000000000";
 
@@ -151,5 +153,83 @@ describe("raw reads direct (BYO-RPC override set)", () => {
         }),
       }) as Response) as typeof fetch);
     await expect(fetchBlock("12345")).rejects.toThrow(/block boom/);
+  });
+});
+
+describe("raw reads direct — fetchTransaction (BYO-RPC override set)", () => {
+  const TX_HASH =
+    "0xfeed000000000000000000000000000000000000000000000000000000000001";
+  const RAW_TX = { hash: TX_HASH, from: A, to: B, value: "0xde0b6b3a7640000" };
+  const RAW_RECEIPT = { transactionHash: TX_HASH, status: "0x1", logs: [] };
+  // The backend's enriched response (we only assert it's passed through).
+  const ENRICHED = {
+    hash: TX_HASH,
+    from: A,
+    to: B,
+    value: "1000000000000000000",
+    decodedInput: null,
+    decodedLogs: [],
+    internalTransactions: [],
+    tokenTransfers: [],
+  };
+
+  beforeEach(() => setRpcOverride(DEFAULT_CHAIN_ID, OVERRIDE));
+  afterEach(() => {
+    clearRpcOverride(DEFAULT_CHAIN_ID);
+    vi.restoreAllMocks();
+  });
+
+  it("reads raw tx+receipt from the node, then enriches via /from-raw", async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation((async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      const url = String(input);
+      const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+      calls.push({ url, body });
+      if (url === OVERRIDE) {
+        const method = (body as { method: string }).method;
+        const result =
+          method === "eth_getTransactionByHash" ? RAW_TX : RAW_RECEIPT;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ jsonrpc: "2.0", id: 1, result }),
+        } as Response;
+      }
+      // the /from-raw enrichment call → the backend
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, result: ENRICHED }),
+      } as Response;
+    }) as typeof fetch);
+
+    const tx = await fetchTransaction(TX_HASH);
+
+    // raw reads went to the node
+    const nodeCalls = calls.filter((c) => c.url === OVERRIDE);
+    expect(nodeCalls.map((c) => (c.body as { method: string }).method).sort()).toEqual([
+      "eth_getTransactionByHash",
+      "eth_getTransactionReceipt",
+    ]);
+    // enrichment POST went to /from-raw carrying the node's raw payloads
+    const enrichCall = calls.find((c) => c.url.includes("/from-raw"));
+    expect(enrichCall).toBeTruthy();
+    expect((enrichCall!.body as { tx: unknown }).tx).toEqual(RAW_TX);
+    expect((enrichCall!.body as { receipt: unknown }).receipt).toEqual(RAW_RECEIPT);
+    // the enriched backend result is returned verbatim
+    expect(tx).toEqual(ENRICHED);
+  });
+
+  it("throws when the node can't find the tx", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((async () =>
+      ({
+        ok: true,
+        status: 200,
+        json: async () => ({ jsonrpc: "2.0", id: 1, result: null }),
+      }) as Response) as typeof fetch);
+    await expect(fetchTransaction(TX_HASH)).rejects.toThrow(/not found/i);
   });
 });

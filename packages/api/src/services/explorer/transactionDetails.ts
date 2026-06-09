@@ -1,5 +1,7 @@
 import {
   type Hex,
+  type Transaction,
+  type TransactionReceipt,
   formatEther,
   TransactionNotFoundError,
   TransactionReceiptNotFoundError,
@@ -101,6 +103,23 @@ export async function getTransactionDetails(
     // block lookup is best-effort
   }
 
+  return buildTransactionDetails(tx, receipt, timestamp, options);
+}
+
+/**
+ * Map + ABI-decode an already-fetched tx/receipt into `TransactionDetails`. The
+ * fetch and the build are split so the same mapping/decoding can run on raw
+ * tx/receipt the CLIENT fetched from its own node (bring-your-own-RPC): the
+ * `/api/tx/:hash/from-raw` route formats the client's raw RPC payloads with
+ * viem and calls straight in here — no duplicated mapping on the frontend, the
+ * raw reads run on the user's node, and the enrichment stays on the backend.
+ */
+export async function buildTransactionDetails(
+  tx: Transaction,
+  receipt: TransactionReceipt,
+  timestamp: number | null,
+  options: { skipDecode?: boolean } = {},
+): Promise<TransactionDetails> {
   let decodedInput: TransactionDetails["decodedInput"] = null;
   let decodedLogEntries: TransactionDetails["decodedLogs"] = [];
 
