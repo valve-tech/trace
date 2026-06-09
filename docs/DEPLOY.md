@@ -185,3 +185,84 @@ migrations in the image.
 
 Ping the trace repo owner with the deploy-repo path and the chosen
 registry and they'll prep whichever of the above are useful.
+
+---
+
+# IPFS frontend (self-serve mirror)
+
+A second, independent deploy surface: the SPA pinned to IPFS so the UI
+self-serves if `explore.valve.city` is down. This is **frontend only** —
+it still calls the same backend (`explore.valve.city/api`), baked into
+the bundle at build time. The container deploy above is unaffected.
+
+## How it differs from the canonical build
+
+`npm run build:ipfs` (vs `npm run build`) flips three coupled things via
+`VITE_IPFS=1`:
+
+| | canonical (`build`) | IPFS (`build:ipfs`) |
+|---|---|---|
+| asset paths | absolute `/assets/…` | relative `./assets/…` |
+| router | BrowserRouter (`/tx/0x…`) | HashRouter (`/#/tx/0x…`) |
+| backend origin | same-origin (empty) | baked `https://explore.valve.city` |
+
+Relative assets are mandatory under `/ipfs/<CID>/`, and relative assets
+are only safe with HashRouter (a nested BrowserRouter path resolves
+`./assets` against the wrong base). The backend origin is baked because
+the gateway origin is not our backend. Override per-browser via
+`localStorage["explore:apiBase"]`; the `?api=` query override is
+deliberately unsupported (phishing).
+
+## Deploying
+
+Self-hosted kubo node (the indexer box's node — where chifra publishes
+its unchained index). One command, run **on the node box** or through an
+SSH tunnel to its API:
+
+```bash
+# on the box (kubo API at localhost:5001):
+npm run deploy:ipfs
+
+# from elsewhere — tunnel the node's API first:
+ssh -N -L 5001:127.0.0.1:5001 <indexer-box> &
+npm run deploy:ipfs
+```
+
+`scripts/deploy-ipfs.sh` builds, adds + pins the directory (CIDv1), and
+prints the CID + the DNSLink TXT record to set. It **does not touch DNS**
+and holds no secrets. Env knobs: `IPFS_API_ADDR`
+(default `/ip4/127.0.0.1/tcp/5001`), `DNSLINK_DOMAIN`
+(default `ipfs.explore.valve.city`), `SKIP_BUILD=1` to pin an existing
+`dist/`.
+
+The build is **deterministic** — identical source yields an identical
+CID, so you can diff the printed CID against the previous release before
+moving DNS.
+
+## Locating the kubo node (operator step)
+
+The repo doesn't hard-code the node address (it's fleet infra, off-limits
+to in-repo tooling). To confirm where it lives, on the indexer box:
+
+```bash
+ipfs id --api /ip4/127.0.0.1/tcp/5001            # is a node answering?
+systemctl status ipfs kubo 2>/dev/null           # how it's managed
+ss -ltnp | grep 5001                             # what's bound to the API port
+```
+
+Chifra/TrueBlocks runs its own IPFS for the unchained index; confirm
+whether to reuse that node or run a dedicated one for the SPA before
+pinning.
+
+## DNSLink
+
+After pinning, set the TXT record the script prints:
+
+```
+_dnslink.ipfs.explore.valve.city.  TXT  "dnslink=/ipfs/<CID>"
+```
+
+Then a DNSLink-aware gateway (or `ipfs.explore.valve.city` fronted by a
+gateway) resolves the latest pin. Re-running `deploy:ipfs` produces a new
+CID on every content change; update the TXT record to roll the release
+forward (and keep the prior CID pinned for instant rollback).
