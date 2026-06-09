@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
+import {
+  resolveApiBase,
+  getApiBaseOverride,
+  setApiBaseOverride,
+  clearApiBaseOverride,
+} from "../../lib/apiBase";
 
 const AUTO_COLLAPSE_ENABLED_KEY = "valvetech-shell-auto-collapse";
 
@@ -116,16 +122,132 @@ export default function SettingsPanel() {
         </div>
       </Section>
 
+      {/* Section: Backend API origin */}
+      <BackendApiSection />
+
       {/* Section: Future home for other prefs */}
       <Section title="More" icon="heroicons:adjustments-horizontal">
         <div
           className="text-xs italic py-4 text-center theme-text-muted"
         >
-          Network, RPC URL overrides, theme accents, default route, keyboard shortcuts —
+          Network, theme accents, default route, keyboard shortcuts —
           will live here as we add them.
         </div>
       </Section>
     </div>
+  );
+}
+
+/**
+ * Backend API origin override (IPFS-portable frontend, recommendation B).
+ *
+ * `resolveApiBase()` reads the override once at module load, so a change here
+ * only takes effect after a page reload — the UI states that plainly rather
+ * than pretending the swap is live-reactive.
+ */
+function BackendApiSection() {
+  const effective = resolveApiBase();
+  const [draft, setDraft] = useState(() => getApiBaseOverride() ?? "");
+  const [stored, setStored] = useState<string | null>(() => getApiBaseOverride());
+  const [error, setError] = useState<string | null>(null);
+
+  const apply = () => {
+    const trimmed = draft.trim();
+    if (!trimmed) {
+      setError("Enter an http(s) origin, e.g. https://explore.valve.city");
+      return;
+    }
+    const saved = setApiBaseOverride(trimmed);
+    if (!saved) {
+      setError("Not a valid http(s) origin.");
+      return;
+    }
+    setError(null);
+    setStored(saved);
+    setDraft(saved);
+  };
+
+  const clear = () => {
+    clearApiBaseOverride();
+    setStored(null);
+    setDraft("");
+    setError(null);
+  };
+
+  return (
+    <Section title="Backend API origin" icon="heroicons:server-stack">
+      <div className="space-y-stack pt-2">
+        <div className="flex items-center justify-between gap-row">
+          <span className="text-xs uppercase tracking-widest theme-text-muted">
+            Currently using
+          </span>
+          <code className="text-xs theme-mono theme-text">
+            {effective || "(same origin)"}
+          </code>
+        </div>
+
+        <p className="text-xs theme-text-muted max-w-md">
+          Override the backend this UI talks to. Needed when the app is served
+          from an IPFS gateway and must point at a chosen backend. Only http(s)
+          origins are accepted; the value is stored in this browser only.
+        </p>
+
+        <div className="flex items-center gap-row">
+          <input
+            type="text"
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              if (error) setError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") apply();
+            }}
+            placeholder="https://explore.valve.city"
+            className={`w-full px-2 py-1.5 text-sm theme-mono theme-input-bg theme-text ${
+              error ? "bs-b-danger" : "bs-in-muted"
+            }`}
+          />
+          <button
+            type="button"
+            onClick={apply}
+            className="px-4 py-2 text-sm font-medium theme-accent-solid text-white hover:opacity-90 shrink-0"
+          >
+            Set
+          </button>
+          <button
+            type="button"
+            onClick={clear}
+            disabled={stored === null}
+            className={`px-4 py-2 text-sm font-medium shrink-0 ${
+              stored === null
+                ? "theme-tertiary-bg theme-text-muted cursor-not-allowed"
+                : "theme-secondary-bg theme-text hover:opacity-90"
+            }`}
+          >
+            Clear
+          </button>
+        </div>
+
+        {error && (
+          <div className="text-xs theme-danger">{error}</div>
+        )}
+
+        <div className="flex items-start gap-inline text-xs theme-text-muted">
+          <Icon
+            icon="heroicons:arrow-path"
+            className="w-3.5 h-3.5 mt-0.5 shrink-0"
+          />
+          <span>
+            {stored
+              ? `Override set to ${stored}. `
+              : "No override set. "}
+            Reload the page for the change to take effect — the backend origin is
+            resolved once when the app loads.
+          </span>
+        </div>
+      </div>
+    </Section>
   );
 }
 

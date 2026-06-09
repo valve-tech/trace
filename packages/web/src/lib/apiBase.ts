@@ -40,6 +40,37 @@ export function sanitizeApiBase(value: string | null | undefined): string | null
 }
 
 /**
+ * Read the raw stored override origin (already sanitized), or null when unset
+ * or invalid. Distinct from `resolveApiBase()`, which falls through to the
+ * baked default / same-origin; this reflects only the user's explicit choice.
+ */
+export function getApiBaseOverride(): string | null {
+  if (typeof localStorage === "undefined") return null;
+  return sanitizeApiBase(localStorage.getItem(API_BASE_OVERRIDE_KEY));
+}
+
+/**
+ * Persist a backend override. Returns the normalized origin that was stored,
+ * or null when the input is rejected (nothing is written for invalid input).
+ * Takes effect on the next page load — callers resolve the base at module load.
+ */
+export function setApiBaseOverride(value: string): string | null {
+  const origin = sanitizeApiBase(value);
+  if (!origin) return null;
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(API_BASE_OVERRIDE_KEY, origin);
+  }
+  return origin;
+}
+
+/** Remove the backend override, reverting to the baked default / same-origin. */
+export function clearApiBaseOverride(): void {
+  if (typeof localStorage !== "undefined") {
+    localStorage.removeItem(API_BASE_OVERRIDE_KEY);
+  }
+}
+
+/**
  * Resolve the backend origin. Priority:
  *   1. validated localStorage override (user opted in via Settings)
  *   2. build-time VITE_API_BASE (the IPFS bundle's baked default)
