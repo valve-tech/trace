@@ -1,0 +1,18 @@
+# Chains this Explore instance serves. Copy to chains.yml and edit.
+# Only chainId, name, and rpcUrl are required per chain — everything else has a
+# sensible default. Full field reference: docs/SELF_HOSTING.md.
+
+- chainId: 8453
+  name: Base
+  rpcUrl: https://mainnet.base.org
+  nativeSymbol: ETH
+  defaultBlockTimeSeconds: 2
+  default: true                       # the no-?chainid fallback chain
+  # blockscoutBase: https://base.blockscout.com/api   # enables ABI/source enrichment
+  # debugRpcUrl: https://your-debug-node             # enables the opcode debugger/tracer
+
+- chainId: 10
+  name: Optimism
+  rpcUrl: https://mainnet.optimism.io
+  nativeSymbol: ETH
+  defaultBlockTimeSeconds: 2

@@ -1,0 +1,67 @@
+# Self-host Explore for your own EVM chain(s).
+#
+#   1. Copy chains.example.yml to chains.yml and edit it (your chainId + rpcUrl).
+#   2. docker compose -f compose.selfhost.yml up -d
+#   3. Open http://localhost:8080  (API + docs on http://localhost:10100/docs)
+#
+# Everything below is overridable via a .env file next to this one (or real
+# env vars). Defaults give a working single-node deployment out of the box.
+#
+# See docs/SELF_HOSTING.md for the chains.yml format and what each feature needs.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-explore}
+      POSTGRES_USER: ${POSTGRES_USER:-explore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-explore}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-explore}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    ports:
+      - "${API_PORT:-10100}:10100"
+    environment:
+      PORT: "10100"
+      DATABASE_URL: postgres://${POSTGRES_USER:-explore}:${POSTGRES_PASSWORD:-explore}@postgres:5432/${POSTGRES_DB:-explore}
+      # Which chains this instance serves — mounted file below.
+      CHAINS_CONFIG_PATH: /config/chains.yml
+      # The fallback chain when a request omits ?chainid (else: a chain flagged
+      # default:true in chains.yml, then the lowest id).
+      DEFAULT_CHAIN_ID: ${DEFAULT_CHAIN_ID:-}
+      # Branding for the OpenAPI doc + /docs page (so it's not "valve").
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:10100}
+      OPENAPI_TITLE: ${OPENAPI_TITLE:-Explore}
+      OPENAPI_CONTACT_EMAIL: ${OPENAPI_CONTACT_EMAIL:-}
+      # Optional enrichment backends — omit to run without them (features degrade
+      # cleanly; see docs/SELF_HOSTING.md §3).
+      CHIFRA_BASE_URL: ${CHIFRA_BASE_URL:-}
+    volumes:
+      - ./chains.yml:/config/chains.yml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: packages/web/Dockerfile
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:

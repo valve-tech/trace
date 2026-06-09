@@ -12,14 +12,27 @@ just the hosted launch set (Ethereum / PulseChain / PulseChain v4).
 If you don't provide a chains config, the backend runs the default valve set and
 behaves exactly like the hosted deployment.
 
+## Quick start (Docker Compose)
+
+```bash
+cp chains.example.yml chains.yml      # edit: your chainId + rpcUrl
+docker compose -f compose.selfhost.yml up -d
+# UI → http://localhost:8080   API docs → http://localhost:10100/docs
+```
+
+`compose.selfhost.yml` runs Postgres + the API/SPA container, mounts your
+`chains.yml`, and is fully overridable via a `.env` file (ports, DB creds,
+branding). The rest of this doc is the reference behind that.
+
 ## 1. Tell the backend which chains to serve
 
-Provide a JSON array of chains via **either**:
+Provide your chains as **YAML or JSON** (JSON is valid YAML, so either works —
+YAML is friendlier to author). Via **either**:
 
 | Env | Meaning |
 |-----|---------|
-| `CHAINS_JSON` | the config inline as a JSON string |
-| `CHAINS_CONFIG_PATH` | path to a JSON file with the same array |
+| `CHAINS_CONFIG_PATH` | path to a `chains.yml` / `.json` file (recommended) |
+| `CHAINS_JSON` | the config inline as a YAML/JSON string |
 
 When set, this **replaces** the default set — you declare exactly the chains
 your instance serves. Only `rpcUrl` is required per chain; everything else has a
@@ -43,35 +56,26 @@ default, and viem chain objects are synthesized for ids viem doesn't ship.
 | `testnet` | | `false` | dims it in pickers |
 | `default` | | — | set `true` on one chain to make it the no-`?chainid` fallback |
 
-### Example
+### Example (`chains.yml`)
 
-```json
-[
-  {
-    "chainId": 8453,
-    "name": "Base",
-    "rpcUrl": "https://mainnet.base.org",
-    "nativeSymbol": "ETH",
-    "blockscoutBase": "https://base.blockscout.com/api",
-    "defaultBlockTimeSeconds": 2,
-    "default": true
-  },
-  {
-    "chainId": 10,
-    "name": "Optimism",
-    "rpcUrl": "https://mainnet.optimism.io",
-    "nativeSymbol": "ETH",
-    "defaultBlockTimeSeconds": 2
-  }
-]
+```yaml
+- chainId: 8453
+  name: Base
+  rpcUrl: https://mainnet.base.org
+  nativeSymbol: ETH
+  blockscoutBase: https://base.blockscout.com/api
+  defaultBlockTimeSeconds: 2
+  default: true
+
+- chainId: 10
+  name: Optimism
+  rpcUrl: https://mainnet.optimism.io
+  nativeSymbol: ETH
+  defaultBlockTimeSeconds: 2
 ```
 
-```bash
-docker run -p 10100:10100 \
-  -e DATABASE_URL=postgres://user:pass@db:5432/explore \
-  -e CHAINS_JSON="$(cat my-chains.json)" \
-  explore:latest
-```
+A ready-to-edit `chains.example.yml` ships at the repo root. The same content as
+JSON works too (via `CHAINS_JSON` or a `.json` file).
 
 The default chain (for requests without `?chainid`) resolves as:
 `DEFAULT_CHAIN_ID` env → a chain flagged `"default": true` → `369` if present →
@@ -83,8 +87,11 @@ the lowest configured id.
 |----------|---------|---------|
 | `PORT` | `10100` | API/SPA port |
 | `DATABASE_URL` | local dev string | Postgres — required (caches, auth nonces, alerts, workspace blobs) |
-| `CHAINS_JSON` / `CHAINS_CONFIG_PATH` | (valve set) | the chains this instance serves |
+| `CHAINS_CONFIG_PATH` / `CHAINS_JSON` | (valve set) | the chains this instance serves (YAML or JSON) |
 | `DEFAULT_CHAIN_ID` | `369` / lowest | fallback chain for `?chainid`-less requests |
+| `PUBLIC_BASE_URL` | `https://explore.valve.city` | this instance's URL — the primary OpenAPI server |
+| `OPENAPI_TITLE` | `valve · explore.valve.city` | OpenAPI + `/docs` page title (rebrand here) |
+| `OPENAPI_CONTACT_EMAIL` | `dev@valve.city` | OpenAPI contact email |
 | `CHIFRA_BASE_URL` | `https://chifra.valve.city` | TrueBlocks daemon for address history |
 | `ETH_RPC_URL` / `PULSECHAIN_RPC_URL` / `PULSECHAIN_V4_RPC_URL` | valve RPC | per-chain RPC for the **default set only** (a `CHAINS_JSON` chain carries its own `rpcUrl`) |
 | `DEBUG_RPC_URL` | falls back to chain RPC | debug-enabled node for traces |

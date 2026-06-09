@@ -29,10 +29,12 @@ describe("openapi spec", () => {
     }
   });
 
-  it("lists production + local servers", () => {
+  it("lists the public + local servers (env-driven, defaults reproduce the hosted deployment)", () => {
     const urls = spec.servers.map((s) => s.url);
-    assert.ok(urls.includes("https://explore.valve.city"), "should advertise the production URL");
-    assert.ok(urls.includes("http://localhost:3030"), "should advertise the local URL");
+    // PUBLIC_BASE_URL default — overridable for self-hosters.
+    assert.ok(urls.includes("https://explore.valve.city"), "should advertise the public URL");
+    // local dev server uses the real default API port (PORT || 10100).
+    assert.ok(urls.includes("http://localhost:10100"), "should advertise the local URL");
   });
 
   it("describes the non-OpenAPI /rpc, /api/rpc, /ws/alerts surfaces in the appendix", () => {

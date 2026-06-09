@@ -12,6 +12,7 @@
 import type { Request, Response } from "express";
 
 import { spec } from "./spec.js";
+import { BRAND_TITLE } from "./branding.js";
 
 const SPEC_JSON = JSON.stringify(spec, null, 2);
 
@@ -22,7 +23,7 @@ const DOCS_HTML = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>valve · explore.valve.city — API reference</title>
+    <title>${BRAND_TITLE} — API reference</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <style>

@@ -1,17 +1,22 @@
 import { readFileSync } from "node:fs";
 import { defineChain } from "viem";
+import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { type ChainConfig } from "./types.js";
 import { VALVE_DEFAULT_CHAINS } from "./defaults.js";
 
 /**
- * Self-hosting: build the chain registry from a user-supplied JSON config so an
+ * Self-hosting: build the chain registry from a user-supplied config so an
  * operator can run Explore for ANY EVM chain — not just the valve launch set —
  * without editing code or rebuilding.
  *
+ * The config is YAML **or** JSON (JSON is valid YAML, so one parser accepts
+ * both). YAML is the friendlier authoring format for non-developers; a
+ * `chains.yml` file is the recommended path.
+ *
  * Sources (checked in order; first wins):
- *   - `CHAINS_JSON`         — the config inline as a JSON string.
- *   - `CHAINS_CONFIG_PATH`  — a path to a JSON file with the same shape.
+ *   - `CHAINS_JSON`         — the config inline (YAML or JSON string).
+ *   - `CHAINS_CONFIG_PATH`  — a path to a `chains.yml` / `.json` file.
  *   - neither               — the built-in valve set (1/369/943) is used, so
  *                             the hosted deployment is unchanged.
  *
@@ -99,16 +104,16 @@ export interface LoadedChains {
  * readable message (not a raw ZodError) on any problem — a self-hoster sees
  * exactly what's wrong at startup rather than a stack trace.
  */
-export function parseChainsConfig(json: string): {
+export function parseChainsConfig(text: string): {
   chains: ChainConfig[];
   flaggedDefault?: number;
 } {
   let raw: unknown;
   try {
-    raw = JSON.parse(json);
+    raw = parseYaml(text);
   } catch (err) {
     throw new Error(
-      `CHAINS config is not valid JSON: ${(err as Error).message}`,
+      `CHAINS config is not valid YAML/JSON: ${(err as Error).message}`,
     );
   }
 
@@ -163,12 +168,12 @@ export function loadChains(): LoadedChains {
   const inline = process.env.CHAINS_JSON;
   const path = process.env.CHAINS_CONFIG_PATH;
 
-  let json: string | undefined;
+  let text: string | undefined;
   if (inline && inline.trim()) {
-    json = inline;
+    text = inline;
   } else if (path && path.trim()) {
     try {
-      json = readFileSync(path, "utf8");
+      text = readFileSync(path, "utf8");
     } catch (err) {
       throw new Error(
         `CHAINS_CONFIG_PATH could not be read (${path}): ${(err as Error).message}`,
@@ -176,14 +181,14 @@ export function loadChains(): LoadedChains {
     }
   }
 
-  if (!json) {
+  if (!text) {
     return {
       chains: VALVE_DEFAULT_CHAINS,
       defaultChainId: resolveDefaultChainId(VALVE_DEFAULT_CHAINS, undefined),
     };
   }
 
-  const { chains, flaggedDefault } = parseChainsConfig(json);
+  const { chains, flaggedDefault } = parseChainsConfig(text);
   const record: Record<number, ChainConfig> = {};
   for (const c of chains) record[c.chainId] = c;
   return {

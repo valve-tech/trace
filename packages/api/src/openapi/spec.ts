@@ -26,6 +26,12 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 import type { OpenAPIObject, ResponseObject } from "./types.js";
+import {
+  PUBLIC_BASE_URL,
+  BRAND_TITLE,
+  CONTACT_EMAIL,
+  LOCAL_SERVER_URL,
+} from "./branding.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -91,15 +97,15 @@ without prior knowledge of this hostname.
 export const spec: OpenAPIObject = {
   openapi: "3.1.0",
   info: {
-    title: "valve · explore.valve.city",
+    title: BRAND_TITLE,
     version: pkg.version,
     description: APPENDIX,
-    contact: { email: "dev@valve.city" },
+    contact: { email: CONTACT_EMAIL },
     license: { name: "MIT", identifier: "MIT" },
   },
   servers: [
-    { url: "https://explore.valve.city", description: "production" },
-    { url: "http://localhost:3030", description: "local trace api (default port)" },
+    { url: PUBLIC_BASE_URL, description: "this instance" },
+    { url: LOCAL_SERVER_URL, description: "local api" },
   ],
   tags: [
     { name: "system", description: "health, status, root" },

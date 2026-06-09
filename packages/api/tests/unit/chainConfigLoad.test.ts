@@ -54,8 +54,22 @@ describe("parseChainsConfig", () => {
     assert.equal(flaggedDefault, 10);
   });
 
-  it("throws readable errors on bad JSON, bad schema, and duplicate ids", () => {
-    assert.throws(() => parseChainsConfig("{not json"), /not valid JSON/);
+  it("parses YAML, not just JSON", () => {
+    const { chains } = parseChainsConfig(
+      [
+        "- chainId: 8453",
+        "  name: Base",
+        "  rpcUrl: https://mainnet.base.org",
+        "  nativeSymbol: ETH",
+      ].join("\n"),
+    );
+    assert.equal(chains.length, 1);
+    assert.equal(chains[0].chainId, 8453);
+    assert.equal(chains[0].viemChain.id, 8453);
+  });
+
+  it("throws readable errors on bad YAML, bad schema, and duplicate ids", () => {
+    assert.throws(() => parseChainsConfig("{not: valid: yaml:"), /not valid YAML\/JSON/);
     assert.throws(
       () => parseChainsConfig(JSON.stringify([{ chainId: 1, name: "X" }])),
       /CHAINS config invalid/,
