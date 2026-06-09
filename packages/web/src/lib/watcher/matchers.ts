@@ -7,8 +7,19 @@
  * like the backend monitor's `matchers.ts`.
  */
 
-import { formatEther } from "viem";
+import { formatEther, formatUnits } from "viem";
 import type { WatchMatchContent, WatchRule } from "./types.js";
+
+/**
+ * ERC-20 metadata needed to render a human transfer amount. Produced by the
+ * effectful `tokenMeta.ts` (a one-shot on-chain read); consumed here as plain
+ * data so the matcher stays pure. `symbol` is optional — a token may decline
+ * `symbol()` yet still scale by `decimals`.
+ */
+export interface TokenMeta {
+  decimals: number;
+  symbol?: string;
+}
 
 /** Just the tx fields a matcher needs (subset of viem's Transaction). */
 export interface MinimalTx {
@@ -91,13 +102,17 @@ export function matchAddressActivity(
  * at the subscription layer (viem's `watchEvent({ address })`), so here we only
  * apply the optional counterparty filter and phrase the summary.
  *
- * Value is shown RAW (base units): token decimals aren't known client-side
- * without an extra `decimals()` call, and an ambient notification doesn't
- * justify one. The deep-link to the tx is where a user gets the exact amount.
+ * `meta` carries the token's decimals/symbol when known (the engine fetches it
+ * once per token via `tokenMeta.ts`). With it, the amount is scaled to a human
+ * value with the ticker ("1.5 USDC"); without it — not yet loaded, or the token
+ * declined `decimals()` — we fall back to RAW base units, so a slow or missing
+ * metadata read never blocks the notification. The deep-link to the tx is always
+ * the exact-amount source of truth either way.
  */
 export function matchErc20Transfer(
   log: MinimalTransferLog,
   rule: WatchRule,
+  meta?: TokenMeta | null,
 ): WatchMatchContent | null {
   const counterparty = rule.counterparty?.toLowerCase();
   const from = log.from.toLowerCase();
@@ -105,8 +120,19 @@ export function matchErc20Transfer(
   if (counterparty && from !== counterparty && to !== counterparty) return null;
 
   return {
-    summary: `Transfer ${shorten(from)} → ${shorten(to)} (${log.value.toString()})`,
+    summary: `Transfer ${shorten(from)} → ${shorten(to)} (${formatTokenAmount(log.value, meta)})`,
     txHash: log.transactionHash ?? undefined,
     blockNumber: log.blockNumber?.toString() ?? undefined,
   };
+}
+
+/**
+ * Render a transfer's value. With metadata, scale raw base units by `decimals`
+ * and append the symbol when present ("1.5 USDC", or "1.5" if symbol-less).
+ * Without metadata, emit the raw integer base units — the unambiguous fallback.
+ */
+export function formatTokenAmount(value: bigint, meta?: TokenMeta | null): string {
+  if (!meta) return value.toString();
+  const scaled = formatUnits(value, meta.decimals);
+  return meta.symbol ? `${scaled} ${meta.symbol}` : scaled;
 }

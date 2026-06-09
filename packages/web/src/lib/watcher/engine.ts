@@ -14,7 +14,9 @@ import { getPublicClient } from "./client.js";
 import {
   matchAddressActivity,
   matchErc20Transfer,
+  type TokenMeta,
 } from "./matchers.js";
+import { getTokenMeta } from "./tokenMeta.js";
 import type { WatchMatchContent, WatchRule } from "./types.js";
 import { isRuleActionable } from "./rules.js";
 
@@ -58,6 +60,17 @@ export function subscribeRule(rule: WatchRule, onMatch: MatchHandler): () => voi
 
   // erc20_transfer — poll-based so it rides eth_getLogs (which the /rpc proxy
   // supports) instead of eth_newFilter (which it may not).
+  //
+  // Kick off the one-shot decimals/symbol read up front and stash the result in
+  // a closure. Until it resolves, `meta` is null and the matcher renders raw
+  // base units; once it lands, every subsequent transfer shows the human amount.
+  // The fetch is memoized per token, so toggling/re-subscribing never re-reads.
+  let meta: TokenMeta | null = null;
+  void getTokenMeta(rule.chainId, rule.contractAddress as `0x${string}`).then(
+    (m) => {
+      meta = m;
+    },
+  );
   return client.watchEvent({
     address: rule.contractAddress as `0x${string}`,
     event: TRANSFER_EVENT,
@@ -73,6 +86,7 @@ export function subscribeRule(rule: WatchRule, onMatch: MatchHandler): () => voi
             value: log.args.value ?? 0n,
           },
           rule,
+          meta,
         );
         if (content) onMatch(rule, content);
       }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  formatTokenAmount,
   matchAddressActivity,
   matchErc20Transfer,
   shorten,
@@ -156,6 +157,47 @@ describe("watcher/matchers — matchErc20Transfer", () => {
   it("filters out transfers not touching the counterparty", () => {
     const other = "0xdddd000000000000000000000000000000000009";
     expect(matchErc20Transfer(log, rule({ counterparty: other }))).toBeNull();
+  });
+
+  it("scales by decimals and appends the symbol when meta is present", () => {
+    const m = matchErc20Transfer({ ...log, value: 1_500_000n }, rule({}), {
+      decimals: 6,
+      symbol: "USDC",
+    });
+    expect(m!.summary).toContain("1.5 USDC");
+  });
+
+  it("scales without a ticker when meta carries no symbol", () => {
+    const m = matchErc20Transfer({ ...log, value: 1_500_000n }, rule({}), {
+      decimals: 6,
+    });
+    expect(m!.summary).toContain("(1.5)");
+    expect(m!.summary).not.toContain("USDC");
+  });
+
+  it("falls back to raw base units when meta is null or absent", () => {
+    const big = { ...log, value: 1_500_000n };
+    expect(matchErc20Transfer(big, rule({}), null)!.summary).toContain(
+      "1500000",
+    );
+    expect(matchErc20Transfer(big, rule({}))!.summary).toContain("1500000");
+  });
+});
+
+describe("watcher/matchers — formatTokenAmount", () => {
+  it("returns raw base units without metadata", () => {
+    expect(formatTokenAmount(1_500_000n)).toBe("1500000");
+    expect(formatTokenAmount(1_500_000n, null)).toBe("1500000");
+  });
+
+  it("scales by decimals, with and without a symbol", () => {
+    expect(formatTokenAmount(1_500_000n, { decimals: 6, symbol: "USDC" })).toBe(
+      "1.5 USDC",
+    );
+    expect(formatTokenAmount(1_500_000n, { decimals: 6 })).toBe("1.5");
+    expect(formatTokenAmount(10n ** 18n, { decimals: 18, symbol: "PLS" })).toBe(
+      "1 PLS",
+    );
   });
 });
 
