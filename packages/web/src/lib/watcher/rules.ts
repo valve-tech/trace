@@ -99,6 +99,21 @@ export function toggleRule(rules: WatchRule[], id: string): WatchRule[] {
   return rules.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r));
 }
 
+/**
+ * Flip every rule in one workspace to `enabled` — the pause-all / resume-all
+ * bulk action. Rules in other workspaces are untouched, so the engine only
+ * reconciles the subscriptions whose signature actually changed.
+ */
+export function setEnabledForWorkspace(
+  rules: WatchRule[],
+  workspaceId: string,
+  enabled: boolean,
+): WatchRule[] {
+  return rules.map((r) =>
+    r.workspaceId === workspaceId ? { ...r, enabled } : r,
+  );
+}
+
 export function removeRule(rules: WatchRule[], id: string): WatchRule[] {
   return rules.filter((r) => r.id !== id);
 }

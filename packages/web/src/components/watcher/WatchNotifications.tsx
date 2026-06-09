@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useWatchEngine } from "../../hooks/useWatchEngine";
 import AlertToast from "../AlertToast";
+import { showDesktopNotification } from "../../lib/watcher/desktopNotify";
 import type { WatchMatch } from "../../lib/watcher/types";
 
 /**
@@ -13,6 +14,9 @@ import type { WatchMatch } from "../../lib/watcher/types";
  *
  * Toast lifecycle mirrors App's existing alert toast: show on a NEW match
  * (deduped by id), auto-dismiss after 6s, re-key so each match slides in fresh.
+ * A new match also raises an optional desktop notification — a no-op unless the
+ * user enabled it AND granted browser permission (see `desktopNotify`), so the
+ * backgrounded-tab case is covered without changing the always-on toast.
  */
 export default function WatchNotifications() {
   const { latest } = useWatchEngine();
@@ -29,6 +33,11 @@ export default function WatchNotifications() {
       setToast(null);
       timerRef.current = null;
     }, 6_000);
+    showDesktopNotification({
+      title: latest.label,
+      body: latest.summary,
+      tag: latest.id,
+    });
   }, [latest]);
 
   useEffect(

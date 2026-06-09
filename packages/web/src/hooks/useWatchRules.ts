@@ -4,6 +4,7 @@ import {
   loadRules,
   persistRules,
   removeRule,
+  setEnabledForWorkspace,
   toggleRule,
   type NewRuleInput,
 } from "../lib/watcher/rules";
@@ -61,11 +62,27 @@ export function useWatchRules() {
     onSuccess: invalidate,
   });
 
+  const setWorkspaceEnabled = useMutation({
+    mutationFn: async ({
+      workspaceId,
+      enabled,
+    }: {
+      workspaceId: string;
+      enabled: boolean;
+    }) => {
+      await mutate((rules) =>
+        setEnabledForWorkspace(rules, workspaceId, enabled),
+      );
+    },
+    onSuccess: invalidate,
+  });
+
   return {
     rules: query.data ?? [],
     isLoading: query.isLoading,
     add,
     toggle,
     remove,
+    setWorkspaceEnabled,
   };
 }

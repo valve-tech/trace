@@ -11,6 +11,14 @@ import {
   setRpcOverride,
   clearRpcOverride,
 } from "../../lib/rpcEndpoint";
+import {
+  isDesktopNotifyEnabled,
+  setDesktopNotifyEnabled,
+  notificationsSupported,
+  notificationPermission,
+  requestNotificationPermission,
+  type NotifyPermission,
+} from "../../lib/watcher/desktopNotify";
 import { CHAINS } from "../../lib/chains";
 
 const AUTO_COLLAPSE_ENABLED_KEY = "valvetech-shell-auto-collapse";
@@ -132,6 +140,8 @@ export default function SettingsPanel() {
       <BackendApiSection />
 
       <RpcEndpointSection />
+
+      <NotificationsSection />
 
       {/* Section: Future home for other prefs */}
       <Section title="More" icon="heroicons:adjustments-horizontal">
@@ -367,6 +377,79 @@ function RpcChainRow({ chainId, name }: { chainId: number; name: string }) {
       </div>
       {error && <div className="text-xs theme-danger">{error}</div>}
     </div>
+  );
+}
+
+/**
+ * Desktop notifications for the client-side watcher. Two gates the copy keeps
+ * visible: the user PREFERENCE (this toggle) and the browser PERMISSION (only
+ * the platform can grant it). Enabling the toggle requests permission if it
+ * hasn't been decided; a denied permission can't be re-prompted from script, so
+ * we surface that dead-end honestly instead of letting the toggle lie.
+ */
+function NotificationsSection() {
+  const supported = notificationsSupported();
+  const [permission, setPermission] = useState<NotifyPermission>(() =>
+    notificationPermission(),
+  );
+  const [enabled, setEnabled] = useState(() => isDesktopNotifyEnabled());
+
+  const persist = (next: boolean) => {
+    setEnabled(next);
+    setDesktopNotifyEnabled(next);
+  };
+
+  const onToggle = (next: boolean) => {
+    if (!next) {
+      persist(false);
+      return;
+    }
+    // Turning on: ensure permission first, then honor the result.
+    if (permission === "granted") {
+      persist(true);
+      return;
+    }
+    void requestNotificationPermission().then((result) => {
+      setPermission(result);
+      persist(result === "granted");
+    });
+  };
+
+  const denied = permission === "denied";
+  const stateLabel = !supported
+    ? "Not supported in this browser"
+    : permission === "granted"
+      ? "Permission granted"
+      : permission === "denied"
+        ? "Blocked — allow notifications for this site in your browser"
+        : "Permission not yet requested";
+
+  return (
+    <Section title="Notifications" icon="heroicons:bell-alert">
+      <Row
+        label="Desktop notifications for watches"
+        hint="When a watch fires, also raise an OS-level notification — so a backgrounded tab still alerts you. The in-app toast shows regardless; this is the opt-in escalation, and it runs entirely client-side."
+        control={
+          <Toggle
+            checked={enabled && permission === "granted"}
+            onChange={
+              supported && !denied ? onToggle : () => {}
+            }
+          />
+        }
+      />
+      <div className="flex items-start gap-inline text-xs pt-1 theme-text-muted">
+        <Icon
+          icon={
+            permission === "granted"
+              ? "heroicons:check-circle"
+              : "heroicons:information-circle"
+          }
+          className="w-3.5 h-3.5 mt-0.5 shrink-0"
+        />
+        <span>{stateLabel}.</span>
+      </div>
+    </Section>
   );
 }
 

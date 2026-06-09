@@ -1,8 +1,19 @@
 import { NavLink } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { NAV_GROUPS } from "../../lib/navGroups";
+import { useWatchRules } from "../../hooks/useWatchRules";
+import { isRuleActionable } from "../../lib/watcher/rules";
+
+/** The nav item watches live under — the only one that carries a live badge. */
+const WATCH_BADGE_ROUTE = "/workspace";
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
+  const { rules } = useWatchRules();
+  // Active = enabled AND actionable, i.e. rules the engine actually subscribes.
+  const activeWatches = rules.filter(
+    (r) => r.enabled && isRuleActionable(r),
+  ).length;
+
   return (
     <aside
       className="flex flex-col transition-[width] duration-150 shrink-0 theme-secondary-bg bs-r"
@@ -47,7 +58,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                 key={item.to}
                 to={item.to}
                 title={collapsed ? item.label : undefined}
-                className="flex items-center transition-colors overflow-hidden"
+                className="relative flex items-center transition-colors overflow-hidden"
                 style={({ isActive }) =>
                   collapsed
                     ? {
@@ -86,8 +97,34 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
               >
                 <Icon icon={item.icon} className="w-5 h-5 shrink-0" />
                 {!collapsed && (
-                  <span className="text-sm whitespace-nowrap">{item.label}</span>
+                  <span className="text-sm whitespace-nowrap flex-1">
+                    {item.label}
+                  </span>
                 )}
+                {item.to === WATCH_BADGE_ROUTE &&
+                  activeWatches > 0 &&
+                  (collapsed ? (
+                    <span
+                      className="absolute top-1 right-1.5 w-1.5 h-1.5"
+                      style={{ backgroundColor: "var(--color-accent)" }}
+                      title={`${activeWatches} active watch${
+                        activeWatches === 1 ? "" : "es"
+                      }`}
+                    />
+                  ) : (
+                    <span
+                      className="text-[10px] font-semibold px-1.5 py-0.5 shrink-0 tabular-nums"
+                      style={{
+                        backgroundColor: "var(--color-accent-muted)",
+                        color: "var(--color-accent)",
+                      }}
+                      title={`${activeWatches} active watch${
+                        activeWatches === 1 ? "" : "es"
+                      }`}
+                    >
+                      {activeWatches}
+                    </span>
+                  ))}
               </NavLink>
             ))}
           </div>

@@ -17,7 +17,7 @@ import { WatchRuleForm } from "./WatchRuleForm";
  * the server-side monitor's job, deliberately not this).
  */
 export function WatchRulesPanel({ workspace }: { workspace: Workspace }) {
-  const { rules, toggle, remove, add } = useWatchRules();
+  const { rules, toggle, remove, add, setWorkspaceEnabled } = useWatchRules();
   const { matches } = useWatchLog();
   const [showForm, setShowForm] = useState(false);
 
@@ -29,6 +29,8 @@ export function WatchRulesPanel({ workspace }: { workspace: Workspace }) {
     () => matches.filter((m) => m.workspaceId === workspace.id).slice(0, 20),
     [matches, workspace.id],
   );
+  // Pause-all when any rule is live; resume-all when they're all paused.
+  const anyEnabled = myRules.some((r) => r.enabled);
 
   return (
     <div className="card p-4 mb-4">
@@ -42,17 +44,37 @@ export function WatchRulesPanel({ workspace }: { workspace: Workspace }) {
               : `${myRules.filter((r) => r.enabled).length} active · client-side`}
           </span>
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="text-xs px-2 py-1 flex items-center gap-tight"
-          style={{ color: showForm ? "var(--color-accent)" : "var(--color-text-muted)" }}
-        >
-          <Icon
-            icon={showForm ? "heroicons:x-mark" : "heroicons:plus"}
-            className="w-4 h-4"
-          />
-          {!showForm && "Add"}
-        </button>
+        <div className="flex items-center gap-tight shrink-0">
+          {myRules.length > 1 && (
+            <button
+              onClick={() =>
+                setWorkspaceEnabled.mutate({
+                  workspaceId: workspace.id,
+                  enabled: !anyEnabled,
+                })
+              }
+              className="text-xs px-2 py-1 flex items-center gap-tight theme-text-muted"
+              title={anyEnabled ? "Pause every watch here" : "Resume every watch here"}
+            >
+              <Icon
+                icon={anyEnabled ? "heroicons:pause" : "heroicons:play"}
+                className="w-4 h-4"
+              />
+              {anyEnabled ? "Pause all" : "Resume all"}
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="text-xs px-2 py-1 flex items-center gap-tight"
+            style={{ color: showForm ? "var(--color-accent)" : "var(--color-text-muted)" }}
+          >
+            <Icon
+              icon={showForm ? "heroicons:x-mark" : "heroicons:plus"}
+              className="w-4 h-4"
+            />
+            {!showForm && "Add"}
+          </button>
+        </div>
       </div>
 
       {showForm && (

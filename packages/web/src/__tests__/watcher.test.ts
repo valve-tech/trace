@@ -10,6 +10,7 @@ import {
   buildRule,
   isRuleActionable,
   removeRule,
+  setEnabledForWorkspace,
   toggleRule,
 } from "../lib/watcher/rules";
 import { appendMatches, toMatch } from "../lib/watcher/log";
@@ -282,6 +283,25 @@ describe("watcher/rules — toggle/remove/actionable", () => {
       kind: "erc20_transfer",
     });
     expect(isRuleActionable(erc)).toBe(false);
+  });
+});
+
+describe("watcher/rules — setEnabledForWorkspace", () => {
+  const mk = (workspaceId: string, enabled: boolean): WatchRule => ({
+    ...buildRule({ workspaceId, chainId: 1, kind: "address_activity", address: A }),
+    enabled,
+  });
+
+  it("pauses every rule in the target workspace, leaving others untouched", () => {
+    const rules = [mk("w1", true), mk("w1", true), mk("w2", true)];
+    const next = setEnabledForWorkspace(rules, "w1", false);
+    expect(next.map((r) => r.enabled)).toEqual([false, false, true]);
+  });
+
+  it("resumes every rule in the target workspace", () => {
+    const rules = [mk("w1", false), mk("w2", false)];
+    const next = setEnabledForWorkspace(rules, "w1", true);
+    expect(next.map((r) => r.enabled)).toEqual([true, false]);
   });
 });
 
