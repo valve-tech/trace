@@ -51,9 +51,12 @@ describe("plsToWei", () => {
     // future viem.parseEther swap would fix it. The test pins down the
     // current behavior so we'd notice if the rounding bucket shifts.
     const out = BigInt(plsToWei("1.234567890123456789")!);
-    // The float 1.234567890123456789 is the same as 1.2345678901234568,
-    // so the result is floor(1.2345678901234568 * 1e18).
-    const expected = BigInt(Math.floor(1.234567890123456789 * 1e18));
+    // The 19-sig-fig literal "1.234567890123456789" rounds to the double
+    // whose canonical form is 1.2345678901234567 (JS Number can't hold 19
+    // sig figs), so the result is floor(1.2345678901234567 * 1e18). We write
+    // that canonical double directly — the longer literal silently loses
+    // precision anyway (and trips no-loss-of-precision).
+    const expected = BigInt(Math.floor(1.2345678901234567 * 1e18));
     expect(out).toBe(expected);
   });
 

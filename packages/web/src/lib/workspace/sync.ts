@@ -55,7 +55,7 @@ export const WORKSPACE_KEY_PURPOSE = "explore-workspaces";
 export const CURRENT_KEY_VERSION = 1;
 
 /** Same for the wire format. */
-export const CURRENT_ENVELOPE_FORMAT: 1 = 1;
+export const CURRENT_ENVELOPE_FORMAT = 1 as const;
 
 /**
  * Derive (and cache) the encryption key for this wallet. The cache is a

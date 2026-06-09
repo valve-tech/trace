@@ -91,7 +91,7 @@ export const respond = {
  * the dependency or its version.
  */
 function scrubInternal(message: string): string {
-  return message.replace(/\s*Version:\s*\S+@[\w.\-]+\s*$/i, "").trim();
+  return message.replace(/\s*Version:\s*\S+@[\w.-]+\s*$/i, "").trim();
 }
 
 /**
