@@ -67,13 +67,37 @@ export const EMPTY_RULE_STORE: WatchRuleStore = {
 };
 
 /**
+ * A raw on-chain amount, stored faithfully and scaled only at render. `raw` is
+ * the base-unit integer exactly as it appears on chain (wei, token base units);
+ * `decimals`/`symbol` are the on-chain metadata needed to display it. We never
+ * persist a pre-scaled value — see `lib/format/tokenAmount.ts`.
+ */
+export interface WatchAmount {
+  /** Base-unit integer as a decimal string. */
+  raw: string;
+  /** On-chain decimals for display scaling; null when not yet known. */
+  decimals: number | null;
+  /** Token/native symbol; null when unknown. */
+  symbol: string | null;
+}
+
+/**
  * The matcher-produced payload, BEFORE the engine stamps identity/time. Keeping
  * matchers free of `id`/`at` (and of viem types) is what makes them pure and
  * trivially unit-testable — the engine wraps this into a full `WatchMatch`.
+ *
+ * The one-line summary is stored as three faithful parts — `lead` + the RAW
+ * `amount` + `trail` — and composed by `renderWatchSummary`. Only the amount is
+ * scaled (at render), so the log stays a 1:1 mirror of chain data and a match
+ * that fired before its token's decimals were known is never frozen wrong.
  */
 export interface WatchMatchContent {
-  /** Human-readable one-liner shown in the toast + activity log. */
-  summary: string;
+  /** Summary text before the amount, e.g. "0xabc… sent " or "Transfer 0xa… → 0xb… (". */
+  lead: string;
+  /** The raw amount rendered in the slot; null when the summary has no amount. */
+  amount: WatchAmount | null;
+  /** Summary text after the amount, e.g. " → 0xdef…" or ")". */
+  trail: string;
   /** Deep-link target (/tx/:hash) when the match is tied to a transaction. */
   txHash?: string;
   /** Decimal block number string, for context in the log. */

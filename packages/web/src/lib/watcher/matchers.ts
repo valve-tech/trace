@@ -1,14 +1,18 @@
 /**
  * Pure watch matchers — given decoded chain data + a rule, decide whether the
- * rule fires and produce the human summary. No viem types, no IDB, no clock:
- * the engine (`engine.ts`) adapts viem's block/log shapes into the minimal
- * inputs below and stamps identity/time onto the result. That split is what
- * keeps this file a bag of deterministic functions you can table-test, exactly
- * like the backend monitor's `matchers.ts`.
+ * rule fires and produce the summary parts. No viem types, no IDB, no clock,
+ * and (deliberately) no number formatting: the matcher carries the RAW on-chain
+ * amount through untouched and leaves scaling to the render edge. The engine
+ * (`engine.ts`) adapts viem's block/log shapes into the minimal inputs below
+ * and stamps identity/time onto the result. That split keeps this file a bag of
+ * deterministic functions you can table-test, like the backend monitor's
+ * `matchers.ts`.
  */
 
-import { formatEther, formatUnits } from "viem";
-import type { WatchMatchContent, WatchRule } from "./types.js";
+import type { WatchAmount, WatchMatchContent, WatchRule } from "./types.js";
+
+/** Native coin decimals on EVM chains — value is wei, displayed as ether. */
+const NATIVE_DECIMALS = 18;
 
 /**
  * ERC-20 metadata needed to render a human transfer amount. Produced by the
@@ -81,7 +85,6 @@ export function matchAddressActivity(
     if (!relevant) continue;
 
     const verb = isOut && isIn ? "self-transfer of" : isOut ? "sent" : "received";
-    const amount = formatEther(tx.value);
     const counterparty = isOut ? to : from;
     const tail =
       counterparty === null
@@ -89,7 +92,10 @@ export function matchAddressActivity(
         : `${isOut ? "→" : "←"} ${shorten(counterparty)}`;
 
     out.push({
-      summary: `${shorten(watched)} ${verb} ${amount} ${tail}`.trim(),
+      // Native value stays raw wei; the render edge scales it as ether (18).
+      lead: `${shorten(watched)} ${verb} `,
+      amount: { raw: tx.value.toString(), decimals: NATIVE_DECIMALS, symbol: null },
+      trail: ` ${tail}`,
       txHash: tx.hash,
       blockNumber: blockNumber?.toString(),
     });
@@ -103,11 +109,11 @@ export function matchAddressActivity(
  * apply the optional counterparty filter and phrase the summary.
  *
  * `meta` carries the token's decimals/symbol when known (the engine fetches it
- * once per token via `tokenMeta.ts`). With it, the amount is scaled to a human
- * value with the ticker ("1.5 USDC"); without it — not yet loaded, or the token
- * declined `decimals()` — we fall back to RAW base units, so a slow or missing
- * metadata read never blocks the notification. The deep-link to the tx is always
- * the exact-amount source of truth either way.
+ * once per token via `tokenMeta.ts`). We DON'T format here — the raw transfer
+ * value is carried through as a `WatchAmount` and scaled at the render edge.
+ * When `meta` is absent (not yet loaded, or the token declined `decimals()`),
+ * `decimals` stays null and the render shows raw base units — so a slow or
+ * missing metadata read never blocks the notification.
  */
 export function matchErc20Transfer(
   log: MinimalTransferLog,
@@ -119,20 +125,16 @@ export function matchErc20Transfer(
   const to = log.to.toLowerCase();
   if (counterparty && from !== counterparty && to !== counterparty) return null;
 
+  const amount: WatchAmount = {
+    raw: log.value.toString(),
+    decimals: meta?.decimals ?? null,
+    symbol: meta?.symbol ?? null,
+  };
   return {
-    summary: `Transfer ${shorten(from)} → ${shorten(to)} (${formatTokenAmount(log.value, meta)})`,
+    lead: `Transfer ${shorten(from)} → ${shorten(to)} (`,
+    amount,
+    trail: ")",
     txHash: log.transactionHash ?? undefined,
     blockNumber: log.blockNumber?.toString() ?? undefined,
   };
-}
-
-/**
- * Render a transfer's value. With metadata, scale raw base units by `decimals`
- * and append the symbol when present ("1.5 USDC", or "1.5" if symbol-less).
- * Without metadata, emit the raw integer base units — the unambiguous fallback.
- */
-export function formatTokenAmount(value: bigint, meta?: TokenMeta | null): string {
-  if (!meta) return value.toString();
-  const scaled = formatUnits(value, meta.decimals);
-  return meta.symbol ? `${scaled} ${meta.symbol}` : scaled;
 }

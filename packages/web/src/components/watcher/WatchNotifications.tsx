@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWatchEngine } from "../../hooks/useWatchEngine";
 import AlertToast from "../AlertToast";
 import { showDesktopNotification } from "../../lib/watcher/desktopNotify";
+import { renderWatchSummary } from "../../lib/watcher/summary";
 import type { WatchMatch } from "../../lib/watcher/types";
 
 /**
@@ -35,7 +36,7 @@ export default function WatchNotifications() {
     }, 6_000);
     showDesktopNotification({
       title: latest.label,
-      body: latest.summary,
+      body: renderWatchSummary(latest),
       tag: latest.id,
     });
   }, [latest]);
@@ -52,7 +53,7 @@ export default function WatchNotifications() {
     <AlertToast
       key={toast.id}
       alert={{ name: toast.label, type: toast.kind }}
-      match={{ summary: toast.summary }}
+      match={{ summary: renderWatchSummary(toast) }}
     />
   );
 }

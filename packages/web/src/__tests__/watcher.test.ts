@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
-  formatTokenAmount,
   matchAddressActivity,
   matchErc20Transfer,
   shorten,
   type MinimalTx,
 } from "../lib/watcher/matchers";
+import { formatTokenAmount } from "../lib/format/tokenAmount";
+import { renderWatchSummary } from "../lib/watcher/summary";
 import {
   buildRule,
   isRuleActionable,
@@ -54,9 +55,15 @@ describe("watcher/matchers — matchAddressActivity", () => {
       42n,
     );
     expect(out).toHaveLength(2);
-    expect(out[0]!.summary).toContain("sent 1 →");
+    expect(renderWatchSummary(out[0]!)).toContain("sent 1 →");
     expect(out[0]!.blockNumber).toBe("42");
-    expect(out[1]!.summary).toContain("received");
+    // Native value is carried RAW (wei); decimals applied only at render.
+    expect(out[0]!.amount).toEqual({
+      raw: (10n ** 18n).toString(),
+      decimals: 18,
+      symbol: null,
+    });
+    expect(renderWatchSummary(out[1]!)).toContain("received");
   });
 
   it("respects direction=out (ignores incoming)", () => {
@@ -66,7 +73,7 @@ describe("watcher/matchers — matchAddressActivity", () => {
       1n,
     );
     expect(out).toHaveLength(1);
-    expect(out[0]!.summary).toContain("sent");
+    expect(renderWatchSummary(out[0]!)).toContain("sent");
   });
 
   it("respects direction=in (ignores outgoing)", () => {
@@ -76,7 +83,7 @@ describe("watcher/matchers — matchAddressActivity", () => {
       1n,
     );
     expect(out).toHaveLength(1);
-    expect(out[0]!.summary).toContain("received");
+    expect(renderWatchSummary(out[0]!)).toContain("received");
   });
 
   it("labels contract creation (to === null)", () => {
@@ -85,12 +92,12 @@ describe("watcher/matchers — matchAddressActivity", () => {
       rule({ direction: "out" }),
       1n,
     );
-    expect(out[0]!.summary).toContain("(contract creation)");
+    expect(renderWatchSummary(out[0]!)).toContain("(contract creation)");
   });
 
   it("calls a self-transfer when from === to === watched", () => {
     const out = matchAddressActivity([tx({ from: A, to: A })], rule({}), 1n);
-    expect(out[0]!.summary).toContain("self-transfer");
+    expect(renderWatchSummary(out[0]!)).toContain("self-transfer");
   });
 
   it("is case-insensitive on addresses", () => {
@@ -111,7 +118,7 @@ describe("watcher/matchers — matchAddressActivity", () => {
       1n,
     );
     expect(out).toHaveLength(1);
-    expect(out[0]!.summary).toContain("sent 1 ");
+    expect(renderWatchSummary(out[0]!)).toContain("sent 1 ");
   });
 
   it("treats no threshold as 'any value fires' (incl. zero-value)", () => {
@@ -145,7 +152,9 @@ describe("watcher/matchers — matchErc20Transfer", () => {
   it("fires for any transfer when no counterparty filter", () => {
     const m = matchErc20Transfer(log, rule({}));
     expect(m).not.toBeNull();
-    expect(m!.summary).toContain("1234");
+    // No meta → raw value carried through untouched, scale unknown.
+    expect(m!.amount).toEqual({ raw: "1234", decimals: null, symbol: null });
+    expect(renderWatchSummary(m!)).toContain("1234");
     expect(m!.txHash).toBe("0xfeed");
     expect(m!.blockNumber).toBe("7");
   });
@@ -160,45 +169,81 @@ describe("watcher/matchers — matchErc20Transfer", () => {
     expect(matchErc20Transfer(log, rule({ counterparty: other }))).toBeNull();
   });
 
-  it("scales by decimals and appends the symbol when meta is present", () => {
+  it("carries raw value + decimals + symbol (rendered as 1.5 USDC)", () => {
     const m = matchErc20Transfer({ ...log, value: 1_500_000n }, rule({}), {
       decimals: 6,
       symbol: "USDC",
     });
-    expect(m!.summary).toContain("1.5 USDC");
+    // Storage stays raw; only the render scales it.
+    expect(m!.amount).toEqual({ raw: "1500000", decimals: 6, symbol: "USDC" });
+    expect(renderWatchSummary(m!)).toContain("1.5 USDC");
   });
 
   it("scales without a ticker when meta carries no symbol", () => {
     const m = matchErc20Transfer({ ...log, value: 1_500_000n }, rule({}), {
       decimals: 6,
     });
-    expect(m!.summary).toContain("(1.5)");
-    expect(m!.summary).not.toContain("USDC");
+    expect(renderWatchSummary(m!)).toContain("(1.5)");
+    expect(renderWatchSummary(m!)).not.toContain("USDC");
   });
 
-  it("falls back to raw base units when meta is null or absent", () => {
+  it("leaves decimals null when meta is null or absent (renders raw)", () => {
     const big = { ...log, value: 1_500_000n };
-    expect(matchErc20Transfer(big, rule({}), null)!.summary).toContain(
+    expect(matchErc20Transfer(big, rule({}), null)!.amount).toEqual({
+      raw: "1500000",
+      decimals: null,
+      symbol: null,
+    });
+    expect(renderWatchSummary(matchErc20Transfer(big, rule({}), null)!)).toContain(
       "1500000",
     );
-    expect(matchErc20Transfer(big, rule({}))!.summary).toContain("1500000");
+    expect(renderWatchSummary(matchErc20Transfer(big, rule({}))!)).toContain(
+      "1500000",
+    );
   });
 });
 
-describe("watcher/matchers — formatTokenAmount", () => {
-  it("returns raw base units without metadata", () => {
-    expect(formatTokenAmount(1_500_000n)).toBe("1500000");
+describe("format/tokenAmount — formatTokenAmount", () => {
+  it("returns raw base units when decimals is null", () => {
     expect(formatTokenAmount(1_500_000n, null)).toBe("1500000");
+    expect(formatTokenAmount("1500000", null)).toBe("1500000");
   });
 
   it("scales by decimals, with and without a symbol", () => {
-    expect(formatTokenAmount(1_500_000n, { decimals: 6, symbol: "USDC" })).toBe(
-      "1.5 USDC",
-    );
-    expect(formatTokenAmount(1_500_000n, { decimals: 6 })).toBe("1.5");
-    expect(formatTokenAmount(10n ** 18n, { decimals: 18, symbol: "PLS" })).toBe(
-      "1 PLS",
-    );
+    expect(formatTokenAmount(1_500_000n, 6, "USDC")).toBe("1.5 USDC");
+    expect(formatTokenAmount(1_500_000n, 6)).toBe("1.5");
+    expect(formatTokenAmount(1_500_000n, 6, null)).toBe("1.5");
+    expect(formatTokenAmount(10n ** 18n, 18, "PLS")).toBe("1 PLS");
+    // accepts a decimal-string raw too (the WatchAmount storage form)
+    expect(formatTokenAmount("1500000", 6, "USDC")).toBe("1.5 USDC");
+  });
+});
+
+describe("watcher/summary — renderWatchSummary", () => {
+  it("slots the scaled amount between lead and trail", () => {
+    expect(
+      renderWatchSummary({
+        lead: "Transfer 0xa → 0xb (",
+        amount: { raw: "1500000", decimals: 6, symbol: "USDC" },
+        trail: ")",
+      }),
+    ).toBe("Transfer 0xa → 0xb (1.5 USDC)");
+  });
+
+  it("renders raw base units when decimals are unknown", () => {
+    expect(
+      renderWatchSummary({
+        lead: "Transfer (",
+        amount: { raw: "1500000", decimals: null, symbol: null },
+        trail: ")",
+      }),
+    ).toBe("Transfer (1500000)");
+  });
+
+  it("omits the amount slot and trims when there is no amount", () => {
+    expect(
+      renderWatchSummary({ lead: "note ", amount: null, trail: "" }),
+    ).toBe("note");
   });
 });
 
@@ -338,8 +383,16 @@ describe("watcher/log — appendMatches + toMatch", () => {
     address: A,
   });
 
+  // Structured matcher payload — `lead` stands in for the distinguishing text.
+  const content = (lead: string, txHash: string) => ({
+    lead,
+    amount: null,
+    trail: "",
+    txHash,
+  });
+
   it("toMatch stamps rule context + label", () => {
-    const m = toMatch(rule, { summary: "hi", txHash: "0x1" });
+    const m = toMatch(rule, content("hi", "0x1"));
     expect(m.ruleId).toBe(rule.id);
     expect(m.workspaceId).toBe("w");
     expect(m.label).toBe(ruleLabel(rule));
@@ -348,26 +401,43 @@ describe("watcher/log — appendMatches + toMatch", () => {
   });
 
   it("prepends fresh matches newest-first", () => {
-    const a = toMatch(rule, { summary: "a", txHash: "0xa" });
-    const b = toMatch(rule, { summary: "b", txHash: "0xb" });
+    const a = toMatch(rule, content("a", "0xa"));
+    const b = toMatch(rule, content("b", "0xb"));
     const next = appendMatches([a], [b]);
-    expect(next.map((m) => m.summary)).toEqual(["b", "a"]);
+    expect(next.map((m) => m.lead)).toEqual(["b", "a"]);
   });
 
-  it("dedupes by (ruleId, txHash, summary) and returns same ref on no-op", () => {
-    const a = toMatch(rule, { summary: "a", txHash: "0xa" });
-    const dup = toMatch(rule, { summary: "a", txHash: "0xa" });
+  it("dedupes by (ruleId, txHash, parts) and returns same ref on no-op", () => {
+    const a = toMatch(rule, content("a", "0xa"));
+    const dup = toMatch(rule, content("a", "0xa"));
     const existing = [a];
     expect(appendMatches(existing, [dup])).toBe(existing);
   });
 
+  it("distinguishes same-tx transfers by raw amount", () => {
+    const a = toMatch(rule, {
+      lead: "Transfer ",
+      amount: { raw: "100", decimals: null, symbol: null },
+      trail: ")",
+      txHash: "0xsame",
+    });
+    const b = toMatch(rule, {
+      lead: "Transfer ",
+      amount: { raw: "200", decimals: null, symbol: null },
+      trail: ")",
+      txHash: "0xsame",
+    });
+    // Same rule + tx, different raw amount → two distinct events, not a dedupe.
+    expect(appendMatches([a], [b])).toHaveLength(2);
+  });
+
   it("caps at WATCH_LOG_CAP", () => {
     const seed = Array.from({ length: WATCH_LOG_CAP }, (_, i) =>
-      toMatch(rule, { summary: `s${i}`, txHash: `0x${i}` }),
+      toMatch(rule, content(`s${i}`, `0x${i}`)),
     );
-    const extra = toMatch(rule, { summary: "new", txHash: "0xnew" });
+    const extra = toMatch(rule, content("new", "0xnew"));
     const next = appendMatches(seed, [extra]);
     expect(next).toHaveLength(WATCH_LOG_CAP);
-    expect(next[0]!.summary).toBe("new");
+    expect(next[0]!.lead).toBe("new");
   });
 });

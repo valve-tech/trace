@@ -6,6 +6,7 @@ import { useWatchLog } from "../../../hooks/useWatchLog";
 import { scanPath } from "../../../lib/scanRoutes";
 import { chainById } from "../../../lib/chains";
 import { ruleLabel, type WatchRule } from "../../../lib/watcher/types";
+import { renderWatchSummary } from "../../../lib/watcher/summary";
 import type { Workspace } from "../../../lib/workspace/types";
 import { WatchRuleForm } from "./WatchRuleForm";
 
@@ -120,10 +121,12 @@ export function WatchRulesPanel({ workspace }: { workspace: Workspace }) {
                     to={scanPath("tx", m.txHash)}
                     className="theme-text hover:underline min-w-0"
                   >
-                    {m.summary}
+                    {renderWatchSummary(m)}
                   </Link>
                 ) : (
-                  <span className="theme-text min-w-0">{m.summary}</span>
+                  <span className="theme-text min-w-0">
+                    {renderWatchSummary(m)}
+                  </span>
                 )}
               </li>
             ))}

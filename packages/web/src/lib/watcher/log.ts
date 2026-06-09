@@ -39,9 +39,16 @@ function genId(): string {
   return `wm-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 }
 
-/** Identity for dedupe: same rule + same tx + same summary is one event. */
-function matchKey(m: Pick<WatchMatch, "ruleId" | "txHash" | "summary">): string {
-  return `${m.ruleId}|${m.txHash ?? ""}|${m.summary}`;
+/**
+ * Identity for dedupe: same rule + same tx + same summary parts + same raw
+ * amount is one event. Keys on the structured fields (not a rendered string) so
+ * two distinct transfers in one tx — same rule, same tx hash, different parties
+ * or amounts — stay distinct.
+ */
+function matchKey(
+  m: Pick<WatchMatch, "ruleId" | "txHash" | "lead" | "trail" | "amount">,
+): string {
+  return `${m.ruleId}|${m.txHash ?? ""}|${m.lead}|${m.amount?.raw ?? ""}|${m.trail}`;
 }
 
 /** Stamp a matcher payload with rule context + identity/time. */
