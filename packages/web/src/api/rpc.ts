@@ -1,11 +1,11 @@
 import { apiUrl } from "../lib/apiBase";
 import { DEFAULT_CHAIN_ID } from "../lib/chains";
+import { resolveRpcUrl } from "../lib/rpcEndpoint";
 // ---------------------------------------------------------------------------
 // API client for RPC management endpoints
 // ---------------------------------------------------------------------------
 
 const API_BASE = apiUrl("/api/rpc");
-const RPC_ENDPOINT = apiUrl("/rpc");
 
 /**
  * Scope a request to a chain via `?chainid=N`. The default chain is omitted so
@@ -123,13 +123,17 @@ export async function testRpcRequest(
 }
 
 /**
- * Send a raw JSON-RPC request through the main /rpc endpoint.
+ * Send a raw JSON-RPC request. The endpoint is resolved per chain via
+ * `resolveRpcUrl`: Explore's `/rpc` proxy by default, or the user's own node
+ * when they've set a bring-your-own-RPC override in Settings. This is the seam
+ * that makes every raw read (charts, transfer logs, the playground "send")
+ * run on the user's infrastructure when they opt in.
  */
 export async function sendRpcRequest(
   request: JsonRpcRequest | JsonRpcRequest[],
   chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<JsonRpcResponse | JsonRpcResponse[]> {
-  const res = await fetch(scoped(RPC_ENDPOINT, chainId), {
+  const res = await fetch(resolveRpcUrl(chainId), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),

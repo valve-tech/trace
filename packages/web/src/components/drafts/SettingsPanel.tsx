@@ -6,6 +6,12 @@ import {
   setApiBaseOverride,
   clearApiBaseOverride,
 } from "../../lib/apiBase";
+import {
+  getRpcOverride,
+  setRpcOverride,
+  clearRpcOverride,
+} from "../../lib/rpcEndpoint";
+import { CHAINS } from "../../lib/chains";
 
 const AUTO_COLLAPSE_ENABLED_KEY = "valvetech-shell-auto-collapse";
 
@@ -124,6 +130,8 @@ export default function SettingsPanel() {
 
       {/* Section: Backend API origin */}
       <BackendApiSection />
+
+      <RpcEndpointSection />
 
       {/* Section: Future home for other prefs */}
       <Section title="More" icon="heroicons:adjustments-horizontal">
@@ -248,6 +256,117 @@ function BackendApiSection() {
         </div>
       </div>
     </Section>
+  );
+}
+
+function RpcEndpointSection() {
+  return (
+    <Section title="Chain RPC endpoints" icon="heroicons:bolt">
+      <div className="space-y-stack pt-2">
+        <p className="text-xs theme-text-muted max-w-md">
+          Bring your own RPC. Raw chain reads (blocks, txs, logs, charts, the
+          playground) go through Explore&apos;s proxy by default; set a node or
+          provider URL here to run them on your own infrastructure instead —
+          useful for heavy watching without hitting our rate limits. The
+          endpoint must allow browser requests (CORS). Enrichment features
+          (debugger traces, source, decompile) still use the backend.
+        </p>
+        {CHAINS.map((chain) => (
+          <RpcChainRow key={chain.id} chainId={chain.id} name={chain.name} />
+        ))}
+        <div className="flex items-start gap-inline text-xs theme-text-muted">
+          <Icon
+            icon="heroicons:arrow-path"
+            className="w-3.5 h-3.5 mt-0.5 shrink-0"
+          />
+          <span>
+            Reload the page after changing an endpoint — RPC URLs are resolved
+            per read, but in-flight queries keep their old client until refetch.
+          </span>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function RpcChainRow({ chainId, name }: { chainId: number; name: string }) {
+  const [draft, setDraft] = useState(() => getRpcOverride(chainId) ?? "");
+  const [stored, setStored] = useState<string | null>(() =>
+    getRpcOverride(chainId),
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const apply = () => {
+    const trimmed = draft.trim();
+    if (!trimmed) {
+      setError("Enter an http(s) RPC URL.");
+      return;
+    }
+    const saved = setRpcOverride(chainId, trimmed);
+    if (!saved) {
+      setError("Not a valid http(s) URL.");
+      return;
+    }
+    setError(null);
+    setStored(saved);
+    setDraft(saved);
+  };
+
+  const clear = () => {
+    clearRpcOverride(chainId);
+    setStored(null);
+    setDraft("");
+    setError(null);
+  };
+
+  return (
+    <div className="space-y-stack">
+      <div className="flex items-center justify-between gap-row">
+        <span className="text-xs uppercase tracking-widest theme-text-muted">
+          {name}
+        </span>
+        <code className="text-xs theme-mono theme-text-muted">
+          {stored ? "your node" : "Explore proxy"}
+        </code>
+      </div>
+      <div className="flex items-center gap-row">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            if (error) setError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") apply();
+          }}
+          placeholder="https://your-node.example/rpc"
+          className={`w-full px-2 py-1.5 text-sm theme-mono theme-input-bg theme-text ${
+            error ? "bs-b-danger" : "bs-in-muted"
+          }`}
+        />
+        <button
+          type="button"
+          onClick={apply}
+          className="px-4 py-2 text-sm font-medium theme-accent-solid text-white hover:opacity-90 shrink-0"
+        >
+          Set
+        </button>
+        <button
+          type="button"
+          onClick={clear}
+          disabled={stored === null}
+          className={`px-4 py-2 text-sm font-medium shrink-0 ${
+            stored === null
+              ? "theme-tertiary-bg theme-text-muted cursor-not-allowed"
+              : "theme-secondary-bg theme-text hover:opacity-90"
+          }`}
+        >
+          Clear
+        </button>
+      </div>
+      {error && <div className="text-xs theme-danger">{error}</div>}
+    </div>
   );
 }
 
