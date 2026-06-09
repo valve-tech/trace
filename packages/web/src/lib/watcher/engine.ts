@@ -95,6 +95,7 @@ export function ruleSignature(rule: WatchRule): string {
     rule.enabled ? "1" : "0",
     rule.address ?? "",
     rule.direction ?? "",
+    rule.minValueWei ?? "",
     rule.contractAddress ?? "",
     rule.counterparty ?? "",
   ].join("|");

@@ -52,8 +52,17 @@ export interface NewRuleInput {
   label?: string;
   address?: string;
   direction?: WatchRule["direction"];
+  /** Minimum native value in wei (decimal string); "" / "0" → no threshold. */
+  minValueWei?: string;
   contractAddress?: string;
   counterparty?: string;
+}
+
+/** Treat "", "0", and undefined alike — all mean "no threshold". */
+function normThreshold(value: string | undefined): string | undefined {
+  const v = value?.trim();
+  if (!v || v === "0") return undefined;
+  return v;
 }
 
 /**
@@ -76,6 +85,7 @@ export function buildRule(input: NewRuleInput): WatchRule {
       ...base,
       address: normAddr(input.address),
       direction: input.direction ?? "both",
+      minValueWei: normThreshold(input.minValueWei),
     };
   }
   return {

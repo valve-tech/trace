@@ -40,6 +40,12 @@ export interface WatchRule {
   address?: string;
   /** Which direction counts as a hit. Defaults to "both". */
   direction?: WatchDirection;
+  /**
+   * Minimum native-coin value (in wei, as a decimal string) a tx must move to
+   * fire. Unset/"0" → every matching tx fires (the default). Set it to filter
+   * dust and zero-value contract calls down to "real money moved" only.
+   */
+  minValueWei?: string;
 
   // -- erc20_transfer conditions ----------------------------------------------
   /** The token contract whose `Transfer` events we watch. Lower-cased. */

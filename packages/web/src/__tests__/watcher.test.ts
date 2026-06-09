@@ -99,6 +99,27 @@ describe("watcher/matchers — matchAddressActivity", () => {
     );
     expect(out).toHaveLength(1);
   });
+
+  it("filters txs below the min-value threshold", () => {
+    const half = 5n * 10n ** 17n; // 0.5
+    const one = 10n ** 18n; // 1.0
+    const out = matchAddressActivity(
+      [tx({ from: A, to: B, value: half }), tx({ from: A, to: B, value: one })],
+      rule({ minValueWei: one.toString() }), // require >= 1.0
+      1n,
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]!.summary).toContain("sent 1 ");
+  });
+
+  it("treats no threshold as 'any value fires' (incl. zero-value)", () => {
+    const out = matchAddressActivity(
+      [tx({ from: A, to: B, value: 0n })],
+      rule({ direction: "out" }),
+      1n,
+    );
+    expect(out).toHaveLength(1);
+  });
 });
 
 describe("watcher/matchers — matchErc20Transfer", () => {
@@ -151,6 +172,31 @@ describe("watcher/rules — buildRule", () => {
     expect(r.contractAddress).toBeUndefined();
     expect(r.direction).toBe("both");
     expect(r.enabled).toBe(true);
+  });
+
+  it("normalizes the min-value threshold ('' and '0' → undefined)", () => {
+    const base = {
+      workspaceId: "w",
+      chainId: 1,
+      kind: "address_activity" as const,
+      address: A,
+    };
+    expect(buildRule({ ...base, minValueWei: "1000" }).minValueWei).toBe("1000");
+    expect(buildRule({ ...base, minValueWei: "0" }).minValueWei).toBeUndefined();
+    expect(buildRule({ ...base, minValueWei: "" }).minValueWei).toBeUndefined();
+    expect(buildRule(base).minValueWei).toBeUndefined();
+  });
+
+  it("changes the rule signature when the threshold changes", () => {
+    const a = buildRule({
+      workspaceId: "w",
+      chainId: 1,
+      kind: "address_activity",
+      address: A,
+    });
+    expect(ruleSignature({ ...a, minValueWei: "1000" })).not.toBe(
+      ruleSignature(a),
+    );
   });
 
   it("keeps token + counterparty for erc20 rules", () => {

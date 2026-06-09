@@ -37,13 +37,12 @@ export function shorten(value: string): string {
 // USER-SHAPEABLE: address-activity matcher
 // ---------------------------------------------------------------------------
 // This is the load-bearing product decision of the watcher — "what counts as
-// activity worth a notification, and how do we phrase it?" The default below
-// fires on any native-value transfer where the watched address is the sender
-// and/or recipient (honoring the rule's direction filter) and summarizes it as
-// "0xabc… sent 1.5 → 0xdef…". Reasonable knobs you might want to change:
-//   - ignore zero-value txs (contract calls with no ETH/PLS movement)?
+// activity worth a notification, and how do we phrase it?" The default fires on
+// any native-value transfer where the watched address is the sender and/or
+// recipient (honoring the rule's direction filter + optional min-value
+// threshold) and summarizes it as "0xabc… sent 1.5 → 0xdef…". Reasonable knobs
+// you might still want to change:
 //   - treat `to === null` (contract creation) specially, or skip it?
-//   - a minimum value threshold before it's "worth" a toast?
 //   - a different summary phrasing / counterparty emphasis?
 // It's a pure function with a tiny input shape, so reshaping it is safe and
 // fully covered by matchers.test.ts.
@@ -56,9 +55,12 @@ export function matchAddressActivity(
   const watched = rule.address?.toLowerCase();
   if (!watched) return [];
   const direction = rule.direction ?? "both";
+  // Below this many wei a tx is dust/zero-value noise and doesn't fire.
+  const minValueWei = rule.minValueWei ? BigInt(rule.minValueWei) : 0n;
   const out: WatchMatchContent[] = [];
 
   for (const tx of txs) {
+    if (tx.value < minValueWei) continue;
     const from = tx.from.toLowerCase();
     const to = tx.to?.toLowerCase() ?? null;
     const isOut = from === watched;

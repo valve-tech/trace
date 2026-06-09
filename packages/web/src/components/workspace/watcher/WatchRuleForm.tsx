@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { isAddress } from "viem";
-import { CHAINS, DEFAULT_CHAIN_ID } from "../../../lib/chains";
+import { isAddress, parseEther } from "viem";
+import { CHAINS, DEFAULT_CHAIN_ID, chainById } from "../../../lib/chains";
 import type { Workspace } from "../../../lib/workspace/types";
 import type {
   WatchDirection,
@@ -34,9 +34,12 @@ export function WatchRuleForm({
   const [chainId, setChainId] = useState<number>(defaultChain);
   const [address, setAddress] = useState("");
   const [direction, setDirection] = useState<WatchDirection>("both");
+  const [minValue, setMinValue] = useState("");
   const [contractAddress, setContractAddress] = useState("");
   const [counterparty, setCounterparty] = useState("");
   const [label, setLabel] = useState("");
+
+  const symbol = chainById(chainId)?.symbol ?? "";
 
   const required = kind === "address_activity" ? address : contractAddress;
   const valid = isAddress(required.trim());
@@ -45,7 +48,10 @@ export function WatchRuleForm({
     kind !== "erc20_transfer" ||
     counterparty.trim() === "" ||
     isAddress(counterparty.trim());
-  const canAdd = valid && counterpartyOk;
+  // min value is optional, but if present it must parse as a native amount
+  const minValueWei = parseMinValue(minValue);
+  const minValueOk = minValue.trim() === "" || minValueWei !== null;
+  const canAdd = valid && counterpartyOk && minValueOk;
 
   const submit = async () => {
     if (!canAdd) return;
@@ -56,6 +62,8 @@ export function WatchRuleForm({
       label: label.trim() || undefined,
       address: kind === "address_activity" ? address.trim() : undefined,
       direction: kind === "address_activity" ? direction : undefined,
+      minValueWei:
+        kind === "address_activity" ? minValueWei ?? undefined : undefined,
       contractAddress:
         kind === "erc20_transfer" ? contractAddress.trim() : undefined,
       counterparty:
@@ -118,6 +126,13 @@ export function WatchRuleForm({
               ["out", "Outgoing"],
             ]}
           />
+          <Field
+            label={`Min value${symbol ? ` (${symbol})` : ""}`}
+            value={minValue}
+            onChange={setMinValue}
+            placeholder="0 = any"
+            invalid={!minValueOk}
+          />
         </div>
       ) : (
         <div className="flex gap-inline flex-wrap">
@@ -175,6 +190,21 @@ export function WatchRuleForm({
 // ---------------------------------------------------------------------------
 // Small labeled controls — local to the form, styled to match WorkspaceDetail.
 // ---------------------------------------------------------------------------
+
+/**
+ * Parse a native-coin amount (e.g. "1.5") to a wei decimal string. Returns null
+ * for un-parseable input so the form can flag it; an empty string is handled by
+ * the caller as "no threshold" (not routed here).
+ */
+function parseMinValue(value: string): string | null {
+  const v = value.trim();
+  if (v === "") return null;
+  try {
+    return parseEther(v).toString();
+  } catch {
+    return null;
+  }
+}
 
 function Field({
   label,
