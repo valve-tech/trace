@@ -3,6 +3,7 @@ import { Icon } from "@iconify/react";
 import { listForks, getFork, type ForkInfo } from "../../api/testnets";
 import CreateForkDialog from "./CreateForkDialog";
 import ForkControls from "./ForkControls";
+import { ForkChainBadge } from "./ForkChainBadge";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -171,11 +172,14 @@ export default function TestNetDashboard() {
                         className="w-2.5 h-2.5 rounded-full flex-shrink-0 theme-success-solid"
                       />
                       <div>
-                        <h3
-                          className="text-sm font-medium theme-text"
-                        >
-                          {fork.label}
-                        </h3>
+                        <div className="flex items-center gap-inline">
+                          <h3
+                            className="text-sm font-medium theme-text"
+                          >
+                            {fork.label}
+                          </h3>
+                          <ForkChainBadge chainId={fork.chainId} />
+                        </div>
                         <div
                           className="flex items-center gap-row text-xs mt-0.5 theme-text-secondary"
                         >

@@ -1,4 +1,5 @@
 import type { ForkInfo } from "../../api/testnets";
+import { ForkChainBadge } from "./ForkChainBadge";
 import { RpcUrlPanel } from "./ForkControls/RpcUrlPanel";
 import { FaucetPanel } from "./ForkControls/FaucetPanel";
 import { SnapshotsPanel } from "./ForkControls/SnapshotsPanel";
@@ -19,6 +20,10 @@ export default function ForkControls({
 }: ForkControlsProps) {
   return (
     <div className="space-y-stack mt-4">
+      <div className="flex items-center gap-inline">
+        <span className="text-xs theme-text-muted">Forked from</span>
+        <ForkChainBadge chainId={fork.chainId} />
+      </div>
       <RpcUrlPanel rpcUrl={fork.rpcUrl} />
       <FaucetPanel forkId={fork.id} />
       <SnapshotsPanel forkId={fork.id} onReverted={onRefresh} />

@@ -1,5 +1,19 @@
 import { apiUrl } from "../lib/apiBase";
+import { DEFAULT_CHAIN_ID } from "../lib/chains";
+
 const API_BASE = apiUrl("/api/testnets");
+
+/**
+ * Scope a request to a chain via the `?chainid=N` dispatcher param. The default
+ * chain is omitted so existing PulseChain calls stay byte-identical; an explicit
+ * non-default chain appends the param, which the backend reads when forking (the
+ * fork response then carries the resolved `chainId`). Local to this module —
+ * api/explorer.ts has its own copy on purpose.
+ */
+function scoped(url: string, chainId: number | undefined): string {
+  if (chainId === undefined || chainId === DEFAULT_CHAIN_ID) return url;
+  return url + (url.includes("?") ? "&" : "?") + `chainid=${chainId}`;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -14,11 +28,15 @@ export interface ForkInfo {
   createdAt: string;
   pid: number;
   currentBlock?: number | null;
+  /** EIP-155 chain id the fork was created from. Backend now sets this. */
+  chainId?: number;
 }
 
 export interface CreateForkRequest {
   blockNumber?: number;
   label?: string;
+  /** Chain to fork. Defaults to PulseChain when omitted. */
+  chainId?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -44,14 +62,19 @@ async function handleResponse<T>(res: Response): Promise<T> {
 // API functions
 // ---------------------------------------------------------------------------
 
-/** Create a new fork (virtual testnet). */
+/**
+ * Create a new fork (virtual testnet). The chain to fork is taken from
+ * `req.chainId` and appended as `?chainid=N`; the backend resolves the fork
+ * against that chain and echoes the `chainId` back on the response.
+ */
 export async function createFork(
   req: CreateForkRequest,
 ): Promise<ForkInfo> {
-  const res = await fetch(API_BASE, {
+  const { chainId, ...body } = req;
+  const res = await fetch(scoped(API_BASE, chainId), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
+    body: JSON.stringify(body),
   });
   const data = await handleResponse<{ ok: boolean; fork: ForkInfo }>(res);
   return data.fork;

@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { createFork, type ForkInfo } from "../../api/testnets";
+import { useActiveChainId } from "../../lib/activeChain";
+import { CHAINS } from "../../lib/chains";
+import { ChainGlyph } from "../ChainSelector";
 
 interface CreateForkDialogProps {
   onCreated: (fork: ForkInfo) => void;
@@ -10,6 +13,8 @@ export default function CreateForkDialog({
   onCreated,
   onCancel,
 }: CreateForkDialogProps) {
+  const activeChainId = useActiveChainId();
+  const [chainId, setChainId] = useState(activeChainId);
   const [label, setLabel] = useState("");
   const [blockNumber, setBlockNumber] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,6 +27,7 @@ export default function CreateForkDialog({
 
     try {
       const fork = await createFork({
+        chainId,
         label: label.trim() || undefined,
         blockNumber: blockNumber.trim()
           ? parseInt(blockNumber.trim(), 10)
@@ -55,6 +61,38 @@ export default function CreateForkDialog({
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-stack">
+          {/* Chain */}
+          <div>
+            <label
+              className="block text-sm mb-1 theme-text-secondary"
+            >
+              Chain to fork
+            </label>
+            <div className="flex flex-wrap gap-inline">
+              {CHAINS.map((c) => {
+                const selected = c.id === chainId;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setChainId(c.id)}
+                    className="flex items-center gap-tight px-3 py-1.5 rounded-md bs text-sm theme-text"
+                    style={{
+                      backgroundColor: selected
+                        ? "var(--color-accent-muted)"
+                        : "transparent",
+                      opacity: c.testnet && !selected ? 0.7 : 1,
+                    }}
+                    aria-pressed={selected}
+                  >
+                    <ChainGlyph chainId={c.id} />
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Label */}
           <div>
             <label
