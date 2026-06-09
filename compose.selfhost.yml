@@ -2,7 +2,7 @@
 #
 #   1. Copy chains.example.yml to chains.yml and edit it (your chainId + rpcUrl).
 #   2. docker compose -f compose.selfhost.yml up -d
-#   3. Open http://localhost:8080  (API + docs on http://localhost:10100/docs)
+#   3. Open http://localhost:10100  (UI, API, and docs at /docs are one container)
 #
 # Everything below is overridable via a .env file next to this one (or real
 # env vars). Defaults give a working single-node deployment out of the box.
@@ -52,16 +52,8 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-
-  web:
-    build:
-      context: .
-      dockerfile: packages/web/Dockerfile
-    ports:
-      - "${WEB_PORT:-8080}:80"
-    depends_on:
-      - api
-    restart: unless-stopped
+    # This one container serves the UI (/), the API (/api, /rpc), and the docs
+    # (/docs) — the SPA is built into the image. No separate web service needed.
 
 volumes:
   pgdata:

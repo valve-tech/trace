@@ -17,12 +17,13 @@ behaves exactly like the hosted deployment.
 ```bash
 cp chains.example.yml chains.yml      # edit: your chainId + rpcUrl
 docker compose -f compose.selfhost.yml up -d
-# UI → http://localhost:8080   API docs → http://localhost:10100/docs
+# UI, API, and docs are one container → http://localhost:10100  (docs at /docs)
 ```
 
-`compose.selfhost.yml` runs Postgres + the API/SPA container, mounts your
-`chains.yml`, and is fully overridable via a `.env` file (ports, DB creds,
-branding). The rest of this doc is the reference behind that.
+`compose.selfhost.yml` runs Postgres + the API/SPA container (a single image
+serves the UI, the API, and the docs), mounts your `chains.yml`, and is fully
+overridable via a `.env` file (ports, DB creds, branding). The rest of this doc
+is the reference behind that.
 
 ## 1. Tell the backend which chains to serve
 
