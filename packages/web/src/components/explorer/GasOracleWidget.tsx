@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
 import { fetchGasOracle, type TierName, type Trend } from "../../api/gas";
 import { useActiveChainId } from "../../lib/activeChain";
+import { formatGwei } from "../../lib/format/tokenAmount";
 
 const TIERS: { key: TierName; label: string }[] = [
   { key: "slow", label: "Slow" },
@@ -44,16 +45,16 @@ function persistTier(tier: TierName): void {
   }
 }
 
-/** wei decimal string → integer gwei with thousands separators. */
+/** wei decimal string → integer gwei with thousands separators (exact). */
 function gwei(wei: string): string {
-  try {
-    return Math.round(Number(BigInt(wei)) / 1e9).toLocaleString();
-  } catch {
-    return "—";
-  }
+  return formatGwei(wei, 0) ?? "—";
 }
 
-/** wei decimal string → numeric gwei, for proportional bar sizing. */
+/**
+ * wei decimal string → numeric gwei, ONLY for proportional bar sizing (pixel
+ * widths). A float is appropriate here — the output drives a 5–18px bar, not a
+ * displayed amount, so gwei-scale precision is irrelevant.
+ */
 function gweiNum(wei: string): number {
   try {
     return Number(BigInt(wei)) / 1e9;

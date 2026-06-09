@@ -1,4 +1,4 @@
-import { erc20Abi, formatUnits, type Address } from "viem";
+import { erc20Abi, type Address } from "viem";
 import { readCache, writeCache } from "../chifra/cache.js";
 import { getChain } from "../chains/registry.js";
 import { getRpcClient } from "../chains/clients.js";
@@ -147,14 +147,10 @@ async function resolveNative(
   let balance = "0";
   try {
     balance = (await deps.nativeBalance(chainId, holder)).toString();
+    BigInt(balance); // validate it's an integer; the UI scales it (native = 18)
   } catch {
-    // native is non-fatal — degrade to zero
-  }
-  let balanceFormatted = "0";
-  try {
-    balanceFormatted = formatUnits(BigInt(balance), 18);
-  } catch {
+    // native is non-fatal, and a non-integer is unusable — degrade to zero
     balance = "0";
   }
-  return { symbol, balance, balanceFormatted };
+  return { symbol, balance };
 }

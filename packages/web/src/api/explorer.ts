@@ -87,8 +87,8 @@ export interface TransactionDetails {
   tokenTransfers: {
     from: string;
     to: string;
+    /** Raw integer amount (base units). Scaled to a human value in the UI. */
     value: string;
-    formattedValue: string;
     tokenName: string;
     tokenSymbol: string;
     tokenDecimal: string;

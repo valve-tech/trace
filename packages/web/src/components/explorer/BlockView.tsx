@@ -3,6 +3,7 @@ import { fetchBlock, type BlockDetails } from "../../api/explorer";
 import { useActiveChainId } from "../../lib/activeChain";
 import TxRowActions from "./TxRowActions";
 import { formatPLS, truncateAddr } from "./format";
+import { formatGwei } from "../../lib/format/tokenAmount";
 import { ExplorerLink } from "./ExplorerLink";
 import { TxGasInfo } from "./TxGasInfo";
 import { formatTimestamp } from "./BlockView/formatters";
@@ -193,7 +194,7 @@ export default function BlockView({
             <span
               className="font-mono theme-text"
             >
-              {(Number(block.baseFeePerGas) / 1e9).toFixed(2)} Gwei
+              {formatGwei(block.baseFeePerGas, 2) ?? "—"} Gwei
             </span>
           </InfoRow>
         )}

@@ -1,3 +1,5 @@
+import { formatGwei as formatGweiExact } from "../../../lib/format/tokenAmount";
+
 export { truncateAddr, formatPLS } from "../format";
 
 export function formatTimestamp(ts: number | null): string {
@@ -13,13 +15,8 @@ export function formatTimestamp(ts: number | null): string {
 }
 
 export function formatGwei(weiStr: string): string {
-  try {
-    const wei = BigInt(weiStr);
-    const gwei = Number(wei) / 1e9;
-    return `${gwei.toFixed(2)} Gwei`;
-  } catch {
-    return weiStr;
-  }
+  // Exact wei→gwei (no float); fall back to the raw string on garbage input.
+  return `${formatGweiExact(weiStr) ?? weiStr} Gwei`;
 }
 
 export function renderParamValue(value: unknown): string {

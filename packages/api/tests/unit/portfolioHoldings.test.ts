@@ -71,10 +71,10 @@ describe("getHoldings — happy path", () => {
     assert.equal(r.indexed, true);
     assert.equal(r.holdings.length, 2);
     assert.equal(r.holdings[0]!.symbol, "WPLS"); // 5 > 1
-    assert.equal(r.holdings[0]!.balanceFormatted, "5");
+    assert.equal(r.holdings[0]!.balance, "5000000000000000000"); // raw, unscaled
     assert.equal(r.holdings[1]!.symbol, "HEX");
     assert.equal(r.native.symbol, "PLS");
-    assert.equal(r.native.balanceFormatted, "40");
+    assert.equal(r.native.balance, "40000000000000000000");
   });
 
   it("includes non-curated tokens (all tokens, not an allowlist)", async () => {
@@ -94,7 +94,7 @@ describe("getHoldings — happy path", () => {
     const r = await getHoldings(HOLDER, 369, deps);
     assert.equal(r.holdings.length, 1);
     assert.equal(r.holdings[0]!.symbol, "HEX");
-    assert.equal(r.holdings[0]!.balanceFormatted, "1.5");
+    assert.equal(r.holdings[0]!.balance, "150000000"); // raw 1.5e8; UI scales 8dp
   });
 
   it("drops a held token with no curated override and no resolvable decimals", async () => {
@@ -112,7 +112,7 @@ describe("getHoldings — not indexed vs empty", () => {
     const r = await getHoldings(HOLDER, 369, deps);
     assert.equal(r.indexed, false);
     assert.equal(r.holdings.length, 0);
-    assert.equal(r.native.balanceFormatted, "1");
+    assert.equal(r.native.balance, "1000000000000000000");
     assert.equal(counts.m, 0); // no balances → don't read metadata
   });
 
@@ -142,7 +142,7 @@ describe("getHoldings — native is non-fatal", () => {
     });
     const r = await getHoldings(HOLDER, 369, deps);
     assert.equal(r.holdings.length, 1);
-    assert.equal(r.native.balanceFormatted, "0");
+    assert.equal(r.native.balance, "0");
   });
 });
 

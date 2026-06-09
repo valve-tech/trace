@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
+import { parseAmountToBase } from "../lib/format/tokenAmount";
 import type {
   ForkSimulationResult,
   ForkSimulationResponse,
@@ -22,9 +23,8 @@ import {
 } from "./ForkSimulator/Panels";
 
 function plsToWeiHex(plsValue: string): string | undefined {
-  if (!plsValue) return undefined;
-  const wei = BigInt(Math.floor(parseFloat(plsValue) * 1e18));
-  return "0x" + wei.toString(16);
+  const wei = parseAmountToBase(plsValue, 18); // exact, no float
+  return wei === null ? undefined : "0x" + wei.toString(16);
 }
 
 export default function ForkSimulator() {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { isAddress } from "viem";
+import { parseAmountToBase } from "../lib/format/tokenAmount";
 import StateOverrides from "./StateOverrides";
 import AbiInput from "./AbiInput";
 import { simulateTransaction } from "../api/simulate";
@@ -39,14 +40,11 @@ export default function SimulationForm({
     onResult(null);
 
     try {
-      // Convert PLS value to wei (1 PLS = 1e18 wei)
+      // Convert PLS value to wei exactly (viem parseUnits, not float math).
       let weiValue: string | undefined;
-      if (value) {
-        const plsFloat = parseFloat(value);
-        if (!isNaN(plsFloat)) {
-          const weiBigInt = BigInt(Math.floor(plsFloat * 1e18));
-          weiValue = "0x" + weiBigInt.toString(16);
-        }
+      const weiBigInt = value ? parseAmountToBase(value, 18) : null;
+      if (weiBigInt !== null) {
+        weiValue = "0x" + weiBigInt.toString(16);
       }
 
       const result = await simulateTransaction({
@@ -157,11 +155,14 @@ export default function SimulationForm({
               PLS
             </span>
           </div>
-          {value && !isNaN(parseFloat(value)) && (
-            <p className="text-xs mt-1 theme-text-muted">
-              = {BigInt(Math.floor(parseFloat(value) * 1e18)).toLocaleString()} wei
-            </p>
-          )}
+          {(() => {
+            const wei = parseAmountToBase(value, 18);
+            return wei !== null ? (
+              <p className="text-xs mt-1 theme-text-muted">
+                = {wei.toLocaleString()} wei
+              </p>
+            ) : null;
+          })()}
         </div>
 
         {/* Calldata */}

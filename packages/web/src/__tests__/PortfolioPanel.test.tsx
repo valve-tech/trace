@@ -30,7 +30,7 @@ function holdings(address: string, over: Partial<HoldingsResult>): HoldingsResul
   return {
     chainId: 369,
     address,
-    native: { symbol: "PLS", balance: "0", balanceFormatted: "0" },
+    native: { symbol: "PLS", balance: "0" },
     holdings: [],
     indexed: true,
     ...over,
@@ -66,16 +66,16 @@ describe("<PortfolioPanel />", () => {
   it("aggregates a token across addresses and counts holders", async () => {
     stubHoldings({
       [A1]: holdings(A1, {
-        native: { symbol: "PLS", balance: "0", balanceFormatted: "10" },
+        native: { symbol: "PLS", balance: "10000000000000000000" },
         holdings: [
-          { tokenAddress: HEX, symbol: "HEX", name: "HEXcoin", decimals: 8, balance: "100000000", balanceFormatted: "1" },
+          { tokenAddress: HEX, symbol: "HEX", name: "HEXcoin", decimals: 8, balance: "100000000" },
         ],
       }),
       [A2]: holdings(A2, {
-        native: { symbol: "PLS", balance: "0", balanceFormatted: "5" },
+        native: { symbol: "PLS", balance: "5000000000000000000" },
         holdings: [
-          { tokenAddress: HEX, symbol: "HEX", name: "HEXcoin", decimals: 8, balance: "300000000", balanceFormatted: "3" },
-          { tokenAddress: WPLS, symbol: "WPLS", name: "Wrapped Pulse", decimals: 18, balance: "2000000000000000000", balanceFormatted: "2" },
+          { tokenAddress: HEX, symbol: "HEX", name: "HEXcoin", decimals: 8, balance: "300000000" },
+          { tokenAddress: WPLS, symbol: "WPLS", name: "Wrapped Pulse", decimals: 18, balance: "2000000000000000000" },
         ],
       }),
     });
@@ -97,7 +97,7 @@ describe("<PortfolioPanel />", () => {
 
   it("shows the not-indexed note when every result is indexed:false", async () => {
     stubHoldings({
-      [A1]: holdings(A1, { indexed: false, native: { symbol: "PLS", balance: "0", balanceFormatted: "7" } }),
+      [A1]: holdings(A1, { indexed: false, native: { symbol: "PLS", balance: "7000000000000000000" } }),
     });
     renderWithProviders(
       <PortfolioPanel workspace={workspace([{ kind: "address", value: A1 }])} />,

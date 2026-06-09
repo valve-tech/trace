@@ -13,7 +13,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
-import { formatEther } from "viem";
+import { formatEther, formatUnits } from "viem";
 import {
   fetchLatestSummary,
   fetchRecentBlocks,
@@ -25,7 +25,7 @@ import TxRowActions from "./TxRowActions";
 import { ExplorerLink } from "./ExplorerLink";
 import { TxGasInfo } from "./TxGasInfo";
 import { GasOracleWidget } from "./GasOracleWidget";
-import { subscriptSmall } from "./format";
+import { subscriptSmallString, groupDecimalString } from "./format";
 
 const REFETCH_MS = 5_000;
 
@@ -350,28 +350,27 @@ function formatBlockNum(decimal: string): string {
 }
 
 function formatGwei(weiDecimal: string): string {
-  // wei → gwei with up to 2 decimals.
+  // wei → gwei (decimals 9), exact: scale + group, no float.
   try {
-    const wei = BigInt(weiDecimal);
-    const gwei = Number(wei) / 1e9;
-    return (
-      subscriptSmall(gwei) ??
-      gwei.toLocaleString(undefined, { maximumFractionDigits: 2 })
-    );
+    const gwei = formatUnits(BigInt(weiDecimal), 9);
+    return subscriptSmallString(gwei) ?? groupDecimalString(gwei, 2);
   } catch {
     return weiDecimal;
   }
 }
 
+const ONE_MILLION_PLS = 1_000_000n * 10n ** 18n;
+
 function formatPls(weiDecimal: string): string {
   try {
-    const pls = Number(formatEther(BigInt(weiDecimal)));
-    if (pls === 0) return "0";
-    if (pls > 1_000_000) return `${(pls / 1_000_000).toFixed(2)}M`;
-    return (
-      subscriptSmall(pls) ??
-      pls.toLocaleString(undefined, { maximumFractionDigits: 4 })
-    );
+    const wei = BigInt(weiDecimal);
+    if (wei === 0n) return "0";
+    // Compact millions: scale by 10^24 (1e6 PLS) and group to 2 decimals.
+    if (wei > ONE_MILLION_PLS) {
+      return `${groupDecimalString(formatUnits(wei, 24), 2)}M`;
+    }
+    const pls = formatEther(wei);
+    return subscriptSmallString(pls) ?? groupDecimalString(pls, 4);
   } catch {
     return weiDecimal;
   }
@@ -379,11 +378,10 @@ function formatPls(weiDecimal: string): string {
 
 function gasPctLabel(used: string, limit: string): string {
   try {
-    const u = Number(BigInt(used));
-    const l = Number(BigInt(limit));
-    if (l === 0) return "—";
-    const pct = (u / l) * 100;
-    return `${pct.toFixed(0)}%`;
+    const u = BigInt(used);
+    const l = BigInt(limit);
+    if (l === 0n) return "—";
+    return `${(u * 100n) / l}%`; // integer percent, exact in bigint
   } catch {
     return "—";
   }

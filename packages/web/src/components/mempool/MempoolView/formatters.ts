@@ -5,6 +5,8 @@
  * unit-testable without rendering a table.
  */
 
+import { formatGwei } from "../../../lib/format/tokenAmount";
+
 /**
  * Parse a wei decimal string into a BigInt, treating null/non-numeric
  * input as zero. The comparator uses this so a tx missing a fee field
@@ -26,12 +28,6 @@ export function bigintOf(wei: string | null): bigint {
  * input so the caller can render an em-dash placeholder instead of "0".
  */
 export function gweiDisp(wei: string | null): string | null {
-  if (wei == null) return null;
-  try {
-    const g = Number(BigInt(wei)) / 1e9;
-    if (!isFinite(g)) return null;
-    return g.toLocaleString(undefined, { maximumFractionDigits: 3 });
-  } catch {
-    return null;
-  }
+  // Exact wei→gwei via formatUnits + string grouping — never Number()/1e9.
+  return formatGwei(wei, 3);
 }

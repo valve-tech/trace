@@ -4,6 +4,10 @@ import { Icon } from "@iconify/react";
 import type { Workspace } from "../../lib/workspace/types";
 import { fetchHoldings, type HoldingsResult } from "../../api/portfolio";
 import { truncateAddr } from "../explorer/format";
+import { formatAmountDisplay } from "../../lib/format/tokenAmount";
+
+/** Native coin decimals (wei → coin). */
+const NATIVE_DECIMALS = 18;
 
 /**
  * Portfolio rollup for a workspace: aggregates token holdings across every
@@ -110,9 +114,13 @@ function aggregate(results: HoldingsResult[]): AggToken[] {
       }
     }
   }
-  return [...byToken.values()].sort((a, b) =>
-    formatAmount(b.total, b.decimals) - formatAmount(a.total, a.decimals) > 0 ? 1 : -1,
-  );
+  // Order by human amount descending, compared EXACTLY in bigint across
+  // differing decimals (a/10^da vs b/10^db ⇔ a·10^db vs b·10^da). No float.
+  return [...byToken.values()].sort((a, b) => {
+    const left = a.total * 10n ** BigInt(b.decimals);
+    const right = b.total * 10n ** BigInt(a.decimals);
+    return left < right ? 1 : left > right ? -1 : 0;
+  });
 }
 
 function HoldingsTable({ rows }: { rows: AggToken[] }) {
@@ -132,7 +140,9 @@ function HoldingsTable({ rows }: { rows: AggToken[] }) {
               <span className="font-medium">{t.symbol}</span>
               {t.name && <span className="theme-text-muted ml-1.5">{t.name}</span>}
             </td>
-            <td className="py-1 text-right font-mono">{displayAmount(t.total, t.decimals)}</td>
+            <td className="py-1 text-right font-mono">
+              {formatAmountDisplay(t.total, t.decimals, { maxFractionDigits: 4 })}
+            </td>
             <td className="py-1 text-right theme-text-secondary">{t.holders}</td>
           </tr>
         ))}
@@ -158,7 +168,12 @@ function NativeList({
           <li key={addr} className="flex items-center justify-between text-[11px]">
             <span className="font-mono theme-text-secondary">{truncateAddr(addr)}</span>
             <span className="font-mono theme-text-muted">
-              {native ? `${trimZeros(native.balanceFormatted)} ${native.symbol}` : "—"}
+              {native
+                ? formatAmountDisplay(native.balance, NATIVE_DECIMALS, {
+                    maxFractionDigits: 4,
+                    symbol: native.symbol,
+                  })
+                : "—"}
             </span>
           </li>
         );
@@ -175,21 +190,4 @@ function safeBig(s: string): bigint {
   } catch {
     return 0n;
   }
-}
-
-/** Numeric value for sorting (lossy, fine for ordering). */
-function formatAmount(raw: bigint, decimals: number): number {
-  return Number(raw) / 10 ** decimals;
-}
-
-/** Human display with thousands separators + up to 4 fraction digits. */
-function displayAmount(raw: bigint, decimals: number): string {
-  const v = formatAmount(raw, decimals);
-  return v.toLocaleString(undefined, { maximumFractionDigits: 4 });
-}
-
-function trimZeros(s: string): string {
-  const n = Number(s);
-  if (Number.isNaN(n)) return s;
-  return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
 }

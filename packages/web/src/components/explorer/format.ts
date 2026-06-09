@@ -13,34 +13,61 @@ function toSubscript(n: number): string {
     .join("");
 }
 
+/** True when an exact decimal string represents zero (e.g. "0", "0.000", "-0"). */
+export function isZeroDecimal(value: string): boolean {
+  return /^-?0*(\.0*)?$/.test(value.trim());
+}
+
 /**
- * Compact decimal rendering for very small magnitudes using the
- * leading-zero-subscript notation popularized by DEX UIs:
+ * Group an EXACT decimal string for display — thousands separators on the
+ * integer part, fraction capped (truncated, never rounded up) and trailing
+ * zeros stripped. Pure string ops: never `parseFloat`, so a value past 2^53
+ * stays exact. Input is assumed already-scaled (e.g. a `formatEther`/
+ * `formatUnits` result), so storage stays raw and this is display-only.
+ */
+export function groupDecimalString(value: string, maxFractionDigits: number): string {
+  let v = value.trim();
+  const negative = v.startsWith("-");
+  if (negative) v = v.slice(1);
+  let [intPart = "0", fracPart = ""] = v.split(".");
+  intPart = intPart.replace(/^0+(?=\d)/, ""); // drop leading zeros, keep one digit
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  fracPart = fracPart.slice(0, maxFractionDigits).replace(/0+$/, "");
+  return `${negative ? "-" : ""}${intPart}${fracPart ? `.${fracPart}` : ""}`;
+}
+
+/**
+ * Compact rendering for very small magnitudes using the leading-zero-subscript
+ * notation popularized by DEX UIs:
  *
  *   0.00000000123  →  "0.0₈123"   (₈ = eight leading zeros after the point)
  *
- * Only kicks in at 3+ leading zeros — below that, plain decimals read fine.
- * Returns a plain string (Unicode subscripts, not <sub>) so it drops into any
- * text context without changing call sites. Returns null when the value is
- * zero or large enough that normal formatting should be used instead.
+ * Operates on an EXACT decimal string (no float). Only kicks in at 3+ leading
+ * zeros — below that, plain decimals read fine. Returns null when the value
+ * isn't a sub-1 magnitude with enough leading zeros.
  */
-export function subscriptSmall(num: number, sigFigs = 4): string | null {
-  if (num === 0 || !isFinite(num)) return null;
-  const [mantissa, expPart] = Math.abs(num).toExponential().split("e");
-  const exp = parseInt(expPart ?? "0", 10);
-  // leadingZeros = digits between the decimal point and the first significant
-  // figure. exp === -1 → 0 leading zeros, -4 → 3 leading zeros, etc.
-  const leadingZeros = -exp - 1;
-  if (leadingZeros < 3) return null; // plain decimal handles these
-  const digits = (mantissa ?? "0").replace(".", "").slice(0, sigFigs);
-  const sign = num < 0 ? "-" : "";
-  return `${sign}0.0${toSubscript(leadingZeros)}${digits}`;
+export function subscriptSmallString(value: string, sigFigs = 4): string | null {
+  let v = value.trim();
+  const negative = v.startsWith("-");
+  if (negative) v = v.slice(1);
+  const [intPart = "0", fracPart = ""] = v.split(".");
+  if (intPart.replace(/0/g, "") !== "" || fracPart === "") return null; // |x| >= 1
+  const leadingZeros = (fracPart.match(/^0*/)?.[0].length) ?? 0;
+  if (leadingZeros < 3) return null;
+  const digits =
+    fracPart.slice(leadingZeros, leadingZeros + sigFigs).replace(/0+$/, "") || "0";
+  return `${negative ? "-" : ""}0.0${toSubscript(leadingZeros)}${digits}`;
 }
 
+/**
+ * Format an EXACT decimal PLS string (a `formatEther` result) for display.
+ * String ops only — never `parseFloat` — so large balances stay exact. Tiny
+ * magnitudes use the subscript notation; everything else groups + caps to 6
+ * fraction digits.
+ */
 export function formatPLS(valuePLS: string): string {
-  const num = parseFloat(valuePLS);
-  if (num === 0) return "0 PLS";
-  const small = subscriptSmall(num);
+  if (isZeroDecimal(valuePLS)) return "0 PLS";
+  const small = subscriptSmallString(valuePLS);
   if (small !== null) return `${small} PLS`;
-  return `${num.toLocaleString(undefined, { maximumFractionDigits: 6 })} PLS`;
+  return `${groupDecimalString(valuePLS, 6)} PLS`;
 }

@@ -1,5 +1,12 @@
 import type { TransactionDetails } from "../../../api/explorer";
+import { formatAmountDisplay } from "../../../lib/format/tokenAmount";
 import { AddressLink, SectionCard, type AddressNavigate } from "./primitives";
+
+/** Parse a string decimals count into a number, or null when absent/garbage.
+ *  (Parsing the small decimals COUNT is fine — only AMOUNTS must stay bigint.) */
+function parseDecimals(decimalStr: string): number | null {
+  return /^\d+$/.test(decimalStr) ? Number(decimalStr) : null;
+}
 
 export function TokenTransfersSection({
   tokenTransfers,
@@ -72,7 +79,9 @@ export function TokenTransfersSection({
                   <td
                     className="px-3 py-2 font-mono theme-text"
                   >
-                    {tt.formattedValue} {tt.tokenSymbol}
+                    {formatAmountDisplay(tt.value, parseDecimals(tt.tokenDecimal), {
+                      symbol: tt.tokenSymbol,
+                    })}
                   </td>
                 </tr>
               ))}

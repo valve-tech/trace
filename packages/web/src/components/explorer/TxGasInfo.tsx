@@ -5,6 +5,8 @@
  * the inclusion logic visible at a glance.
  */
 
+import { formatGwei } from "../../lib/format/tokenAmount";
+
 interface Props {
   /** viem tx-type string: "legacy" | "eip2930" | "eip1559" | "eip4844" | … */
   type: string;
@@ -32,16 +34,9 @@ function typeLabel(type: string): string {
   }
 }
 
-/** wei decimal string → gwei, trimmed. Returns null for null/0-ish input. */
+/** wei decimal string → gwei, trimmed (exact). Null for null/garbage input. */
 function toGwei(wei: string | null): string | null {
-  if (wei == null) return null;
-  try {
-    const gwei = Number(BigInt(wei)) / 1e9;
-    if (!isFinite(gwei)) return null;
-    return gwei.toLocaleString(undefined, { maximumFractionDigits: 3 });
-  } catch {
-    return null;
-  }
+  return formatGwei(wei, 3);
 }
 
 export function TxGasInfo({

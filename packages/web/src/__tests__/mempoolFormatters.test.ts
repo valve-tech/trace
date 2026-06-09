@@ -55,8 +55,8 @@ describe("gweiDisp", () => {
     expect(gweiDisp("1500000000")).toBe("1.5");
   });
 
-  it("rounds beyond 3 fractional digits (4th digit drops)", () => {
-    // 1.23456 gwei → "1.235" (toLocaleString rounds, not truncates)
+  it("rounds beyond 3 fractional digits (base-10 round-half-up)", () => {
+    // 1.23456 gwei → "1.235" (exact base-10 rounding, no float)
     expect(gweiDisp("1234560000")).toBe("1.235");
   });
 
@@ -69,12 +69,11 @@ describe("gweiDisp", () => {
     expect(gweiDisp("nope")).toBeNull();
   });
 
-  it("returns null when the gwei value overflows JS Number to Infinity", () => {
-    // BigInt is fine, but Number(very-large-bigint) / 1e9 can become
-    // Infinity. The formatter guards on !isFinite and returns null so the
-    // cell falls back to the placeholder.
-    const overflow = "1" + "0".repeat(320); // 10^320, well past Number.MAX_VALUE
-    expect(gweiDisp(overflow)).toBeNull();
+  it("formats an astronomically large gwei value EXACTLY (no overflow)", () => {
+    // The whole point of the bigint path: a value that would overflow
+    // Number(...)/1e9 to Infinity now formats exactly instead of nulling out.
+    const wei = "1" + "0".repeat(40); // 10^40 wei = 10^31 gwei
+    expect(gweiDisp(wei)).toBe("10,000,000,000,000,000,000,000,000,000,000");
   });
 
   it("formats zero gwei as '0' (not null) — zero is a real value", () => {

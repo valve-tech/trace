@@ -9,17 +9,16 @@ export interface Holding {
   tokenAddress: string;
   symbol: string;
   name: string;
+  /** on-chain token decimals — display metadata, applied in the UI. */
   decimals: number;
-  /** raw integer balance (smallest unit). */
+  /** raw integer balance (smallest unit). Scaled at the render edge. */
   balance: string;
-  /** decimals-adjusted decimal string. */
-  balanceFormatted: string;
 }
 
 export interface NativeHolding {
   symbol: string;
+  /** raw integer wei balance. The UI scales it (native = 18 decimals). */
   balance: string;
-  balanceFormatted: string;
 }
 
 export interface HoldingsResult {

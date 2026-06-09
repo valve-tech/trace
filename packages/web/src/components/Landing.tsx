@@ -15,6 +15,7 @@ import { NAV_GROUPS, type NavItem } from "../lib/navGroups";
 import { routeForInput } from "../lib/entityInput";
 import { fetchLatestSummary } from "../api/latest";
 import { fetchPending } from "../api/mempool";
+import { formatGwei } from "../lib/format/tokenAmount";
 import { RecentRail } from "./RecentRail";
 import { ChainSelector, ChainGlyph } from "./ChainSelector";
 import { ExploreLogo } from "./AppShell/ExploreLogo";
@@ -371,12 +372,7 @@ function commasNum(n: number): string {
 }
 
 function gwei(wei: string): string {
-  try {
-    return (Number(BigInt(wei)) / 1e9).toLocaleString(undefined, {
-      maximumFractionDigits: 2,
-    });
-  } catch {
-    return "—";
-  }
+  // Exact wei→gwei (formatUnits + grouping), no Number()/1e9.
+  return formatGwei(wei, 2) ?? "—";
 }
 

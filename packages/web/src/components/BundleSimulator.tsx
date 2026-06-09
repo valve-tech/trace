@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { isAddress } from "viem";
+import { parseAmountToBase } from "../lib/format/tokenAmount";
 import { simulateBundle } from "../api/simulate";
 import type { BundleTxEntry, SimulationResult } from "../types";
 import { createEmptyTx } from "./BundleSimulator/helpers";
@@ -13,11 +14,8 @@ import {
 } from "./BundleSimulator/ResultPanels";
 
 function toWeiHex(plsValue: string): string | undefined {
-  if (!plsValue) return undefined;
-  const plsFloat = parseFloat(plsValue);
-  if (isNaN(plsFloat)) return undefined;
-  const weiBigInt = BigInt(Math.floor(plsFloat * 1e18));
-  return "0x" + weiBigInt.toString(16);
+  const wei = parseAmountToBase(plsValue, 18); // exact, no float
+  return wei === null ? undefined : "0x" + wei.toString(16);
 }
 
 export default function BundleSimulator() {

@@ -1,4 +1,3 @@
-import { formatUnits } from "viem";
 import { curatedToken } from "./curatedTokens.js";
 
 /**
@@ -15,17 +14,16 @@ export interface Holding {
   tokenAddress: string;
   symbol: string;
   name: string;
+  /** On-chain token decimals — display metadata, not a scaled value. */
   decimals: number;
-  /** Raw integer balance (smallest unit). */
+  /** Raw integer balance (smallest unit). Scaling happens at the render edge. */
   balance: string;
-  /** Decimals-adjusted decimal string. */
-  balanceFormatted: string;
 }
 
 export interface NativeHolding {
   symbol: string;
+  /** Raw integer balance in wei. The UI scales it (native is always 18). */
   balance: string;
-  balanceFormatted: string;
 }
 
 export interface HoldingsResult {
@@ -64,15 +62,6 @@ export interface TokenMeta {
   name: string;
 }
 
-/** Decimals-adjust a raw integer balance; "0" on any parse failure. */
-export function formatTokenAmount(balance: string, decimals: number): string {
-  try {
-    return formatUnits(BigInt(balance), decimals);
-  } catch {
-    return "0";
-  }
-}
-
 /**
  * Combine an archive balance with its (optional) chain metadata into a
  * `Holding`. Returns null when:
@@ -107,16 +96,28 @@ export function mapHolding(
     name: override?.name ?? meta?.name ?? "",
     decimals,
     balance,
-    balanceFormatted: formatTokenAmount(balance, decimals),
   };
 }
 
-/** Sort holdings by formatted balance descending (largest position first). */
+/**
+ * Sort holdings by human balance descending (largest position first), compared
+ * EXACTLY in bigint. Two tokens with different decimals are ordered by
+ * `a/10^da` vs `b/10^db`, which we evaluate as `a·10^db` vs `b·10^da` — pure
+ * bigint, so a balance past 2^53 never mis-sorts the way a `Number()` compare
+ * would.
+ */
 export function sortHoldings(holdings: Holding[]): Holding[] {
   return [...holdings].sort((a, b) => {
-    const av = Number(a.balanceFormatted);
-    const bv = Number(b.balanceFormatted);
-    if (Number.isNaN(av) || Number.isNaN(bv)) return 0;
-    return bv - av;
+    let av: bigint;
+    let bv: bigint;
+    try {
+      av = BigInt(a.balance) * 10n ** BigInt(b.decimals);
+      bv = BigInt(b.balance) * 10n ** BigInt(a.decimals);
+    } catch {
+      return 0;
+    }
+    if (av < bv) return 1;
+    if (av > bv) return -1;
+    return 0;
   });
 }

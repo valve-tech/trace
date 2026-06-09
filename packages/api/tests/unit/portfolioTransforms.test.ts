@@ -2,7 +2,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  formatTokenAmount,
   mapHolding,
   sortHoldings,
   type HeldBalance,
@@ -14,8 +13,9 @@ import { curatedToken, curatedTokens } from "../../src/services/portfolio/curate
 /**
  * Pure-transform tests for portfolio holdings — no DB, no RPC. Pins the
  * (archive balance + chain metadata) → Holding mapping (all tokens, curated
- * override, zero-balance drops, drop-on-unresolvable-decimals), amount
- * formatting, ordering, and the curated override registry.
+ * override, zero-balance drops, drop-on-unresolvable-decimals), ordering, and
+ * the curated override registry. Holdings carry the RAW integer balance +
+ * decimals (no pre-scaled value); scaling is the UI's job.
  */
 
 const HEX_BARE = "2b591e99afe9f32eaa6214f7b7629768c40eeb39"; // curated 369, 8 decimals
@@ -54,7 +54,8 @@ describe("mapHolding", () => {
     assert.equal(h!.symbol, "RND");
     assert.equal(h!.name, "Random");
     assert.equal(h!.tokenAddress, "0x" + RANDOM_BARE);
-    assert.equal(h!.balanceFormatted, "5");
+    assert.equal(h!.balance, "5000000000000000000"); // raw, unscaled
+    assert.equal(h!.decimals, 18);
   });
 
   it("a curated entry overrides chain metadata (label + decimals guard)", () => {
@@ -66,14 +67,14 @@ describe("mapHolding", () => {
     );
     assert.equal(h!.symbol, "HEX");
     assert.equal(h!.decimals, 8);
-    assert.equal(h!.balanceFormatted, "1.5"); // 1.5e8 at 8dp
+    assert.equal(h!.balance, "150000000"); // raw 1.5e8; UI scales at 8dp → 1.5
   });
 
   it("uses curated decimals when metadata is missing (read failed)", () => {
     const h = mapHolding(held(HEX_BARE, 150000000n), undefined, 369);
     assert.equal(h!.symbol, "HEX");
     assert.equal(h!.decimals, 8);
-    assert.equal(h!.balanceFormatted, "1.5");
+    assert.equal(h!.balance, "150000000");
   });
 
   it("drops a non-curated token when decimals can't be resolved", () => {
@@ -87,7 +88,7 @@ describe("mapHolding", () => {
       369,
     );
     assert.equal(h!.tokenAddress, "0x" + WPLS_BARE);
-    assert.equal(h!.balanceFormatted, "2");
+    assert.equal(h!.balance, "2000000000000000000");
   });
 
   it("drops non-positive balances", () => {
@@ -99,30 +100,48 @@ describe("mapHolding", () => {
     const h = mapHolding(held(RANDOM_BARE, 5n), meta({ token: RANDOM_BARE, decimals: 0, symbol: "DEAD", name: "Dead" }), 943);
     assert.ok(h);
     assert.equal(h!.symbol, "DEAD");
-    assert.equal(h!.balanceFormatted, "5");
-  });
-});
-
-describe("formatTokenAmount", () => {
-  it("decimals-adjusts", () => {
-    assert.equal(formatTokenAmount("1000000", 6), "1");
-  });
-  it("returns '0' on a non-numeric balance", () => {
-    assert.equal(formatTokenAmount("nope", 18), "0");
+    assert.equal(h!.balance, "5");
   });
 });
 
 describe("sortHoldings", () => {
-  it("orders by formatted balance descending", () => {
-    const mk = (formatted: string): Holding => ({
-      tokenAddress: "0x0",
-      symbol: "",
-      name: "",
-      decimals: 18,
-      balance: "0",
-      balanceFormatted: formatted,
-    });
-    const sorted = sortHoldings([mk("5"), mk("100"), mk("20")]);
-    assert.deepEqual(sorted.map((h) => h.balanceFormatted), ["100", "20", "5"]);
+  const mk = (balance: string, decimals = 18, symbol = ""): Holding => ({
+    tokenAddress: "0x0",
+    symbol,
+    name: "",
+    decimals,
+    balance,
+  });
+
+  it("orders by human balance descending (same decimals)", () => {
+    const sorted = sortHoldings([
+      mk("5000000000000000000"),
+      mk("100000000000000000000"),
+      mk("20000000000000000000"),
+    ]);
+    assert.deepEqual(sorted.map((h) => h.balance), [
+      "100000000000000000000",
+      "20000000000000000000",
+      "5000000000000000000",
+    ]);
+  });
+
+  it("compares across decimals exactly in bigint (no Number() drift)", () => {
+    // 2 WPLS (18dp) vs 3 HEX (8dp): 3 HEX is the larger human amount.
+    const wpls = mk("2000000000000000000", 18, "WPLS");
+    const hex = mk("300000000", 8, "HEX");
+    assert.deepEqual(sortHoldings([wpls, hex]).map((h) => h.symbol), [
+      "HEX",
+      "WPLS",
+    ]);
+  });
+
+  it("stays correct past 2^53 — a hair more is ordered first", () => {
+    // Two near-equal huge balances differing by 1 base unit; Number() would
+    // collapse them to equal and lose the ordering.
+    const big = (10n ** 30n).toString();
+    const bigPlusOne = (10n ** 30n + 1n).toString();
+    const sorted = sortHoldings([mk(big, 18, "A"), mk(bigPlusOne, 18, "B")]);
+    assert.deepEqual(sorted.map((h) => h.symbol), ["B", "A"]);
   });
 });
