@@ -3,6 +3,7 @@ import {
   fetchRpcMethods,
   type MethodDescription,
 } from "../../api/rpc";
+import { useActiveChainId } from "../../lib/activeChain";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -17,9 +18,10 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedMethod, setExpandedMethod] = useState<string | null>(null);
+  const chainId = useActiveChainId();
 
   useEffect(() => {
-    fetchRpcMethods()
+    fetchRpcMethods(chainId)
       .then((res) => {
         setMethods(res.methods);
         setLoading(false);
@@ -28,7 +30,7 @@ export default function MethodExplorer({ onTryMethod }: MethodExplorerProps) {
         setError(err instanceof Error ? err.message : "Failed to load methods");
         setLoading(false);
       });
-  }, []);
+  }, [chainId]);
 
   // Group by namespace
   const grouped = methods.reduce<Record<string, MethodDescription[]>>(

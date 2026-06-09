@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
 import { fetchGasOracle, type TierName, type Trend } from "../../api/gas";
+import { useActiveChainId } from "../../lib/activeChain";
 
 const TIERS: { key: TierName; label: string }[] = [
   { key: "slow", label: "Slow" },
@@ -71,9 +72,10 @@ function barHeight(tip: number, maxTip: number): number {
 }
 
 export function GasOracleWidget() {
+  const chainId = useActiveChainId();
   const { data, status } = useQuery({
-    queryKey: ["gas-oracle"],
-    queryFn: fetchGasOracle,
+    queryKey: ["gas-oracle", chainId],
+    queryFn: () => fetchGasOracle(chainId),
     refetchInterval: 10_000,
     staleTime: 8_000,
   });

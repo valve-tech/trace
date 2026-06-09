@@ -5,6 +5,8 @@ import {
   type RpcStatsResponse,
   type MethodStats,
 } from "../../api/rpc";
+import { useActiveChainId } from "../../lib/activeChain";
+import { DEFAULT_CHAIN_ID } from "../../lib/chains";
 import { copyToClipboard } from "../../lib/clipboard";
 
 // ---------------------------------------------------------------------------
@@ -41,11 +43,20 @@ export default function RpcDashboard() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const rpcUrl = `${window.location.origin}/rpc`;
+  const chainId = useActiveChainId();
+  // Surface the chain-scoped endpoint so a copied URL hits the selected chain.
+  // Default chain stays bare (`/rpc`) to match the API layer's omit behavior.
+  const rpcUrl =
+    chainId === DEFAULT_CHAIN_ID
+      ? `${window.location.origin}/rpc`
+      : `${window.location.origin}/rpc?chainid=${chainId}`;
 
   const refresh = useCallback(async () => {
     try {
-      const [s, c] = await Promise.all([fetchRpcStats(), checkRpcConnection()]);
+      const [s, c] = await Promise.all([
+        fetchRpcStats(chainId),
+        checkRpcConnection(chainId),
+      ]);
       setStats(s);
       setConnected(c);
     } catch {
@@ -53,7 +64,7 @@ export default function RpcDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [chainId]);
 
   useEffect(() => {
     refresh();

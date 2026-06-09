@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { fetchPending, type PendingTx } from "../../api/mempool";
+import { useActiveChainId } from "../../lib/activeChain";
 import { ExplorerLink } from "../explorer/ExplorerLink";
 import { truncateAddr } from "../explorer/format";
 import { Badge } from "../primitives/Badge";
@@ -42,9 +43,10 @@ export default function MempoolView() {
     navigate(scanPath(kind, t.value));
   };
 
+  const chainId = useActiveChainId();
   const { data, status, error } = useQuery({
-    queryKey: ["mempool-pending"],
-    queryFn: () => fetchPending(),
+    queryKey: ["mempool-pending", chainId],
+    queryFn: () => fetchPending(chainId),
     refetchInterval: 5_000,
     staleTime: 4_000,
   });

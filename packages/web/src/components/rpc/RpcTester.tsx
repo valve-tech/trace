@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { testRpcRequest, type JsonRpcRequest, type RpcTestResponse } from "../../api/rpc";
+import { useActiveChainId } from "../../lib/activeChain";
 
 // ---------------------------------------------------------------------------
 // Templates
@@ -122,6 +123,7 @@ interface RpcTesterProps {
 }
 
 export default function RpcTester({ initialRequest }: RpcTesterProps) {
+  const chainId = useActiveChainId();
   const [requestText, setRequestText] = useState<string>(
     initialRequest
       ? JSON.stringify(initialRequest, null, 2)
@@ -168,7 +170,7 @@ export default function RpcTester({ initialRequest }: RpcTesterProps) {
         return;
       }
 
-      const result = await testRpcRequest(parsed);
+      const result = await testRpcRequest(parsed, chainId);
       setResponse(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");

@@ -1,10 +1,22 @@
 import { apiUrl } from "../lib/apiBase";
+import { DEFAULT_CHAIN_ID } from "../lib/chains";
 /**
  * Gas oracle API client — priority-fee tier recommendations from the
  * server-side @valve-tech/gas-oracle poller (mempool-influenced).
  */
 
 const API_BASE = apiUrl("/api/gas");
+
+/**
+ * Scope a request to a chain via `?chainid=N`. The default chain is omitted so
+ * existing PulseChain calls stay byte-identical; non-default chains append the
+ * param, which the backend chain-context middleware reads. Mirrors the private
+ * `scoped` helper in explorer.ts — kept local per module by design.
+ */
+function scoped(url: string, chainId: number): string {
+  if (chainId === DEFAULT_CHAIN_ID) return url;
+  return url + (url.includes("?") ? "&" : "?") + `chainid=${chainId}`;
+}
 
 export type TierName = "slow" | "standard" | "fast" | "instant";
 export type Trend = "rising" | "falling" | "stable";
@@ -31,8 +43,10 @@ export interface GasOracleState {
   tiers: Record<TierName, TierRecommendation>;
 }
 
-export async function fetchGasOracle(): Promise<GasOracleState> {
-  const res = await fetch(`${API_BASE}/oracle`);
+export async function fetchGasOracle(
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<GasOracleState> {
+  const res = await fetch(scoped(`${API_BASE}/oracle`, chainId));
   if (!res.ok) {
     const text = await res.text();
     let message: string;
