@@ -7,6 +7,7 @@ import { scanPath } from "../../lib/scanRoutes";
 import { WorkspaceItemRow } from "./WorkspaceItemRow";
 import { BulkPastePanel } from "./BulkPastePanel";
 import { PortfolioPanel } from "./PortfolioPanel";
+import { WatchRulesPanel } from "./watcher/WatchRulesPanel";
 
 /**
  * One Workspace's items, listed with type icon + value + optional label. Each
@@ -75,6 +76,8 @@ export default function WorkspaceDetail() {
       )}
 
       <PortfolioPanel workspace={workspace} />
+
+      <WatchRulesPanel workspace={workspace} />
 
       <Items
         workspace={workspace}

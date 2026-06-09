@@ -24,6 +24,7 @@ import DraftsIndex from "./components/drafts/DraftsIndex";
 import SettingsPanel from "./components/drafts/SettingsPanel";
 import WorkspaceList from "./components/workspace/WorkspaceList";
 import WorkspaceDetail from "./components/workspace/WorkspaceDetail";
+import WatchNotifications from "./components/watcher/WatchNotifications";
 
 export default function App() {
   const [apiStatus, setApiStatus] = useState<"connected" | "disconnected" | "checking">("checking");
@@ -82,6 +83,9 @@ export default function App() {
       {appToast !== null && (
         <AlertToast alert={appToast.data.alert} match={appToast.data.match} />
       )}
+
+      {/* Client-side watcher: owns viem subscriptions app-wide + fires toasts. */}
+      <WatchNotifications />
 
       <AppShell apiStatus={apiStatus}>
         <ErrorBoundary resetKey={location.pathname}>
