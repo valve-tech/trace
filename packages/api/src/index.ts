@@ -129,12 +129,16 @@ const webDistPath = path.join(__dirname, "..", "..", "web", "dist");
 if (existsSync(webDistPath)) {
   app.use(express.static(webDistPath));
 
-  // SPA fallback. Excludes API/RPC/health/ws paths so genuine API 404s are
-  // returned as JSON instead of being masked by index.html.
+  // SPA fallback. Excludes the JSON surfaces so genuine API 404s are
+  // returned as JSON instead of being masked by index.html. Note `/rpc` is
+  // NOT excluded: the JSON-RPC proxy is POST-only (handled above, before this
+  // GET fallback), so a bare GET /rpc is the SPA's RpcPage and must serve
+  // index.html — otherwise a direct load / refresh / shared link 404s with
+  // "Cannot GET /rpc". The proxy's own GET endpoints (/rpc/stats, /rpc/methods)
+  // are matched by rpcRouter before reaching here.
   app.get("*", (req, res, next) => {
     if (
       req.path.startsWith("/api/") ||
-      req.path.startsWith("/rpc") ||
       req.path === "/health" ||
       req.path.startsWith("/ws")
     ) {

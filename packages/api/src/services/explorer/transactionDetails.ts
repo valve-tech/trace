@@ -1,7 +1,13 @@
-import { type Hex, formatEther } from "viem";
+import {
+  type Hex,
+  formatEther,
+  TransactionNotFoundError,
+  TransactionReceiptNotFoundError,
+} from "viem";
 import { publicClient } from "../rpc.js";
 import { fetchAbi, decodeInput, decodeLogs } from "../decoder.js";
 import { serialize } from "./client.js";
+import { ApiError } from "../../lib/respond.js";
 import {
   mergeDecodedLogs,
   otherEmitters,
@@ -62,12 +68,27 @@ export async function getTransactionDetails(
   hash: string,
   options: { skipDecode?: boolean } = {},
 ): Promise<TransactionDetails> {
-  const [tx, receipt] = await Promise.all([
-    publicClient.getTransaction({ hash: hash as Hex }),
-    publicClient.getTransactionReceipt({ hash: hash as Hex }),
-  ]);
+  let tx: Awaited<ReturnType<typeof publicClient.getTransaction>>;
+  let receipt: Awaited<ReturnType<typeof publicClient.getTransactionReceipt>>;
+  try {
+    [tx, receipt] = await Promise.all([
+      publicClient.getTransaction({ hash: hash as Hex }),
+      publicClient.getTransactionReceipt({ hash: hash as Hex }),
+    ]);
+  } catch (err) {
+    // viem throws a typed not-found (for the tx or its receipt) that carries
+    // the library version in its message — surface a clean 404 instead of a
+    // 500 that leaks "Version: viem@x.y.z" to the client.
+    if (
+      err instanceof TransactionNotFoundError ||
+      err instanceof TransactionReceiptNotFoundError
+    ) {
+      throw new ApiError(404, "Transaction not found");
+    }
+    throw err;
+  }
 
-  if (!tx) throw new Error("Transaction not found");
+  if (!tx) throw new ApiError(404, "Transaction not found");
 
   let timestamp: number | null = null;
   try {

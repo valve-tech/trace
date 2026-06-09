@@ -1,6 +1,7 @@
-import { type Hex, formatEther } from "viem";
+import { type Hex, formatEther, BlockNotFoundError } from "viem";
 import { publicClient } from "../rpc.js";
 import { serialize } from "./client.js";
+import { ApiError } from "../../lib/respond.js";
 
 export interface BlockDetails {
   number: string;
@@ -43,24 +44,42 @@ export interface BlockDetails {
 export async function getBlockDetails(
   numberOrHash: string,
 ): Promise<BlockDetails> {
+  // Validate up front so a junk param (e.g. "notanumber") is a clean 400
+  // rather than a 500 from `BigInt("notanumber")`. Accept a 32-byte hash, a
+  // decimal block number, or a 0x-hex block number (BigInt parses both forms).
+  const isHash = /^0x[0-9a-fA-F]{64}$/.test(numberOrHash);
+  const isNumber = /^(?:\d+|0x[0-9a-fA-F]+)$/.test(numberOrHash);
+  if (!isHash && !isNumber) {
+    throw new ApiError(400, "Invalid block number or hash");
+  }
+
   // viem's getBlock return type changes by `includeTransactions` literal;
   // the upstream branch makes a precise type awkward without union narrowing.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let block: any;
 
-  if (numberOrHash.startsWith("0x") && numberOrHash.length === 66) {
-    block = await publicClient.getBlock({
-      blockHash: numberOrHash as Hex,
-      includeTransactions: true,
-    });
-  } else {
-    block = await publicClient.getBlock({
-      blockNumber: BigInt(numberOrHash),
-      includeTransactions: true,
-    });
+  try {
+    if (isHash) {
+      block = await publicClient.getBlock({
+        blockHash: numberOrHash as Hex,
+        includeTransactions: true,
+      });
+    } else {
+      block = await publicClient.getBlock({
+        blockNumber: BigInt(numberOrHash),
+        includeTransactions: true,
+      });
+    }
+  } catch (err) {
+    // A nonexistent block is a 404, not a 500 (and viem's error message
+    // otherwise leaks the library version to the client).
+    if (err instanceof BlockNotFoundError) {
+      throw new ApiError(404, "Block not found");
+    }
+    throw err;
   }
 
-  if (!block) throw new Error("Block not found");
+  if (!block) throw new ApiError(404, "Block not found");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transactions = (block.transactions || []).map((tx: any) => {

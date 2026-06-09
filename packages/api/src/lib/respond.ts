@@ -79,9 +79,20 @@ export const respond = {
       return;
     }
     const message = err instanceof Error ? err.message : fallbackMessage;
-    res.status(500).json({ ok: false, error: message });
+    res.status(500).json({ ok: false, error: scrubInternal(message) });
   },
 };
+
+/**
+ * Strip internal library version footers (e.g. viem appends
+ * "\n\nVersion: viem@2.47.5" to every error) before a message reaches a
+ * client. Defense-in-depth: routes should map known errors to ApiError with a
+ * clean status, but any error that slips through to a 500 shouldn't disclose
+ * the dependency or its version.
+ */
+function scrubInternal(message: string): string {
+  return message.replace(/\s*Version:\s*\S+@[\w.\-]+\s*$/i, "").trim();
+}
 
 /**
  * Wrap an async route handler so thrown errors (sync or via rejected promise)
