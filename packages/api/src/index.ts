@@ -43,6 +43,7 @@ import workspaceSyncRouter from "./routes/workspaceSync.js";
 import portfolioRouter from "./routes/portfolio.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { chainContext } from "./middleware/chainContext.js";
+import { corsDelegate } from "./lib/cors.js";
 import { docsHandler, openapiJsonHandler } from "./openapi/handlers.js";
 import { startMonitor } from "./services/monitor.js";
 import { initScheduler } from "./services/actionScheduler.js";
@@ -56,7 +57,10 @@ const PORT = Number(process.env.PORT) || 10100;
 // Middleware
 // ---------------------------------------------------------------------------
 
-app.use(cors());
+// Split CORS: open read-only for any origin; credentialed only for the
+// CREDENTIALED_ORIGINS allowlist (so a gateway-served frontend can do
+// cookie-bearing auth + workspace sync). See lib/cors.ts.
+app.use(cors(corsDelegate));
 app.use(express.json({ limit: "2mb" }));
 
 // Resolve the request's target chain from ?chainid (or a chainid body field)

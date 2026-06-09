@@ -3,6 +3,7 @@ import { verifyAuthSignature } from "@valve-tech/auth-lite";
 import { z } from "zod";
 import { isAddress, type Address, type Hex } from "viem";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
+import { sessionCookieSecurity } from "../lib/cors.js";
 import { issueNonce, consumeNonce } from "../services/auth/nonceStore.js";
 import {
   mintSession,
@@ -77,10 +78,14 @@ router.post(
     }
 
     const { token, expiresAt } = mintSession(recovered);
+    // SameSite/Secure depend on whether this is an allowlisted cross-origin
+    // (IPFS gateway) request — None+Secure there so the cookie rides later
+    // cross-origin sync calls; Lax for same-origin. See lib/cors.ts.
+    const { sameSite, secure } = sessionCookieSecurity(req);
     res.cookie(SESSION_COOKIE_NAME, token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite,
+      secure,
       maxAge: SESSION_COOKIE_MAX_AGE_SECONDS * 1000,
       path: "/",
     });
@@ -96,8 +101,11 @@ router.post(
  */
 router.post(
   "/logout",
-  asyncRoute(async (_req: Request, res: Response) => {
-    res.clearCookie(SESSION_COOKIE_NAME, { path: "/" });
+  asyncRoute(async (req: Request, res: Response) => {
+    // Clear with the SAME SameSite/Secure the cookie was set with, else a
+    // cross-origin None+Secure cookie won't be cleared from a gateway origin.
+    const { sameSite, secure } = sessionCookieSecurity(req);
+    res.clearCookie(SESSION_COOKIE_NAME, { path: "/", sameSite, secure });
     respond.ok(res);
   }, "auth/logout"),
 );

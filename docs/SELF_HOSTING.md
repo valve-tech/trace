@@ -92,7 +92,10 @@ the lowest configured id.
 | `DEFAULT_CHAIN_ID` | `369` / lowest | fallback chain for `?chainid`-less requests |
 | `PUBLIC_BASE_URL` | `https://explore.valve.city` | this instance's URL — the primary OpenAPI server |
 | `OPENAPI_TITLE` | `valve · explore.valve.city` | OpenAPI + `/docs` page title (rebrand here) |
+| `OPENAPI_BRAND` | `Explore` | platform name in the OpenAPI description prose |
 | `OPENAPI_CONTACT_EMAIL` | `dev@valve.city` | OpenAPI contact email |
+| `OPENAPI_FEDERATION_URL` | `https://one.valve.city/` | OpenAPI federation manifest root; set `""` to drop the federation section (standalone self-host) |
+| `CREDENTIALED_ORIGINS` | (empty) | comma-separated origins allowed to make **cookie-bearing** cross-origin requests (wallet sign-in + workspace sync from an IPFS gateway). Exact scheme+host+port match. Read-only explorer works from any origin regardless; needs HTTPS on both ends |
 | `CHIFRA_BASE_URL` | `https://chifra.valve.city` | TrueBlocks daemon for address history |
 | `ETH_RPC_URL` / `PULSECHAIN_RPC_URL` / `PULSECHAIN_V4_RPC_URL` | valve RPC | per-chain RPC for the **default set only** (a `CHAINS_JSON` chain carries its own `rpcUrl`) |
 | `DEBUG_RPC_URL` | falls back to chain RPC | debug-enabled node for traces |
