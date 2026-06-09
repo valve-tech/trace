@@ -28,10 +28,14 @@ import { dirname, resolve } from "node:path";
 import type { OpenAPIObject, ResponseObject } from "./types.js";
 import {
   PUBLIC_BASE_URL,
+  PUBLIC_HOST,
   BRAND_TITLE,
+  BRAND_NAME,
   CONTACT_EMAIL,
   LOCAL_SERVER_URL,
+  FEDERATION_MANIFEST_URL,
 } from "./branding.js";
+import { getChain, DEFAULT_CHAIN_ID } from "../services/chains/registry.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -55,18 +59,30 @@ export const errorResponse = (description: string): ResponseObject => ({
   },
 });
 
-const APPENDIX = `
+/**
+ * The OpenAPI `info.description` prose. Built from branding + the chain
+ * registry so a self-hosted instance describes ITSELF — its own host, brand,
+ * and default chain — instead of advertising `explore.valve.city` / PulseChain.
+ * The federation section is emitted only when a manifest URL is configured
+ * (`OPENAPI_FEDERATION_URL`); a standalone self-host with no federation drops
+ * it entirely. Defaults reproduce the hosted deployment's text.
+ */
+function buildAppendix(): string {
+  const defaultChain = getChain(DEFAULT_CHAIN_ID);
+  const slug = BRAND_NAME.toLowerCase();
+
+  const surfaces = `
 # Surfaces
 
-\`explore.valve.city\` exposes the Trace platform — transaction simulation,
+\`${PUBLIC_HOST}\` exposes the ${BRAND_NAME} platform — transaction simulation,
 opcode debugger, virtual testnets (Anvil forks), monitoring/alerting,
-serverless Web3 Actions, and an enhanced JSON-RPC proxy for PulseChain
-(chain ID 369).
+serverless Web3 Actions, and an enhanced JSON-RPC proxy for ${defaultChain.name}
+(chain ID ${defaultChain.chainId}).
 
-## /rpc — JSON-RPC proxy (PulseChain mainnet)
+## /rpc — JSON-RPC proxy (${defaultChain.name})
 
 \`POST /rpc\` accepts any standard EVM JSON-RPC method (eth_*, debug_*,
-trace_*, …) and proxies to the configured upstream reth node. The proxy
+trace_*, …) and proxies to the configured upstream node. The proxy
 adds a small cache layer in front of expensive method families
 (\`eth_call\`, \`debug_traceTransaction\`) and rewrites a few methods to
 hit chifra for paginated history (\`ots_searchTransactionsBefore\` /
@@ -83,16 +99,23 @@ Same upstream + cache as /rpc; gated on a project API key from
 block-poller's tail. Frame shape is documented in
 \`packages/api/src/services/alerts/types.ts\`. AsyncAPI 3.0 covers this
 category but a prose paragraph is more useful for a single-shape
-stream — formal coverage deferred.
+stream — formal coverage deferred.`.trim();
 
+  if (!FEDERATION_MANIFEST_URL) return surfaces;
+
+  const federation = `
 # Federation
 
-This document is the \`explore\` slice of valve's OpenAPI federation. The
-discovery root lives at \`https://one.valve.city/\` (Supabase-style
+This document is the \`${slug}\` slice of an OpenAPI federation. The
+discovery root lives at \`${FEDERATION_MANIFEST_URL}\` (Supabase-style
 manifest) and advertises this URL under \`services[].docs.openapi\`.
-Integrators following \`one.valve.city → services → explore\` land here
-without prior knowledge of this hostname.
-`.trim();
+Integrators following \`${FEDERATION_MANIFEST_URL} → services → ${slug}\`
+land here without prior knowledge of this hostname.`.trim();
+
+  return `${surfaces}\n\n${federation}`;
+}
+
+const APPENDIX = buildAppendix();
 
 export const spec: OpenAPIObject = {
   openapi: "3.1.0",
