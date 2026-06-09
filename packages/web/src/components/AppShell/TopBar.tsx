@@ -79,9 +79,9 @@ export function TopBar({
 
       <div className="flex items-center gap-inline px-4 shrink-0">
         <ExploreLogo className="w-7 h-7 theme-text" />
-        <div className="hidden md:flex items-baseline gap-2">
+        <div className="hidden md:flex items-baseline gap-inline">
           <h1 className="text-sm font-semibold theme-text">Explore</h1>
-          <span className="text-xs uppercase tracking-wider font-semibold inline-flex items-center gap-1 theme-text-muted">
+          <span className="text-xs uppercase tracking-wider font-semibold inline-flex items-center gap-tight theme-text-muted">
             by
             <a
               href="https://valve.city"
