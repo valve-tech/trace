@@ -1,3 +1,4 @@
+import { apiUrl } from "../lib/apiBase";
 import type {
   SimulationRequest,
   SimulationResult,
@@ -6,7 +7,7 @@ import type {
   StateOverride,
 } from "../types";
 
-const API_BASE = "/api";
+const API_BASE = apiUrl("/api");
 
 function buildStateOverridesPayload(
   overrides: StateOverride[],
@@ -174,7 +175,7 @@ export async function forkSimulate(params: {
   blockNumber?: number;
   gasLimit?: number;
 }): Promise<ForkSimulationResponse> {
-  const res = await fetch("/api/simulate/fork", {
+  const res = await fetch(apiUrl("/api/simulate/fork"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -183,7 +184,7 @@ export async function forkSimulate(params: {
 }
 
 export async function simulateFromHash(txHash: string): Promise<ForkSimulationResponse> {
-  const res = await fetch("/api/simulate/from-hash", {
+  const res = await fetch(apiUrl("/api/simulate/from-hash"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ txHash }),

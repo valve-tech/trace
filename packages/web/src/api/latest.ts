@@ -1,9 +1,10 @@
+import { apiUrl } from "../lib/apiBase";
 /**
  * Client for the home-view ("latest") API endpoints — Bundle 1 of
  * EXPLORER_API_SPEC §2.1–2.3.
  */
 
-const API_BASE = "/api";
+const API_BASE = apiUrl("/api");
 
 // ---------------------------------------------------------------------------
 // Wire types — mirrors `services/explorer/latest.ts` on the server.

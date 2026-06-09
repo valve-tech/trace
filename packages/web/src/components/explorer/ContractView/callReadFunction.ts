@@ -1,3 +1,4 @@
+import { apiUrl } from "../../../lib/apiBase";
 import type { AbiItem } from "./types";
 
 export type CallReadResult =
@@ -45,7 +46,7 @@ export async function callReadFunction(
       args: argValues as any,
     });
 
-    const response = await fetch("/api/simulate", {
+    const response = await fetch(apiUrl("/api/simulate"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

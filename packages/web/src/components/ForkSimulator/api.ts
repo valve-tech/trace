@@ -1,3 +1,4 @@
+import { apiUrl } from "../../lib/apiBase";
 import type { ForkSimulationResponse } from "../../api/simulate";
 
 export async function forkSimulateApi(params: {
@@ -7,7 +8,7 @@ export async function forkSimulateApi(params: {
   data?: string;
   blockNumber?: number;
 }): Promise<ForkSimulationResponse> {
-  const res = await fetch("/api/simulate/fork", {
+  const res = await fetch(apiUrl("/api/simulate/fork"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -18,7 +19,7 @@ export async function forkSimulateApi(params: {
 export async function simulateFromHashApi(
   txHash: string,
 ): Promise<ForkSimulationResponse> {
-  const res = await fetch("/api/simulate/from-hash", {
+  const res = await fetch(apiUrl("/api/simulate/from-hash"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ txHash }),

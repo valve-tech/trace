@@ -1,3 +1,4 @@
+import { apiUrl } from "../lib/apiBase";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { StateDiff, BalanceChange, StorageChange, NonceChange } from "../api/simulate";
@@ -160,7 +161,7 @@ function StorageGroup({
   const { data: layout } = useQuery({
     queryKey: ["storage-layout", address.toLowerCase()],
     queryFn: async (): Promise<StorageLayout | null> => {
-      const res = await fetch(`/api/source/${address}/storage-layout`);
+      const res = await fetch(apiUrl(`/api/source/${address}/storage-layout`));
       if (!res.ok) return null;
       const body = (await res.json()) as {
         ok: boolean;

@@ -3,6 +3,10 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
+  // IPFS build: relative asset paths so the bundle loads under `/ipfs/<CID>/`.
+  // Relative base is only safe with HashRouter (see main.tsx) — the canonical
+  // BrowserRouter build keeps absolute "/" so nested routes resolve assets.
+  base: process.env.VITE_IPFS ? "./" : "/",
   plugins: [react(), tailwindcss()],
   server: {
     port: 11800,

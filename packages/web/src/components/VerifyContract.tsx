@@ -1,3 +1,4 @@
+import { apiUrl } from "../lib/apiBase";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isAddress } from "viem";
@@ -52,7 +53,7 @@ export default function VerifyContract() {
   const submit = async (): Promise<void> => {
     setStatus({ kind: "submitting" });
     try {
-      const submitRes = await fetch("/api", {
+      const submitRes = await fetch(apiUrl("/api"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -76,7 +77,7 @@ export default function VerifyContract() {
 
       setStatus({ kind: "checking" });
       const checkRes = await fetch(
-        `/api?module=contract&action=checkverifystatus&guid=${encodeURIComponent(guid)}`,
+        apiUrl(`/api?module=contract&action=checkverifystatus&guid=${encodeURIComponent(guid)}`),
       );
       const checkBody = (await checkRes.json()) as {
         status: string;

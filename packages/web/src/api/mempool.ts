@@ -1,9 +1,10 @@
+import { apiUrl } from "../lib/apiBase";
 /**
  * Mempool API client — pending txs sorted by effective priority tip
  * (the node's next-block inclusion order).
  */
 
-const API_BASE = "/api/mempool";
+const API_BASE = apiUrl("/api/mempool");
 
 export interface PendingTx {
   hash: string;

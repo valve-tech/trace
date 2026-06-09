@@ -1,3 +1,4 @@
+import { apiUrl } from "../lib/apiBase";
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAddress, encodeFunctionData, type Abi, type AbiFunction } from "viem";
@@ -82,7 +83,7 @@ export default function TransactionBuilder() {
       const weiHex = plsToWei(value);
       if (weiHex) body.value = weiHex;
 
-      const res = await fetch("/api/simulate/fork", {
+      const res = await fetch(apiUrl("/api/simulate/fork"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

@@ -1,3 +1,4 @@
+import { apiUrl } from "../lib/apiBase";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -37,7 +38,7 @@ export default function StorageLayoutViewer() {
   const { data, isLoading } = useQuery({
     queryKey: ["storage-layout", contractAddress.toLowerCase()],
     queryFn: async (): Promise<StorageLayoutResponse> => {
-      const res = await fetch(`/api/source/${contractAddress}/storage-layout`);
+      const res = await fetch(apiUrl(`/api/source/${contractAddress}/storage-layout`));
       return (await res.json()) as StorageLayoutResponse;
     },
     enabled: validAddress,
@@ -76,7 +77,7 @@ export default function StorageLayoutViewer() {
     // Fetch the actual value from the chain
     setLoadingValue(true);
     try {
-      const res = await fetch("/rpc", {
+      const res = await fetch(apiUrl("/rpc"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -296,7 +297,7 @@ export default function StorageLayoutViewer() {
                     onClick={async () => {
                       setLoadingValue(true);
                       try {
-                        const res = await fetch("/rpc", {
+                        const res = await fetch(apiUrl("/rpc"), {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
@@ -380,7 +381,7 @@ function DecompiledLayoutPanel({
     setSlotValue(null);
     setLoadingValue(true);
     try {
-      const res = await fetch("/rpc", {
+      const res = await fetch(apiUrl("/rpc"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

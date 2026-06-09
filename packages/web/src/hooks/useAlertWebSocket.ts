@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { wsUrl } from "../lib/apiBase";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,9 +58,7 @@ export function useAlertWebSocket(): UseAlertWebSocketResult {
   const connect = useCallback(() => {
     if (unmountedRef.current) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${protocol}//${window.location.host}/ws/alerts`;
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(wsUrl("/ws/alerts"));
     wsRef.current = ws;
 
     ws.addEventListener("open", () => {

@@ -1,7 +1,8 @@
+import { apiUrl } from "../lib/apiBase";
 import { formatEther, hexToBigInt, hexToNumber } from "viem";
 import { DEFAULT_CHAIN_ID } from "../lib/chains";
 
-const API_BASE = "/api";
+const API_BASE = apiUrl("/api");
 
 /**
  * Scope a request to a chain via the `?chainid=N` dispatcher param. The default

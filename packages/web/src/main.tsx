@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, HashRouter } from "react-router-dom";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { WagmiProvider } from "wagmi";
@@ -18,12 +18,17 @@ declare module "wagmi" {
   }
 }
 
-// One-time HashRouter → BrowserRouter rewrite. We switched routers to
-// satisfy EIP-3091 (wallets and dApps generate canonical URLs like
-// /tx/0xabc, not /#/tx/0xabc). This keeps existing bookmarks alive: a
-// landing hit at /#/foo gets rewritten to /foo before the router mounts.
-// The check runs before render so React Router never sees the hash form.
-if (window.location.hash.startsWith("#/")) {
+// Dual-build router. The canonical explore.valve.city build uses BrowserRouter
+// for EIP-3091 URLs (/tx/0xabc). The IPFS build uses HashRouter (/#/tx/0xabc)
+// because public gateways don't rewrite paths and relative `base: "./"` is only
+// safe when the document path stays at root. VITE_IPFS picks the build.
+const isIpfsBuild = import.meta.env.VITE_IPFS === "1";
+const Router = isIpfsBuild ? HashRouter : BrowserRouter;
+
+// Canonical build only: one-time HashRouter → BrowserRouter rewrite, so old
+// /#/foo bookmarks from before the EIP-3091 migration still resolve. Skipped
+// on the IPFS build, which deliberately serves hash routes.
+if (!isIpfsBuild && window.location.hash.startsWith("#/")) {
   const newPath = window.location.hash.slice(1) + window.location.search;
   window.history.replaceState(null, "", newPath);
 }
@@ -72,9 +77,9 @@ createRoot(rootEl).render(
       // call tree's source-map and method-name layers across reloads.
       persistOptions={{ persister, maxAge: Infinity, buster: "2026-06-01-staletime-hygiene-sweep" }}
     >
-      <BrowserRouter>
+      <Router>
         <App />
-      </BrowserRouter>
+      </Router>
     </PersistQueryClientProvider>
     </WagmiProvider>
   </StrictMode>,

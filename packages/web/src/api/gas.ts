@@ -1,9 +1,10 @@
+import { apiUrl } from "../lib/apiBase";
 /**
  * Gas oracle API client — priority-fee tier recommendations from the
  * server-side @valve-tech/gas-oracle poller (mempool-influenced).
  */
 
-const API_BASE = "/api/gas";
+const API_BASE = apiUrl("/api/gas");
 
 export type TierName = "slow" | "standard" | "fast" | "instant";
 export type Trend = "rising" | "falling" | "stable";

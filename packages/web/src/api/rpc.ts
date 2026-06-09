@@ -1,9 +1,10 @@
+import { apiUrl } from "../lib/apiBase";
 // ---------------------------------------------------------------------------
 // API client for RPC management endpoints
 // ---------------------------------------------------------------------------
 
-const API_BASE = "/api/rpc";
-const RPC_ENDPOINT = "/rpc";
+const API_BASE = apiUrl("/api/rpc");
+const RPC_ENDPOINT = apiUrl("/rpc");
 
 // ---------------------------------------------------------------------------
 // Types

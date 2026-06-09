@@ -1,10 +1,11 @@
+import { apiUrl } from "../lib/apiBase";
 /**
  * API client for the debugger endpoints.
  */
 
 import type { OpcodeStep as SdkOpcodeStep, RawCallFrame } from "@valve-tech/trace-sdk";
 
-const API_BASE = "/api/debug";
+const API_BASE = apiUrl("/api/debug");
 
 // ---------------------------------------------------------------------------
 // Types (mirroring backend)

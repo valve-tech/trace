@@ -1,3 +1,4 @@
+import { apiUrl } from "../apiBase";
 import { signAuthChallenge } from "@valve-tech/auth-lite";
 import type { WalletClient } from "viem";
 import type { WorkspaceSyncEnvelope } from "./sync.js";
@@ -21,7 +22,7 @@ export interface AuthChallenge {
 }
 
 export async function fetchAuthChallenge(): Promise<AuthChallenge> {
-  const res = await fetch(`/api/auth/nonce`, { credentials: "include" });
+  const res = await fetch(apiUrl(`/api/auth/nonce`), { credentials: "include" });
   const body = (await res.json()) as { ok: boolean; nonce?: string; expiresAt?: number; error?: string };
   if (!res.ok || !body.ok || !body.nonce || !body.expiresAt) {
     throw new SyncTransportError(`auth/nonce failed: ${body.error ?? res.status}`);
@@ -48,7 +49,7 @@ export async function authenticate(
     app: APP_ID,
     nonce,
   });
-  const res = await fetch(`/api/auth/verify`, {
+  const res = await fetch(apiUrl(`/api/auth/verify`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -67,7 +68,7 @@ export async function authenticate(
 }
 
 export async function logout(): Promise<void> {
-  await fetch(`/api/auth/logout`, { method: "POST", credentials: "include" });
+  await fetch(apiUrl(`/api/auth/logout`), { method: "POST", credentials: "include" });
 }
 
 export interface PulledEnvelope extends WorkspaceSyncEnvelope {
@@ -80,7 +81,7 @@ export interface PulledEnvelope extends WorkspaceSyncEnvelope {
  * failure including 401 (caller should re-authenticate before retrying).
  */
 export async function pullSync(): Promise<PulledEnvelope | null> {
-  const res = await fetch(`/api/workspaces/sync`, { credentials: "include" });
+  const res = await fetch(apiUrl(`/api/workspaces/sync`), { credentials: "include" });
   if (res.status === 404) return null;
   if (res.status === 401) throw new SyncUnauthorized();
   const body = (await res.json()) as Partial<PulledEnvelope> & {
@@ -96,7 +97,7 @@ export async function pullSync(): Promise<PulledEnvelope | null> {
 }
 
 export async function pushSync(envelope: WorkspaceSyncEnvelope): Promise<{ serverUpdatedAt: number }> {
-  const res = await fetch(`/api/workspaces/sync`, {
+  const res = await fetch(apiUrl(`/api/workspaces/sync`), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

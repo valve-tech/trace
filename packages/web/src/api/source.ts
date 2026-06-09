@@ -1,4 +1,5 @@
-const API_BASE = "/api/source";
+import { apiUrl } from "../lib/apiBase";
+const API_BASE = apiUrl("/api/source");
 
 // ---------------------------------------------------------------------------
 // Types

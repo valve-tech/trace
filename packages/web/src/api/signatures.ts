@@ -1,4 +1,5 @@
-const API_BASE = "/api/signatures";
+import { apiUrl } from "../lib/apiBase";
+const API_BASE = apiUrl("/api/signatures");
 
 export interface SignatureMatch {
   selector: string;
