@@ -1,0 +1,40 @@
+import { type Chain } from "viem";
+
+/**
+ * Per-chain configuration. The valve launch set lives in `defaults.ts`; a
+ * self-hoster can replace it entirely via `CHAINS_JSON` / `CHAINS_CONFIG_PATH`
+ * (see `loadConfig.ts`). `registry.ts` is the public face — import the type and
+ * the lookups from there.
+ */
+export interface ChainConfig {
+  chainId: number;
+  name: string;
+  shortName: string;
+  nativeSymbol: string;
+  nativeDecimals: 18;
+
+  /** TrueBlocks daemon chain slug — passed as `chain=` to the SDK. */
+  chifraChain: string;
+
+  rpcUrl: string;
+  /** debug_traceTransaction-capable node, when distinct from rpcUrl. */
+  debugRpcUrl?: string;
+  /** Public Reth snapshot, when one exists for this chain. */
+  rethSnapshotUrl?: string;
+  /**
+   * Substreams (firehose) gRPC endpoint. The planned long-term data layer for
+   * holdings + XYK prices. Optional — a self-hoster without substreams omits it.
+   */
+  substreamsEndpoint?: string;
+
+  /** Blockscout API base; omitted when we don't run/point at one. */
+  blockscoutBase?: string;
+  sourcifyEnabled: boolean;
+
+  viemChain: Chain;
+
+  /** URL path prefix once chainid routing lands on the web side. */
+  explorerSlug: string;
+  defaultBlockTimeSeconds: number;
+  testnet: boolean;
+}
