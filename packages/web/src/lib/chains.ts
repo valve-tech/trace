@@ -7,9 +7,9 @@
  * stats labels). When the backend dispatcher lands `?chainid=N` routing,
  * `chainSlug` flows into the API client and individual route paths.
  *
- * Chain logos come from gib.show — a CAIP-2 keyed chain-data service
- * (https://gib.show/eip155:<id>). One source of truth so a new chain
- * needs only an entry here plus a backend handler.
+ * Chain logos come from gib.show (https://gib.show/image/<chainId> — the
+ * same service TokenImage uses for token art). One source of truth so a
+ * new chain needs only an entry here plus a backend handler.
  */
 
 export interface ChainInfo {
@@ -43,12 +43,12 @@ export function chainById(id: number): ChainInfo | undefined {
 }
 
 /**
- * Logo URL for a chain via gib.show. The service serves CAIP-2 keyed
- * chain logos (`eip155:<chainId>`); we wrap that here so call sites
- * don't need to know the URL scheme.
+ * Logo URL for a chain via gib.show. The service serves chain logos at
+ * `/image/<chainId>` (and token art at `/image/<chainId>/<address>`); we
+ * wrap that here so call sites don't need to know the URL scheme.
  */
 export function chainLogoUrl(chainId: number): string {
-  return `https://gib.show/eip155:${chainId}`;
+  return `https://gib.show/image/${chainId}`;
 }
 
 /**

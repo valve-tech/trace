@@ -59,15 +59,15 @@ describe("chainById", () => {
 });
 
 describe("chainLogoUrl", () => {
-  it("returns a gib.show URL with the CAIP-2 eip155 prefix", () => {
-    expect(chainLogoUrl(1)).toBe("https://gib.show/eip155:1");
-    expect(chainLogoUrl(369)).toBe("https://gib.show/eip155:369");
+  it("returns the gib.show /image/<chainId> URL", () => {
+    expect(chainLogoUrl(1)).toBe("https://gib.show/image/1");
+    expect(chainLogoUrl(369)).toBe("https://gib.show/image/369");
   });
 
   it("does not validate that the chain id is registered (lookup-free)", () => {
     // The helper is a URL builder, not a validator — gib.show may
     // serve future chain ids we don't yet have an entry for.
-    expect(chainLogoUrl(8453)).toBe("https://gib.show/eip155:8453");
+    expect(chainLogoUrl(8453)).toBe("https://gib.show/image/8453");
   });
 });
 
