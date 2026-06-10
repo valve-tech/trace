@@ -70,6 +70,14 @@ export interface DesktopNotifyInput {
   body: string;
   /** Coalescing tag — re-firing the same id replaces rather than stacks. */
   tag?: string;
+  /**
+   * App-specific click action (e.g. route to the match's tx). Wired to the
+   * notification's `onclick`; the platform-universal part — focusing the tab and
+   * dismissing the toast — is handled here, so the caller's callback only has to
+   * navigate. Built in React (where `useNavigate` lives) so it routes correctly
+   * under both the BrowserRouter and HashRouter builds.
+   */
+  onClick?: () => void;
 }
 
 /**
@@ -77,13 +85,32 @@ export interface DesktopNotifyInput {
  * callers (and tests) can assert the gate without inspecting the platform. The
  * `new Notification` is the lone untestable line — every decision leading to it
  * lives in `shouldShowDesktop`.
+ *
+ * When `onClick` is supplied it's wrapped so a click first focuses this tab
+ * (the whole point of a desktop notification is reaching a backgrounded one),
+ * then runs the caller's navigation, then dismisses the notification.
  */
 export function showDesktopNotification(input: DesktopNotifyInput): boolean {
   if (!shouldShowDesktop(isDesktopNotifyEnabled(), notificationPermission())) {
     return false;
   }
   try {
-    void new Notification(input.title, { body: input.body, tag: input.tag });
+    const notification = new Notification(input.title, {
+      body: input.body,
+      tag: input.tag,
+    });
+    if (input.onClick) {
+      const onClick = input.onClick;
+      notification.onclick = () => {
+        try {
+          window.focus();
+        } catch {
+          // jsdom/headless contexts may not implement focus — ignore.
+        }
+        onClick();
+        notification.close();
+      };
+    }
     return true;
   } catch {
     return false;

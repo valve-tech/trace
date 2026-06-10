@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useWatchEngine } from "../../hooks/useWatchEngine";
 import AlertToast from "../AlertToast";
 import { showDesktopNotification } from "../../lib/watcher/desktopNotify";
+import { deepLinkForMatch } from "../../lib/watcher/deepLink";
 import { renderWatchSummary } from "../../lib/watcher/summary";
 import type { WatchMatch } from "../../lib/watcher/types";
 
@@ -21,6 +23,7 @@ import type { WatchMatch } from "../../lib/watcher/types";
  */
 export default function WatchNotifications() {
   const { latest } = useWatchEngine();
+  const navigate = useNavigate();
   const [toast, setToast] = useState<WatchMatch | null>(null);
   const seenRef = useRef<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,8 +41,12 @@ export default function WatchNotifications() {
       title: latest.label,
       body: renderWatchSummary(latest),
       tag: latest.id,
+      // Click the OS notification → focus this tab and route to the match.
+      // `navigate` (not window.location) keeps it correct under both the
+      // path-based and hash-based router builds.
+      onClick: () => navigate(deepLinkForMatch(latest)),
     });
-  }, [latest]);
+  }, [latest, navigate]);
 
   useEffect(
     () => () => {

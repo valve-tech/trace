@@ -26,6 +26,9 @@ class FakeNotification {
     async (): Promise<NotificationPermission> => FakeNotification.permission,
   );
   static instances: FakeNotification[] = [];
+  /** Settable by the SUT; invoked by tests to simulate a user click. */
+  onclick: (() => void) | null = null;
+  close = vi.fn();
   constructor(
     public title: string,
     public opts?: NotificationOptions,
@@ -133,5 +136,53 @@ describe("watcher/desktopNotify — showDesktopNotification", () => {
 
     expect(showDesktopNotification({ title: "x", body: "y" })).toBe(false);
     expect(FakeNotification.instances).toHaveLength(0);
+  });
+
+  it("wires onClick to focus the tab, run the action, then dismiss", () => {
+    NOTIF.Notification = FakeNotification;
+    FakeNotification.permission = "granted";
+    setDesktopNotifyEnabled(true);
+    const focus = vi.spyOn(window, "focus").mockImplementation(() => {});
+    const onClick = vi.fn();
+
+    showDesktopNotification({ title: "x", body: "y", onClick });
+
+    const instance = FakeNotification.instances[0]!;
+    expect(instance.onclick).toBeTypeOf("function");
+    expect(onClick).not.toHaveBeenCalled(); // not until clicked
+
+    instance.onclick!();
+    expect(focus).toHaveBeenCalledOnce();
+    expect(onClick).toHaveBeenCalledOnce();
+    expect(instance.close).toHaveBeenCalledOnce();
+    focus.mockRestore();
+  });
+
+  it("leaves onclick unset when no onClick is supplied", () => {
+    NOTIF.Notification = FakeNotification;
+    FakeNotification.permission = "granted";
+    setDesktopNotifyEnabled(true);
+
+    showDesktopNotification({ title: "x", body: "y" });
+    expect(FakeNotification.instances[0]!.onclick).toBeNull();
+  });
+
+  it("still focuses + dismisses when window.focus throws", () => {
+    NOTIF.Notification = FakeNotification;
+    FakeNotification.permission = "granted";
+    setDesktopNotifyEnabled(true);
+    const focus = vi.spyOn(window, "focus").mockImplementation(() => {
+      throw new Error("no focus in this context");
+    });
+    const onClick = vi.fn();
+
+    showDesktopNotification({ title: "x", body: "y", onClick });
+    const instance = FakeNotification.instances[0]!;
+    instance.onclick!();
+
+    // focus threw, but the swallow keeps navigation + dismiss on track.
+    expect(onClick).toHaveBeenCalledOnce();
+    expect(instance.close).toHaveBeenCalledOnce();
+    focus.mockRestore();
   });
 });
