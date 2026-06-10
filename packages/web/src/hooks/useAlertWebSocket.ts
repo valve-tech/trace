@@ -9,6 +9,8 @@ export interface AlertEventAlert {
   id: number;
   name: string;
   type: string;
+  /** Chain the alert fired on. Optional: older servers omit it. */
+  chainId?: number;
 }
 
 export interface AlertEventMatch {

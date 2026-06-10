@@ -2,6 +2,7 @@ import { useState } from "react";
 import { isAddress } from "viem";
 import { parseAmountToBase } from "../lib/format/tokenAmount";
 import { simulateBundle } from "../api/simulate";
+import { useActiveChainId } from "../lib/activeChain";
 import type { BundleTxEntry, SimulationResult } from "../types";
 import { createEmptyTx } from "./BundleSimulator/helpers";
 import { TxCard } from "./BundleSimulator/TxCard";
@@ -19,6 +20,7 @@ function toWeiHex(plsValue: string): string | undefined {
 }
 
 export default function BundleSimulator() {
+  const chainId = useActiveChainId();
   const [transactions, setTransactions] = useState<BundleTxEntry[]>([
     createEmptyTx(),
   ]);
@@ -61,7 +63,10 @@ export default function BundleSimulator() {
         gasLimit: t.gasLimit ? parseInt(t.gasLimit, 10) : undefined,
       }));
 
-      const bundleResult = await simulateBundle({ transactions: txRequests });
+      const bundleResult = await simulateBundle(
+        { transactions: txRequests },
+        chainId,
+      );
       setResults(bundleResult.results);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");

@@ -1,4 +1,6 @@
 import { apiUrl } from "../lib/apiBase";
+import { DEFAULT_CHAIN_ID } from "../lib/chains";
+import { scoped } from "./chainScope";
 import type {
   SimulationRequest,
   SimulationResult,
@@ -31,8 +33,14 @@ function buildStateOverridesPayload(
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
+/**
+ * Simulate a single transaction on `chainId` (threaded as the `?chainid=N`
+ * dispatcher param; the default chain omits it, matching the backend's 369
+ * fallback).
+ */
 export async function simulateTransaction(
   req: SimulationRequest,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<SimulationResult> {
   const payload: Record<string, unknown> = {
     from: req.from,
@@ -50,7 +58,7 @@ export async function simulateTransaction(
   }
   if (req.abi) payload.abi = req.abi;
 
-  const response = await fetch(`${API_BASE}/simulate`, {
+  const response = await fetch(scoped(`${API_BASE}/simulate`, chainId), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -75,8 +83,10 @@ export async function simulateTransaction(
   return json.result;
 }
 
+/** Simulate an ordered bundle on `chainId` (same scoping as simulateTransaction). */
 export async function simulateBundle(
   req: BundleSimulationRequest,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<BundleSimulationResult> {
   const payload = {
     transactions: req.transactions.map((tx) => {
@@ -98,7 +108,7 @@ export async function simulateBundle(
     }),
   };
 
-  const response = await fetch(`${API_BASE}/simulate-bundle`, {
+  const response = await fetch(scoped(`${API_BASE}/simulate-bundle`, chainId), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

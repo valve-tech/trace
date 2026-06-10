@@ -22,7 +22,7 @@ function workspace(items: { kind: "address" | "tx" | "block"; value: string }[])
     name: "bags",
     createdAt: 1,
     updatedAt: 1,
-    items: items.map((it, i) => ({ id: `i${i}`, kind: it.kind, value: it.value, addedAt: 1 })),
+    items: items.map((it, i) => ({ id: `i${i}`, kind: it.kind, value: it.value, chainId: 369, addedAt: 1 })),
   };
 }
 

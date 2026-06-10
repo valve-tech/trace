@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { forkManager } from "../services/forkManager.js";
 import { parseEther } from "viem";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
+import { resolveChainIdParam } from "../lib/chainParam.js";
 import {
   createForkSchema,
   revertSchema,
@@ -26,8 +27,12 @@ function paramStr(val: string | string[] | undefined): string {
 router.post(
   "/",
   asyncRoute(async (req: Request, res: Response) => {
-    const { blockNumber, label } = createForkSchema.parse(req.body);
-    const fork = await forkManager.createFork({ blockNumber, label });
+    const { blockNumber, label, chainid } = createForkSchema.parse(req.body);
+    // Strict chainid resolution (400 on unsupported), query/body — query
+    // wins. Passed explicitly so the fork target never depends on the
+    // middleware's silent default.
+    const chainId = resolveChainIdParam(req.query.chainid ?? chainid);
+    const fork = await forkManager.createFork({ blockNumber, label, chainId });
 
     respond.ok(res, {
       fork: {

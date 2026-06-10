@@ -6,10 +6,13 @@ const addressSchema = z
 
 const positiveInt = z.number().int().positive();
 
-/** POST /api/testnets — Create a fork. */
+/** POST /api/testnets — Create a fork. `chainid` picks the fork's upstream
+ *  chain; the route resolves the default (369) + rejects unsupported ids
+ *  via `resolveChainIdParam`. */
 export const createForkSchema = z.object({
   blockNumber: z.number().int().nonnegative().optional(),
   label: z.string().min(1).max(120).optional(),
+  chainid: z.coerce.number().int().positive().optional(),
 });
 
 /** POST /api/testnets/:id/revert */

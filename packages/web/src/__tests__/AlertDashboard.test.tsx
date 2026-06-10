@@ -57,6 +57,7 @@ function alert(id: number, overrides: Partial<Alert> = {}): Alert {
     id,
     name: `alert-${id}`,
     type: "address_activity",
+    chainid: 369,
     conditions: {},
     notifications: [{ type: "webhook", url: "https://example.com/hook" }],
     enabled: true,

@@ -4,8 +4,9 @@
  *
  *   - types.ts         BlockTransaction + AlertConditions
  *   - matchers.ts      five per-alert-type matcher functions (pure-ish)
- *   - processBlock.ts  fetch block + logs, walk alerts, dispatch matches
- *   - lifecycle.ts     start/stop/pollBlocks (3s poller)
+ *   - processBlock.ts  fetch block + logs, walk a chain's alerts, dispatch
+ *   - lifecycle.ts     start/stop + per-chain watchers (3s poller covering
+ *                      every registered chain)
  *
  * Consumers continue to import `startMonitor` from `./services/monitor.js`.
  */
@@ -13,6 +14,7 @@
 export {
   startMonitor,
   stopMonitor,
-  pollBlocks,
+  pollAllChains,
+  pollChain,
 } from "./monitor/lifecycle.js";
 export { processBlock } from "./monitor/processBlock.js";

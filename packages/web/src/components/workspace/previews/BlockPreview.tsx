@@ -1,14 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchBlock } from "../../../api/explorer";
-import { useActiveChainId } from "../../../lib/activeChain";
 import { PreviewShell, shortHex, ago } from "./PreviewShell";
 
 /**
  * Compact summary of a block. Confirmed blocks are immutable; `staleTime:
- * Infinity` is safe.
+ * Infinity` is safe. `chainId` is the item's pinned chain (see AddressPreview).
  */
-export function BlockPreview({ numberOrHash }: { numberOrHash: string }) {
-  const chainId = useActiveChainId();
+export function BlockPreview({
+  numberOrHash,
+  chainId,
+}: {
+  numberOrHash: string;
+  chainId: number;
+}) {
   const query = useQuery({
     queryKey: ["workspace-preview-block", chainId, numberOrHash.toLowerCase()],
     queryFn: () => fetchBlock(numberOrHash, chainId),

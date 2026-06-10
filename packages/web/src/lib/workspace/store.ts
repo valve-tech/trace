@@ -1,4 +1,5 @@
 import { get, set } from "idb-keyval";
+import { DEFAULT_CHAIN_ID } from "../chains.js";
 import {
   EMPTY_STORE,
   type Workspace,
@@ -25,7 +26,25 @@ const IDB_KEY = "valvetech-workspaces";
 export async function loadStore(): Promise<WorkspaceStore> {
   const raw = await get<WorkspaceStore>(IDB_KEY);
   if (!raw || raw.schemaVersion !== 1) return EMPTY_STORE;
-  return raw;
+  return normalizeStore(raw);
+}
+
+/**
+ * Backfill items persisted before chain pinning landed: every item now
+ * carries a `chainId`, and anything stored without one predates multichain —
+ * i.e. it was a PulseChain (369) item by definition. Pure, exported for tests.
+ */
+export function normalizeStore(s: WorkspaceStore): WorkspaceStore {
+  return {
+    ...s,
+    workspaces: s.workspaces.map((ws) => ({
+      ...ws,
+      items: ws.items.map((it) => ({
+        ...it,
+        chainId: it.chainId ?? DEFAULT_CHAIN_ID,
+      })),
+    })),
+  };
 }
 
 export async function saveStore(s: WorkspaceStore): Promise<void> {
@@ -72,6 +91,7 @@ export function createWorkspace(name: string, description?: string): Workspace {
 interface NewItemInput {
   kind: WorkspaceItemKind;
   value: string;
+  /** Chain to pin the item to. Defaults to 369 (PulseChain) when omitted. */
   chainId?: number;
   label?: string;
 }
@@ -85,18 +105,17 @@ interface NewItemInput {
  */
 export function addItem(ws: Workspace, input: NewItemInput): Workspace {
   const value = normalizeItemValue(input.kind, input.value);
+  const chainId = input.chainId ?? DEFAULT_CHAIN_ID;
   const dup = ws.items.find(
     (it) =>
-      it.kind === input.kind &&
-      it.value === value &&
-      it.chainId === input.chainId,
+      it.kind === input.kind && it.value === value && it.chainId === chainId,
   );
   if (dup) return ws;
   const item: WorkspaceItem = {
     id: genId(),
     kind: input.kind,
     value,
-    chainId: input.chainId,
+    chainId,
     label: input.label?.trim() || undefined,
     addedAt: Date.now(),
   };

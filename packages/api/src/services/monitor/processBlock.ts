@@ -1,5 +1,6 @@
 import { type Log, formatEther } from "viem";
-import { publicClient } from "../rpc.js";
+import { DEFAULT_CHAIN_ID } from "../chains/registry.js";
+import { getRpcClient } from "../chains/clients.js";
 import {
   getEnabledAlerts,
   recordAlertTrigger,
@@ -20,22 +21,34 @@ import {
 /**
  * Per-alert cooldown tracking. Keyed by alert.id → epoch ms of the last
  * trigger. Module-level state so it survives across polls (which is what
- * lets `cooldown_seconds` actually do its job).
+ * lets `cooldown_seconds` actually do its job). An alert belongs to a
+ * single chain, so the key needs no chain dimension.
  */
 const cooldownMap = new Map<number, number>();
 
 /**
- * Fetch a block + its logs, normalize the transactions, and run every
- * enabled alert against the data. Block data also flows into the action
- * scheduler so block/event-triggered actions can fire from the same
- * fetched data — no duplicate RPC calls.
+ * Fetch a block + its logs from `chainId`'s RPC, normalize the
+ * transactions, and run every enabled alert FOR THAT CHAIN against the
+ * data. On the default chain the block also flows into the action
+ * scheduler so block/event-triggered actions fire from the same fetched
+ * data — actions are not chain-scoped (yet), so they keep their legacy
+ * single-chain (369) feed rather than firing once per chain.
+ *
+ * The zero-alerts early return (no block fetch at all) is preserved from
+ * the single-chain era — chains nobody is watching cost no RPC calls.
  */
-export async function processBlock(blockNumber: bigint): Promise<void> {
-  const alerts = await getEnabledAlerts();
+export async function processBlock(
+  blockNumber: bigint,
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<void> {
+  const alerts = await getEnabledAlerts(chainId);
   if (alerts.length === 0) return;
 
+  const feedActions = chainId === DEFAULT_CHAIN_ID;
+  const client = getRpcClient(chainId);
+
   try {
-    const block = await publicClient.getBlock({
+    const block = await client.getBlock({
       blockNumber,
       includeTransactions: true,
     });
@@ -58,36 +71,41 @@ export async function processBlock(blockNumber: bigint): Promise<void> {
 
     let logs: Log[] = [];
     try {
-      logs = await publicClient.getLogs({
+      logs = await client.getLogs({
         fromBlock: blockNumber,
         toBlock: blockNumber,
       });
     } catch (err) {
       console.warn(
-        `[monitor] failed to fetch logs for block ${blockNumber}:`,
+        `[monitor] chain ${chainId}: failed to fetch logs for block ${blockNumber}:`,
         err,
       );
     }
 
-    await matchAlerts(alerts, txs, logs, blockNumber);
+    await matchAlerts(alerts, txs, logs, blockNumber, chainId);
 
-    // Feed normalized block data to the action scheduler.
-    const actionTxs = txs.map((tx) => ({
-      hash: tx.hash,
-      from: tx.from,
-      to: tx.to,
-      value: formatEther(tx.value),
-      input: tx.input,
-    }));
-    const actionLogs = logs.map((l) => ({
-      address: l.address,
-      topics: [...l.topics] as string[],
-      data: l.data,
-      transactionHash: l.transactionHash ?? null,
-    }));
-    await processActionsBlock(Number(blockNumber), actionTxs, actionLogs);
+    if (feedActions) {
+      // Feed normalized block data to the action scheduler.
+      const actionTxs = txs.map((tx) => ({
+        hash: tx.hash,
+        from: tx.from,
+        to: tx.to,
+        value: formatEther(tx.value),
+        input: tx.input,
+      }));
+      const actionLogs = logs.map((l) => ({
+        address: l.address,
+        topics: [...l.topics] as string[],
+        data: l.data,
+        transactionHash: l.transactionHash ?? null,
+      }));
+      await processActionsBlock(Number(blockNumber), actionTxs, actionLogs);
+    }
   } catch (err) {
-    console.error(`[monitor] error processing block ${blockNumber}:`, err);
+    console.error(
+      `[monitor] chain ${chainId}: error processing block ${blockNumber}:`,
+      err,
+    );
   }
 }
 
@@ -101,7 +119,10 @@ async function matchAlerts(
   txs: BlockTransaction[],
   logs: Log[],
   blockNumber: bigint,
+  chainId: number,
 ): Promise<void> {
+  const client = getRpcClient(chainId);
+
   for (const alert of alerts) {
     const lastTrigger = cooldownMap.get(alert.id);
     if (
@@ -127,10 +148,15 @@ async function matchAlerts(
           matchData = matchFunctionCall(conditions, txs, blockNumber);
           break;
         case "balance_threshold":
-          matchData = await matchBalanceThreshold(conditions, blockNumber);
+          matchData = await matchBalanceThreshold(
+            conditions,
+            blockNumber,
+            client,
+            chainId,
+          );
           break;
         case "failed_tx":
-          matchData = await matchFailedTx(conditions, txs, blockNumber);
+          matchData = await matchFailedTx(conditions, txs, blockNumber, client);
           break;
       }
     } catch (err) {
@@ -152,7 +178,12 @@ async function matchAlerts(
         );
       });
       broadcast("alert_triggered", {
-        alert: { id: alert.id, name: alert.name, type: alert.type },
+        alert: {
+          id: alert.id,
+          name: alert.name,
+          type: alert.type,
+          chainId: alert.chain_id,
+        },
         match: matchData,
       });
     }

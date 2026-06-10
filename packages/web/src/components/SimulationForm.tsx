@@ -4,6 +4,7 @@ import { parseAmountToBase } from "../lib/format/tokenAmount";
 import StateOverrides from "./StateOverrides";
 import AbiInput from "./AbiInput";
 import { simulateTransaction } from "../api/simulate";
+import { useActiveChainId } from "../lib/activeChain";
 import type { SimulationResult, StateOverride } from "../types";
 
 interface SimulationFormProps {
@@ -17,6 +18,7 @@ export default function SimulationForm({
   onLoading,
   onError,
 }: SimulationFormProps) {
+  const chainId = useActiveChainId();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [value, setValue] = useState("");
@@ -47,16 +49,19 @@ export default function SimulationForm({
         weiValue = "0x" + weiBigInt.toString(16);
       }
 
-      const result = await simulateTransaction({
-        from,
-        to,
-        value: weiValue,
-        data: calldata || undefined,
-        gasLimit: gasLimit ? parseInt(gasLimit, 10) : undefined,
-        blockNumber: blockNumber || "latest",
-        stateOverrides: stateOverrides.length > 0 ? stateOverrides : undefined,
-        abi: abi && abi !== "__auto_fetch__" ? abi : abi === "__auto_fetch__" ? "__auto_fetch__" : undefined,
-      });
+      const result = await simulateTransaction(
+        {
+          from,
+          to,
+          value: weiValue,
+          data: calldata || undefined,
+          gasLimit: gasLimit ? parseInt(gasLimit, 10) : undefined,
+          blockNumber: blockNumber || "latest",
+          stateOverrides: stateOverrides.length > 0 ? stateOverrides : undefined,
+          abi: abi && abi !== "__auto_fetch__" ? abi : abi === "__auto_fetch__" ? "__auto_fetch__" : undefined,
+        },
+        chainId,
+      );
 
       onResult(result);
     } catch (err) {

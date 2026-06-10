@@ -8,6 +8,7 @@ import {
   type NotificationChannel,
   type CreateAlertPayload,
 } from "../../api/alerts";
+import { useActiveChainId } from "../../lib/activeChain";
 import { BasicInfoCard } from "./AlertBuilder/BasicInfoCard";
 import { ConditionsCard } from "./AlertBuilder/ConditionsCard";
 import { NotificationChannelsCard } from "./AlertBuilder/NotificationChannelsCard";
@@ -39,6 +40,9 @@ export default function AlertBuilder({
   const [enabled, setEnabled] = useState(alert?.enabled ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // New alerts pin to the route's active chain; edits keep the alert's
+  // existing chain (updateAlert sends no chainid, the backend preserves it).
+  const activeChainId = useActiveChainId();
 
   const isEdit = !!alert;
 
@@ -62,7 +66,7 @@ export default function AlertBuilder({
       if (isEdit && alert) {
         await updateAlert(alert.id, payload);
       } else {
-        await createAlert(payload);
+        await createAlert(payload, activeChainId);
       }
       onSaved();
     } catch (err) {

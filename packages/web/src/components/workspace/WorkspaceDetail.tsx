@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useWorkspaces } from "../../hooks/useWorkspaces";
+import { useActiveChainId } from "../../lib/activeChain";
+import { DEFAULT_CHAIN_ID } from "../../lib/chains";
 import type { Workspace, WorkspaceItem } from "../../lib/workspace/types";
 import { scanPath } from "../../lib/scanRoutes";
 import { WorkspaceItemRow } from "./WorkspaceItemRow";
@@ -19,6 +21,7 @@ import { WatchRulesPanel } from "./watcher/WatchRulesPanel";
 export default function WorkspaceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const activeChainId = useActiveChainId();
   const { workspaces, isLoading, addToWorkspace, removeFromWorkspace, rename, remove } = useWorkspaces();
   const workspace = useMemo(
     () => workspaces.find((w) => w.id === id) ?? null,
@@ -64,11 +67,14 @@ export default function WorkspaceDetail() {
             // store helpers are pure and the write is a single idb-keyval
             // setItem on a small blob — so even 100 items completes in well
             // under a second.
+            // Bulk-pasted items pin to the route's active chain — the
+            // paste has no chain information of its own.
             for (const it of items) {
               await addToWorkspace.mutateAsync({
                 id: workspace.id,
                 kind: it.kind,
                 value: it.value,
+                chainId: activeChainId,
               });
             }
           }}
@@ -234,10 +240,21 @@ function Items({
   );
 }
 
+/**
+ * Canonical route for an item, scoped to its pinned chain via the
+ * `?chainid=N` URL param the entity views read (lib/activeChain.ts). The
+ * default chain omits the param so those links stay byte-identical to the
+ * single-chain era.
+ */
 function canonicalFor(item: WorkspaceItem): string {
-  if (item.kind === "tx") return scanPath("tx", item.value);
-  if (item.kind === "block") return scanPath("block", item.value);
-  return scanPath("address", item.value);
+  const path =
+    item.kind === "tx"
+      ? scanPath("tx", item.value)
+      : item.kind === "block"
+        ? scanPath("block", item.value)
+        : scanPath("address", item.value);
+  if (item.chainId === DEFAULT_CHAIN_ID) return path;
+  return `${path}?chainid=${item.chainId}`;
 }
 
 function NotFound() {

@@ -11,6 +11,7 @@ export function formatAlertRow(row: AlertRow | undefined) {
     id: row.id,
     name: row.name,
     type: row.type,
+    chainid: row.chain_id,
     conditions: row.conditions,
     notifications: row.notifications,
     enabled: row.enabled,

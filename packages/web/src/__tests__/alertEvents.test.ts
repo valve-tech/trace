@@ -31,6 +31,7 @@ function alert(id: number, overrides: Partial<Alert> = {}): Alert {
     id,
     name: `alert-${id}`,
     type: "address_activity",
+    chainid: 369,
     conditions: {},
     notifications: [],
     enabled: true,

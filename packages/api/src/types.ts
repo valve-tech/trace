@@ -21,6 +21,13 @@ const stateOverrideSchema = z.object({
   stateDiff: z.record(z.string(), hexStringSchema).optional(),
 });
 
+/**
+ * Target chain for a simulation. Optional — the route resolves the default
+ * (369) and rejects unsupported ids via `resolveChainIdParam`
+ * (lib/chainParam.ts), keeping registry knowledge out of the schema.
+ */
+const chainIdFieldSchema = z.coerce.number().int().positive().optional();
+
 /** A single simulation transaction request. */
 export const simulateRequestSchema = z.object({
   from: addressSchema.optional(),
@@ -30,6 +37,7 @@ export const simulateRequestSchema = z.object({
   gas: hexStringSchema.optional(),
   gasPrice: hexStringSchema.optional(),
   blockNumber: z.union([hexStringSchema, z.number().int().nonnegative()]).optional(),
+  chainid: chainIdFieldSchema,
   stateOverrides: z.record(addressSchema, stateOverrideSchema).optional(),
   /** Optional ABI for decoding. Accepts any valid JSON ABI array. */
   abi: z.any().optional(),
@@ -39,6 +47,7 @@ export const simulateRequestSchema = z.object({
 export const simulateBundleRequestSchema = z.object({
   transactions: z.array(simulateRequestSchema).min(1).max(50),
   blockNumber: z.union([hexStringSchema, z.number().int().nonnegative()]).optional(),
+  chainid: chainIdFieldSchema,
 });
 
 // ---------------------------------------------------------------------------
