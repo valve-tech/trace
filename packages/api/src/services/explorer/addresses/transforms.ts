@@ -2,30 +2,14 @@ import { formatEther, formatUnits } from "viem";
 
 /**
  * Pure transforms for the address-explorer service. Each function maps
- * one raw row (Blockscout txlist / tokenlist) or one viem getTransaction
- * result into the shape the addresses.ts caller wants to return.
+ * hydrated RPC data (viem getTransaction / getTransactionReceipt /
+ * balanceOf reads over chifra-listed appearances) into the shape the
+ * addresses.ts caller returns.
  *
  * Extracted so the defensive fallbacks (missing fields, malformed
- * BigInt input, getTransaction failure) are testable without mocking
- * external clients — the parent fetcher is just a thin shell around
- * these.
+ * BigInt input, failed reads) are testable without mocking external
+ * clients — the parent fetcher is just a thin shell around these.
  */
-
-export interface BlockscoutTxListRow {
-  hash: string;
-  blockNumber: string;
-  timeStamp: string;
-  from: string;
-  to: string;
-  value: string;
-  gas: string;
-  gasUsed: string;
-  gasPrice: string;
-  isError: string;
-  functionName: string;
-  methodId: string;
-  input: string;
-}
 
 export interface AddressTransactionBase {
   hash: string;
@@ -44,39 +28,47 @@ export interface AddressTransactionBase {
   input: string;
 }
 
-/**
- * Map a Blockscout txlist row into the API's base transaction shape.
- * Missing/empty `value` is treated as zero wei (Blockscout sometimes
- * sends empty strings on internal failures), and `functionName` /
- * `methodId` default to empty strings so consumers can safely
- * concatenate.
- */
-export function mapTxListRow(row: BlockscoutTxListRow): AddressTransactionBase {
-  return {
-    hash: row.hash,
-    blockNumber: row.blockNumber,
-    timeStamp: row.timeStamp,
-    from: row.from,
-    to: row.to,
-    value: row.value,
-    valuePLS: formatEther(BigInt(row.value || "0")),
-    gas: row.gas,
-    gasUsed: row.gasUsed,
-    gasPrice: row.gasPrice,
-    isError: row.isError,
-    functionName: row.functionName || "",
-    methodId: row.methodId || "",
-    input: row.input,
-  };
+/** The viem fields buildAddressTransaction reads (subset of Transaction). */
+export interface HydratedTx {
+  hash: string;
+  blockNumber: bigint | null;
+  from: string;
+  to: string | null;
+  value: bigint;
+  gas: bigint;
+  gasPrice?: bigint;
+  input: string;
 }
 
-export interface BlockscoutTokenRow {
-  balance: string;
-  contractAddress: string;
-  name: string;
-  symbol: string;
-  decimals: string;
-  type: string;
+/**
+ * Build the wire row from a hydrated tx + its receipt + the block
+ * timestamp. `functionName` comes from a best-effort selector lookup the
+ * caller performs in batch; missing pieces default to empty/zero so the
+ * row always renders.
+ */
+export function buildAddressTransaction(
+  tx: HydratedTx,
+  receipt: { gasUsed: bigint; status: string } | null,
+  timestamp: number | null,
+  functionName: string = "",
+): AddressTransactionBase {
+  const methodId = tx.input && tx.input.length >= 10 ? tx.input.slice(0, 10) : "";
+  return {
+    hash: tx.hash,
+    blockNumber: tx.blockNumber != null ? tx.blockNumber.toString() : "",
+    timeStamp: timestamp != null ? String(timestamp) : "",
+    from: tx.from,
+    to: tx.to ?? "",
+    value: tx.value.toString(),
+    valuePLS: formatEther(tx.value),
+    gas: tx.gas.toString(),
+    gasUsed: receipt ? receipt.gasUsed.toString() : "",
+    gasPrice: tx.gasPrice != null ? tx.gasPrice.toString() : "0",
+    isError: receipt ? (receipt.status === "success" ? "0" : "1") : "0",
+    functionName,
+    methodId,
+    input: tx.input,
+  };
 }
 
 export interface AddressTokenView {
@@ -90,27 +82,35 @@ export interface AddressTokenView {
 }
 
 /**
- * Map a Blockscout tokenlist row into the API's token-view shape.
- * Missing/malformed `balance` or `decimals` falls back to the raw
- * balance string (formatUnits would throw on garbage input). `type`
- * defaults to "ERC-20" when Blockscout omits it.
+ * Build the token-view row from a balanceOf read + metadata reads.
+ * Missing/malformed `decimals` falls back to the raw balance string
+ * (formatUnits would throw on garbage input). A token whose decimals
+ * read failed is presumed non-fungible-ish and typed "ERC-721"; the
+ * common case types "ERC-20".
  */
-export function mapTokenRow(row: BlockscoutTokenRow): AddressTokenView {
-  const decimals = parseInt(row.decimals || "18", 10);
-  let formattedBalance = row.balance;
-  try {
-    formattedBalance = formatUnits(BigInt(row.balance || "0"), decimals);
-  } catch {
-    // Keep the raw balance string — better than throwing.
+export function buildAddressToken(
+  contractAddress: string,
+  balance: bigint,
+  meta: { name: string; symbol: string; decimals: string | null },
+): AddressTokenView {
+  const rawBalance = balance.toString();
+  let formattedBalance = rawBalance;
+  if (meta.decimals !== null) {
+    // Validate before formatUnits: it doesn't throw on NaN, it silently
+    // misformats — keep the raw string for garbage decimals instead.
+    const decimals = parseInt(meta.decimals, 10);
+    if (Number.isInteger(decimals) && decimals >= 0 && decimals <= 255) {
+      formattedBalance = formatUnits(balance, decimals);
+    }
   }
   return {
-    balance: row.balance,
+    balance: rawBalance,
     formattedBalance,
-    contractAddress: row.contractAddress,
-    name: row.name,
-    symbol: row.symbol,
-    decimals: row.decimals,
-    type: row.type || "ERC-20",
+    contractAddress,
+    name: meta.name,
+    symbol: meta.symbol,
+    decimals: meta.decimals ?? "0",
+    type: meta.decimals !== null ? "ERC-20" : "ERC-721",
   };
 }
 
@@ -123,8 +123,7 @@ export interface FeeFields {
 /**
  * Extract the EIP-1559 fee fields + tx type from a viem
  * getTransaction result. Missing values render as `null` (the wire
- * shape the frontend expects). Used to enrich Blockscout txlist
- * results, which omit these fields. The defensive null defaults make
+ * shape the frontend expects). The defensive null defaults make
  * legacy txs (no maxFee fields at all) render correctly.
  */
 export function extractTxTypeAndFees(tx: {
@@ -143,10 +142,9 @@ export function extractTxTypeAndFees(tx: {
 }
 
 /**
- * The fallback fee-field set used when getTransaction throws for a
- * given hash (e.g. the tx is in the mempool but not yet mined). The
- * Blockscout row still carries the basic info, so the row renders;
- * just the 1559 caps are unknown.
+ * The fallback fee-field set used when a tx's full fee data is
+ * unavailable. The base row still carries the essentials, so the row
+ * renders; just the 1559 caps are unknown.
  */
 export const LEGACY_FALLBACK_FEES: FeeFields = {
   type: "legacy",

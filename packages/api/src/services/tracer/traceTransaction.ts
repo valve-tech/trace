@@ -2,7 +2,6 @@ import type { CallFrame, CallTraceResult } from "./types.js";
 import { getCachedTrace, setCachedTrace } from "./cache.js";
 import { isDebugUnavailable, makeDebugRpc } from "./debugRpc.js";
 import { traceViaAnvilFork } from "./anvilFallback.js";
-import { traceViaBlockScout } from "./blockscoutFallback.js";
 import { dedupePromise } from "../../lib/dedupePromise.js";
 
 /**
@@ -18,8 +17,8 @@ const inFlight = new Map<string, Promise<CallTraceResult>>();
 
 /**
  * Trace a mined transaction and return a callTracer-shaped tree. Walks
- * three sources in order: cache → live debug_ RPC → anvil-fork replay →
- * BlockScout reconstruction. Cache hits short-circuit everything else.
+ * the sources in order: cache → live debug_ RPC → anvil-fork replay.
+ * Cache hits short-circuit everything else.
  *
  * Concurrent calls for the same hash share one in-flight promise (see
  * `inFlight` above) so the RPC is only issued once per burst.
@@ -62,7 +61,11 @@ async function runTrace(hash: string): Promise<CallTraceResult> {
           void setCachedTrace(hash, "calltree", trace);
           return { trace, error: null, debugAvailable: true };
         }
-        return traceViaBlockScout(hash);
+        return {
+          trace: null,
+          error: "debug RPC unavailable and anvil-fork replay failed",
+          debugAvailable: false,
+        };
       }
       return {
         trace: null,
@@ -81,6 +84,10 @@ async function runTrace(hash: string): Promise<CallTraceResult> {
       void setCachedTrace(hash, "calltree", trace);
       return { trace, error: null, debugAvailable: true };
     }
-    return traceViaBlockScout(hash);
+    return {
+      trace: null,
+      error: "debug RPC unavailable and anvil-fork replay failed",
+      debugAvailable: false,
+    };
   }
 }

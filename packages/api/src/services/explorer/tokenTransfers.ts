@@ -1,68 +1,82 @@
-import { type Hex } from "viem";
-import { chainClient } from "../chains/context.js";
-import { blockscoutFetch, blockscoutV2Base } from "./client.js";
+import { erc20Abi, type Hex } from "viem";
+import { chainClient, currentChainId } from "../chains/context.js";
 import {
-  mapV1Row,
-  mapV2Row,
-  type BlockscoutV1Row,
-  type BlockscoutV2Row,
+  decodeTransferLogs,
+  toTransferView,
+  type TokenMeta,
   type TokenTransferView,
 } from "./tokenTransfers/transforms.js";
 
 export type TokenTransfer = TokenTransferView;
 
 /**
- * Token transfers emitted by a transaction. Prefers BlockScout v2's per-tx
- * endpoint (cheap, exact match) and falls back to v1's address-based
- * `tokentx` listing filtered down to the requested hash (slower but works
- * on instances that haven't enabled v2 yet).
+ * Token transfers emitted by a transaction, decoded straight from the
+ * receipt's logs (ERC-20/721/1155 standard events) — no third-party
+ * explorer involved. Token name/symbol/decimals are read once per
+ * (chainId, token) via RPC and memoized for the process lifetime; a token
+ * whose metadata reads fail renders with empty strings rather than
+ * dropping the transfer.
  */
 export async function getTokenTransfers(
   hash: string,
 ): Promise<TokenTransfer[]> {
-  const v2 = await fetchV2(hash);
-  if (v2) return v2;
-  return fetchV1Fallback(hash);
-}
-
-async function fetchV2(hash: string): Promise<TokenTransfer[] | null> {
-  const base = blockscoutV2Base();
-  if (base === null) return null;
+  let logs;
   try {
-    const res = await fetch(
-      `${base}/api/v2/transactions/${hash}/token-transfers`,
-      { signal: AbortSignal.timeout(10_000) },
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as { items?: BlockscoutV2Row[] };
-    if (!data.items?.length) return null;
-    return data.items.map((row) => mapV2Row(row, hash));
+    const receipt = await chainClient().getTransactionReceipt({
+      hash: hash as Hex,
+    });
+    logs = receipt.logs;
   } catch {
-    return null;
-  }
-}
-
-async function fetchV1Fallback(hash: string): Promise<TokenTransfer[]> {
-  let tx: { from: string } | null = null;
-  try {
-    tx = await chainClient().getTransaction({ hash: hash as Hex });
-  } catch {
+    // Pending or unknown tx — no receipt, no transfers.
     return [];
   }
-  if (!tx) return [];
 
-  const data = await blockscoutFetch<{
-    status: string;
-    result: BlockscoutV1Row[];
-  }>({
-    module: "account",
-    action: "tokentx",
-    address: tx.from,
-  });
+  const raw = decodeTransferLogs(
+    logs.map((l) => ({ address: l.address, topics: l.topics, data: l.data })),
+    hash,
+  );
+  if (raw.length === 0) return [];
 
-  if (!data || data.status !== "1" || !Array.isArray(data.result)) return [];
+  const tokens = [...new Set(raw.map((t) => t.contractAddress))];
+  const metas = new Map<string, TokenMeta | null>();
+  await Promise.all(
+    tokens.map(async (token) => {
+      metas.set(token, await getTokenMeta(token));
+    }),
+  );
 
-  return data.result
-    .filter((t) => t.hash.toLowerCase() === hash.toLowerCase())
-    .map(mapV1Row);
+  return raw.map((t) => toTransferView(t, metas.get(t.contractAddress) ?? null));
+}
+
+// ---------------------------------------------------------------------------
+// Token metadata — one read per (chainId, token), memoized. Failed reads are
+// NOT cached so a transient RPC hiccup self-heals on the next transfer
+// instead of pinning empty metadata (the in-memory cousin of the
+// idb-cache-poisoning failure mode).
+// ---------------------------------------------------------------------------
+
+const metaCache = new Map<string, TokenMeta>();
+
+async function getTokenMeta(token: string): Promise<TokenMeta | null> {
+  const key = `${currentChainId()}:${token}`;
+  const cached = metaCache.get(key);
+  if (cached) return cached;
+
+  const client = chainClient();
+  const address = token as Hex;
+  const [name, symbol, decimals] = await Promise.all([
+    client.readContract({ address, abi: erc20Abi, functionName: "name" }).catch(() => null),
+    client.readContract({ address, abi: erc20Abi, functionName: "symbol" }).catch(() => null),
+    client.readContract({ address, abi: erc20Abi, functionName: "decimals" }).catch(() => null),
+  ]);
+
+  if (name === null && symbol === null && decimals === null) return null;
+
+  const meta: TokenMeta = {
+    name: name ?? "",
+    symbol: symbol ?? "",
+    decimals: decimals === null ? "" : String(decimals),
+  };
+  metaCache.set(key, meta);
+  return meta;
 }

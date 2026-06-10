@@ -5,7 +5,7 @@
  * new explorer endpoints.
  */
 
-export { blockscoutBase, blockscoutFetch, serialize } from "./explorer/client.js";
+export { serialize } from "./explorer/client.js";
 export {
   getTransactionDetails,
   buildTransactionDetails,

@@ -173,7 +173,7 @@ Single source of truth for PulseChain network constants. Consumed directly via T
 | `routes/simulateBundle.ts` | `POST /api/simulate-bundle` | Ordered bundle, cumulative state overrides |
 | `routes/forkSimulate.ts` | `POST /api/simulate/fork`, `POST /api/simulate/from-hash` | Fork-based simulation with full state diffs |
 | `routes/explorer.ts` | `GET /api/tx/:hash`, `/api/address/*`, `/api/contract/:address`, `/api/block/:numberOrHash` | Blockchain explorer endpoints |
-| `routes/debugger.ts` | `GET /api/debug/tx/:hash/{trace,opcodes,gas-profile}`, `POST /api/debug/trace` | Call trace + opcode trace + gas profile (cache → debug RPC → anvil → blockscout fallback chain) |
+| `routes/debugger.ts` | `GET /api/debug/tx/:hash/{trace,opcodes,gas-profile}`, `POST /api/debug/trace` | Call trace + opcode trace + gas profile (cache → debug RPC → anvil fallback chain) |
 | `routes/rpc.ts` | `POST /rpc`, `POST /api/rpc`, `GET /api/rpc/{stats,methods}`, `POST /api/rpc/test` | JSON-RPC proxy + analytics + method catalog + tester |
 | `routes/alerts.ts` (+ `alerts/{schemas,serialize}.ts`) | CRUD `/api/alerts` + history + test | Monitoring alert rules |
 | `routes/actions.ts` (+ `actions/{schemas,serialize}.ts`) | CRUD `/api/actions` + test + logs + `POST /api/actions/webhooks/:id` | Serverless action management + inbound webhooks |
@@ -195,11 +195,11 @@ Single source of truth for PulseChain network constants. Consumed directly via T
 | `services/rpc.ts` | Shared viem `publicClient` (PulseChain, batched HTTP, 2 retries, 30s timeout) | `publicClient`, `pulsechain` |
 | `services/decoder/` | ABI resolution + calldata/log decoding | `fetchAbi`, `resolveAbi`, `decodeInput`, `decodeOutput`, `decodeLogs` |
 | `services/simulator/` | Single-tx + sequential bundle simulation | `simulateTransaction`, `simulateBundle` |
-| `services/tracer/` | `debug_traceTransaction` + cache + 4-tier fallback (cache → debug RPC → ephemeral Anvil fork → BlockScout) | `traceTransaction`, `traceTransactionOpcodes`, `traceCall`, `awaitPendingCacheWrites` |
+| `services/tracer/` | `debug_traceTransaction` + cache + 3-tier fallback (cache → debug RPC → ephemeral Anvil fork) | `traceTransaction`, `traceTransactionOpcodes`, `traceCall`, `awaitPendingCacheWrites` |
 | `services/gasProfiler/` | Hierarchical + opcode-level gas profiling | `profileGas`, `profileOpcodes` |
 | `services/forkManager.ts` + `forkClient.ts` + `spawnAnvil.ts` | Anvil child-process pool (spawn `anvil --fork-url`, port allocation, 1h TTL cleanup, snapshot/revert/fund/mine/time-travel/proxyRpc) | `forkManager` (singleton), `makeForkClient`, `spawnAnvil` |
 | `services/forkSimulator/` | Fork-based simulation with prestateTracer diffs | `forkSimulate`, `simulateFromTxHash` |
-| `services/explorer/` | BlockScout + viem aggregation (tx, internal txs, token transfers, addresses, contracts, blocks) | `getTransactionDetails`, `getContractInfo`, `getBlockDetails`, ... |
+| `services/explorer/` | RPC + chifra aggregation (tx, internal txs from debug trace, token transfers from receipt logs, address history via chifra appearances, contracts via Sourcify, blocks) | `getTransactionDetails`, `getContractInfo`, `getBlockDetails`, ... |
 | `services/monitor/` | Block poller (3s `setInterval`, re-entry guarded, ≤5 blocks catch-up per tick) + 5 alert matchers | `startMonitor`, `stopMonitor`, `processBlock` |
 | `services/notifier/` | Webhook/Discord/Slack/Telegram dispatch with per-channel failure isolation | `dispatch` |
 | `services/actionExecutor/` | Sandboxed action execution via Node child process with `--permission --allow-fs-read=<repo>`; storage merge-back | `executeAction` |
@@ -209,7 +209,7 @@ Single source of truth for PulseChain network constants. Consumed directly via T
 | `services/rpcProxy/` | JSON-RPC router: standard passthrough + `valve_*` custom methods (`simulateTransaction`, `simulateBundle`, `decodeTransaction`, `getAssetChanges`) | `handleRpcRequest` |
 | `services/rpcAnalytics.ts` | In-memory ring buffer (10k records) | `rpcAnalytics` (singleton) |
 | `services/signatures.ts` | 4byte lookup: Postgres `signature_cache` → Sourcify 4byte API → 4byte.directory; 1h negative cache | `lookupSelector`, `lookupSelectors` |
-| `services/sourceCode/` | Verified source fetch: cache → BlockScout → Sourcify; negative cache for unverified addresses | `getVerifiedSource` |
+| `services/sourceCode/` | Verified source fetch: cache → Sourcify → BlockScout fallback; negative cache for unverified addresses | `getVerifiedSource` |
 | `services/sourceMap/` | Decode Solidity source maps + PC→source-location indexing | `decodeSourceMap`, `mapPcToSource`, `precomputeSourceMap`, `lookupPc` |
 | `services/solcCompiler/` | Download/cache native `solc`, compile via `--standard-json`, cache `source_map` column | `compileForSourceMap` |
 | `services/slither/` | Run Slither in `trailofbits/eth-security-toolbox` Docker container, cache JSON findings | `analyzeContract` |

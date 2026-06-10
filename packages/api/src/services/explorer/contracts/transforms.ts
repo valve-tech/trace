@@ -1,25 +1,11 @@
 /**
- * Pure transforms for the contract-info service. The Blockscout
- * `getsourcecode` endpoint returns a verbose-string-keyed shape; this
- * module flattens it into the API's camelCase ContractInfo view, with
- * defensive defaults for unverified contracts (every string field
- * defaults to empty, `optimizationUsed` defaults to false).
+ * Pure transforms for the contract-info service. Builds the API's camelCase
+ * ContractInfo view from a resolved VerifiedSource (Sourcify-first via
+ * getVerifiedSource), with defensive defaults for unverified contracts
+ * (every string field defaults to empty, `optimizationUsed` to false).
  */
 
-export interface BlockscoutSourceRow {
-  ContractName: string;
-  CompilerVersion: string;
-  OptimizationUsed: string;
-  SourceCode: string;
-  ConstructorArguments: string;
-  EVMVersion: string;
-  Library: string;
-  LicenseType: string;
-  Proxy: string;
-  Implementation: string;
-  SwarmSource: string;
-  ABI: string;
-}
+import type { VerifiedSource } from "../../sourceCode.js";
 
 export interface ContractInfoView {
   address: string;
@@ -39,34 +25,46 @@ export interface ContractInfoView {
 }
 
 /**
- * Build the ContractInfo view from the input address, the resolved
- * ABI (from the decoder cache or null), and the optional source-code
- * row from Blockscout. A contract counts as verified when either the
- * ABI resolved OR Blockscout returned a non-empty `ContractName`.
- *
- * `optimizationUsed` is the only boolean field; Blockscout encodes it
- * as the string "1" / "0", and we map "1" → true, everything else
- * (including "" and missing) → false.
+ * Flatten a multi-file source into the single `sourceCode` string the wire
+ * shape carries: one file passes through verbatim; multiple files get
+ * `// File: <name>` separators (the convention block explorers use for
+ * flattened views).
+ */
+export function flattenSourceFiles(
+  files: VerifiedSource["sourceFiles"],
+): string {
+  if (files.length === 0) return "";
+  if (files.length === 1) return files[0]!.content;
+  return files
+    .map((f) => `// File: ${f.name}\n${f.content}`)
+    .join("\n\n");
+}
+
+/**
+ * Build the ContractInfo view from the resolved verified source (or null
+ * for an unverified contract). Verification metadata that only Etherscan-
+ * style explorers expose (constructor args, EVM version, license, proxy
+ * resolution, swarm hash) isn't part of the Sourcify shape — those fields
+ * stay empty.
  */
 export function buildContractInfo(
   address: string,
-  abi: unknown[] | null,
-  source: BlockscoutSourceRow | undefined,
+  source: VerifiedSource | null,
 ): ContractInfoView {
   return {
     address,
-    isVerified: !!abi || (!!source && source.ContractName !== ""),
-    contractName: source?.ContractName ?? "",
-    compilerVersion: source?.CompilerVersion ?? "",
-    optimizationUsed: source?.OptimizationUsed === "1",
-    sourceCode: source?.SourceCode ?? "",
-    abi,
-    constructorArguments: source?.ConstructorArguments ?? "",
-    evmVersion: source?.EVMVersion ?? "",
-    library: source?.Library ?? "",
-    licenseType: source?.LicenseType ?? "",
-    proxy: source?.Proxy ?? "",
-    implementation: source?.Implementation ?? "",
-    swarmSource: source?.SwarmSource ?? "",
+    isVerified: source !== null,
+    contractName: source?.contractName ?? "",
+    compilerVersion: source?.compilerVersion ?? "",
+    optimizationUsed: source?.optimizationUsed ?? false,
+    sourceCode: source ? flattenSourceFiles(source.sourceFiles) : "",
+    abi: source && Array.isArray(source.abi) && source.abi.length > 0 ? source.abi : null,
+    constructorArguments: "",
+    evmVersion: "",
+    library: "",
+    licenseType: "",
+    proxy: "",
+    implementation: "",
+    swarmSource: "",
   };
 }

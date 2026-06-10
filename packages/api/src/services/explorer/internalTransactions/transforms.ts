@@ -1,29 +1,17 @@
 import { formatEther } from "viem";
+import type { CallFrame } from "../../tracer.js";
 
 /**
- * Pure row mapper for the Blockscout `txlistinternal` payload. Extracted
- * from internalTransactions.ts so the defensive defaults
- * (`value || "0"`, `type || "CALL"`, `errCode || ""`, `isError || "0"`)
- * are testable without mocking blockscoutFetch.
+ * Pure flattening of a debug_traceTransaction call tree into the
+ * internal-transaction rows the explorer wire shape carries. The root
+ * frame is the top-level transaction itself, so only its descendants
+ * count as "internal".
  *
- * Same shape as the other Blockscout row mappers in this directory
- * (addresses, contracts, tokenTransfers) — Blockscout sends empty
- * strings or missing fields on partial successes and the API layer
- * coerces them to sensible defaults so the consumer can render
- * without null-checking every field.
+ * Defensive defaults mirror the rest of this directory's mappers: hex
+ * quantities parse through BigInt with "0x0" fallbacks, a missing `type`
+ * renders as "CALL", and a frame's `error` doubles as both `errCode` and
+ * the `isError` flag (the 0/1 string encoding consumers already test).
  */
-
-export interface BlockscoutInternalTxRow {
-  from: string;
-  to: string;
-  value: string;
-  type: string;
-  gas: string;
-  gasUsed: string;
-  input: string;
-  errCode: string;
-  isError: string;
-}
 
 export interface InternalTransactionView {
   from: string;
@@ -38,30 +26,42 @@ export interface InternalTransactionView {
   isError: string;
 }
 
-/**
- * Map a Blockscout internal-tx row into the canonical API view shape.
- *
- * Defaults:
- *   - empty `value` → "0" wei (so `valuePLS` formats as "0" not throws)
- *   - empty `type` → "CALL" (the default opcode kind for the legacy
- *     internal-tx endpoint when Blockscout couldn't determine the
- *     exact opcode)
- *   - empty `errCode` → "" (consumers test it with `!== ""`)
- *   - empty `isError` → "0" (Blockscout's 0/1 boolean encoding)
- */
-export function mapInternalTxRow(
-  row: BlockscoutInternalTxRow,
-): InternalTransactionView {
+function hexToDecimal(hex: string | undefined): string {
+  if (!hex) return "0";
+  try {
+    return BigInt(hex).toString();
+  } catch {
+    return "0";
+  }
+}
+
+function mapFrame(frame: CallFrame): InternalTransactionView {
+  const value = hexToDecimal(frame.value);
   return {
-    from: row.from,
-    to: row.to,
-    value: row.value,
-    valuePLS: formatEther(BigInt(row.value || "0")),
-    type: row.type || "CALL",
-    gas: row.gas,
-    gasUsed: row.gasUsed,
-    input: row.input,
-    errCode: row.errCode || "",
-    isError: row.isError || "0",
+    from: frame.from ?? "",
+    to: frame.to ?? "",
+    value,
+    valuePLS: formatEther(BigInt(value)),
+    type: frame.type || "CALL",
+    gas: hexToDecimal(frame.gas),
+    gasUsed: hexToDecimal(frame.gasUsed),
+    input: frame.input ?? "0x",
+    errCode: frame.error ?? "",
+    isError: frame.error ? "1" : "0",
   };
+}
+
+/** Depth-first flatten of the root's descendants (execution order). */
+export function flattenInternalCalls(
+  root: CallFrame,
+): InternalTransactionView[] {
+  const out: InternalTransactionView[] = [];
+  const walk = (frame: CallFrame): void => {
+    for (const child of frame.calls ?? []) {
+      out.push(mapFrame(child));
+      walk(child);
+    }
+  };
+  walk(root);
+  return out;
 }

@@ -264,6 +264,10 @@ export class ForkManager {
         }
       }
     }, 5 * 60 * 1000);
+    // The singleton is constructed at import time; without unref this timer
+    // pins the event loop in any process that merely imports the module
+    // (unit tests hang after their last assertion).
+    this.cleanupInterval.unref();
   }
 
   private registerExitHandlers(): void {

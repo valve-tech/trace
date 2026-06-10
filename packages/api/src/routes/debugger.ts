@@ -52,9 +52,7 @@ router.get(
     respond.ok(res, {
       trace: result.trace,
       debugAvailable: result.debugAvailable,
-      source: result.debugAvailable
-        ? "debug_traceTransaction"
-        : "blockscout_fallback",
+      source: "debug_traceTransaction",
     });
   }, "debug/trace"),
 );

@@ -571,13 +571,13 @@ describe("Feature 5: Debugger & Gas Profiler", () => {
         "trace should have a 'calls' array",
       );
 
-      // Source depends on the configured node: a debug-enabled RPC traces
-      // natively; a public RPC without the debug API falls back to Blockscout.
-      assert.ok(
-        ["debug_traceTransaction", "blockscout_fallback"].includes(json.source),
-        `source should be a known trace source, got "${json.source}"`,
+      // The only trace source is debug_traceTransaction (live debug RPC or
+      // anvil-fork replay) — the Blockscout reconstruction fallback is gone.
+      assert.equal(
+        json.source,
+        "debug_traceTransaction",
+        `source should be debug_traceTransaction, got "${json.source}"`,
       );
-      console.log(`    (trace source: ${json.source})`);
 
       // Count total tree nodes (the trace is deeply nested)
       function countNodes(frame: any): number {

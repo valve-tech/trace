@@ -6,8 +6,7 @@
  *   - cache.ts                PostgreSQL trace_cache (read/write/drain)
  *   - debugRpc.ts             raw fetch + isDebugUnavailable detector
  *   - anvilFallback.ts        spin up an anvil fork and replay via debug_traceCall
- *   - blockscoutFallback.ts   reconstruct a call tree from internal-tx listings
- *   - traceTransaction.ts     public traceTransaction (cache → debug → anvil → blockscout)
+ *   - traceTransaction.ts     public traceTransaction (cache → debug → anvil)
  *   - traceOpcodes.ts         public traceTransactionOpcodes (struct logger)
  *   - traceCall.ts            public traceCall (simulated calls; no fallback)
  *

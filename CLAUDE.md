@@ -55,7 +55,7 @@ npm run dev:web                # Frontend only
 | `DATABASE_URL` | `postgres://valvetech:valvetech@localhost:5432/valvetech` | Postgres connection |
 | `PULSECHAIN_RPC_URL` | `https://rpc.pulsechain.com` | PulseChain RPC endpoint |
 | `DEBUG_RPC_URL` | (falls back to `PULSECHAIN_RPC_URL`) | Debug-enabled node for traces |
-| `BLOCKSCOUT_API_URL` | `https://api.scan.pulsechain.com/api` | ABI + explorer data |
+| `BLOCKSCOUT_API_URL` | `https://api.scan.pulsechain.com/api` | Verified-source fallback only (Sourcify is primary; explorer data is RPC + chifra) |
 
 Local `.env` is auto-loaded by `dotenv/config` in `packages/api/src/index.ts`. `.env` is gitignored — never commit private RPC URLs or tokens.
 

@@ -19,9 +19,9 @@
 
 import { createTrueblocksClient } from "@valve-tech/trueblocks-sdk";
 import { readCache, writeCache } from "./cache.js";
+import { currentChain } from "../chains/context.js";
 
 const CHIFRA_BASE = process.env.CHIFRA_BASE_URL || "https://chifra.valve.city";
-const CHAIN = "pulsechain";
 
 /** keccak256("Transfer(address,address,uint256)") */
 const TRANSFER_TOPIC =
@@ -100,7 +100,7 @@ function blockNumberOf(entry: unknown): number | null {
 /** Resolve a unix timestamp (seconds) to the block mined at/just before it. */
 async function blockAtTimestamp(unixSeconds: number): Promise<number | null> {
   const res = await withRetry(() =>
-    client.when({ blocks: [String(unixSeconds)], chain: CHAIN }),
+    client.when({ blocks: [String(unixSeconds)], chain: currentChain().chifraChain }),
   );
   return blockNumberOf(res.data?.[0]);
 }
@@ -108,7 +108,7 @@ async function blockAtTimestamp(unixSeconds: number): Promise<number | null> {
 /** Current chain head block number. */
 async function headBlock(): Promise<number | null> {
   const res = await withRetry(() =>
-    client.when({ blocks: ["latest"], chain: CHAIN }),
+    client.when({ blocks: ["latest"], chain: currentChain().chifraChain }),
   );
   return blockNumberOf(res.data?.[0]);
 }
@@ -128,8 +128,9 @@ export async function getTokenTransfers(
   ]);
   if (head === null || start === null) return null;
 
+  const chain = currentChain().chifraChain;
   const addr = token.toLowerCase();
-  const cacheKey = `transfers:${addr}:${start}-${head}`;
+  const cacheKey = `transfers:${chain}:${addr}:${start}-${head}`;
   const cached = readCache<TransferWindow>(cacheKey);
   if (cached) return cached;
 
@@ -139,7 +140,7 @@ export async function getTokenTransfers(
     lastBlock: head,
     reversed: true,
     maxRecords: MAX_RECORDS,
-    chain: CHAIN,
+    chain,
   });
   if (!res.data) return null;
 
