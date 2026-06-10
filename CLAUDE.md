@@ -13,7 +13,9 @@ proxy, and serverless Web3 Actions — delivered as a TypeScript monorepo.
 **Multichain launch set** (per `docs/superpowers/specs/2026-05-29-multichain-etherscan-labels-design.md`):
 chains 1 (Ethereum), 369 (PulseChain), 943 (PulseChain Testnet). The frontend
 chain registry lives in `packages/web/src/lib/chains.ts`; chain logos render
-via [gib.show](https://gib.show) at `/image/<chainId>` (token art lives at `/image/<chainId>/<address>`).
+via [gib.show](https://gib.show) at `/image/<chainId>` (token art lives at
+`/image/<chainId>/<address>`) — full API reference and prod-vs-staging notes
+in [docs/GIB_SHOW.md](docs/GIB_SHOW.md).
 
 The dispatcher refactor to `?chainid=N` routing is in flight on the API side;
 the frontend ChainSelector + Landing/AppShell rebrand is UI-only for now and
