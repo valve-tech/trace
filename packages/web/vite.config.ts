@@ -8,6 +8,32 @@ export default defineConfig({
   // BrowserRouter build keeps absolute "/" so nested routes resolve assets.
   base: process.env.VITE_IPFS ? "./" : "/",
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Routes are lazy (React.lazy in App.tsx); what's left in the entry
+        // is vendor weight that main.tsx needs eagerly (WagmiProvider +
+        // persisted QueryClient). Split the big vendor groups so the entry
+        // stays small and vendor chunks cache across app deploys.
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return undefined;
+          // ox is viem's sibling crypto/ABI lib — keep them together.
+          if (id.includes("/viem/") || id.includes("/ox/")) return "viem";
+          if (id.includes("/wagmi/") || id.includes("/@wagmi/")) return "wagmi";
+          if (id.includes("/@tanstack/")) return "query";
+          if (
+            id.includes("/react-dom/") ||
+            id.includes("/react/") ||
+            id.includes("/react-router") ||
+            id.includes("/scheduler/")
+          ) {
+            return "react";
+          }
+          return undefined;
+        },
+      },
+    },
+  },
   server: {
     port: 11800,
     host: true, // bind to 0.0.0.0 so the dev server is reachable from other devices on the LAN

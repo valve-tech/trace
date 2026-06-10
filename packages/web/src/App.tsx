@@ -1,30 +1,36 @@
-import { useState, useEffect, useRef } from "react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { useAlertWebSocket, type AlertEvent } from "./hooks/useAlertWebSocket";
 import AlertToast from "./components/AlertToast";
 import ErrorBoundary from "./components/ErrorBoundary";
 import AppShell from "./components/AppShell";
 import Landing from "./components/Landing";
-import ComponentGallery from "./components/gallery/ComponentGallery";
-import SimulationPage from "./pages/SimulationPage";
-import BundleSimulator from "./components/BundleSimulator";
-import AlertDashboard from "./components/monitoring/AlertDashboard";
-import TestNetDashboard from "./components/testnets/TestNetDashboard";
-import RpcPage from "./pages/RpcPage";
-import ExplorerPanel from "./components/explorer/ExplorerPanel";
-import MempoolView from "./components/mempool/MempoolView";
-import DebuggerView from "./components/debugger/DebuggerView";
-import ActionsDashboard from "./components/actions/ActionsDashboard";
-import ForkSimulator from "./components/ForkSimulator";
-import TransactionBuilder from "./components/TransactionBuilder";
-import ContractDiff from "./components/ContractDiff";
-import StorageLayoutViewer from "./components/StorageLayoutViewer";
-import VerifyContract from "./components/VerifyContract";
-import DraftsIndex from "./components/drafts/DraftsIndex";
-import SettingsPanel from "./components/drafts/SettingsPanel";
-import WorkspaceList from "./components/workspace/WorkspaceList";
-import WorkspaceDetail from "./components/workspace/WorkspaceDetail";
+import RouteFallback from "./components/RouteFallback";
 import WatchNotifications from "./components/watcher/WatchNotifications";
+
+// Route-level code splitting. Landing stays eager (it's the default route and
+// renders the first paint); every other route loads its chunk on demand. The
+// heavyweights are the opcode debugger and the simulator family — splitting
+// them keeps the entry chunk to shell + providers.
+const ComponentGallery = lazy(() => import("./components/gallery/ComponentGallery"));
+const SimulationPage = lazy(() => import("./pages/SimulationPage"));
+const BundleSimulator = lazy(() => import("./components/BundleSimulator"));
+const AlertDashboard = lazy(() => import("./components/monitoring/AlertDashboard"));
+const TestNetDashboard = lazy(() => import("./components/testnets/TestNetDashboard"));
+const RpcPage = lazy(() => import("./pages/RpcPage"));
+const ExplorerPanel = lazy(() => import("./components/explorer/ExplorerPanel"));
+const MempoolView = lazy(() => import("./components/mempool/MempoolView"));
+const DebuggerView = lazy(() => import("./components/debugger/DebuggerView"));
+const ActionsDashboard = lazy(() => import("./components/actions/ActionsDashboard"));
+const ForkSimulator = lazy(() => import("./components/ForkSimulator"));
+const TransactionBuilder = lazy(() => import("./components/TransactionBuilder"));
+const ContractDiff = lazy(() => import("./components/ContractDiff"));
+const StorageLayoutViewer = lazy(() => import("./components/StorageLayoutViewer"));
+const VerifyContract = lazy(() => import("./components/VerifyContract"));
+const DraftsIndex = lazy(() => import("./components/drafts/DraftsIndex"));
+const SettingsPanel = lazy(() => import("./components/drafts/SettingsPanel"));
+const WorkspaceList = lazy(() => import("./components/workspace/WorkspaceList"));
+const WorkspaceDetail = lazy(() => import("./components/workspace/WorkspaceDetail"));
 
 export default function App() {
   const [apiStatus, setApiStatus] = useState<"connected" | "disconnected" | "checking">("checking");
@@ -89,6 +95,7 @@ export default function App() {
 
       <AppShell apiStatus={apiStatus}>
         <ErrorBoundary resetKey={location.pathname}>
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/simulate" element={<SimulationPage />} />
@@ -118,6 +125,7 @@ export default function App() {
           <Route path="/workspace" element={<WorkspaceList />} />
           <Route path="/workspace/:id" element={<WorkspaceDetail />} />
         </Routes>
+        </Suspense>
         </ErrorBoundary>
       </AppShell>
     </div>
