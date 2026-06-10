@@ -15,6 +15,7 @@
 
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import { TransactionReceiptNotFoundError } from "viem";
 import { publicClient } from "../../src/services/rpc.js";
 import {
   getStatusAction,
@@ -131,6 +132,32 @@ function patchTxMethods(receiptStatus: "success" | "reverted" = "success") {
 }
 
 /**
+ * Patch for a PENDING tx: the tx resolves (blockNumber null) but the receipt
+ * read throws viem's typed not-found — the mempool case. getBlock should never
+ * be reached (no block to time-stamp); make it throw to prove that.
+ */
+function patchTxMethodsPending() {
+  const getTx = patchMethod("getTransaction", () =>
+    Promise.resolve(makeTxResult({ blockNumber: null, transactionIndex: null })),
+  );
+  const getReceipt = patchMethod("getTransactionReceipt", () =>
+    Promise.reject(
+      new TransactionReceiptNotFoundError({ hash: VALID_HASH as `0x${string}` }),
+    ),
+  );
+  const getBlock = patchMethod("getBlock", () =>
+    Promise.reject(new Error("getBlock should not be called for a pending tx")),
+  );
+  return {
+    restore: () => {
+      getTx.restore();
+      getReceipt.restore();
+      getBlock.restore();
+    },
+  };
+}
+
+/**
  * Patch all three methods to throw, simulating an upstream RPC failure.
  */
 function patchTxMethodsThrow() {
@@ -207,6 +234,15 @@ describe("etherscan transaction.getstatus — happy path", () => {
     }
   });
 
+  it("pending tx (no receipt) → isError='0', not an error response", async () => {
+    patch = patchTxMethodsPending();
+    const res = await getStatusAction({ txhash: VALID_HASH });
+    assert.equal(res.status, "1");
+    if (res.status === "1") {
+      assert.equal(res.result.isError, "0");
+    }
+  });
+
   it("upstream throw → etherscanErr 'Upstream temporarily unavailable'", async () => {
     patch = patchTxMethodsThrow();
     const res = await getStatusAction({ txhash: VALID_HASH });
@@ -262,6 +298,15 @@ describe("etherscan transaction.gettxreceiptstatus — happy path", () => {
     assert.equal(res.status, "1");
     if (res.status === "1") {
       assert.equal(res.result.status, "0");
+    }
+  });
+
+  it("pending tx (no receipt) → status='' (not yet mined)", async () => {
+    patch = patchTxMethodsPending();
+    const res = await getTxReceiptStatusAction({ txhash: VALID_HASH });
+    assert.equal(res.status, "1");
+    if (res.status === "1") {
+      assert.equal(res.result.status, "");
     }
   });
 

@@ -80,7 +80,8 @@ export async function getStatusAction(
 // ===========================================================================
 
 interface TxReceiptStatusResult {
-  status: "0" | "1";
+  /** "1" success, "0" reverted, "" not mined yet — matches Etherscan. */
+  status: "0" | "1" | "";
 }
 
 export async function getTxReceiptStatusAction(
@@ -97,10 +98,11 @@ export async function getTxReceiptStatusAction(
 
   try {
     const tx = await getTransactionDetails(hash, { skipDecode: true });
-    const result: TxReceiptStatusResult = {
-      status: tx.status === "success" ? "1" : "0",
-    };
-    return etherscanOk(result);
+    // A pending tx has no receipt yet — report an empty status (as Etherscan
+    // does) rather than "0", which would falsely read as "reverted".
+    const status: TxReceiptStatusResult["status"] =
+      tx.status === "pending" ? "" : tx.status === "success" ? "1" : "0";
+    return etherscanOk({ status });
   } catch {
     return etherscanErr("Upstream temporarily unavailable");
   }

@@ -51,15 +51,19 @@ router.get(
       throw new ApiError(400, "Invalid transaction hash");
     }
 
-    // RPC can be slow for complex txs — 15s timeout per call
+    // RPC can be slow for complex txs — 15s timeout per call. The details
+    // fetch keeps its reject semantics (a genuine 404 must surface as 404, not
+    // be swallowed into the timeout's null → a misleading 504). The two
+    // enrichment calls are best-effort: a pending tx has no trace/transfers
+    // yet, so a rejection there degrades to [] rather than sinking the detail.
     const [details, internalTxs, tokenTransfers] = await Promise.all([
       withTimeout(
         getTransactionDetails(hash),
         15_000,
         null as Awaited<ReturnType<typeof getTransactionDetails>> | null,
       ),
-      withTimeout(getInternalTransactions(hash), 10_000, []),
-      withTimeout(getTokenTransfers(hash), 10_000, []),
+      withTimeout(getInternalTransactions(hash).catch(() => []), 10_000, []),
+      withTimeout(getTokenTransfers(hash).catch(() => []), 10_000, []),
     ]);
 
     if (!details) {

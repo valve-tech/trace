@@ -89,6 +89,8 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
 
   if (!tx) return null;
 
+  const isPending = tx.status === "pending";
+
   return (
     <div className="space-y-stack">
       <div className="card p-3 flex items-center gap-inline flex-wrap">
@@ -100,6 +102,23 @@ export default function TxDetail({ hash, onNavigate }: TxDetailProps) {
         />
         <AddToWorkspaceButton kind="tx" value={hash} />
       </div>
+      {isPending && (
+        <div
+          className="card p-3 flex items-start gap-row text-sm"
+          style={{ color: "var(--color-warning)" }}
+        >
+          <Icon
+            icon="heroicons:clock"
+            className="w-5 h-5 mt-0.5 shrink-0"
+          />
+          <div className="theme-text-secondary">
+            This transaction is <span className="font-semibold theme-text">pending</span> — it's
+            in the mempool and not yet mined. Gas used, logs, token transfers,
+            and internal calls appear once it's included in a block. Reload to
+            check again.
+          </div>
+        </div>
+      )}
       <OverviewSection tx={tx} onNavigate={onNavigate} />
       {tx.decodedInput && <DecodedInputSection decoded={tx.decodedInput} />}
       {(tx.decodedLogs.length > 0 || tx.rawLogs.length > 0) && (

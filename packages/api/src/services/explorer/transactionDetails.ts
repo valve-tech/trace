@@ -31,7 +31,7 @@ export interface TransactionDetails {
   effectiveGasPrice: string;
   nonce: number;
   input: string;
-  status: "success" | "reverted";
+  status: "success" | "reverted" | "pending";
   timestamp: number | null;
   decodedInput: {
     functionName: string;
@@ -71,36 +71,54 @@ export async function getTransactionDetails(
   options: { skipDecode?: boolean } = {},
 ): Promise<TransactionDetails> {
   const client = chainClient();
-  let tx: Awaited<ReturnType<typeof client.getTransaction>>;
-  let receipt: Awaited<ReturnType<typeof client.getTransactionReceipt>>;
-  try {
-    [tx, receipt] = await Promise.all([
-      client.getTransaction({ hash: hash as Hex }),
-      client.getTransactionReceipt({ hash: hash as Hex }),
-    ]);
-  } catch (err) {
-    // viem throws a typed not-found (for the tx or its receipt) that carries
-    // the library version in its message — surface a clean 404 instead of a
-    // 500 that leaks "Version: viem@x.y.z" to the client.
+
+  // Fetch the tx and its receipt in parallel, but treat their failures
+  // differently — that's why this is `allSettled`, not `all`. A missing TX is a
+  // genuine 404; a missing RECEIPT only means the tx is still in the mempool
+  // (pending), which is a valid state to render, not an error. `Promise.all`
+  // can't tell them apart (any rejection sinks both), so it turned every
+  // pending tx into a misleading "not found".
+  const [txResult, receiptResult] = await Promise.allSettled([
+    client.getTransaction({ hash: hash as Hex }),
+    client.getTransactionReceipt({ hash: hash as Hex }),
+  ]);
+
+  // The TX must resolve. viem's typed not-found carries the library version in
+  // its message — map it to a clean 404 rather than a 500 that leaks
+  // "Version: viem@x.y.z" to the client.
+  if (txResult.status === "rejected") {
     if (
-      err instanceof TransactionNotFoundError ||
-      err instanceof TransactionReceiptNotFoundError
+      txResult.reason instanceof TransactionNotFoundError ||
+      txResult.reason instanceof TransactionReceiptNotFoundError
     ) {
       throw new ApiError(404, "Transaction not found");
     }
-    throw err;
+    throw txResult.reason;
   }
-
+  const tx = txResult.value;
   if (!tx) throw new ApiError(404, "Transaction not found");
 
+  // No receipt → pending: build from the tx alone. A non-not-found receipt
+  // failure is a real error worth surfacing.
+  if (receiptResult.status === "rejected") {
+    if (receiptResult.reason instanceof TransactionReceiptNotFoundError) {
+      return buildPendingTransactionDetails(tx, options);
+    }
+    throw receiptResult.reason;
+  }
+  const receipt = receiptResult.value;
+  if (!receipt) return buildPendingTransactionDetails(tx, options);
+
+  // Timestamp comes from the mined block; guard the lookup (a tx that lost its
+  // block to a reorg between the two reads has a null blockNumber).
   let timestamp: number | null = null;
-  try {
-    const block = await chainClient().getBlock({
-      blockNumber: tx.blockNumber!,
-    });
-    timestamp = Number(block.timestamp);
-  } catch {
-    // block lookup is best-effort
+  if (tx.blockNumber != null) {
+    try {
+      const block = await client.getBlock({ blockNumber: tx.blockNumber });
+      timestamp = Number(block.timestamp);
+    } catch {
+      // block lookup is best-effort
+    }
   }
 
   return buildTransactionDetails(tx, receipt, timestamp, options);
@@ -123,19 +141,13 @@ export async function buildTransactionDetails(
   let decodedInput: TransactionDetails["decodedInput"] = null;
   let decodedLogEntries: TransactionDetails["decodedLogs"] = [];
 
-  if (tx.to && !options.skipDecode) {
-    const abi = await fetchAbi(tx.to);
-    if (abi && tx.input && tx.input !== "0x") {
-      const decoded = decodeInput(tx.input as Hex, abi);
-      if (decoded) {
-        decodedInput = {
-          functionName: decoded.functionName,
-          args: decoded.args,
-        };
-      }
-    }
+  if (!options.skipDecode) {
+    decodedInput = await decodeTxInput(tx.to ?? null, tx.input);
+  }
 
-    if (abi && receipt.logs.length > 0) {
+  if (tx.to && !options.skipDecode && receipt.logs.length > 0) {
+    const abi = await fetchAbi(tx.to);
+    if (abi) {
       // viem's receipt log type is narrower than decodeLogs' input — both
       // share the {address, topics, data} shape, but viem layers branded
       // types we'd have to mirror to match precisely.
@@ -203,6 +215,71 @@ export async function buildTransactionDetails(
     rawLogs,
     contractAddress: receipt.contractAddress ?? null,
     cumulativeGasUsed: receipt.cumulativeGasUsed.toString(),
+    type: tx.type ?? "legacy",
+  }) as TransactionDetails;
+}
+
+/**
+ * Decode a transaction's calldata against its target contract's ABI, when both
+ * are available. The lone impure step is the (cached) ABI fetch; shared by the
+ * mined and pending builders so calldata decoding lives in exactly one place.
+ * Returns null for plain value transfers (no `to`/empty input) or unverified
+ * targets (no ABI) — the caller renders raw input in those cases.
+ */
+async function decodeTxInput(
+  to: string | null,
+  input: string,
+): Promise<TransactionDetails["decodedInput"]> {
+  if (!to || !input || input === "0x") return null;
+  const abi = await fetchAbi(to);
+  if (!abi) return null;
+  const decoded = decodeInput(input as Hex, abi);
+  return decoded
+    ? { functionName: decoded.functionName, args: decoded.args }
+    : null;
+}
+
+/**
+ * Build a `TransactionDetails` for a tx that exists but isn't mined yet — it's
+ * sitting in the mempool, so there's no receipt and therefore none of the
+ * receipt-derived facts (gas used, logs, success/revert, contract address). We
+ * still decode the calldata (that needs only the tx + the target ABI), so a
+ * pending tx shows what it's *about* to do.
+ *
+ * `status` is "pending"; receipt-only numbers are zeroed and the log lists are
+ * empty. The frontend keys off `status === "pending"` to hide the sections that
+ * don't exist yet rather than rendering them as zeros.
+ */
+export async function buildPendingTransactionDetails(
+  tx: Transaction,
+  options: { skipDecode?: boolean } = {},
+): Promise<TransactionDetails> {
+  const decodedInput = options.skipDecode
+    ? null
+    : await decodeTxInput(tx.to ?? null, tx.input);
+
+  return serialize({
+    hash: tx.hash,
+    blockNumber: "pending",
+    blockHash: "",
+    transactionIndex: 0,
+    from: tx.from,
+    to: tx.to,
+    value: tx.value.toString(),
+    valuePLS: formatEther(tx.value),
+    gas: tx.gas.toString(),
+    gasPrice: tx.gasPrice?.toString() ?? "0",
+    gasUsed: "0",
+    effectiveGasPrice: "0",
+    nonce: Number(tx.nonce),
+    input: tx.input,
+    status: "pending",
+    timestamp: null,
+    decodedInput,
+    decodedLogs: [],
+    rawLogs: [],
+    contractAddress: null,
+    cumulativeGasUsed: "0",
     type: tx.type ?? "legacy",
   }) as TransactionDetails;
 }

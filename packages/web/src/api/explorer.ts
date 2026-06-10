@@ -54,7 +54,8 @@ export interface TransactionDetails {
   effectiveGasPrice: string;
   nonce: number;
   input: string;
-  status: "success" | "reverted";
+  /** "pending" when the tx is in the mempool — no receipt-derived data yet. */
+  status: "success" | "reverted" | "pending";
   timestamp: number | null;
   decodedInput: {
     functionName: string;

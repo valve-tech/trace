@@ -1,7 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { formatTransaction, formatTransactionReceipt } from "viem";
-import { buildTransactionDetails } from "../../src/services/explorer/transactionDetails.js";
+import {
+  buildTransactionDetails,
+  buildPendingTransactionDetails,
+} from "../../src/services/explorer/transactionDetails.js";
 
 /**
  * The mapping half of POST /api/tx/:hash/from-raw: raw RPC tx/receipt (as the
@@ -77,5 +80,44 @@ describe("buildTransactionDetails — from raw RPC payloads (BYO-RPC path)", () 
     });
     assert.equal(details.decodedInput, null);
     assert.equal(details.timestamp, null);
+  });
+});
+
+describe("buildPendingTransactionDetails — mempool tx (no receipt)", () => {
+  // A pending tx: same raw tx, but blockNumber/transactionIndex are null and
+  // there is no receipt at all.
+  const PENDING_RAW_TX = {
+    ...RAW_TX,
+    blockHash: null,
+    blockNumber: null,
+    transactionIndex: null,
+  };
+
+  it("maps tx-only fields and zeroes everything receipt-derived", async () => {
+    const tx = formatTransaction(PENDING_RAW_TX as never);
+    const details = await buildPendingTransactionDetails(tx);
+
+    // tx facts survive
+    assert.equal(details.hash, HASH);
+    assert.equal(details.value, "1000000000000000000");
+    assert.equal(details.valuePLS, "1");
+    assert.equal(details.gas, "21000");
+    assert.equal(details.nonce, 1);
+
+    // pending markers
+    assert.equal(details.status, "pending");
+    assert.equal(details.blockNumber, "pending");
+    assert.equal(details.blockHash, "");
+    assert.equal(details.timestamp, null);
+
+    // nothing receipt-derived exists yet
+    assert.equal(details.gasUsed, "0");
+    assert.equal(details.effectiveGasPrice, "0");
+    assert.equal(details.cumulativeGasUsed, "0");
+    assert.equal(details.contractAddress, null);
+    assert.deepEqual(details.decodedLogs, []);
+    assert.deepEqual(details.rawLogs, []);
+    // value transfer (input 0x) → no calldata to decode, no ABI fetch
+    assert.equal(details.decodedInput, null);
   });
 });

@@ -121,7 +121,10 @@ function TrackedRow({
   });
 
   useEffect(() => {
-    if (data?.blockNumber) {
+    // Mined = the lookup resolved with a real outcome. A pending tx now also
+    // resolves (status "pending", blockNumber "pending" sentinel), so check the
+    // status explicitly — `data.blockNumber` alone is truthy for pending too.
+    if (data && data.status !== "pending" && data.blockNumber) {
       resolveTracked(tx.hash, {
         status: "mined",
         blockNumber: data.blockNumber,
@@ -129,8 +132,12 @@ function TrackedRow({
       });
       return;
     }
-    // Not on-chain yet. Only call it dropped from a complete mempool view.
-    if ((isError || data === undefined) && tx.status === "pending") {
+    // Not on-chain yet — the lookup threw, returned nothing, or still reports
+    // pending. Only call it dropped from a complete mempool view.
+    if (
+      (isError || data === undefined || data?.status === "pending") &&
+      tx.status === "pending"
+    ) {
       const gone = !pendingHashes.has(tx.hash.toLowerCase());
       const expired = Date.now() - tx.firstSeen > DROP_GRACE_MS;
       if (mempoolComplete && gone && expired) {
