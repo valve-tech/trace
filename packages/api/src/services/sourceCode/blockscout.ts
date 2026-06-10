@@ -1,10 +1,10 @@
 import {
-  BLOCKSCOUT_API_URL,
   FETCH_TIMEOUT,
   UpstreamError,
   type SourceFile,
   type VerifiedSource,
 } from "./types.js";
+import { currentChain } from "../chains/context.js";
 
 interface BlockScoutSourceResult {
   SourceCode: string;
@@ -31,12 +31,18 @@ interface BlockScoutSourceResult {
 export async function fetchFromBlockScout(
   address: string,
 ): Promise<VerifiedSource | null> {
+  // A chain without BlockScout can't have a verified source there — that's a
+  // definitive miss (null), not a transient outage (UpstreamError), so the
+  // caller may still consult Sourcify and safely negative-cache the result.
+  const blockscoutBase = currentChain().blockscoutBase;
+  if (!blockscoutBase) return null;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
   let res: Response;
   try {
-    const url = `${BLOCKSCOUT_API_URL}?module=contract&action=getsourcecode&address=${address}`;
+    const url = `${blockscoutBase}?module=contract&action=getsourcecode&address=${address}`;
     res = await fetch(url, { signal: controller.signal });
   } catch (err) {
     clearTimeout(timer);
@@ -114,8 +120,10 @@ async function fetchSmartContractV2(
   address: string,
   signal: AbortSignal,
 ): Promise<{ sourceMap: string | null; deployedBytecode: string | null }> {
+  const blockscoutBase = currentChain().blockscoutBase;
+  if (!blockscoutBase) return { sourceMap: null, deployedBytecode: null };
   try {
-    const url = `${BLOCKSCOUT_API_URL.replace("/api", "")}/api/v2/smart-contracts/${address}`;
+    const url = `${blockscoutBase.replace("/api", "")}/api/v2/smart-contracts/${address}`;
     const res = await fetch(url, { signal });
     if (!res.ok) return { sourceMap: null, deployedBytecode: null };
     const data = (await res.json()) as {

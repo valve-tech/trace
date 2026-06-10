@@ -1,19 +1,7 @@
 import { apiUrl } from "../lib/apiBase";
-import { DEFAULT_CHAIN_ID } from "../lib/chains";
+import { scoped } from "./chainScope";
 
 const API_BASE = apiUrl("/api/testnets");
-
-/**
- * Scope a request to a chain via the `?chainid=N` dispatcher param. The default
- * chain is omitted so existing PulseChain calls stay byte-identical; an explicit
- * non-default chain appends the param, which the backend reads when forking (the
- * fork response then carries the resolved `chainId`). Local to this module —
- * api/explorer.ts has its own copy on purpose.
- */
-function scoped(url: string, chainId: number | undefined): string {
-  if (chainId === undefined || chainId === DEFAULT_CHAIN_ID) return url;
-  return url + (url.includes("?") ? "&" : "?") + `chainid=${chainId}`;
-}
 
 // ---------------------------------------------------------------------------
 // Types

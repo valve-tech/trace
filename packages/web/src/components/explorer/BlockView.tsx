@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { fetchBlock, type BlockDetails } from "../../api/explorer";
 import { useActiveChainId } from "../../lib/activeChain";
+import { chainSymbol } from "../../lib/chains";
 import TxRowActions from "./TxRowActions";
 import { formatPLS, truncateAddr } from "./format";
 import { formatGwei } from "../../lib/format/tokenAmount";
@@ -352,7 +353,7 @@ export default function BlockView({
                     <td
                       className="px-3 py-2 font-mono text-xs whitespace-nowrap theme-text"
                     >
-                      {formatPLS(tx.valuePLS)}
+                      {formatPLS(tx.valuePLS, chainSymbol(chainId))}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <TxGasInfo

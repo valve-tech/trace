@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import StepDebugger from "../components/debugger/StepDebugger";
 import type { OpcodeStep, StepDetailResponse } from "../api/debugger";
 
@@ -32,7 +33,12 @@ const queryClient = new QueryClient({
 });
 
 function Wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  // MemoryRouter: the debugger reads the active chain from the URL.
+  return (
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </MemoryRouter>
+  );
 }
 
 function makeStep(overrides: Partial<OpcodeStep> = {}): OpcodeStep {

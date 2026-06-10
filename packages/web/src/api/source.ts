@@ -1,5 +1,18 @@
 import { apiUrl } from "../lib/apiBase";
+import { scoped } from "./chainScope";
+import { getActiveChainId } from "../lib/activeChain";
+
 const API_BASE = apiUrl("/api/source");
+
+/**
+ * Source endpoints are address-keyed but chain-dependent — the same address
+ * holds different code on different chains. Every fetch here is scoped to
+ * the URL's active chain at call time; reactive consumers additionally key
+ * their queries on `useActiveChainId()`.
+ */
+function sourceUrl(path: string): string {
+  return scoped(`${API_BASE}${path}`, getActiveChainId());
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -87,7 +100,7 @@ export interface SlitherResponse {
 // ---------------------------------------------------------------------------
 
 export async function fetchSource(address: string): Promise<SourceResponse> {
-  const res = await fetch(`${API_BASE}/${address}`);
+  const res = await fetch(sourceUrl(`/${address}`));
   return (await res.json()) as SourceResponse;
 }
 
@@ -115,7 +128,7 @@ const SOURCE_FETCH_TIMEOUT_MS = 8_000;
 async function attemptFetchSource(address: string): Promise<SourceFetchOutcome> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/${address}`, {
+    res = await fetch(sourceUrl(`/${address}`), {
       signal: AbortSignal.timeout(SOURCE_FETCH_TIMEOUT_MS),
     });
   } catch (err) {
@@ -219,7 +232,7 @@ export async function analyzeContract(
   address: string,
   options: { skipCache?: boolean } = {},
 ): Promise<SlitherResponse> {
-  const res = await fetch(`${API_BASE}/${address}/analyze`, {
+  const res = await fetch(sourceUrl(`/${address}/analyze`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(options),
@@ -231,7 +244,7 @@ export async function fetchSourceMappings(
   address: string,
   pcs: number[],
 ): Promise<SourceMapResponse> {
-  const res = await fetch(`${API_BASE}/${address}/map`, {
+  const res = await fetch(sourceUrl(`/${address}/map`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ pcs }),
@@ -264,7 +277,7 @@ async function attemptFetchSourceMap(
 ): Promise<SourceMapFetchOutcome> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/${address}/map`, {
+    res = await fetch(sourceUrl(`/${address}/map`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pcs }),

@@ -1,10 +1,13 @@
 import { apiUrl } from "../lib/apiBase";
+import { scoped } from "./chainScope";
+import { DEFAULT_CHAIN_ID } from "../lib/chains";
 /**
  * Client for the home-view ("latest") API endpoints — Bundle 1 of
  * EXPLORER_API_SPEC §2.1–2.3.
  */
 
 const API_BASE = apiUrl("/api");
+
 
 // ---------------------------------------------------------------------------
 // Wire types — mirrors `services/explorer/latest.ts` on the server.
@@ -87,24 +90,31 @@ async function apiFetch<T>(url: string): Promise<T> {
   return json.result;
 }
 
-export function fetchLatestSummary(chainId?: number): Promise<LatestSummary> {
-  const qs = chainId != null ? `?chainid=${chainId}` : "";
-  return apiFetch<LatestSummary>(`${API_BASE}/latest/summary${qs}`);
+export function fetchLatestSummary(
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<LatestSummary> {
+  return apiFetch<LatestSummary>(scoped(`${API_BASE}/latest/summary`, chainId));
 }
 
 export function fetchRecentBlocks(opts: {
   limit?: number;
   before?: string;
+  chainId?: number;
 }): Promise<RecentBlocksResult> {
   const params = new URLSearchParams();
   if (opts.limit != null) params.set("limit", String(opts.limit));
   if (opts.before != null) params.set("before", opts.before);
   const qs = params.toString();
   return apiFetch<RecentBlocksResult>(
-    `${API_BASE}/blocks${qs ? `?${qs}` : ""}`,
+    scoped(`${API_BASE}/blocks${qs ? `?${qs}` : ""}`, opts.chainId ?? DEFAULT_CHAIN_ID),
   );
 }
 
-export function fetchRecentTxs(limit: number = 10): Promise<RecentTxsResult> {
-  return apiFetch<RecentTxsResult>(`${API_BASE}/txs/recent?limit=${limit}`);
+export function fetchRecentTxs(
+  limit: number = 10,
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<RecentTxsResult> {
+  return apiFetch<RecentTxsResult>(
+    scoped(`${API_BASE}/txs/recent?limit=${limit}`, chainId),
+  );
 }

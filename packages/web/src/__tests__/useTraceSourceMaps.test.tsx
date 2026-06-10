@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import * as sourceApi from "../api/source";
+import { DEFAULT_CHAIN_ID } from "../lib/chains";
 import { useTraceSourceMaps } from "../hooks/useTraceSourceMaps";
 
 /**
@@ -45,7 +47,7 @@ function makeQueryClient(): QueryClient {
 
 function findQuery(client: QueryClient, addrs: string[], pcsByContract: Record<string, number[]>) {
   const key = addrs.map((a) => `${a}:${pcsByContract[a]!.length}`).join(",");
-  return client.getQueryCache().find({ queryKey: ["trace-source-maps", "v2", key] });
+  return client.getQueryCache().find({ queryKey: ["trace-source-maps", "v2", DEFAULT_CHAIN_ID, key] });
 }
 
 describe("useTraceSourceMaps — cache discipline", () => {
@@ -61,7 +63,7 @@ describe("useTraceSourceMaps — cache discipline", () => {
     const sortedAddrs = [ADDR_A, ADDR_B].sort();
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
 
     const { result } = renderHook(() => useTraceSourceMaps(pcsByContract), { wrapper });
@@ -80,7 +82,7 @@ describe("useTraceSourceMaps — cache discipline", () => {
     const sortedAddrs = [ADDR_A, ADDR_B].sort();
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
     const { result } = renderHook(() => useTraceSourceMaps(pcsByContract), { wrapper });
     await waitFor(() => expect(result.current.data[ADDR_A]).toBeDefined());
@@ -107,7 +109,7 @@ describe("useTraceSourceMaps — cache discipline", () => {
     const sortedAddrs = [ADDR_A, ADDR_B].sort();
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
     const { result } = renderHook(() => useTraceSourceMaps(pcsByContract), { wrapper });
     await waitFor(() => expect(result.current.data[ADDR_A]).toBeDefined());
@@ -134,7 +136,7 @@ describe("useTraceSourceMaps — cache discipline", () => {
     const sortedAddrs = [ADDR_A, ADDR_B].sort();
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
     const first = renderHook(() => useTraceSourceMaps(pcsByContract), { wrapper });
     await waitFor(() => expect(first.result.current.data[ADDR_A]).toBeDefined());

@@ -1,8 +1,6 @@
 import type { Abi } from "viem";
 import { readCachedAbi, writeCachedAbi } from "./abiCache.js";
-
-const BLOCKSCOUT_API =
-  process.env.BLOCKSCOUT_API_URL || "https://api.scan.pulsechain.com/api";
+import { currentChain, currentChainId } from "../chains/context.js";
 
 // Coalesce concurrent fetches for the same address. The gas profiler walks
 // the call tree in parallel and routinely fires 100s of decodeFunctionName
@@ -12,14 +10,17 @@ const BLOCKSCOUT_API =
 const inflight = new Map<string, Promise<Abi | null>>();
 
 /**
- * Fetch the ABI for a verified contract from PulseChain BlockScout.
- * Returns `null` when the contract is not verified, the request times
- * out, or the response is malformed. Results are cached in memory with
- * a one-hour TTL (see `./abiCache.ts`); concurrent callers share one
- * in-flight request per address.
+ * Fetch the ABI for a verified contract from the active chain's BlockScout.
+ * Returns `null` when the chain has no BlockScout configured, the contract
+ * is not verified, the request times out, or the response is malformed.
+ * Results are cached in memory keyed by (chainId, address) with a one-hour
+ * TTL (see `./abiCache.ts`); concurrent callers share one in-flight request
+ * per (chainId, address).
  */
 export async function fetchAbi(address: string): Promise<Abi | null> {
-  const key = address.toLowerCase();
+  const blockscoutBase = currentChain().blockscoutBase;
+  if (!blockscoutBase) return null;
+  const key = `${currentChainId()}:${address.toLowerCase()}`;
 
   const cached = readCachedAbi(key);
   if (cached) return cached;
@@ -29,7 +30,7 @@ export async function fetchAbi(address: string): Promise<Abi | null> {
 
   const promise = (async () => {
     try {
-      const url = `${BLOCKSCOUT_API}?module=contract&action=getabi&address=${address}`;
+      const url = `${blockscoutBase}?module=contract&action=getabi&address=${address}`;
       const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
       if (!res.ok) return null;
 

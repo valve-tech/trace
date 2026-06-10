@@ -1,4 +1,6 @@
 import { apiUrl } from "../lib/apiBase";
+import { scoped } from "./chainScope";
+import { DEFAULT_CHAIN_ID } from "../lib/chains";
 /**
  * API client for the debugger endpoints.
  */
@@ -6,6 +8,7 @@ import { apiUrl } from "../lib/apiBase";
 import type { OpcodeStep as SdkOpcodeStep, RawCallFrame } from "@valve-tech/trace-sdk";
 
 const API_BASE = apiUrl("/api/debug");
+
 
 // ---------------------------------------------------------------------------
 // Types (mirroring backend)
@@ -140,8 +143,11 @@ async function parseError(res: Response): Promise<string> {
 /**
  * Get the call-tree trace for a transaction.
  */
-export async function fetchTrace(hash: string): Promise<TraceResponse> {
-  const res = await fetch(`${API_BASE}/tx/${hash}/trace`);
+export async function fetchTrace(
+  hash: string,
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<TraceResponse> {
+  const res = await fetch(scoped(`${API_BASE}/tx/${hash}/trace`, chainId));
   if (!res.ok) {
     const error = await parseError(res);
     const body = (() => {
@@ -166,8 +172,11 @@ export async function fetchTrace(hash: string): Promise<TraceResponse> {
 export async function fetchOpcodes(
   hash: string,
   limit: number = 10000,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<OpcodeResponse> {
-  const res = await fetch(`${API_BASE}/tx/${hash}/opcodes?limit=${limit}`);
+  const res = await fetch(
+    scoped(`${API_BASE}/tx/${hash}/opcodes?limit=${limit}`, chainId),
+  );
   if (!res.ok) {
     const error = await parseError(res);
     const body = (() => {
@@ -195,9 +204,10 @@ export async function fetchOpcodeDetail(
   hash: string,
   from: number,
   to: number,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<StepDetailResponse> {
   const res = await fetch(
-    `${API_BASE}/tx/${hash}/opcodes/detail?from=${from}&to=${to}`,
+    scoped(`${API_BASE}/tx/${hash}/opcodes/detail?from=${from}&to=${to}`, chainId),
   );
   if (!res.ok) {
     const error = await parseError(res);
@@ -209,8 +219,11 @@ export async function fetchOpcodeDetail(
 /**
  * Get gas profiler data for a transaction.
  */
-export async function fetchGasProfile(hash: string): Promise<GasProfileResponse> {
-  const res = await fetch(`${API_BASE}/tx/${hash}/gas-profile`);
+export async function fetchGasProfile(
+  hash: string,
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<GasProfileResponse> {
+  const res = await fetch(scoped(`${API_BASE}/tx/${hash}/gas-profile`, chainId));
   if (!res.ok) {
     const error = await parseError(res);
     const body = (() => {

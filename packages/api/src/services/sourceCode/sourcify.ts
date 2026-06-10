@@ -5,6 +5,7 @@ import {
   type SourceFile,
   type VerifiedSource,
 } from "./types.js";
+import { currentChain } from "../chains/context.js";
 
 interface SourcifyFile {
   name: string;
@@ -18,17 +19,20 @@ interface SourcifyFile {
  * exactly) and "partial" (metadata-only) matches — we try full first and
  * fall back to partial.
  *
- * PulseChain mainnet chainId is 369; this is hardcoded because Sourcify
- * requires the chain in the URL and we only serve PulseChain today.
+ * The chain in the URL comes from the request's chain context; chains with
+ * `sourcifyEnabled: false` (e.g. the testnet) resolve to a definitive miss.
  */
 export async function fetchFromSourcify(
   address: string,
 ): Promise<VerifiedSource | null> {
+  const chain = currentChain();
+  if (!chain.sourcifyEnabled) return null;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
   try {
-    const chainId = 369;
+    const chainId = chain.chainId;
 
     // Sourcify migration (2025): the old `/repository/contracts/{full,partial}_match/<chain>/<addr>/`
     // existence-check + `/files/<chain>/<addr>` file-fetch flow was retired and now 404s for

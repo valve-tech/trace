@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchBlock } from "../../../api/explorer";
+import { useActiveChainId } from "../../../lib/activeChain";
 import { PreviewShell, shortHex, ago } from "./PreviewShell";
 
 /**
@@ -7,9 +8,10 @@ import { PreviewShell, shortHex, ago } from "./PreviewShell";
  * Infinity` is safe.
  */
 export function BlockPreview({ numberOrHash }: { numberOrHash: string }) {
+  const chainId = useActiveChainId();
   const query = useQuery({
-    queryKey: ["workspace-preview-block", numberOrHash.toLowerCase()],
-    queryFn: () => fetchBlock(numberOrHash),
+    queryKey: ["workspace-preview-block", chainId, numberOrHash.toLowerCase()],
+    queryFn: () => fetchBlock(numberOrHash, chainId),
     staleTime: Infinity,
   });
 

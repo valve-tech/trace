@@ -2,6 +2,8 @@ import type { AddressInfo } from "../../../api/explorer";
 import { formatPLS } from "../format";
 import { EntityActionBar } from "../../EntityActionBar";
 import { AddToWorkspaceButton } from "../../workspace/AddToWorkspaceButton";
+import { useActiveChainId } from "../../../lib/activeChain";
+import { chainSymbol } from "../../../lib/chains";
 
 export function AddressHeader({
   address,
@@ -12,6 +14,7 @@ export function AddressHeader({
   info: AddressInfo | null;
   onViewContract: () => void;
 }) {
+  const symbol = chainSymbol(useActiveChainId());
   return (
     <div
       className="rounded-lg bs p-4 theme-card-bg"
@@ -55,7 +58,7 @@ export function AddressHeader({
           <span
             className="font-mono text-lg font-semibold theme-text"
           >
-            {info ? formatPLS(info.balancePLS) : "..."}
+            {info ? formatPLS(info.balancePLS, symbol) : "..."}
           </span>
         </div>
       </div>

@@ -5,6 +5,7 @@ import {
   type ContractSource,
   type SourceLocation,
 } from "../api/source";
+import { useActiveChainId } from "../lib/activeChain";
 
 const UNVERIFIED_TTL_MS = 15 * 60 * 1000;
 
@@ -23,8 +24,9 @@ const UNVERIFIED_TTL_MS = 15 * 60 * 1000;
  */
 export function useContractSource(address: string | null | undefined) {
   const addrKey = address?.toLowerCase();
+  const chainId = useActiveChainId();
   return useQuery({
-    queryKey: ["source", "v2", addrKey],
+    queryKey: ["source", "v2", chainId, addrKey],
     queryFn: async (): Promise<ContractSource | null> =>
       fetchContractSourceWithRetry(address!),
     enabled: !!address,
@@ -50,9 +52,10 @@ export function useSourceMappings(
   // PCs share one cache entry. Sort doesn't mutate the input.
   const sortedPcs = [...pcs].sort((a, b) => a - b);
   const addrKey = address?.toLowerCase();
+  const chainId = useActiveChainId();
 
   return useQuery({
-    queryKey: ["source-map", "v2", addrKey, sortedPcs],
+    queryKey: ["source-map", "v2", chainId, addrKey, sortedPcs],
     queryFn: async (): Promise<SourceMap> => {
       const result = await fetchTraceSourceMap(address!, pcs);
       // null = transient/fatal after retry budget exhausted. Throw so

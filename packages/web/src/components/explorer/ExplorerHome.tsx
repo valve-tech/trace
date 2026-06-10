@@ -26,6 +26,8 @@ import { ExplorerLink } from "./ExplorerLink";
 import { TxGasInfo } from "./TxGasInfo";
 import { GasOracleWidget } from "./GasOracleWidget";
 import { subscriptSmallString, groupDecimalString } from "./format";
+import { useActiveChainId } from "../../lib/activeChain";
+import { chainSymbol } from "../../lib/chains";
 
 const REFETCH_MS = 5_000;
 
@@ -37,23 +39,25 @@ interface Props {
 }
 
 export default function ExplorerHome({ onNavigate }: Props) {
+  const chainId = useActiveChainId();
+
   const summary = useQuery({
-    queryKey: ["explorer", "latest", "summary"],
-    queryFn: () => fetchLatestSummary(),
+    queryKey: ["explorer", "latest", "summary", chainId],
+    queryFn: () => fetchLatestSummary(chainId),
     refetchInterval: REFETCH_MS,
     staleTime: 0,
   });
 
   const blocks = useQuery({
-    queryKey: ["explorer", "latest", "blocks", 10],
-    queryFn: () => fetchRecentBlocks({ limit: 10 }),
+    queryKey: ["explorer", "latest", "blocks", 10, chainId],
+    queryFn: () => fetchRecentBlocks({ limit: 10, chainId }),
     refetchInterval: REFETCH_MS,
     staleTime: 0,
   });
 
   const txs = useQuery({
-    queryKey: ["explorer", "latest", "txs", 10],
-    queryFn: () => fetchRecentTxs(10),
+    queryKey: ["explorer", "latest", "txs", 10, chainId],
+    queryFn: () => fetchRecentTxs(10, chainId),
     refetchInterval: REFETCH_MS,
     staleTime: 0,
   });
@@ -250,6 +254,7 @@ function TxsCard({
   loading: boolean;
   onNavigate: Props["onNavigate"];
 }) {
+  const symbol = chainSymbol(useActiveChainId());
   return (
     <div
       className="card theme-card-bg"
@@ -292,7 +297,7 @@ function TxsCard({
               <div
                 className="text-[11px] font-mono tabular-nums text-right shrink-0 theme-text-secondary"
               >
-                <div>{formatPls(t.value)} PLS</div>
+                <div>{formatPls(t.value)} {symbol}</div>
                 <div
                   className="text-[10px] theme-text-muted"
                 >

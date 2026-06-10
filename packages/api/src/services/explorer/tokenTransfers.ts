@@ -1,6 +1,6 @@
 import { type Hex } from "viem";
 import { chainClient } from "../chains/context.js";
-import { BLOCKSCOUT_API, blockscoutFetch } from "./client.js";
+import { blockscoutFetch, blockscoutV2Base } from "./client.js";
 import {
   mapV1Row,
   mapV2Row,
@@ -26,7 +26,8 @@ export async function getTokenTransfers(
 }
 
 async function fetchV2(hash: string): Promise<TokenTransfer[] | null> {
-  const base = BLOCKSCOUT_API.replace("/api", "");
+  const base = blockscoutV2Base();
+  if (base === null) return null;
   try {
     const res = await fetch(
       `${base}/api/v2/transactions/${hash}/token-transfers`,

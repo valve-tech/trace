@@ -18,9 +18,6 @@ export interface VerifiedSource {
   deployedBytecode: string | null;
 }
 
-export const BLOCKSCOUT_API_URL =
-  process.env.BLOCKSCOUT_API_URL ?? "https://api.scan.pulsechain.com/api";
-
 export const SOURCIFY_API_URL = "https://sourcify.dev/server";
 
 export const FETCH_TIMEOUT = 15_000;

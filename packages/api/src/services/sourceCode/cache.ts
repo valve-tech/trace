@@ -1,10 +1,12 @@
 import { pool } from "../pool.js";
+import { currentChainId } from "../chains/context.js";
 import type { SourceFile, VerifiedSource } from "./types.js";
 
 /**
- * Verified source rows live in `verified_sources`, keyed by lowercase
- * address. Reads return `null` on miss; writes use UPSERT so a
- * subsequent fetch refreshes `fetched_at`. JSONB columns
+ * Verified source rows live in `verified_sources`, keyed by
+ * (chain_id, lowercase address) — the same address can hold different
+ * code on different chains. Reads return `null` on miss; writes use
+ * UPSERT so a subsequent fetch refreshes `fetched_at`. JSONB columns
  * (source_files, abi) come back pre-deserialized from pg.
  */
 export async function getCachedSource(
@@ -22,8 +24,8 @@ export async function getCachedSource(
     source_map: string | null;
     deployed_bytecode: string | null;
   }>(
-    "SELECT * FROM verified_sources WHERE LOWER(address) = LOWER($1)",
-    [address],
+    "SELECT * FROM verified_sources WHERE chain_id = $2 AND LOWER(address) = LOWER($1)",
+    [address, currentChainId()],
   );
 
   if (!rows[0]) return null;
@@ -46,10 +48,10 @@ export async function getCachedSource(
 export async function cacheSource(source: VerifiedSource): Promise<void> {
   await pool.query(
     `INSERT INTO verified_sources
-       (address, chain_source, contract_name, compiler_version, optimization_used,
+       (address, chain_id, chain_source, contract_name, compiler_version, optimization_used,
         optimization_runs, source_files, abi, source_map, deployed_bytecode)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9, $10)
-     ON CONFLICT (LOWER(address)) DO UPDATE SET
+     VALUES ($1, $11, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9, $10)
+     ON CONFLICT (chain_id, LOWER(address)) DO UPDATE SET
        chain_source = $2, contract_name = $3, compiler_version = $4,
        optimization_used = $5, optimization_runs = $6, source_files = $7::jsonb,
        abi = $8::jsonb, source_map = $9, deployed_bytecode = $10,
@@ -65,6 +67,7 @@ export async function cacheSource(source: VerifiedSource): Promise<void> {
       JSON.stringify(source.abi),
       source.sourceMap,
       source.deployedBytecode,
+      currentChainId(),
     ],
   );
 }

@@ -47,10 +47,10 @@ describe("chain registry — launch set", () => {
     }
   });
 
-  it("only PulseChain mainnet ships a blockscoutBase; others omit it", () => {
+  it("PulseChain chains ship a blockscoutBase; Ethereum omits it", () => {
     assert.ok(getChain(369).blockscoutBase, "369 should have a blockscout base");
+    assert.ok(getChain(943).blockscoutBase, "943 should have a blockscout base");
     assert.equal(getChain(1).blockscoutBase, undefined);
-    assert.equal(getChain(943).blockscoutBase, undefined);
   });
 
   it("carries the substreams endpoint per the evm-{id}-substreams.valve.city pattern", () => {

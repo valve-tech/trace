@@ -18,6 +18,7 @@ import {
   type OpcodeStep,
 } from "../../api/debugger";
 import { fetchTransaction } from "../../api/explorer";
+import { useActiveChainId } from "../../lib/activeChain";
 import { lookupWellKnown } from "../../lib/wellKnownSignatures";
 import { recordDebuggerTx } from "../../lib/recentDebuggerTxs";
 import { recordVisit } from "../../lib/recentEntities";
@@ -47,13 +48,16 @@ interface DebuggerData {
  * cached by TanStack Query — which persists to IndexedDB, so a reload of the
  * same tx serves instantly from cache instead of re-hitting the backend.
  */
-async function fetchDebuggerData(hash: string): Promise<DebuggerData> {
+async function fetchDebuggerData(
+  hash: string,
+  chainId: number,
+): Promise<DebuggerData> {
   const [traceRes, gasRes, opcodeRes] = await Promise.all([
-    fetchTrace(hash),
-    fetchGasProfile(hash),
+    fetchTrace(hash, chainId),
+    fetchGasProfile(hash, chainId),
     // Skeleton: the full opcode stream (no per-step stack/memory/storage).
     // Per-step state is loaded lazily by StepDebugger for the current cursor.
-    fetchOpcodes(hash),
+    fetchOpcodes(hash, undefined, chainId),
   ]);
 
   const data: DebuggerData = {
@@ -90,6 +94,7 @@ const VALID_TABS: ReadonlySet<DebugTab> = new Set(["debugger", "calltree", "gas"
 export default function DebuggerView() {
   const { txHash: urlHash, tab: urlTab } = useParams<{ txHash?: string; tab?: string }>();
   const navigate = useNavigate();
+  const chainId = useActiveChainId();
   const [txHash, setTxHash] = useState(urlHash ?? "");
 
   // Keep the search input in sync when the route hash changes (e.g. ⌘K nav).
@@ -122,8 +127,8 @@ export default function DebuggerView() {
   // block — so the trace cache is scoped by block hash too. A not-yet-mined tx
   // has no block hash; it's keyed "pending" and never treated as final.
   const txContext = useQuery({
-    queryKey: ["tx-context", validUrlHash],
-    queryFn: () => fetchTransaction(validUrlHash!),
+    queryKey: ["tx-context", validUrlHash, chainId],
+    queryFn: () => fetchTransaction(validUrlHash!, chainId),
     enabled: !!validUrlHash,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -140,8 +145,8 @@ export default function DebuggerView() {
   // the persisted client + staleTime Infinity, a revisit/reload of a mined tx
   // reads it straight from IndexedDB; pending traces stay fresh (staleTime 0).
   const query = useQuery({
-    queryKey: ["debugger-trace", validUrlHash, cacheScope],
-    queryFn: () => fetchDebuggerData(validUrlHash!),
+    queryKey: ["debugger-trace", validUrlHash, cacheScope, chainId],
+    queryFn: () => fetchDebuggerData(validUrlHash!, chainId),
     enabled: !!validUrlHash && contextSettled,
     staleTime: pending ? 0 : Infinity,
     gcTime: pending ? 0 : Infinity,

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchAddressInfo, fetchContractInfo } from "../../../api/explorer";
+import { useActiveChainId } from "../../../lib/activeChain";
 import { PreviewShell } from "./PreviewShell";
 
 /**
@@ -14,16 +15,17 @@ import { PreviewShell } from "./PreviewShell";
  * same address every time a row is expanded.
  */
 export function AddressPreview({ address }: { address: string }) {
+  const chainId = useActiveChainId();
   const info = useQuery({
-    queryKey: ["workspace-preview-address", address.toLowerCase()],
-    queryFn: () => fetchAddressInfo(address),
+    queryKey: ["workspace-preview-address", chainId, address.toLowerCase()],
+    queryFn: () => fetchAddressInfo(address, chainId),
     staleTime: 5 * 60 * 1000,
   });
   // Verified-name lookup only fires once we know the address has code —
   // an EOA never has a contractName so the second query is wasted.
   const contract = useQuery({
-    queryKey: ["workspace-preview-contract", address.toLowerCase()],
-    queryFn: () => fetchContractInfo(address),
+    queryKey: ["workspace-preview-contract", chainId, address.toLowerCase()],
+    queryFn: () => fetchContractInfo(address, chainId),
     enabled: info.data?.isContract === true,
     staleTime: Infinity,
   });

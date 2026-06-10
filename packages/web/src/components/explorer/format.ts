@@ -60,14 +60,16 @@ export function subscriptSmallString(value: string, sigFigs = 4): string | null 
 }
 
 /**
- * Format an EXACT decimal PLS string (a `formatEther` result) for display.
- * String ops only — never `parseFloat` — so large balances stay exact. Tiny
- * magnitudes use the subscript notation; everything else groups + caps to 6
- * fraction digits.
+ * Format an EXACT decimal native-value string (a `formatEther` result) for
+ * display. String ops only — never `parseFloat` — so large balances stay
+ * exact. Tiny magnitudes use the subscript notation; everything else groups
+ * + caps to 6 fraction digits. `symbol` is the chain's native ticker
+ * (chains.ts `chainSymbol`); the name mirrors the wire fields (`valuePLS`),
+ * which predate multichain.
  */
-export function formatPLS(valuePLS: string): string {
-  if (isZeroDecimal(valuePLS)) return "0 PLS";
+export function formatPLS(valuePLS: string, symbol: string = "PLS"): string {
+  if (isZeroDecimal(valuePLS)) return `0 ${symbol}`;
   const small = subscriptSmallString(valuePLS);
-  if (small !== null) return `${small} PLS`;
-  return `${groupDecimalString(valuePLS, 6)} PLS`;
+  if (small !== null) return `${small} ${symbol}`;
+  return `${groupDecimalString(valuePLS, 6)} ${symbol}`;
 }

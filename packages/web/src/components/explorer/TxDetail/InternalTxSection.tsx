@@ -1,6 +1,8 @@
 import type { TransactionDetails } from "../../../api/explorer";
 import { AddressLink, SectionCard, type AddressNavigate } from "./primitives";
 import { formatPLS } from "./format";
+import { useActiveChainId } from "../../../lib/activeChain";
+import { chainSymbol } from "../../../lib/chains";
 
 export function InternalTxSection({
   internalTransactions,
@@ -9,6 +11,7 @@ export function InternalTxSection({
   internalTransactions: TransactionDetails["internalTransactions"];
   onNavigate: AddressNavigate;
 }) {
+  const symbol = chainSymbol(useActiveChainId());
   return (
     <SectionCard
       title="Internal Transactions"
@@ -73,7 +76,7 @@ export function InternalTxSection({
                   <td
                     className="px-3 py-2 font-mono theme-text"
                   >
-                    {formatPLS(itx.valuePLS)}
+                    {formatPLS(itx.valuePLS, symbol)}
                   </td>
                   <td
                     className="px-3 py-2 font-mono theme-text-secondary"

@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import * as sourceApi from "../api/source";
 import { useTraceSources } from "../hooks/useTraceSources";
+import { DEFAULT_CHAIN_ID } from "../lib/chains";
 
 /**
  * Hook-level tests for `useTraceSources`. Mirrors useContractMeta tests for
@@ -42,7 +44,7 @@ function findTraceSourcesQuery(client: QueryClient, addrs: string[]) {
   const key = addrs.map((a) => a.toLowerCase()).sort().join(",");
   return client
     .getQueryCache()
-    .find({ queryKey: ["trace-sources", "v2", key] });
+    .find({ queryKey: ["trace-sources", "v2", DEFAULT_CHAIN_ID, key] });
 }
 
 describe("useTraceSources — cache discipline", () => {
@@ -58,7 +60,7 @@ describe("useTraceSources — cache discipline", () => {
       );
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
     const addrs = [ADDR_A, ADDR_B];
 
@@ -79,7 +81,7 @@ describe("useTraceSources — cache discipline", () => {
     );
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
     const addrs = [ADDR_A, ADDR_B];
 
@@ -114,7 +116,7 @@ describe("useTraceSources — cache discipline", () => {
       );
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
     const addrs = [ADDR_A, ADDR_B];
 
@@ -144,7 +146,7 @@ describe("useTraceSources — cache discipline", () => {
     );
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
     const addrs = [ADDR_A, ADDR_B];
 
@@ -171,7 +173,7 @@ describe("useTraceSources — cache discipline", () => {
       .mockImplementation(async () => VERIFIED("X"));
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
     const addrs = [ADDR_A, ADDR_B];
 
@@ -190,7 +192,7 @@ describe("useTraceSources — cache discipline", () => {
     const spy = vi.spyOn(sourceApi, "fetchTraceSourceFiles");
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
 
     const { result } = renderHook(() => useTraceSources([]), { wrapper });
@@ -206,7 +208,7 @@ describe("useTraceSources — cache discipline", () => {
       .mockImplementation(async () => VERIFIED("X"));
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
 
     renderHook(() => useTraceSources([ADDR_A, ADDR_B]), { wrapper });
@@ -229,7 +231,7 @@ describe("useTraceSources — cache discipline", () => {
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <MemoryRouter><QueryClientProvider client={client}>{children}</QueryClientProvider></MemoryRouter>
     );
     const addrs = [ADDR_A, ADDR_B];
 

@@ -1,4 +1,5 @@
 import { apiUrl } from "../lib/apiBase";
+import { scoped } from "./chainScope";
 import { formatEther, hexToBigInt, hexToNumber } from "viem";
 import { DEFAULT_CHAIN_ID } from "../lib/chains";
 import { isRpcOverridden } from "../lib/rpcEndpoint";
@@ -18,16 +19,6 @@ function rpcResult(resp: JsonRpcResponse, method: string): string {
   return (resp.result as string | undefined) ?? "0x";
 }
 
-/**
- * Scope a request to a chain via the `?chainid=N` dispatcher param. The default
- * chain is omitted so existing PulseChain calls stay byte-identical; an explicit
- * non-default chain appends the param, which the backend chainid dispatcher
- * reads once it lands (until then it degrades to the default chain).
- */
-function scoped(url: string, chainId: number): string {
-  if (chainId === DEFAULT_CHAIN_ID) return url;
-  return url + (url.includes("?") ? "&" : "?") + `chainid=${chainId}`;
-}
 
 // ---------------------------------------------------------------------------
 // Types

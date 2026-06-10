@@ -12,7 +12,7 @@
  */
 
 import { formatEther, type PublicClient } from "viem";
-import { chainClient } from "../chains/context.js";
+import { chainClient, currentChainId } from "../chains/context.js";
 import { getRpcClient } from "../chains/clients.js";
 import { getChain, DEFAULT_CHAIN_ID } from "../chains/registry.js";
 import { lookupSelectors } from "../signatures.js";
@@ -224,17 +224,18 @@ export interface RecentTxsResult {
 
 const RECENT_TXS_LIMIT_MAX = 50;
 
-let recentTxsCache: { limit: number; v: RecentTxsResult; t: number } | null = null;
+const recentTxsCache = new Map<
+  number,
+  { limit: number; v: RecentTxsResult; t: number }
+>();
 
 export async function getRecentTxs(limit: number = 10): Promise<RecentTxsResult> {
   const n = Math.min(Math.max(1, Math.floor(limit)), RECENT_TXS_LIMIT_MAX);
 
-  if (
-    recentTxsCache &&
-    recentTxsCache.limit === n &&
-    Date.now() - recentTxsCache.t < RECENT_TXS_TTL_MS
-  ) {
-    return recentTxsCache.v;
+  const chainId = currentChainId();
+  const cached = recentTxsCache.get(chainId);
+  if (cached && cached.limit === n && Date.now() - cached.t < RECENT_TXS_TTL_MS) {
+    return cached.v;
   }
 
   // Walk back from latest until we've gathered at least `n` transactions.
@@ -310,6 +311,6 @@ export async function getRecentTxs(limit: number = 10): Promise<RecentTxsResult>
   }
 
   const result: RecentTxsResult = { transactions: txs };
-  recentTxsCache = { limit: n, v: result, t: Date.now() };
+  recentTxsCache.set(chainId, { limit: n, v: result, t: Date.now() });
   return result;
 }

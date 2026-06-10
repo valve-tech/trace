@@ -1,4 +1,6 @@
 import { toFunctionSelector, toEventSelector, type AbiFunction, type AbiEvent } from "viem";
+import { scoped } from "./chainScope";
+import { getActiveChainId } from "../lib/activeChain";
 
 /**
  * Per-contract metadata derived from a single /api/source fetch: the verified
@@ -94,7 +96,10 @@ async function attemptFetchMeta(addr: string): Promise<FetchOutcome> {
   // module/action shape is what external tooling (hardhat-verify, foundry)
   // will use, and exercising it from the in-app call tree gives us
   // coverage of the same code path.
-  const url = `/api?module=contract&action=getsourcecode&address=${addr}`;
+  const url = scoped(
+    `/api?module=contract&action=getsourcecode&address=${addr}`,
+    getActiveChainId(),
+  );
   let res: Response;
   try {
     res = await fetch(url, { signal: AbortSignal.timeout(8_000) });
@@ -190,9 +195,13 @@ export async function resolveContractMeta(
   const unique = [...new Set(addresses.map((a) => a.toLowerCase()))];
   const result: Record<string, ContractMeta> = {};
 
+  // The memo cache is keyed (chainId, address): the same address can be a
+  // different (or no) contract on another chain.
+  const chainId = getActiveChainId();
   const uncached: string[] = [];
   for (const addr of unique) {
-    if (cache.has(addr)) result[addr] = cache.get(addr)!;
+    const cacheKey = `${chainId}:${addr}`;
+    if (cache.has(cacheKey)) result[addr] = cache.get(cacheKey)!;
     else uncached.push(addr);
   }
 
@@ -215,9 +224,9 @@ export async function resolveContractMeta(
       // and included in the result. Indefinite answers (null) are
       // *omitted* from both — the caller's `result[addr] ?? fallback`
       // path keeps rendering the truncated address, and the next call
-      // refetches automatically because `cache.has(addr)` stays false.
+      // refetches automatically because the cache key stays absent.
       if (meta !== null) {
-        cache.set(addr, meta);
+        cache.set(`${chainId}:${addr}`, meta);
         result[addr] = meta;
       }
     }

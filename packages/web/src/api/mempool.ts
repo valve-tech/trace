@@ -1,4 +1,5 @@
 import { apiUrl } from "../lib/apiBase";
+import { scoped } from "./chainScope";
 import { DEFAULT_CHAIN_ID } from "../lib/chains";
 /**
  * Mempool API client — pending txs sorted by effective priority tip
@@ -7,16 +8,6 @@ import { DEFAULT_CHAIN_ID } from "../lib/chains";
 
 const API_BASE = apiUrl("/api/mempool");
 
-/**
- * Scope a request to a chain via `?chainid=N`. The default chain is omitted so
- * existing PulseChain calls stay byte-identical; non-default chains append the
- * param, which the backend chain-context middleware reads. Mirrors the private
- * `scoped` helper in explorer.ts — kept local per module by design.
- */
-function scoped(url: string, chainId: number): string {
-  if (chainId === DEFAULT_CHAIN_ID) return url;
-  return url + (url.includes("?") ? "&" : "?") + `chainid=${chainId}`;
-}
 
 export interface PendingTx {
   hash: string;

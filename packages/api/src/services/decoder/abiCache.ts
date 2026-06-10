@@ -43,14 +43,19 @@ export function writeCachedAbi(key: string, abi: Abi): void {
 /**
  * Drop an entry (or the entire cache when no address given). Call this
  * after a contract is re-verified, after a proxy upgrade, or from an
- * admin endpoint that wants to force a re-fetch.
+ * admin endpoint that wants to force a re-fetch. Keys are
+ * `<chainId>:<address>`, so an address-only invalidation clears the
+ * address on every chain.
  */
 export function invalidateAbiCache(address?: string): void {
   if (address === undefined) {
     abiCache.clear();
     return;
   }
-  abiCache.delete(address.toLowerCase());
+  const suffix = `:${address.toLowerCase()}`;
+  for (const key of abiCache.keys()) {
+    if (key.endsWith(suffix)) abiCache.delete(key);
+  }
 }
 
 /** Test helper. */

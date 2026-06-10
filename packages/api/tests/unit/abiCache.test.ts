@@ -97,13 +97,17 @@ describe("writeCachedAbi", () => {
 });
 
 describe("invalidateAbiCache", () => {
-  it("drops a single entry by address (case-insensitive)", () => {
-    writeCachedAbi("0xabc", SAMPLE_ABI);
-    writeCachedAbi("0xdef", ANOTHER_ABI);
+  it("drops an address across every chain (case-insensitive)", () => {
+    // Keys are `<chainId>:<address>` — invalidating by address clears the
+    // address on all chains while leaving sibling addresses untouched.
+    writeCachedAbi("369:0xabc", SAMPLE_ABI);
+    writeCachedAbi("1:0xabc", SAMPLE_ABI);
+    writeCachedAbi("369:0xdef", ANOTHER_ABI);
     invalidateAbiCache("0xABC"); // upper-case input
-    assert.equal(readCachedAbi("0xabc"), null);
+    assert.equal(readCachedAbi("369:0xabc"), null);
+    assert.equal(readCachedAbi("1:0xabc"), null);
     // Sibling key untouched
-    assert.deepEqual(readCachedAbi("0xdef"), ANOTHER_ABI);
+    assert.deepEqual(readCachedAbi("369:0xdef"), ANOTHER_ABI);
   });
 
   it("clears the entire cache when called with no argument", () => {

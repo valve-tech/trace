@@ -43,6 +43,14 @@ export function chainById(id: number): ChainInfo | undefined {
 }
 
 /**
+ * The native-asset ticker for a chain, falling back to the default chain's
+ * symbol for unregistered ids (matches the API's default-chain fallback).
+ */
+export function chainSymbol(id: number): string {
+  return chainById(id)?.symbol ?? chainById(DEFAULT_CHAIN_ID)?.symbol ?? "PLS";
+}
+
+/**
  * Logo URL for a chain via gib.show. The service serves chain logos at
  * `/image/<chainId>` (and token art at `/image/<chainId>/<address>`); we
  * wrap that here so call sites don't need to know the URL scheme.

@@ -1,5 +1,7 @@
 import type { AddressTransaction } from "../../../api/explorer";
 import { formatPLS, truncateAddr } from "../format";
+import { useActiveChainId } from "../../../lib/activeChain";
+import { chainSymbol } from "../../../lib/chains";
 import { formatRelativeTimestamp } from "./formatRelative";
 import type { AddressNavTarget } from "./TransactionsTab";
 import TxRowActions from "../TxRowActions";
@@ -52,6 +54,7 @@ function TxRow({
   ownerAddress: string;
   onNavigate: (target: AddressNavTarget) => void;
 }) {
+  const symbol = chainSymbol(useActiveChainId());
   const isContractCreation = !tx.to || tx.to === "0x";
   const isIn =
     !isContractCreation && tx.to.toLowerCase() === ownerAddress.toLowerCase();
@@ -115,7 +118,7 @@ function TxRow({
       <td
         className="px-3 py-2 font-mono text-xs whitespace-nowrap theme-text"
       >
-        {formatPLS(tx.valuePLS)}
+        {formatPLS(tx.valuePLS, symbol)}
       </td>
       <td className="px-3 py-2 whitespace-nowrap">
         <TxGasInfo

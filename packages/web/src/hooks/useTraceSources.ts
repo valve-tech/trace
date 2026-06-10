@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchTraceSourceFiles, type SourceFile } from "../api/source";
+import { useActiveChainId } from "../lib/activeChain";
 
 /**
  * Fetch the source FILES for every contract in the trace, keyed by lower-cased
@@ -41,12 +42,13 @@ export function useTraceSources(addrs: string[]): {
 } {
   const key = [...addrs].map((a) => a.toLowerCase()).sort().join(",");
   const lowerAddresses = addrs.map((a) => a.toLowerCase());
+  const chainId = useActiveChainId();
 
   const query = useQuery({
     // `v2` busts persisted v1 entries that cached transient empty results as
     // permanent answers (the bug this hook now defends against). See
     // main.tsx's `buster` for the matching session-wide flush.
-    queryKey: ["trace-sources", "v2", key],
+    queryKey: ["trace-sources", "v2", chainId, key],
     enabled: addrs.length > 0,
     queryFn: async (): Promise<Record<string, TraceSourceEntry>> => {
       const entries = await Promise.all(

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchTransaction } from "../../../api/explorer";
+import { useActiveChainId } from "../../../lib/activeChain";
 import { PreviewShell, shortHex, ago } from "./PreviewShell";
 
 /**
@@ -7,9 +8,10 @@ import { PreviewShell, shortHex, ago } from "./PreviewShell";
  * the cache is `staleTime: Infinity` — a hit refills instantly on remount.
  */
 export function TxPreview({ hash }: { hash: string }) {
+  const chainId = useActiveChainId();
   const query = useQuery({
-    queryKey: ["workspace-preview-tx", hash.toLowerCase()],
-    queryFn: () => fetchTransaction(hash),
+    queryKey: ["workspace-preview-tx", chainId, hash.toLowerCase()],
+    queryFn: () => fetchTransaction(hash, chainId),
     staleTime: Infinity,
   });
 

@@ -61,6 +61,9 @@ export const VALVE_DEFAULT_CHAINS: Record<number, ChainConfig> = {
     rpcUrl: process.env.PULSECHAIN_V4_RPC_URL || "https://evm-943-rpc.valve.city/v1/vk_demo/evm/943",
     rethSnapshotUrl: "https://evm943-snapshot-reth.valve.city",
     substreamsEndpoint: "evm-943-substreams.valve.city",
+    blockscoutBase:
+      process.env.PULSECHAIN_V4_BLOCKSCOUT_URL ||
+      "https://api.scan.v4.testnet.pulsechain.com/api",
     sourcifyEnabled: false,
     viemChain: pulsechainV4,
     explorerSlug: "pulsechain-testnet",

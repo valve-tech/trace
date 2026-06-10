@@ -1,4 +1,6 @@
 import { apiUrl } from "../lib/apiBase";
+import { scoped } from "../api/chainScope";
+import { useActiveChainId } from "../lib/activeChain";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -35,10 +37,13 @@ export default function StorageLayoutViewer() {
 
   const validAddress = isAddress(contractAddress);
 
+  const chainId = useActiveChainId();
   const { data, isLoading } = useQuery({
-    queryKey: ["storage-layout", contractAddress.toLowerCase()],
+    queryKey: ["storage-layout", chainId, contractAddress.toLowerCase()],
     queryFn: async (): Promise<StorageLayoutResponse> => {
-      const res = await fetch(apiUrl(`/api/source/${contractAddress}/storage-layout`));
+      const res = await fetch(
+        scoped(apiUrl(`/api/source/${contractAddress}/storage-layout`), chainId),
+      );
       return (await res.json()) as StorageLayoutResponse;
     },
     enabled: validAddress,

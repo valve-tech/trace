@@ -1,7 +1,5 @@
 import type { CallFrame, CallTraceResult } from "./types.js";
-
-const BLOCKSCOUT_API =
-  process.env.BLOCKSCOUT_API_URL || "https://api.scan.pulsechain.com/api";
+import { currentChain } from "../chains/context.js";
 
 interface BlockScoutInternalTx {
   from: string;
@@ -34,8 +32,16 @@ interface BlockScoutInternalTx {
  * view when no other source exists.
  */
 export async function traceViaBlockScout(hash: string): Promise<CallTraceResult> {
+  const blockscoutBase = currentChain().blockscoutBase;
+  if (!blockscoutBase) {
+    return {
+      trace: null,
+      error: "No BlockScout configured for this chain",
+      debugAvailable: false,
+    };
+  }
   try {
-    const url = `${BLOCKSCOUT_API}?module=account&action=txlistinternal&txhash=${hash}`;
+    const url = `${blockscoutBase}?module=account&action=txlistinternal&txhash=${hash}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     if (!res.ok) {
       return {
@@ -102,7 +108,8 @@ export async function traceViaBlockScout(hash: string): Promise<CallTraceResult>
 }
 
 async function fetchRootFrame(hash: string): Promise<CallFrame> {
-  const txUrl = `${BLOCKSCOUT_API}?module=transaction&action=gettxinfo&txhash=${hash}`;
+  // Only reached from traceViaBlockScout, which guarantees a base exists.
+  const txUrl = `${currentChain().blockscoutBase}?module=transaction&action=gettxinfo&txhash=${hash}`;
   let rootFrom = "",
     rootTo = "",
     rootValue = "0",

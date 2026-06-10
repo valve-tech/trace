@@ -8,6 +8,8 @@ import {
 import { StatusBadge } from "../../primitives/StatusBadge";
 import { ExplorerLink } from "../ExplorerLink";
 import { formatGwei, formatPLS, formatTimestamp } from "./format";
+import { useActiveChainId } from "../../../lib/activeChain";
+import { chainSymbol } from "../../../lib/chains";
 
 export function OverviewSection({
   tx,
@@ -16,6 +18,7 @@ export function OverviewSection({
   tx: TransactionDetails;
   onNavigate: (target: NavTarget) => void;
 }) {
+  const symbol = chainSymbol(useActiveChainId());
   const isPending = tx.status === "pending";
   const gasPercent =
     tx.gas !== "0"
@@ -91,7 +94,7 @@ export function OverviewSection({
           <span
             className="font-mono theme-text"
           >
-            {formatPLS(tx.valuePLS)}
+            {formatPLS(tx.valuePLS, symbol)}
           </span>
         </InfoRow>
         {isPending ? (

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchTraceSourceMap, type SourceLocation } from "../api/source";
+import { useActiveChainId } from "../lib/activeChain";
 
 type SourceMap = Record<number, SourceLocation | null>;
 
@@ -33,12 +34,13 @@ export function useTraceSourceMaps(pcsByContract: Record<string, number[]>) {
   // Stable key: address + pc-count per contract (pc sets are deterministic).
   const key = addrs.map((a) => `${a}:${pcsByContract[a]!.length}`).join(",");
   const lowerAddrs = addrs.map((a) => a.toLowerCase());
+  const chainId = useActiveChainId();
 
   const query = useQuery({
     // `v2` busts persisted caches from the pre-retry shape; old v1 entries
     // held `{}` for every contract that hit a Blockscout outage and pinned
     // them forever, silently disabling source-map nav across reloads.
-    queryKey: ["trace-source-maps", "v2", key],
+    queryKey: ["trace-source-maps", "v2", chainId, key],
     enabled: addrs.length > 0,
     queryFn: async (): Promise<Record<string, SourceMapEntry>> => {
       const entries = await Promise.all(

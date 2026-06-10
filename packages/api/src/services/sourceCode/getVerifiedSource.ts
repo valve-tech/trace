@@ -2,6 +2,7 @@ import { UpstreamError, type VerifiedSource } from "./types.js";
 import { cacheSource, getCachedSource } from "./cache.js";
 import { fetchFromBlockScout } from "./blockscout.js";
 import { fetchFromSourcify } from "./sourcify.js";
+import { currentChainId } from "../chains/context.js";
 
 /**
  * In-memory negative cache for addresses confirmed unverified. 10-min
@@ -25,7 +26,7 @@ const NOT_FOUND_TTL = 10 * 60 * 1000;
 export async function getVerifiedSource(
   address: string,
 ): Promise<VerifiedSource | null> {
-  const key = address.toLowerCase();
+  const key = `${currentChainId()}:${address.toLowerCase()}`;
 
   const notFoundAt = NOT_FOUND_CACHE.get(key);
   if (notFoundAt && Date.now() - notFoundAt < NOT_FOUND_TTL) {
