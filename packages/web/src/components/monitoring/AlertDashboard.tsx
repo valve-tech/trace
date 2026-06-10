@@ -9,6 +9,7 @@ import {
 } from "../../api/alerts";
 import AlertBuilder from "./AlertBuilder";
 import AlertHistory from "./AlertHistory";
+import { useActiveChainId } from "../../lib/activeChain";
 import { useAlertWebSocket, type AlertEvent } from "../../hooks/useAlertWebSocket";
 import AlertToast from "../AlertToast";
 import { resolveTypeInfo } from "./AlertDashboard/typeInfo";
@@ -28,6 +29,7 @@ type View =
 // Component
 // ---------------------------------------------------------------------------
 export default function AlertDashboard() {
+  const chainId = useActiveChainId();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState<AlertStats>({
     total: 0,
@@ -47,7 +49,7 @@ export default function AlertDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const data = await listAlerts();
+      const data = await listAlerts(chainId);
       setAlerts(data.alerts);
       setStats(data.stats);
     } catch (err) {
@@ -55,7 +57,7 @@ export default function AlertDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [chainId]);
 
   useEffect(() => {
     void fetchAlerts();

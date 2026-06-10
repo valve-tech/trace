@@ -1,14 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchTransaction } from "../../../api/explorer";
-import { useActiveChainId } from "../../../lib/activeChain";
 import { PreviewShell, shortHex, ago } from "./PreviewShell";
 
 /**
  * Compact summary of a transaction. Confirmed txs are immutable on chain so
  * the cache is `staleTime: Infinity` — a hit refills instantly on remount.
+ * `chainId` is the item's pinned chain (see AddressPreview).
  */
-export function TxPreview({ hash }: { hash: string }) {
-  const chainId = useActiveChainId();
+export function TxPreview({ hash, chainId }: { hash: string; chainId: number }) {
   const query = useQuery({
     queryKey: ["workspace-preview-tx", chainId, hash.toLowerCase()],
     queryFn: () => fetchTransaction(hash, chainId),

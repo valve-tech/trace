@@ -1,4 +1,7 @@
 import { apiUrl } from "../lib/apiBase";
+import { DEFAULT_CHAIN_ID } from "../lib/chains";
+import { scoped } from "./chainScope";
+
 const API_BASE = apiUrl("/api");
 
 // ---------------------------------------------------------------------------
@@ -32,6 +35,8 @@ export interface Alert {
   id: number;
   name: string;
   type: AlertType;
+  /** EIP-155 chain the alert watches (the monitor evaluates it there). */
+  chainid: number;
   conditions: AlertConditions;
   notifications: NotificationChannel[];
   enabled: boolean;
@@ -76,11 +81,13 @@ export interface CreateAlertPayload {
 // API functions
 // ---------------------------------------------------------------------------
 
-export async function listAlerts(): Promise<{
+export async function listAlerts(
+  chainId: number = DEFAULT_CHAIN_ID,
+): Promise<{
   alerts: Alert[];
   stats: AlertStats;
 }> {
-  const res = await fetch(`${API_BASE}/alerts`);
+  const res = await fetch(scoped(`${API_BASE}/alerts`, chainId));
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Unknown error" }));
     throw new Error((err as { error?: string }).error ?? "Failed to list alerts");
@@ -110,10 +117,15 @@ export async function getAlert(id: number): Promise<{
   return { alert: data.alert, recent_history: data.recent_history };
 }
 
+/**
+ * Create an alert pinned to `chainId` (the `?chainid=N` dispatcher param —
+ * the default chain omits it, matching the backend's 369 fallback).
+ */
 export async function createAlert(
   payload: CreateAlertPayload,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<Alert> {
-  const res = await fetch(`${API_BASE}/alerts`, {
+  const res = await fetch(scoped(`${API_BASE}/alerts`, chainId), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -129,6 +141,11 @@ export async function createAlert(
   return data.alert;
 }
 
+/**
+ * Update an alert. No `chainid` is sent — the backend keeps the alert on
+ * its existing chain, so edits/toggles can never migrate an alert between
+ * chains.
+ */
 export async function updateAlert(
   id: number,
   payload: CreateAlertPayload,

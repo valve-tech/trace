@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchAddressInfo, fetchContractInfo } from "../../../api/explorer";
-import { useActiveChainId } from "../../../lib/activeChain";
 import { PreviewShell } from "./PreviewShell";
 
 /**
@@ -9,13 +8,22 @@ import { PreviewShell } from "./PreviewShell";
  * collapsed rows never trigger a request, so a 50-item workspace
  * doesn't fan out 50 simultaneous queries.
  *
+ * `chainId` is the item's PINNED chain (WorkspaceItem.chainId), not the
+ * route's active chain — a workspace mixes items from different chains and
+ * each preview must hit the chain its item was filed from.
+ *
  * Staleness: balance is live data but very stale-tolerant for a workspace
  * preview (the user clicks through to the canonical Explore view when they
  * want to act). 5min staleTime trades freshness for not re-fetching the
  * same address every time a row is expanded.
  */
-export function AddressPreview({ address }: { address: string }) {
-  const chainId = useActiveChainId();
+export function AddressPreview({
+  address,
+  chainId,
+}: {
+  address: string;
+  chainId: number;
+}) {
   const info = useQuery({
     queryKey: ["workspace-preview-address", chainId, address.toLowerCase()],
     queryFn: () => fetchAddressInfo(address, chainId),

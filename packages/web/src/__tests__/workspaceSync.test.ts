@@ -45,6 +45,7 @@ const SAMPLE_STORE: WorkspaceStore = {
           id: "i1",
           kind: "address",
           value: "0xabc0000000000000000000000000000000000123",
+          chainId: 369,
           addedAt: 1_717_100_000_000,
         },
         {
@@ -53,6 +54,7 @@ const SAMPLE_STORE: WorkspaceStore = {
           value:
             "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           label: "the bug tx",
+          chainId: 369,
           addedAt: 1_717_150_000_000,
         },
       ],

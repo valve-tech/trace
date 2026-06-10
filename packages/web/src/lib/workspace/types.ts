@@ -24,11 +24,13 @@ export interface WorkspaceItem {
    */
   value: string;
   /**
-   * Multichain: same address can exist on multiple chains. Optional because
-   * txs and blocks are global to a chain anyway, but addresses really need it
-   * for the deep-link route once the dispatcher refactor lands.
+   * The chain this item is pinned to. Every item carries one — the same
+   * address exists on multiple chains, and previews/links must hit the chain
+   * the user filed the item from, not whatever chain is active later.
+   * Items persisted before pinning landed are defaulted to 369 (PulseChain,
+   * the only chain that existed then) by `loadStore`'s normalization.
    */
-  chainId?: number;
+  chainId: number;
   /** Optional user-supplied note (e.g. "the proxy", "this is the bug tx"). */
   label?: string;
   /** ms epoch — used for ordering and for "added 3h ago" displays. */

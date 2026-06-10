@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import type { WorkspaceItem } from "../../lib/workspace/types";
+import { chainById } from "../../lib/chains";
 import { AddressPreview } from "./previews/AddressPreview";
 import { TxPreview } from "./previews/TxPreview";
 import { BlockPreview } from "./previews/BlockPreview";
@@ -43,9 +44,7 @@ export function WorkspaceItemRow({
           </Link>
           <div className="text-[11px] mt-0.5 theme-text-muted">
             added {ago(item.addedAt)}
-            {item.chainId !== undefined && (
-              <span> · chain {item.chainId}</span>
-            )}
+            <span> · {chainById(item.chainId)?.name ?? `chain ${item.chainId}`}</span>
           </div>
         </div>
         <div className="flex gap-tight shrink-0">
@@ -66,10 +65,17 @@ export function WorkspaceItemRow({
         <div className="mt-3 pt-3 text-xs theme-text-secondary" style={{ borderTop: "1px solid var(--color-border-muted)" }}>
           {/* The preview only mounts when the row is expanded — collapsed
               rows never trigger a fetch, so a workspace with N items costs
-              0 API calls until the user opens one. */}
-          {item.kind === "address" && <AddressPreview address={item.value} />}
-          {item.kind === "tx" && <TxPreview hash={item.value} />}
-          {item.kind === "block" && <BlockPreview numberOrHash={item.value} />}
+              0 API calls until the user opens one. Previews fetch from the
+              item's PINNED chain, not the route's active chain. */}
+          {item.kind === "address" && (
+            <AddressPreview address={item.value} chainId={item.chainId} />
+          )}
+          {item.kind === "tx" && (
+            <TxPreview hash={item.value} chainId={item.chainId} />
+          )}
+          {item.kind === "block" && (
+            <BlockPreview numberOrHash={item.value} chainId={item.chainId} />
+          )}
         </div>
       )}
     </div>

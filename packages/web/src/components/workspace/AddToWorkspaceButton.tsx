@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspaces } from "../../hooks/useWorkspaces";
+import { useActiveChainId } from "../../lib/activeChain";
 import type { WorkspaceItemKind } from "../../lib/workspace/types";
 
 /**
@@ -22,17 +23,20 @@ export function AddToWorkspaceButton({
 }: {
   kind: WorkspaceItemKind;
   value: string;
+  /** Chain to pin the item to; defaults to the route's active chain. */
   chainId?: number;
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const { workspaces, create, addToWorkspace } = useWorkspaces();
   const navigate = useNavigate();
+  const activeChainId = useActiveChainId();
+  const pinnedChainId = chainId ?? activeChainId;
   const [newName, setNewName] = useState("");
   const [justAdded, setJustAdded] = useState<string | null>(null);
 
   const handlePick = async (id: string) => {
-    await addToWorkspace.mutateAsync({ id, kind, value, chainId });
+    await addToWorkspace.mutateAsync({ id, kind, value, chainId: pinnedChainId });
     setJustAdded(id);
     setTimeout(() => setOpen(false), 800);
   };
@@ -41,7 +45,7 @@ export function AddToWorkspaceButton({
     e.preventDefault();
     if (!newName.trim()) return;
     const ws = await create.mutateAsync({ name: newName.trim() });
-    await addToWorkspace.mutateAsync({ id: ws.id, kind, value, chainId });
+    await addToWorkspace.mutateAsync({ id: ws.id, kind, value, chainId: pinnedChainId });
     setOpen(false);
     setNewName("");
     navigate(`/workspace/${ws.id}`);

@@ -7,6 +7,7 @@ import type {
   ForkSimulationResponse,
 } from "../api/simulate";
 import { forkSimulateApi, simulateFromHashApi } from "./ForkSimulator/api";
+import { useActiveChainId } from "../lib/activeChain";
 import { scanPath } from "../lib/scanRoutes";
 import { InputCard, type InputMode } from "./ForkSimulator/InputCard";
 import { StatusSummary } from "./ForkSimulator/StatusSummary";
@@ -29,6 +30,7 @@ function plsToWeiHex(plsValue: string): string | undefined {
 
 export default function ForkSimulator() {
   const navigate = useNavigate();
+  const chainId = useActiveChainId();
   const [mode, setMode] = useState<InputMode>("hash");
 
   const [txHash, setTxHash] = useState("");
@@ -52,14 +54,17 @@ export default function ForkSimulator() {
     try {
       const response: ForkSimulationResponse =
         mode === "hash"
-          ? await simulateFromHashApi(txHash)
-          : await forkSimulateApi({
-              from,
-              to,
-              value: plsToWeiHex(value),
-              data: data || undefined,
-              blockNumber: blockNumber ? parseInt(blockNumber, 10) : undefined,
-            });
+          ? await simulateFromHashApi(txHash, chainId)
+          : await forkSimulateApi(
+              {
+                from,
+                to,
+                value: plsToWeiHex(value),
+                data: data || undefined,
+                blockNumber: blockNumber ? parseInt(blockNumber, 10) : undefined,
+              },
+              chainId,
+            );
 
       if (!response.ok) {
         setError(response.error ?? "Simulation failed");
@@ -71,7 +76,7 @@ export default function ForkSimulator() {
     } finally {
       setLoading(false);
     }
-  }, [mode, txHash, from, to, value, data, blockNumber]);
+  }, [mode, txHash, from, to, value, data, blockNumber, chainId]);
 
   const canSubmit =
     mode === "hash"

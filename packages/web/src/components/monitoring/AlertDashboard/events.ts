@@ -1,5 +1,6 @@
 import type { Alert } from "../../../api/alerts";
 import type { AlertEvent } from "../../../hooks/useAlertWebSocket";
+import { DEFAULT_CHAIN_ID } from "../../../lib/chains";
 import { serializeServerTimestamp } from "./timestamps";
 
 /**
@@ -31,6 +32,7 @@ export function synthesizeAlertFromEvent(
     id: event.data.alert.id,
     name: event.data.alert.name,
     type: event.data.alert.type as Alert["type"],
+    chainid: event.data.alert.chainId ?? DEFAULT_CHAIN_ID,
     conditions: {},
     notifications: [],
     enabled: true,
