@@ -10,6 +10,7 @@ import {
 } from "../services/db.js";
 import { dispatch, type MatchData } from "../services/notifier.js";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
+import { resolveChainIdParam } from "../lib/chainParam.js";
 import { createAlertSchema, updateAlertSchema } from "./alerts/schemas.js";
 import { formatAlertRow } from "./alerts/serialize.js";
 
@@ -34,9 +35,13 @@ router.post(
   "/",
   asyncRoute(async (req: Request, res: Response) => {
     const parsed = createAlertSchema.parse(req.body);
+    // The web client threads chainid as `?chainid=N` (scoped()); API
+    // consumers may put it in the body. Query wins when both are present.
+    const chainId = resolveChainIdParam(req.query.chainid ?? parsed.chainid);
     const row = await createAlert({
       name: parsed.name,
       type: parsed.type,
+      chain_id: chainId,
       conditions: JSON.stringify(parsed.conditions),
       notifications: JSON.stringify(parsed.notifications),
       enabled: parsed.enabled,
@@ -47,13 +52,14 @@ router.post(
 );
 
 // ---------------------------------------------------------------------------
-// GET /api/alerts — List all alerts
+// GET /api/alerts — List alerts for a chain (?chainid=N, default 369)
 // ---------------------------------------------------------------------------
 router.get(
   "/",
-  asyncRoute(async (_req: Request, res: Response) => {
-    const rows = await getAllAlerts();
-    const triggeredToday = await getTriggeredToday();
+  asyncRoute(async (req: Request, res: Response) => {
+    const chainId = resolveChainIdParam(req.query.chainid);
+    const rows = await getAllAlerts(chainId);
+    const triggeredToday = await getTriggeredToday(chainId);
     const alerts = rows.map(formatAlertRow);
     const activeCount = rows.filter((r) => r.enabled).length;
 
@@ -93,9 +99,18 @@ router.put(
   asyncRoute(async (req: Request, res: Response) => {
     const id = requireId(req.params.id);
     const parsed = updateAlertSchema.parse(req.body);
+    const existing = await requireAlertById(id);
+    // Omitted chainid keeps the alert on its current chain — an old client
+    // toggling `enabled` must not silently migrate the alert to 369.
+    const rawChainId = req.query.chainid ?? parsed.chainid;
+    const chainId =
+      rawChainId === undefined || rawChainId === ""
+        ? existing.chain_id
+        : resolveChainIdParam(rawChainId);
     const updated = await updateAlertById(id, {
       name: parsed.name,
       type: parsed.type,
+      chain_id: chainId,
       conditions: JSON.stringify(parsed.conditions),
       notifications: JSON.stringify(parsed.notifications),
       enabled: parsed.enabled,

@@ -7,6 +7,8 @@ export interface AlertRow {
   id: number;
   name: string;
   type: string;
+  /** EIP-155 chain id the alert watches (migration 010; legacy rows are 369). */
+  chain_id: number;
   conditions: Record<string, unknown>;
   notifications: unknown[];
   enabled: boolean;
@@ -31,16 +33,17 @@ export interface AlertHistoryRow {
 export async function createAlert(data: {
   name: string;
   type: string;
+  chain_id: number;
   conditions: string;
   notifications: string;
   enabled: boolean;
   cooldown_seconds: number;
 }): Promise<AlertRow> {
   const { rows } = await pool.query<AlertRow>(
-    `INSERT INTO alerts (name, type, conditions, notifications, enabled, cooldown_seconds)
-     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5, $6)
+    `INSERT INTO alerts (name, type, chain_id, conditions, notifications, enabled, cooldown_seconds)
+     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7)
      RETURNING *`,
-    [data.name, data.type, data.conditions, data.notifications, data.enabled, data.cooldown_seconds],
+    [data.name, data.type, data.chain_id, data.conditions, data.notifications, data.enabled, data.cooldown_seconds],
   );
   return rows[0]!;
 }
@@ -50,6 +53,7 @@ export async function updateAlertById(
   data: {
     name: string;
     type: string;
+    chain_id: number;
     conditions: string;
     notifications: string;
     enabled: boolean;
@@ -58,11 +62,11 @@ export async function updateAlertById(
 ): Promise<AlertRow | undefined> {
   const { rows } = await pool.query<AlertRow>(
     `UPDATE alerts
-     SET name = $1, type = $2, conditions = $3::jsonb, notifications = $4::jsonb,
-         enabled = $5, cooldown_seconds = $6, updated_at = NOW()
-     WHERE id = $7
+     SET name = $1, type = $2, chain_id = $3, conditions = $4::jsonb, notifications = $5::jsonb,
+         enabled = $6, cooldown_seconds = $7, updated_at = NOW()
+     WHERE id = $8
      RETURNING *`,
-    [data.name, data.type, data.conditions, data.notifications, data.enabled, data.cooldown_seconds, id],
+    [data.name, data.type, data.chain_id, data.conditions, data.notifications, data.enabled, data.cooldown_seconds, id],
   );
   return rows[0];
 }
@@ -77,13 +81,19 @@ export async function getAlertById(id: number): Promise<AlertRow | undefined> {
   return rows[0];
 }
 
-export async function getAllAlerts(): Promise<AlertRow[]> {
-  const { rows } = await pool.query<AlertRow>("SELECT * FROM alerts ORDER BY created_at DESC");
+export async function getAllAlerts(chainId: number): Promise<AlertRow[]> {
+  const { rows } = await pool.query<AlertRow>(
+    "SELECT * FROM alerts WHERE chain_id = $1 ORDER BY created_at DESC",
+    [chainId],
+  );
   return rows;
 }
 
-export async function getEnabledAlerts(): Promise<AlertRow[]> {
-  const { rows } = await pool.query<AlertRow>("SELECT * FROM alerts WHERE enabled = TRUE");
+export async function getEnabledAlerts(chainId: number): Promise<AlertRow[]> {
+  const { rows } = await pool.query<AlertRow>(
+    "SELECT * FROM alerts WHERE enabled = TRUE AND chain_id = $1",
+    [chainId],
+  );
   return rows;
 }
 
@@ -121,9 +131,14 @@ export async function getAlertHistory(
   return { rows: dataResult.rows, total: Number(countResult.rows[0]!.count) };
 }
 
-export async function getTriggeredToday(): Promise<number> {
+export async function getTriggeredToday(chainId: number): Promise<number> {
   const { rows } = await pool.query<{ count: string }>(
-    "SELECT COUNT(*) as count FROM alert_history WHERE triggered_at >= CURRENT_DATE",
+    `SELECT COUNT(*) as count
+       FROM alert_history h
+       JOIN alerts a ON a.id = h.alert_id
+      WHERE h.triggered_at >= CURRENT_DATE
+        AND a.chain_id = $1`,
+    [chainId],
   );
   return Number(rows[0]!.count);
 }

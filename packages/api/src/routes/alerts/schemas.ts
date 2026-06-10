@@ -1,10 +1,15 @@
 import { z } from "zod";
+import { chainIdParamSchema } from "../../lib/chainParam.js";
 
 /**
  * Zod schemas backing /api/alerts. The `conditions` object varies by
  * `type`; the top-level schema runs a `superRefine` after parse to pick
  * the right condition-schema and surface field-level errors under
  * `conditions.<field>` so the UI can highlight the right input.
+ *
+ * `chainid` is the EIP-155 chain the alert watches. Optional here — the
+ * route resolves the default (369) and rejects unsupported ids via
+ * `resolveChainIdParam`, keeping registry knowledge out of the schema.
  */
 
 const alertTypeEnum = z.enum([
@@ -51,6 +56,7 @@ export const createAlertSchema = z
   .object({
     name: z.string().min(1, "Name is required").max(200),
     type: alertTypeEnum,
+    chainid: chainIdParamSchema,
     conditions: z.record(z.unknown()),
     notifications: z.array(notificationChannelSchema).default([]),
     enabled: z.boolean().default(true),

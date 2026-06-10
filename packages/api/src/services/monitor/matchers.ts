@@ -1,5 +1,12 @@
-import { type Address, formatEther, keccak256, toHex, type Log } from "viem";
-import { publicClient } from "../rpc.js";
+import {
+  type Address,
+  formatEther,
+  keccak256,
+  toHex,
+  type Log,
+  type PublicClient,
+} from "viem";
+import { getChain } from "../chains/registry.js";
 import { type MatchData } from "../notifier.js";
 import type { AlertConditions, BlockTransaction } from "./types.js";
 
@@ -8,7 +15,9 @@ import type { AlertConditions, BlockTransaction } from "./types.js";
  * dispatcher uses to fire notifications + WebSocket broadcasts) or `null`
  * when the alert's conditions don't apply to the current block. Matchers
  * are pure where possible — only `matchBalanceThreshold` and
- * `matchFailedTx` need extra RPC calls.
+ * `matchFailedTx` need extra RPC calls; those two take the watched
+ * chain's client (injected by processBlock) so every read hits the
+ * chain the alert belongs to.
  */
 
 export function matchAddressActivity(
@@ -94,14 +103,18 @@ export function matchFunctionCall(
 export async function matchBalanceThreshold(
   conditions: AlertConditions,
   blockNumber: bigint,
+  client: PublicClient,
+  chainId: number,
 ): Promise<MatchData | null> {
   const addr = conditions.address;
   const threshold = conditions.threshold;
   const direction = conditions.direction;
   if (!addr || !threshold || !direction) return null;
 
+  const symbol = getChain(chainId).nativeSymbol;
+
   try {
-    const balance = await publicClient.getBalance({
+    const balance = await client.getBalance({
       address: addr as Address,
       blockNumber,
     });
@@ -120,7 +133,7 @@ export async function matchBalanceThreshold(
       balance: formatEther(balance),
       threshold,
       direction,
-      summary: `Address ${addr} balance is ${formatEther(balance)} PLS, which is ${direction} threshold of ${threshold} PLS`,
+      summary: `Address ${addr} balance is ${formatEther(balance)} ${symbol}, which is ${direction} threshold of ${threshold} ${symbol}`,
     };
   } catch (err) {
     console.warn(`[monitor] balance check failed for ${addr}:`, err);
@@ -132,6 +145,7 @@ export async function matchFailedTx(
   conditions: AlertConditions,
   txs: BlockTransaction[],
   blockNumber: bigint,
+  client: PublicClient,
 ): Promise<MatchData | null> {
   const addr = conditions.address?.toLowerCase();
   if (!addr) return null;
@@ -141,7 +155,7 @@ export async function matchFailedTx(
 
   for (const tx of relatedTxs) {
     try {
-      const receipt = await publicClient.getTransactionReceipt({
+      const receipt = await client.getTransactionReceipt({
         hash: tx.hash as `0x${string}`,
       });
 
