@@ -1,4 +1,4 @@
-import { ponder } from "ponder:registry";
+import { ponder, type Context } from "ponder:registry";
 import { tokenBalance, tokenMeta } from "ponder:schema";
 import { ERC20_ABI } from "../abis/ERC20";
 import { CURATED_TOKENS } from "./tokens";
@@ -37,7 +37,7 @@ ponder.on("ERC20:Transfer", async ({ event, context }) => {
   await applyDelta(context, tokenAddr, token, event.args.to, value, block);
 });
 
-async function ensureMeta(context: any, token: `0x${string}`): Promise<void> {
+async function ensureMeta(context: Context, token: `0x${string}`): Promise<void> {
   const existing = await context.db.find(tokenMeta, { token });
   if (existing) return;
   const m = META.get(token);
@@ -50,7 +50,7 @@ async function ensureMeta(context: any, token: `0x${string}`): Promise<void> {
 }
 
 async function applyDelta(
-  context: any,
+  context: Context,
   tokenAddr: `0x${string}`,
   token: `0x${string}`,
   partyRaw: string,

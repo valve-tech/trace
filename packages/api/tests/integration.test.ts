@@ -8,7 +8,7 @@
  *   npx tsx --test packages/api/tests/integration.test.ts
  */
 
-import { describe, it, before } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // ---------------------------------------------------------------------------
@@ -571,12 +571,13 @@ describe("Feature 5: Debugger & Gas Profiler", () => {
         "trace should have a 'calls' array",
       );
 
-      // Source should be blockscout_fallback since public RPC has no debug API
-      assert.equal(
-        json.source,
-        "blockscout_fallback",
-        'source should be "blockscout_fallback"',
+      // Source depends on the configured node: a debug-enabled RPC traces
+      // natively; a public RPC without the debug API falls back to Blockscout.
+      assert.ok(
+        ["debug_traceTransaction", "blockscout_fallback"].includes(json.source),
+        `source should be a known trace source, got "${json.source}"`,
       );
+      console.log(`    (trace source: ${json.source})`);
 
       // Count total tree nodes (the trace is deeply nested)
       function countNodes(frame: any): number {
@@ -633,23 +634,36 @@ describe("Feature 5: Debugger & Gas Profiler", () => {
     });
   });
 
-  it("19. Opcodes trace (should return 503 -- no debug API)", async () => {
-    await timed("Opcodes (unavailable)", async () => {
+  it("19. Opcodes trace (200 with steps, or 503 without debug API)", async () => {
+    await timed("Opcodes", async () => {
       const res = await get(
         `/api/debug/tx/${TEST_TX_HASH}/opcodes`,
       );
-      assert.equal(
-        res.status,
-        503,
-        `Expected 503 (debug API unavailable), got ${res.status}`,
-      );
       const json = await res.json();
-      assert.equal(json.ok, false, "Should return ok=false");
-      assert.equal(
-        json.debugAvailable,
-        false,
-        "debugAvailable should be false",
-      );
+      if (res.status === 200) {
+        // Debug-enabled node: full opcode skeleton.
+        assert.equal(json.ok, true, "Should return ok=true");
+        assert.equal(json.debugAvailable, true, "debugAvailable should be true");
+        assert.ok(
+          Array.isArray(json.steps) && json.steps.length > 0,
+          "steps should be a non-empty array",
+        );
+        console.log(`    (debug API available: ${json.steps.length} steps)`);
+      } else {
+        // Public RPC without the debug API.
+        assert.equal(
+          res.status,
+          503,
+          `Expected 200 (debug API) or 503 (unavailable), got ${res.status}`,
+        );
+        assert.equal(json.ok, false, "Should return ok=false");
+        assert.equal(
+          json.debugAvailable,
+          false,
+          "debugAvailable should be false",
+        );
+        console.log("    (debug API unavailable: 503 as expected)");
+      }
     });
   });
 
