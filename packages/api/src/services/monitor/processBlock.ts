@@ -8,6 +8,7 @@ import {
 } from "../db.js";
 import { dispatch, type MatchData } from "../notifier.js";
 import { processBlock as processActionsBlock } from "../actionScheduler.js";
+import { getEnabledBlockEventActions } from "../actionsDb.js";
 import { broadcast } from "../wsServer.js";
 import type { AlertConditions, BlockTransaction } from "./types.js";
 import {
@@ -29,22 +30,24 @@ const cooldownMap = new Map<number, number>();
 /**
  * Fetch a block + its logs from `chainId`'s RPC, normalize the
  * transactions, and run every enabled alert FOR THAT CHAIN against the
- * data. On the default chain the block also flows into the action
- * scheduler so block/event-triggered actions fire from the same fetched
- * data — actions are not chain-scoped (yet), so they keep their legacy
- * single-chain (369) feed rather than firing once per chain.
+ * data. The block also flows into the action scheduler for that chain's
+ * block/event-triggered actions, so alerts and actions fire from the same
+ * fetched data.
  *
- * The zero-alerts early return (no block fetch at all) is preserved from
- * the single-chain era — chains nobody is watching cost no RPC calls.
+ * The zero-watchers early return (no block fetch at all) is preserved from
+ * the single-chain era — a chain with neither enabled alerts nor enabled
+ * block/event actions costs no RPC calls.
  */
 export async function processBlock(
   blockNumber: bigint,
   chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<void> {
-  const alerts = await getEnabledAlerts(chainId);
-  if (alerts.length === 0) return;
+  const [alerts, actions] = await Promise.all([
+    getEnabledAlerts(chainId),
+    getEnabledBlockEventActions(chainId),
+  ]);
+  if (alerts.length === 0 && actions.length === 0) return;
 
-  const feedActions = chainId === DEFAULT_CHAIN_ID;
   const client = getRpcClient(chainId);
 
   try {
@@ -84,8 +87,8 @@ export async function processBlock(
 
     await matchAlerts(alerts, txs, logs, blockNumber, chainId);
 
-    if (feedActions) {
-      // Feed normalized block data to the action scheduler.
+    if (actions.length > 0) {
+      // Feed normalized block data to this chain's block/event actions.
       const actionTxs = txs.map((tx) => ({
         hash: tx.hash,
         from: tx.from,
@@ -99,7 +102,13 @@ export async function processBlock(
         data: l.data,
         transactionHash: l.transactionHash ?? null,
       }));
-      await processActionsBlock(Number(blockNumber), actionTxs, actionLogs);
+      await processActionsBlock(
+        Number(blockNumber),
+        actionTxs,
+        actionLogs,
+        chainId,
+        actions,
+      );
     }
   } catch (err) {
     console.error(

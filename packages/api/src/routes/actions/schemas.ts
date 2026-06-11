@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { chainIdParamSchema } from "../../lib/chainParam.js";
 
 const triggerTypeEnum = z.enum(["block", "event", "periodic", "webhook"]);
 
@@ -30,6 +31,7 @@ const secretsSchema = z
 export const createActionSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   code: z.string().max(MAX_CODE_LENGTH).optional().default(""),
+  chainid: chainIdParamSchema,
   triggerType: triggerTypeEnum,
   triggerConfig: z.record(z.unknown()).optional().default({}),
   secrets: secretsSchema.optional().default({}),
@@ -38,6 +40,7 @@ export const createActionSchema = z.object({
 export const updateActionSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   code: z.string().max(MAX_CODE_LENGTH).optional(),
+  chainid: chainIdParamSchema,
   triggerType: triggerTypeEnum.optional(),
   triggerConfig: z.record(z.unknown()).optional(),
   secrets: secretsSchema.optional(),

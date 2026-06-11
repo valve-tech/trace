@@ -1,5 +1,5 @@
 import {
-  getEnabledActions,
+  getEnabledPeriodicActions,
   getAction,
   type ActionRow,
 } from "./actionsDb.js";
@@ -56,6 +56,7 @@ export function registerAction(action: ActionRow): void {
         type: "periodic",
         timestamp: new Date().toISOString(),
         intervalSeconds,
+        chainId: current.chain_id,
       };
 
       try {
@@ -90,6 +91,12 @@ export function unregisterAll(): void {
 // ---------------------------------------------------------------------------
 // Block/event trigger processing
 // ---------------------------------------------------------------------------
+/**
+ * Run a chain's block through its block/event-triggered actions. The
+ * monitor already queried the chain's enabled block/event actions (to
+ * decide whether to fetch the block at all) and passes the rows in, so
+ * this stays a pure fan-out with no extra DB round-trip.
+ */
 export async function processBlock(
   blockNumber: number,
   txs: Array<{
@@ -105,9 +112,9 @@ export async function processBlock(
     data: string;
     transactionHash: string | null;
   }>,
+  chainId: number,
+  actions: ActionRow[],
 ): Promise<void> {
-  const actions = await getEnabledActions();
-
   for (const action of actions) {
     const config = action.trigger_config as unknown as TriggerConfig;
 
@@ -119,6 +126,7 @@ export async function processBlock(
         type: "block",
         blockNumber,
         transactionCount: txs.length,
+        chainId,
       };
 
       try {
@@ -149,6 +157,7 @@ export async function processBlock(
           eventSignature,
           matchedLogs: matchingLogs,
           matchCount: matchingLogs.length,
+          chainId,
         };
 
         try {
@@ -166,18 +175,14 @@ export async function processBlock(
 // ---------------------------------------------------------------------------
 export async function initScheduler(): Promise<void> {
   console.log("[scheduler] initializing action scheduler...");
-  const actions = await getEnabledActions();
-  let registered = 0;
+  const actions = await getEnabledPeriodicActions();
 
   for (const action of actions) {
-    if (action.trigger_type === "periodic") {
-      registerAction(action);
-      registered++;
-    }
+    registerAction(action);
   }
 
   console.log(
-    `[scheduler] initialized with ${actions.length} enabled actions, ${registered} periodic schedules`,
+    `[scheduler] initialized with ${actions.length} periodic schedules (all chains)`,
   );
 }
 

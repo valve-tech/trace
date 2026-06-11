@@ -7,6 +7,8 @@ export interface ActionRow {
   id: number;
   name: string;
   code: string;
+  /** EIP-155 chain the action is pinned to (block/event feed + child RPC). */
+  chain_id: number;
   trigger_type: string;
   trigger_config: Record<string, unknown>;
   secrets: Record<string, unknown>;
@@ -33,15 +35,16 @@ export interface ActionLogRow {
 export async function createAction(data: {
   name: string;
   code: string;
+  chain_id: number;
   trigger_type: string;
   trigger_config: string;
   secrets?: string;
 }): Promise<ActionRow> {
   const { rows } = await pool.query<ActionRow>(
-    `INSERT INTO actions (name, code, trigger_type, trigger_config, secrets)
-     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)
+    `INSERT INTO actions (name, code, chain_id, trigger_type, trigger_config, secrets)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)
      RETURNING *`,
-    [data.name, data.code, data.trigger_type, data.trigger_config, data.secrets ?? "{}"],
+    [data.name, data.code, data.chain_id, data.trigger_type, data.trigger_config, data.secrets ?? "{}"],
   );
   return rows[0]!;
 }
@@ -51,13 +54,39 @@ export async function getAction(id: number): Promise<ActionRow | undefined> {
   return rows[0];
 }
 
-export async function listActions(): Promise<ActionRow[]> {
-  const { rows } = await pool.query<ActionRow>("SELECT * FROM actions ORDER BY created_at DESC");
+export async function listActions(chainId: number): Promise<ActionRow[]> {
+  const { rows } = await pool.query<ActionRow>(
+    "SELECT * FROM actions WHERE chain_id = $1 ORDER BY created_at DESC",
+    [chainId],
+  );
   return rows;
 }
 
-export async function getEnabledActions(): Promise<ActionRow[]> {
-  const { rows } = await pool.query<ActionRow>("SELECT * FROM actions WHERE enabled = TRUE");
+/**
+ * Enabled periodic actions across ALL chains — the scheduler registers
+ * every one at boot regardless of chain (the chain only shapes the trigger
+ * event payload and the RPC the executor hands to user code).
+ */
+export async function getEnabledPeriodicActions(): Promise<ActionRow[]> {
+  const { rows } = await pool.query<ActionRow>(
+    "SELECT * FROM actions WHERE enabled = TRUE AND trigger_type = 'periodic'",
+  );
+  return rows;
+}
+
+/**
+ * Enabled actions on `chainId` whose trigger needs the block feed. The
+ * monitor calls this once per block to decide whether fetching the block is
+ * worth it at all (chains with neither alerts nor block/event actions cost
+ * no RPC), then hands the rows straight to the scheduler so the query isn't
+ * repeated.
+ */
+export async function getEnabledBlockEventActions(chainId: number): Promise<ActionRow[]> {
+  const { rows } = await pool.query<ActionRow>(
+    `SELECT * FROM actions
+     WHERE enabled = TRUE AND chain_id = $1 AND trigger_type IN ('block', 'event')`,
+    [chainId],
+  );
   return rows;
 }
 
@@ -66,6 +95,7 @@ export async function updateAction(
   data: {
     name: string;
     code: string;
+    chain_id: number;
     trigger_type: string;
     trigger_config: string;
     secrets: string;
@@ -74,11 +104,11 @@ export async function updateAction(
 ): Promise<ActionRow | undefined> {
   const { rows } = await pool.query<ActionRow>(
     `UPDATE actions
-     SET name = $1, code = $2, trigger_type = $3, trigger_config = $4::jsonb,
-         secrets = $5::jsonb, enabled = $6, updated_at = NOW()
-     WHERE id = $7
+     SET name = $1, code = $2, chain_id = $3, trigger_type = $4, trigger_config = $5::jsonb,
+         secrets = $6::jsonb, enabled = $7, updated_at = NOW()
+     WHERE id = $8
      RETURNING *`,
-    [data.name, data.code, data.trigger_type, data.trigger_config, data.secrets, data.enabled, id],
+    [data.name, data.code, data.chain_id, data.trigger_type, data.trigger_config, data.secrets, data.enabled, id],
   );
   return rows[0];
 }
@@ -137,9 +167,12 @@ export async function getActionLogs(
   return { rows: dataResult.rows, total: Number(countResult.rows[0]!.count), page, limit };
 }
 
-export async function getTodayExecutions(): Promise<number> {
+export async function getTodayExecutions(chainId: number): Promise<number> {
   const { rows } = await pool.query<{ count: string }>(
-    "SELECT COUNT(*) as count FROM action_logs WHERE triggered_at >= CURRENT_DATE",
+    `SELECT COUNT(*) as count FROM action_logs l
+     JOIN actions a ON a.id = l.action_id
+     WHERE l.triggered_at >= CURRENT_DATE AND a.chain_id = $1`,
+    [chainId],
   );
   return Number(rows[0]!.count);
 }

@@ -13,6 +13,7 @@ export function formatAction(action: ActionRow) {
     id: action.id,
     name: action.name,
     code: action.code,
+    chainid: action.chain_id,
     triggerType: action.trigger_type,
     triggerConfig: action.trigger_config,
     secretKeys,

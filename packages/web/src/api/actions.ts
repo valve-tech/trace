@@ -1,4 +1,5 @@
 import { apiUrl } from "../lib/apiBase";
+import { scoped } from "./chainScope";
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -6,6 +7,8 @@ export interface Action {
   id: number;
   name: string;
   code: string;
+  /** EIP-155 chain the action is pinned to (block/event feed + RPC). */
+  chainid: number;
   triggerType: "block" | "event" | "periodic" | "webhook";
   triggerConfig: Record<string, unknown>;
   secretKeys: string[];
@@ -66,14 +69,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
 // ---------------------------------------------------------------------------
 // CRUD
 // ---------------------------------------------------------------------------
-export async function createAction(data: {
-  name: string;
-  code: string;
-  triggerType: string;
-  triggerConfig: Record<string, unknown>;
-  secrets?: Record<string, string>;
-}): Promise<Action> {
-  const res = await fetch(API_BASE, {
+export async function createAction(
+  data: {
+    name: string;
+    code: string;
+    triggerType: string;
+    triggerConfig: Record<string, unknown>;
+    secrets?: Record<string, string>;
+  },
+  chainId?: number,
+): Promise<Action> {
+  const res = await fetch(scoped(API_BASE, chainId), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -82,11 +88,11 @@ export async function createAction(data: {
   return body.action;
 }
 
-export async function listActions(): Promise<{
+export async function listActions(chainId?: number): Promise<{
   actions: Action[];
   stats: ActionStats;
 }> {
-  const res = await fetch(API_BASE);
+  const res = await fetch(scoped(API_BASE, chainId));
   return handleResponse<{ ok: boolean; actions: Action[]; stats: ActionStats }>(res);
 }
 

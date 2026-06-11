@@ -13,6 +13,7 @@ import { SecretsEditor, type SecretEntry } from "./ActionEditor/SecretsEditor";
 import { TestResultPanel } from "./ActionEditor/TestResultPanel";
 import { EditorActions } from "./ActionEditor/EditorActions";
 import { TriggerTypePicker } from "./ActionEditor/TriggerTypePicker";
+import { useActiveChainId } from "../../lib/activeChain";
 
 interface ActionEditorProps {
   action?: Action | null;
@@ -26,6 +27,7 @@ export default function ActionEditor({
   onCancel,
 }: ActionEditorProps) {
   const isEdit = Boolean(action);
+  const chainId = useActiveChainId();
 
   const [name, setName] = useState(action?.name ?? "");
   const [code, setCode] = useState(action?.code ?? TEMPLATES["block"]!);
@@ -78,10 +80,12 @@ export default function ActionEditor({
         secrets: Object.keys(secretsObj).length > 0 ? secretsObj : undefined,
       };
 
+      // New actions pin to the active chain; edits send no chainid so the
+      // backend keeps the action on its existing chain.
       const saved =
         isEdit && action
           ? await updateAction(action.id, payload)
-          : await createAction(payload);
+          : await createAction(payload, chainId);
       onSaved(saved);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save");

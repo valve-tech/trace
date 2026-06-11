@@ -17,6 +17,7 @@ import {
   unregisterAction,
 } from "../services/actionScheduler.js";
 import { ApiError, asyncRoute, respond } from "../lib/respond.js";
+import { resolveChainIdParam } from "../lib/chainParam.js";
 import {
   createActionSchema,
   idParamSchema,
@@ -42,9 +43,13 @@ router.post(
   "/",
   asyncRoute(async (req: Request, res: Response) => {
     const parsed = createActionSchema.parse(req.body);
+    // The web client threads chainid as `?chainid=N` (scoped()); API
+    // consumers may put it in the body instead. Query wins (alerts contract).
+    const chainId = resolveChainIdParam(req.query.chainid ?? parsed.chainid);
     const action = await createAction({
       name: parsed.name,
       code: parsed.code,
+      chain_id: chainId,
       trigger_type: parsed.triggerType,
       trigger_config: JSON.stringify(parsed.triggerConfig),
       secrets: JSON.stringify(parsed.secrets),
@@ -57,13 +62,14 @@ router.post(
 );
 
 // ---------------------------------------------------------------------------
-// GET /api/actions — List all actions
+// GET /api/actions — List actions for a chain (?chainid=N, default 369)
 // ---------------------------------------------------------------------------
 router.get(
   "/",
-  asyncRoute(async (_req: Request, res: Response) => {
-    const actions = await listActions();
-    const todayExecutions = await getTodayExecutions();
+  asyncRoute(async (req: Request, res: Response) => {
+    const chainId = resolveChainIdParam(req.query.chainid);
+    const actions = await listActions(chainId);
+    const todayExecutions = await getTodayExecutions(chainId);
     const enabledCount = actions.filter((a) => a.enabled).length;
 
     respond.ok(res, {
@@ -97,9 +103,18 @@ router.put(
     const existing = await requireAction(req.params.id);
     const parsed = updateActionSchema.parse(req.body);
 
+    // Omitted chainid keeps the action on its current chain — an old client
+    // toggling `enabled` must not migrate the action to the default chain.
+    const rawChainId = req.query.chainid ?? parsed.chainid;
+    const chainId =
+      rawChainId === undefined
+        ? existing.chain_id
+        : resolveChainIdParam(rawChainId);
+
     const updated = await updateAction(existing.id, {
       name: parsed.name ?? existing.name,
       code: parsed.code ?? existing.code,
+      chain_id: chainId,
       trigger_type: parsed.triggerType ?? existing.trigger_type,
       trigger_config: parsed.triggerConfig
         ? JSON.stringify(parsed.triggerConfig)

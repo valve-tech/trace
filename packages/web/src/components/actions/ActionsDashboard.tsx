@@ -9,6 +9,7 @@ import {
 } from "../../api/actions";
 import ActionEditor from "./ActionEditor";
 import ActionLogs from "./ActionLogs";
+import { useActiveChainId } from "../../lib/activeChain";
 
 // ---------------------------------------------------------------------------
 // Trigger type badge colors
@@ -33,6 +34,7 @@ type View =
 // Component
 // ---------------------------------------------------------------------------
 export default function ActionsDashboard() {
+  const chainId = useActiveChainId();
   const [view, setView] = useState<View>({ type: "list" });
   const [actions, setActions] = useState<Action[]>([]);
   const [stats, setStats] = useState<ActionStats>({ total: 0, active: 0, todayExecutions: 0 });
@@ -41,7 +43,7 @@ export default function ActionsDashboard() {
   const fetchActions = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await listActions();
+      const result = await listActions(chainId);
       setActions(result.actions);
       setStats(result.stats);
     } catch (err) {
@@ -49,7 +51,7 @@ export default function ActionsDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [chainId]);
 
   useEffect(() => {
     void fetchActions();
