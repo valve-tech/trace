@@ -1,4 +1,4 @@
-# @valve-tech/trace-indexer
+# @valve-tech/explore-indexer
 
 **Stopgap** Ponder indexer that maintains a `(holder, token) → balance`
 projection for a **curated** PulseChain token set, so the portfolio tracker can

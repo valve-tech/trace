@@ -1,4 +1,4 @@
-// Shared constants for PulseChain Dev Platform
+// Shared constants for Explore (by Valve City)
 
 export const PULSECHAIN_CHAIN_ID = 369;
 export const PULSECHAIN_RPC_URL = 'https://rpc.pulsechain.com';

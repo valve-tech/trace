@@ -3,7 +3,8 @@
 ## Codebase Overview
 
 **Product name:** Explore (by Valve City). Deployed at https://explore.valve.city.
-Repo is still named `trace` pending a rename (see memory).
+The repo is named `explore`. (The published SDK package is still
+`@valve-tech/trace-sdk` — renaming it is a separate, deliberate decision.)
 
 Multichain block explorer + transaction simulator + opcode debugger.
 Seven features — transaction simulation, block explorer, monitoring/alerting,

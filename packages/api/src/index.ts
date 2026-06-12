@@ -232,7 +232,7 @@ async function start(): Promise<void> {
   forkManager.setExitOnSignal(false);
 
   server.listen(PORT, () => {
-    console.log(`PulseChain Dev Platform API listening on http://localhost:${PORT}`);
+    console.log(`Explore API listening on http://localhost:${PORT}`);
     console.log(`  POST /api/simulate            – single transaction simulation`);
     console.log(`  POST /api/simulate-bundle      – bundled transaction simulation`);
     console.log(`  GET  /api/tx/:hash             – transaction details`);

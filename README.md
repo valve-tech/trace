@@ -1,6 +1,6 @@
-# Trace
+# Explore
 
-A Tenderly-equivalent developer toolchain for [PulseChain](https://pulsechain.com) (chain ID 369). Seven developer tools — transaction simulation, block explorer, monitoring & alerting, virtual testnets (Anvil forks), smart-contract debugger, enhanced JSON-RPC proxy, and serverless Web3 Actions — delivered as a TypeScript monorepo plus a published `@valve-tech/trace-sdk` npm package.
+**Explore** (by Valve City) — a multichain block explorer, transaction simulator, and opcode debugger, deployed at [explore.valve.city](https://explore.valve.city). Seven developer tools — transaction simulation, block explorer, monitoring & alerting, virtual testnets (Anvil forks), smart-contract debugger, enhanced JSON-RPC proxy, and serverless Web3 Actions — delivered as a TypeScript monorepo plus a published `@valve-tech/trace-sdk` npm package.
 
 ## Packages
 

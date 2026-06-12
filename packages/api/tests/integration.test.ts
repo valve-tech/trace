@@ -1,5 +1,5 @@
 /**
- * Comprehensive integration test suite for the PulseChain Developer Platform API.
+ * Comprehensive integration test suite for the Explore API.
  *
  * Assumes the API server is already running on http://localhost:10100
  * and is connected to live PulseChain RPC.

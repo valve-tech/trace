@@ -1,6 +1,6 @@
-# PulseChain Developer Platform — Full Specification
+# Explore — Full Specification
 
-A Tenderly.co equivalent targeting PulseChain (rpc.pulsechain.com, chainId 369).
+Explore (by Valve City) — a Tenderly.co equivalent, originally targeting PulseChain (rpc.pulsechain.com, chainId 369), now multichain.
 
 ## Feature Overview
 

@@ -11,7 +11,7 @@ total_tokens: 360223
 
 ## System Overview
 
-A **Tenderly-equivalent for PulseChain** (chain ID 369). Seven developer tools — simulation, exploration, debugging, monitoring, testnets, enhanced RPC, and serverless actions — delivered as a TypeScript monorepo with Express backend, React frontend, and a published `@valve-tech/trace-sdk` npm package.
+**Explore** (by Valve City, deployed at https://explore.valve.city) — a multichain Tenderly-equivalent (launch set: Ethereum 1, PulseChain 369, PulseChain Testnet 943). Seven developer tools — simulation, exploration, debugging, monitoring, testnets, enhanced RPC, and serverless actions — delivered as a TypeScript monorepo with Express backend, React frontend, and a published `@valve-tech/trace-sdk` npm package.
 
 ```mermaid
 graph TB
@@ -98,7 +98,7 @@ graph TB
 ## Directory Structure
 
 ```
-trace/
+explore/
 ├── package.json              # Workspace root (npm workspaces)
 ├── docker-compose.yml        # Local Postgres + API container
 ├── railway.json              # Production deploy config

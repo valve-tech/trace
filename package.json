@@ -1,5 +1,5 @@
 {
-  "name": "@valve-tech/trace-platform",
+  "name": "@valve-tech/explore-platform",
   "private": true,
   "type": "module",
   "workspaces": [

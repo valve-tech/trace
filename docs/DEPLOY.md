@@ -1,7 +1,7 @@
 # Deploying `explore.valve.city`
 
 Handoff doc for whoever is wiring up the production deployment. The
-trace repo (this one) builds the artifact; the deploy repo (Caddy +
+explore repo (this one) builds the artifact; the deploy repo (Caddy +
 host config on `valve-prod`) decides where it runs and how the world
 reaches it.
 
@@ -58,7 +58,7 @@ The repo has **no CI deploy workflow**. Whoever owns the deploy repo
 needs to decide:
 
 1. **Where the image is built.** Options:
-   - GitHub Actions in the trace repo, pushing to ghcr.io on every
+   - GitHub Actions in the explore repo, pushing to ghcr.io on every
      main merge (needs a CI workflow added).
    - In the deploy repo, pulling this repo as a submodule or via
      `git clone` + `docker build`.
@@ -173,7 +173,7 @@ Postgres is left intact across rollbacks; no migration rollback is
 required for this initial deploy because there are no destructive
 migrations in the image.
 
-## What the trace repo can do to support this
+## What the explore repo can do to support this
 
 - Add a GitHub Actions workflow that builds + pushes the image on
   main merge — needs a registry target and credentials.
@@ -183,7 +183,7 @@ migrations in the image.
   needs one (currently the container's only readiness signal is being
   port-bound).
 
-Ping the trace repo owner with the deploy-repo path and the chosen
+Ping the explore repo owner with the deploy-repo path and the chosen
 registry and they'll prep whichever of the above are useful.
 
 ---

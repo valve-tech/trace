@@ -2,7 +2,7 @@
 #
 # deploy-ipfs.sh — publish the Explore SPA to a self-hosted kubo (IPFS) node.
 #
-# The trace repo BUILDS the artifact; this script ADDS + PINS it to a kubo node
+# The explore repo BUILDS the artifact; this script ADDS + PINS it to a kubo node
 # you already run (the indexer box's node, where chifra publishes the unchained
 # index). It deliberately does NOT touch DNS and holds no secrets — the kubo API
 # endpoint is the only input, passed via env.
